@@ -217,7 +217,21 @@
     "spFileHint": "Import from a Simply Plural data export file.",
     "pickSPFile": "Pick SP Export File",
     "notValidSPExport": "This file doesn't appear to be a valid Simply Plural export.",
-    "customizeExport": "Customize Export"
+    "customizeExport": "Customize Export",
+    "exportDesc": "Export all your system data as a JSON backup file.",
+    "membersCountSimple": "{{count}} members",
+    "historyCount": "{{count}} front history entries",
+    "journalCount": "{{count}} journal entries",
+    "exportBackup": "Export Backup",
+    "restoreDesc": "Restore your data from a previously exported Plural Space backup file.",
+    "importPSBackup": "Import PS Backup",
+    "importing": "Importing…",
+    "spMergeDesc": "Import members and front history from a Simply Plural export file.",
+    "importFromSP": "Import from SP",
+    "dangerZone": "Danger Zone",
+    "clearAllDataDesc": "Permanently delete all local data. This cannot be undone.",
+    "clearAllData": "Clear All Data",
+    "clearAllConfirm": "Are you sure? This will permanently erase all your data."
   },
   "hub": {
     "title": "Hub",
