@@ -436,7 +436,7 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
             {/* Write note */}
             <div style={{ padding: 12, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: 'var(--dim)' }}>Writing as:</span>
+                <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('noteboard.writingAs')}</span>
                 <select style={{ background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 12 }}
                   value={noteAuthorId || ''} onChange={e => setNoteAuthorId(e.target.value)}>
                   {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}

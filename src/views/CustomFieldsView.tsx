@@ -99,7 +99,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                   </div>
                 )}
                 {fd.markdown && (
-                  <span style={{ fontSize: 10, color: 'var(--info)', marginTop: 2, display: 'block' }}>☑ Markdown support</span>
+                  <span style={{ fontSize: 10, color: 'var(--info)', marginTop: 2, display: 'block' }}>☑ {t('customFields.markdownSupport')}</span>
                 )}
               </div>
 
@@ -142,7 +142,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '9px 0' }}>
             <input type="checkbox" checked={newMarkdown} onChange={e => setNewMarkdown(e.target.checked)} />
-            <span style={{ fontSize: 12, color: 'var(--dim)' }}>Markdown</span>
+            <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.markdownLabel')}</span>
           </label>
           <Btn variant="solid" onClick={addField}>{t('customFields.addField')}</Btn>
         </div>

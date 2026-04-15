@@ -333,8 +333,8 @@ export default function StatsView({ history, members, channels }: Props) {
           return (
             <div style={{ padding: 14, background: 'var(--card)', borderRadius: 10, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-                <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.sessions}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>sessions</span></div>
-                {memberSpecific.avgEnergy !== null && <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.avgEnergy}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>/10 avg energy</span></div>}
+                <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.sessions}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>{t('stats.sessionsSuffix')}</span></div>
+                {memberSpecific.avgEnergy !== null && <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.avgEnergy}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>{t('energy.outOf10')}</span></div>}
               </div>
               {memberSpecific.coMembers.length > 0 && (
                 <div style={{ marginBottom: 10 }}>

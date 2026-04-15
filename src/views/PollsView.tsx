@@ -71,7 +71,7 @@ export default function PollsView({ members, onUpdate }: Props) {
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       {/* Voter selector */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
-        <span style={{ fontSize: 12, color: 'var(--dim)' }}>Voting as:</span>
+        <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('polls.votingAs')}</span>
         <select style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}
           value={voterId} onChange={e => setVoterId(e.target.value)}>
           {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -152,14 +152,14 @@ export default function PollsView({ members, onUpdate }: Props) {
       <Modal open={showCreate} title={t('polls.createPoll')} onClose={() => setShowCreate(false)}
         footer={<Btn variant="solid" onClick={createPoll}>{t('common.add')}</Btn>}>
         <div style={{ marginBottom: 12 }}>
-          <label className="field__label">For member:</label>
+          <label className="field__label">{t('polls.forMember')}</label>
           <select style={{ width: '100%', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 10px', fontSize: 13 }}
             value={targetId} onChange={e => setTargetId(e.target.value)}>
             {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
         <Field label={t('polls.question')} value={question} onChange={setQuestion} placeholder={t('polls.questionPlaceholder')} />
-        <Section label="Options" />
+        <Section label={t('polls.optionsLabel')} />
         {options.map((opt, i) => (
           <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
             <input className="field__input" value={opt} onChange={e => { const u = [...options]; u[i] = e.target.value; setOptions(u); }}

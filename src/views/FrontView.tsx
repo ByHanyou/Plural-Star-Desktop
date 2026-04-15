@@ -162,13 +162,13 @@ export default function FrontView({ front, members, groups, history, settings, o
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
             {tier.mood && (
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>Mood</div>
+                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('front.mood')}</div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.mood}</div>
               </div>
             )}
             {isPrimary && tier.location && (
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>Location</div>
+                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('modal.location')}</div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.location}</div>
               </div>
             )}
@@ -202,7 +202,7 @@ export default function FrontView({ front, members, groups, history, settings, o
             </div>
             {isEditingNote ? (
               <textarea className="field__input field__input--multi" value={noteText} onChange={e => setNoteText(e.target.value)}
-                placeholder="What's happening?" style={{ minHeight: 56, fontSize: 12 }} />
+                placeholder={t('modal.whatHappening')} style={{ minHeight: 56, fontSize: 12 }} />
             ) : (
               <p style={{ fontSize: 12, lineHeight: 1.5, color: tier.note ? 'var(--text)' : 'var(--muted)' }}>
                 {tier.note || t('front.noNote')}
@@ -221,9 +221,9 @@ export default function FrontView({ front, members, groups, history, settings, o
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--text)', fontWeight: 600, fontStyle: 'italic' }}>
-          Currently Fronting
+          {t('front.currentlyFronting')}
         </h2>
-        <Btn variant="primary" onClick={() => setShowSetFront(true)}>Update Front</Btn>
+        <Btn variant="primary" onClick={() => setShowSetFront(true)}>{t('front.update')}</Btn>
       </div>
 
       {noteboardAlert && (
@@ -233,7 +233,7 @@ export default function FrontView({ front, members, groups, history, settings, o
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{ fontSize: 13, color: 'var(--accent)' }}>
-            📋 {noteboardAlert.join(', ')} {noteboardAlert.length === 1 ? 'has' : 'have'} notes on their noteboard
+            📋 {t('noteboard.hasNotes', { names: noteboardAlert.join(', ') })}
           </span>
           <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14 }}
             onClick={() => setNoteboardAlert(null)}>✕</button>
@@ -245,8 +245,8 @@ export default function FrontView({ front, members, groups, history, settings, o
           padding: 32, textAlign: 'center', background: 'var(--card)',
           border: '1px solid var(--border)', borderRadius: 'var(--radius)',
         }}>
-          <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 12 }}>No one currently fronting</p>
-          <Btn onClick={() => setShowSetFront(true)}>Set Front</Btn>
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 12 }}>{t('front.noOneFronting')}</p>
+          <Btn onClick={() => setShowSetFront(true)}>{t('front.setFront')}</Btn>
         </div>
       ) : (
         TIER_ORDER.map(t => <TierCard key={t} tierKey={t} />)
@@ -416,7 +416,7 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
         {/* Search + available */}
         <input className="field__input" value={search[tierKey]}
           onChange={e => setSearch({ ...search, [tierKey]: e.target.value })}
-          placeholder="Search members..." style={{ marginBottom: 6, fontSize: 12 }} />
+          placeholder={t('members.search')} style={{ marginBottom: 6, fontSize: 12 }} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, maxHeight: 100, overflowY: 'auto' }}>
           {filtered.slice(0, 20).map(m => {
             const assignedTo = allAssigned[m.id];
@@ -445,7 +445,7 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
         {/* Location (primary only) */}
         {tierKey === 'primary' && (
           <>
-            <label className="field__label" style={{ marginTop: 4 }}>Location</label>
+            <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
               {(settings.locations || []).map(l => (
                 <button key={l} className={`btn ${primaryLocation === l ? 'btn--primary' : 'btn--ghost'}`}
@@ -454,7 +454,7 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
               ))}
             </div>
             <input className="field__input" value={primaryLocation} onChange={e => setPrimaryLocation(e.target.value)}
-              placeholder="Type location..." style={{ fontSize: 12, marginBottom: 8 }} />
+              placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
           </>
         )}
 
@@ -470,7 +470,7 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
         </div>
 
         <textarea className="field__input field__input--multi" value={note} onChange={e => setNote(e.target.value)}
-          placeholder="What's happening?" style={{ minHeight: 48, fontSize: 12 }} />
+          placeholder={t('modal.whatHappening')} style={{ minHeight: 48, fontSize: 12 }} />
       </div>
     );
   };
@@ -510,6 +510,7 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
   const [mood, setMood] = useState(tierData.mood || '');
   const [location, setLocation] = useState(tierData.location || '');
   const [note, setNote] = useState(tierData.note || '');
+  const { t } = useTranslation();
 
   useEffect(() => {
     setMood(tierData.mood || '');
@@ -518,9 +519,9 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
   }, [tierData, open]);
 
   return (
-    <Modal open={open} title={`Edit ${TIER_LABELS[tier]}`} onClose={onClose}
-      footer={<Btn variant="solid" onClick={() => onSave(mood || undefined, isPrimary ? location || undefined : undefined, note || undefined)}>Save</Btn>}>
-      <label className="field__label">Mood</label>
+    <Modal open={open} title={t('tier.editTier', { tier: TIER_LABELS[tier] })} onClose={onClose}
+      footer={<Btn variant="solid" onClick={() => onSave(mood || undefined, isPrimary ? location || undefined : undefined, note || undefined)}>{t('common.save')}</Btn>}>
+      <label className="field__label">{t('modal.mood')}</label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
         {allMoods.map(m => (
           <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
@@ -530,7 +531,7 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
       </div>
       {isPrimary && (
         <>
-          <label className="field__label">Location</label>
+          <label className="field__label">{t('modal.location')}</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
             {allLocations.map(l => (
               <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
@@ -539,10 +540,10 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
             ))}
           </div>
           <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-            placeholder="Type location..." style={{ fontSize: 12, marginBottom: 10 }} />
+            placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 10 }} />
         </>
       )}
-      <Field label="Note" value={note} onChange={setNote} placeholder="What's happening?" multiline />
+      <Field label={t('modal.note')} value={note} onChange={setNote} placeholder={t('modal.whatHappening')} multiline />
     </Modal>
   );
 }

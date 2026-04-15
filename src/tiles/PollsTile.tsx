@@ -22,7 +22,7 @@ export default function PollsTile({ onClick }: Props) {
       </div>
       <div className="tile__body">
         <span className="tile__stat">{activeCount}</span>
-        <span className="tile__label">{activeCount === 1 ? 'active poll' : 'active polls'}</span>
+        <span className="tile__label">{t('polls.activeCount', { count: activeCount })}</span>
       </div>
     </div>
   );

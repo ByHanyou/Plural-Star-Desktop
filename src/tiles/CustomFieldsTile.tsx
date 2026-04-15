@@ -20,7 +20,7 @@ export default function CustomFieldsTile({ onClick }: Props) {
       </div>
       <div className="tile__body">
         <span className="tile__stat">{count}</span>
-        <span className="tile__label">{count === 1 ? 'field' : 'fields'}</span>
+        <span className="tile__label">{t('customFields.fieldCount', { count })}</span>
       </div>
     </div>
   );

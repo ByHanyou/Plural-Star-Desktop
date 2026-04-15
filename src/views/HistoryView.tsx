@@ -122,12 +122,12 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search history..." style={{ flex: 1, minWidth: 200 }} />
+          placeholder={t('members.search')} style={{ flex: 1, minWidth: 200 }} />
         <select style={{
           background: 'var(--surface)', color: memberFilter ? 'var(--accent)' : 'var(--muted)',
           border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
         }} value={memberFilter} onChange={e => setMemberFilter(e.target.value)}>
-          <option value="">All members</option>
+          <option value="">{t('history.allMembers')}</option>
           {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
         <div style={{ display: 'flex', gap: 4 }}>
