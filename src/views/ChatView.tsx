@@ -215,10 +215,10 @@ export default function ChatView({ members, channels, onUpdate }: Props) {
             {activeMember && (
               <>
                 <div className="tile__avatar" style={{
-                  width: 22, height: 22, fontSize: 9,
-                  ...(activeMember.avatar ? { backgroundImage: `url(${activeMember.avatar})` } : { backgroundColor: activeMember.color }),
+                  width: 22, height: 22, fontSize: 9, overflow: 'hidden',
+                  ...(!activeMember.avatar ? { backgroundColor: activeMember.color } : {}),
                 }}>
-                  {!activeMember.avatar && getInitials(activeMember.name)}
+                  {activeMember.avatar ? <img src={activeMember.avatar} style={{ width: 22, height: 22, borderRadius: 11, objectFit: 'cover' }} /> : getInitials(activeMember.name)}
                 </div>
                 <span style={{ fontSize: 12, color: activeMember.color, flex: 1, textAlign: 'left' }}>{activeMember.name}</span>
               </>
@@ -288,10 +288,10 @@ export default function ChatView({ members, channels, onUpdate }: Props) {
               return (
                 <div key={msg.id} style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
                   <div className="tile__avatar" style={{
-                    width: 32, height: 32, fontSize: 12, flexShrink: 0, marginTop: 2,
-                    ...(author?.avatar ? { backgroundImage: `url(${author.avatar})` } : { backgroundColor: author?.color || 'var(--muted)' }),
+                    width: 32, height: 32, fontSize: 12, flexShrink: 0, marginTop: 2, overflow: 'hidden',
+                    ...(!author?.avatar ? { backgroundColor: author?.color || 'var(--muted)' } : {}),
                   }}>
-                    {!author?.avatar && getInitials(author?.name || '?')}
+                    {author?.avatar ? <img src={author.avatar} style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(author?.name || '?')}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>

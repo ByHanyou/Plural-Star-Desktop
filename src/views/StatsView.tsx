@@ -117,6 +117,72 @@ export default function StatsView({ history, members, channels }: Props) {
   const totalTime = fronterTotals.reduce((a, [, d]) => a + d, 0);
   const totalMsgs = chatSorted.reduce((a, [, c]) => a + c, 0);
 
+  // Energy averages per member
+  const energyStats = useMemo(() => {
+    const map: Record<string, { sum: number; count: number }> = {};
+    for (const entry of filtered) {
+      if (entry.energyLevel) {
+        for (const id of entry.memberIds) {
+          if (!map[id]) map[id] = { sum: 0, count: 0 };
+          map[id].sum += entry.energyLevel;
+          map[id].count++;
+        }
+      }
+      if (entry.coFrontEnergy) {
+        for (const id of (entry.coFrontIds || [])) {
+          if (!map[id]) map[id] = { sum: 0, count: 0 };
+          map[id].sum += entry.coFrontEnergy;
+          map[id].count++;
+        }
+      }
+    }
+    return Object.entries(map)
+      .map(([id, { sum, count }]) => [id, Math.round((sum / count) * 10) / 10] as [string, number])
+      .sort((a, b) => b[1] - a[1]);
+  }, [filtered]);
+
+  // Peak hours (0-23)
+  const peakHours = useMemo(() => {
+    const hours = new Array(24).fill(0);
+    for (const entry of filtered) {
+      const h = new Date(entry.startTime).getHours();
+      hours[h]++;
+    }
+    return hours;
+  }, [filtered]);
+
+  const peakMax = Math.max(...peakHours, 1);
+
+  // Member-specific leaderboard
+  const [selectedStatMember, setSelectedStatMember] = useState<string | null>(null);
+
+  const memberSpecific = useMemo(() => {
+    if (!selectedStatMember) return null;
+    const entries = filtered.filter(e =>
+      e.memberIds.includes(selectedStatMember) ||
+      (e.coFrontIds || []).includes(selectedStatMember) ||
+      (e.coConsciousIds || []).includes(selectedStatMember)
+    );
+    const coMembers: Record<string, number> = {};
+    const moods: Record<string, number> = {};
+    let energySum = 0; let energyCount = 0;
+    for (const e of entries) {
+      const allIds = [...e.memberIds, ...(e.coFrontIds || []), ...(e.coConsciousIds || [])];
+      for (const id of allIds) {
+        if (id !== selectedStatMember) coMembers[id] = (coMembers[id] || 0) + 1;
+      }
+      if (e.mood) moods[e.mood] = (moods[e.mood] || 0) + 1;
+      if (e.energyLevel && e.memberIds.includes(selectedStatMember)) { energySum += e.energyLevel; energyCount++; }
+      if (e.coFrontEnergy && (e.coFrontIds || []).includes(selectedStatMember)) { energySum += e.coFrontEnergy; energyCount++; }
+    }
+    return {
+      sessions: entries.length,
+      coMembers: Object.entries(coMembers).sort((a, b) => b[1] - a[1]).slice(0, 5),
+      moods: Object.entries(moods).sort((a, b) => b[1] - a[1]).slice(0, 5),
+      avgEnergy: energyCount > 0 ? Math.round((energySum / energyCount) * 10) / 10 : null,
+    };
+  }, [filtered, selectedStatMember]);
+
   // ─── Bar Component ─────────────────────────────────────────────────────
 
   const Bar = ({ label, value, max, color, suffix }: {
@@ -214,6 +280,82 @@ export default function StatsView({ history, members, channels }: Props) {
           ))}
           {locationTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noLocationsRecorded')}</span>}
         </div>
+      </div>
+
+      {/* Energy Averages */}
+      {energyStats.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('energy.avgEnergy')}</h3>
+          {energyStats.slice(0, 8).map(([id, avg]) => {
+            const m = getMember(id);
+            return <Bar key={id} label={m?.name || '?'} value={avg} max={10} color={m?.color || 'var(--accent)'} suffix={`${avg}/10`} />;
+          })}
+        </div>
+      )}
+
+      {/* Peak Hours */}
+      <div style={{ marginTop: 20 }}>
+        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.peakHours')}</h3>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
+          {peakHours.map((count, h) => (
+            <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{
+                width: '100%', background: count === peakMax ? 'var(--accent)' : 'var(--border)',
+                borderRadius: 2, height: `${Math.max((count / peakMax) * 100, 2)}%`,
+                minHeight: 2, transition: 'height 0.3s ease',
+              }} />
+              {h % 4 === 0 && <span style={{ fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>{h}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Member Leaderboard */}
+      <div style={{ marginTop: 20 }}>
+        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.memberLeaderboard', { name: '' }).replace(/^\s+/, '') || 'Member Details'}</h3>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          {members.filter(m => !m.archived).map(m => (
+            <button key={m.id} className={`chip`}
+              style={{
+                borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
+                background: selectedStatMember === m.id ? `${m.color}20` : 'var(--surface)',
+                color: selectedStatMember === m.id ? m.color : 'var(--dim)', cursor: 'pointer',
+              }}
+              onClick={() => setSelectedStatMember(selectedStatMember === m.id ? null : m.id)}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+              {m.name}
+            </button>
+          ))}
+        </div>
+
+        {memberSpecific && selectedStatMember && (() => {
+          const m = getMember(selectedStatMember);
+          return (
+            <div style={{ padding: 14, background: 'var(--card)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.sessions}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>sessions</span></div>
+                {memberSpecific.avgEnergy !== null && <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.avgEnergy}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>/10 avg energy</span></div>}
+              </div>
+              {memberSpecific.coMembers.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('stats.topCoMembers')}</div>
+                  {memberSpecific.coMembers.map(([id, count]) => {
+                    const cm = getMember(id);
+                    return <Bar key={id} label={cm?.name || '?'} value={count} max={memberSpecific.coMembers[0]?.[1] || 1} color={cm?.color || 'var(--info)'} suffix={`${count}`} />;
+                  })}
+                </div>
+              )}
+              {memberSpecific.moods.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('stats.topMoods')}</div>
+                  {memberSpecific.moods.map(([mood, count]) => (
+                    <Bar key={mood} label={mood} value={count} max={memberSpecific.moods[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

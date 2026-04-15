@@ -54,10 +54,7 @@
     "addMood": "+ Lisää mieliala",
     "frontNote": "MUISTIINPANO",
     "whatHappening": "Mitä tapahtuu juuri nyt?",
-    "noNote": "Ei muistiinpanoa. Napauta ✎ lisätäksesi.",
-    "clearFront": "Tyhjennä Edusta",
-    "clearFrontTitle": "Tyhjennä Edusta?",
-    "clearFrontMsg": "Tämä lopettaa nykyisen edustan ja tallentaa sen historiaan. Oletko varma?"
+    "noNote": "Ei muistiinpanoa. Napauta ✎ lisätäksesi."
   },
   "members": {
     "title": "Jäsenet",
@@ -121,8 +118,7 @@
     "unlockPasswordPrompt": "Syötä salasana avataksesi.",
     "unlock": "Avaa",
     "searchTags": "Hae tunnisteita…",
-    "searchAuthors": "Hae kirjoittajia…",
-    "noEntriesFilter": "Yksikään merkintä ei vastaa suodattimiasi."
+    "searchAuthors": "Hae kirjoittajia…"
   },
   "share": {
     "title": "Share & Export",
@@ -210,26 +206,13 @@
     "spFileHint": "Tuo Simply Plural -datan vientitiedostosta.",
     "pickSPFile": "Valitse SP-vientitiedosto",
     "notValidSPExport": "Tämä tiedosto ei vaikuta olevan kelvollinen Simply Plural -vienti.",
-    "clearAllConfirm": "Oletko aivan varma? Kaikki jäsenet, historia, päiväkirjamerkinnät, chat-viestit ja asetukset poistetaan pysyvästi.",
-    "clearAllData": "Tyhjennä Kaikki Tiedot",
-    "clearAllDataDesc": "Poista pysyvästi kaikki Plural Space -tiedot tältä laitteelta. Tätä ei voi peruuttaa.",
-    "dangerZone": "Vaaravyöhyke",
-    "exportBackup": "Vie Varmuuskopio",
-    "exportDesc": "Vie kaikki järjestelmätiedot (jäsenet, edustahistoria, päiväkirjamerkinnät) JSON-tiedostona. Yhteensopiva Plural Spacen mobiili- ja työpöytäversioiden kanssa.",
-    "historyCount": "{{count}} historiamerkintää",
-    "importFromSP": "Tuo Simply Pluralista",
-    "importPSBackup": "Tuo Plural Space -varmuuskopio",
-    "importing": "Tuodaan…",
-    "journalCount": "{{count}} päiväkirjamerkintää",
-    "membersCountSimple": "{{count}} jäsentä",
-    "restoreDesc": "Palauta Plural Space -varmuuskopiotiedostosta. Tämä korvaa nykyiset tiedot.",
-    "spMergeDesc": "Tuo Simply Plural -vientitiedostosta. Jäsenet ja edustahistoria yhdistetään olemassa oleviin tietoihin — kaksoiskappaleet ohitetaan.",
     "profilePictures": "Profiilikuvat",
     "memberGroups": "Jäsenryhmät",
     "chatData": "Chat-kanavat ja Viestit",
     "customMoodsLabel": "Omat Mielialat",
     "themePalettes": "Teemapaletit",
-    "appSettings": "Sovellusasetukset"
+    "appSettings": "Sovellusasetukset",
+    "customizeExport": "Mukauta Vienti"
   },
   "hub": {
     "title": "Hub",
@@ -256,8 +239,7 @@
     "retroHistory": "Takautuva historia",
     "statistics": "Tilastot",
     "systemChat": "Järjestelmäkeskustelu",
-    "discord": "Discord",
-    "dashboard": "Hallintapaneeli"
+    "discord": "Discord"
   },
   "modal": {
     "systemSettings": "Järjestelmäasetukset",
@@ -360,7 +342,9 @@
     "de": "Deutsch",
     "pt": "Português",
     "fi": "Suomi",
-    "nb": "Norsk"
+    "nb": "Norsk",
+    "zh": "中文",
+    "ja": "日本語"
   },
   "memberGroups": {
     "title": "Ryhmät",
@@ -382,13 +366,7 @@
     "topCoCon": "Eniten yhteistietoisia",
     "topChatters": "Eniten viestijät",
     "topMoods": "Yleisimmät mielialat",
-    "topLocations": "Yleisimmät paikat",
-    "chatMessages": "Chat-viestit",
-    "noLocationsRecorded": "Ei tallennettuja sijainteja",
-    "noMoodsRecorded": "Ei tallennettuja mielialoja",
-    "totalFrontTime": "Kokonaisaika Edessä",
-    "totalSessions": "Istunnot Yhteensä",
-    "uniqueFronters": "Yksilölliset Edustajat"
+    "topLocations": "Yleisimmät paikat"
   },
   "chat": {
     "channels": "Kanavat",

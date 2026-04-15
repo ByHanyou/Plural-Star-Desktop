@@ -1,19 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials } from '../utils';
+import { store, KEYS } from '../storage';
+import { Btn, ConfirmDialog } from '../components/ui';
 
 interface Props {
   history: HistoryEntry[];
   members: Member[];
+  onUpdate: () => void;
 }
 
 type TimeRange = 'all' | '7d' | '30d' | '90d';
 
-export default function HistoryView({ history, members }: Props) {
+export default function HistoryView({ history, members, onUpdate }: Props) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [range, setRange] = useState<TimeRange>('all');
   const [memberFilter, setMemberFilter] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [deleteStep, setDeleteStep] = useState(0);
 
   const getMember = (id: string) => members.find(m => m.id === id);
 
@@ -71,7 +76,7 @@ export default function HistoryView({ history, members }: Props) {
         borderRadius: 999, background: `${m.color}15`, border: `1px solid ${m.color}30`,
       }}>
         {m.avatar ? (
-          <span style={{ width: 16, height: 16, borderRadius: 8, backgroundImage: `url(${m.avatar})`, backgroundSize: 'cover', display: 'inline-block' }} />
+          <img src={m.avatar} style={{ width: 16, height: 16, borderRadius: 8, objectFit: 'cover', display: 'inline-block' }} />
         ) : (
           <span style={{ width: 16, height: 16, borderRadius: 8, background: m.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700 }}>
             {getInitials(m.name)}
@@ -81,6 +86,36 @@ export default function HistoryView({ history, members }: Props) {
       </span>
     );
   };
+
+  const startDelete = (entryIndex: number) => {
+    setDeleteTarget(entryIndex);
+    setDeleteStep(1);
+  };
+
+  const advanceDelete = async () => {
+    if (deleteStep < 3) {
+      setDeleteStep(deleteStep + 1);
+      return;
+    }
+    if (deleteTarget === null) return;
+    const updated = history.filter((_, i) => i !== deleteTarget);
+    await store.set(KEYS.history, updated);
+    setDeleteTarget(null);
+    setDeleteStep(0);
+    onUpdate();
+  };
+
+  const cancelDelete = () => {
+    setDeleteTarget(null);
+    setDeleteStep(0);
+  };
+
+  const deleteMessages = [
+    '',
+    t('history.deleteConfirm1'),
+    t('history.deleteConfirm2'),
+    t('history.deleteConfirm3'),
+  ];
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -152,14 +187,23 @@ export default function HistoryView({ history, members }: Props) {
                   </div>
                 )}
 
-                {/* Mood / Note / Location */}
-                {(entry.mood || entry.note || entry.location) && (
+                {/* Mood / Note / Location / Energy */}
+                {(entry.mood || entry.note || entry.location || entry.energyLevel) && (
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'var(--dim)' }}>
                     {entry.mood && <span>😊 {entry.mood}</span>}
                     {entry.location && <span>📍 {entry.location}</span>}
+                    {entry.energyLevel && <span>⚡ {entry.energyLevel}/10</span>}
                     {entry.note && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{entry.note}</span>}
                   </div>
                 )}
+
+                {/* Delete */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                  <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 11, cursor: 'pointer', opacity: 0.6, padding: '2px 6px' }}
+                    onClick={() => startDelete(history.indexOf(entry))}>
+                    {t('history.deleteEntry')}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -171,6 +215,16 @@ export default function HistoryView({ history, members }: Props) {
           {search || memberFilter ? t('history.noHistoryFilter') : t('history.noHistory')}
         </div>
       )}
+
+      {/* Triple-confirm delete dialog */}
+      <ConfirmDialog
+        open={deleteStep > 0}
+        title={`${t('history.deleteEntry')} (${deleteStep}/3)`}
+        message={deleteMessages[deleteStep] || ''}
+        danger
+        onConfirm={advanceDelete}
+        onCancel={cancelDelete}
+      />
     </div>
   );
 }

@@ -20,7 +20,7 @@ export default function FrontTile({ front, members, onClick }: Props) {
         {tierKey !== 'primary' && <div className="tile__tier-label">{t(TIER_I18N[tierKey])}</div>}
         {tier.memberIds.map(id => { const m = getMember(id); if (!m) return null; return (
           <div key={id} className="tile__member-row">
-            <div className="tile__avatar" style={m.avatar ? { backgroundImage: `url(${m.avatar})` } : { backgroundColor: m.color }}>{!m.avatar && getInitials(m.name)}</div>
+            <div className="tile__avatar" style={!m.avatar ? { backgroundColor: m.color } : { overflow: "hidden" }}>{m.avatar ? <img src={m.avatar} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
             <span className="tile__member-name">{m.name}</span>
             {tierKey === 'primary' && <span className="tile__duration">{fmtDur(front.startTime)}</span>}
           </div>

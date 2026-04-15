@@ -47,6 +47,9 @@ export const KEYS = {
   groups:       'ps:groups',
   palettes:     'ps:palettes',
   chatChannels: 'ps:chatChannels',
+  customFieldDefs: 'ps:customFieldDefs',
+  noteboards:   'ps:noteboards',
+  polls:        'ps:polls',
 };
 
 export const chatMsgKey = (channelId: string): string => `ps:chat:${channelId}`;

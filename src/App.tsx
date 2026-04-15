@@ -17,6 +17,8 @@ import ChatTile from './tiles/ChatTile';
 import StatsTile from './tiles/StatsTile';
 import ImportExportTile from './tiles/ImportExportTile';
 import SettingsTile from './tiles/SettingsTile';
+import CustomFieldsTile from './tiles/CustomFieldsTile';
+import PollsTile from './tiles/PollsTile';
 
 // Full views
 import SettingsView from './views/SettingsView';
@@ -27,10 +29,12 @@ import JournalView from './views/JournalView';
 import HistoryView from './views/HistoryView';
 import FrontView from './views/FrontView';
 import ChatView from './views/ChatView';
+import CustomFieldsView from './views/CustomFieldsView';
+import PollsView from './views/PollsView';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls';
 
 interface AppState {
   system: SystemInfo;
@@ -186,6 +190,12 @@ export default function App() {
             <ImportExportTile
               onClick={() => setView('import-export')}
             />
+            <CustomFieldsTile
+              onClick={() => setView('custom-fields')}
+            />
+            <PollsTile
+              onClick={() => setView('polls')}
+            />
             <SettingsTile
               settings={state.settings}
               onClick={() => setView('settings')}
@@ -207,6 +217,8 @@ export default function App() {
                 : view === 'stats' ? t('hub.statistics')
                 : view === 'import-export' ? t('hub.importExport')
                 : view === 'settings' ? t('modal.systemSettings')
+                : view === 'custom-fields' ? t('customFields.title')
+                : view === 'polls' ? t('polls.title')
                 : view}
             </span>
           </div>
@@ -229,7 +241,7 @@ export default function App() {
               <JournalView journal={state.journal} members={state.members} onUpdate={loadData} />
             )}
             {view === 'history' && (
-              <HistoryView history={state.history} members={state.members} />
+              <HistoryView history={state.history} members={state.members} onUpdate={loadData} />
             )}
             {view === 'front' && (
               <FrontView front={state.front} members={state.members} groups={state.groups}
@@ -237,6 +249,12 @@ export default function App() {
             )}
             {view === 'chat' && (
               <ChatView members={state.members} channels={state.channels} onUpdate={loadData} />
+            )}
+            {view === 'custom-fields' && (
+              <CustomFieldsView onUpdate={loadData} />
+            )}
+            {view === 'polls' && (
+              <PollsView members={state.members} onUpdate={loadData} />
             )}
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry,
+  Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, uid,
 } from '../utils';
@@ -30,6 +30,7 @@ export default function FrontView({ front, members, groups, history, settings, o
   const [tick, setTick] = useState(0);
   const [showSetFront, setShowSetFront] = useState(false);
   const [editDetailTier, setEditDetailTier] = useState<FrontTierKey | null>(null);
+  const [noteboardAlert, setNoteboardAlert] = useState<string[] | null>(null);
   const [editingNote, setEditingNote] = useState<FrontTierKey | null>(null);
   const [noteText, setNoteText] = useState('');
 
@@ -64,6 +65,16 @@ export default function FrontView({ front, members, groups, history, settings, o
       await store.set(KEYS.front, null);
     } else {
       await store.set(KEYS.front, newFront);
+      const allFrontIds = [...newFront.primary.memberIds, ...newFront.coFront.memberIds, ...newFront.coConscious.memberIds];
+      try {
+        const notes = await store.get<NoteboardEntry[]>(KEYS.noteboards, []) || [];
+        const withNotes = allFrontIds.filter(id => notes.some(n => n.memberId === id));
+        if (withNotes.length > 0) {
+          const names = withNotes.map(id => members.find(m => m.id === id)?.name || '?');
+          setNoteboardAlert(names);
+          setTimeout(() => setNoteboardAlert(null), 6000);
+        }
+      } catch {}
     }
     onUpdate();
   };
@@ -124,10 +135,10 @@ export default function FrontView({ front, members, groups, history, settings, o
                 <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div className="tile__avatar" style={{
                     width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
-                    fontSize: isPrimary ? 16 : 14,
-                    ...(m.avatar ? { backgroundImage: `url(${m.avatar})` } : { backgroundColor: m.color }),
+                    fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
+                    ...(!m.avatar ? { backgroundColor: m.color } : {}),
                   }}>
-                    {!m.avatar && getInitials(m.name)}
+                    {m.avatar ? <img src={m.avatar} style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: isPrimary ? 16 : 14, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
@@ -159,6 +170,12 @@ export default function FrontView({ front, members, groups, history, settings, o
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>Location</div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.location}</div>
+              </div>
+            )}
+            {tier.energyLevel && (
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('energy.label')}</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.energyLevel}/10</div>
               </div>
             )}
             <button style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
@@ -208,6 +225,20 @@ export default function FrontView({ front, members, groups, history, settings, o
         </h2>
         <Btn variant="primary" onClick={() => setShowSetFront(true)}>Update Front</Btn>
       </div>
+
+      {noteboardAlert && (
+        <div style={{
+          padding: '10px 14px', marginBottom: 12, borderRadius: 8,
+          background: 'var(--accent-bg)', border: '1px solid var(--accent)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--accent)' }}>
+            📋 {noteboardAlert.join(', ')} {noteboardAlert.length === 1 ? 'has' : 'have'} notes on their noteboard
+          </span>
+          <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14 }}
+            onClick={() => setNoteboardAlert(null)}>✕</button>
+        </div>
+      )}
 
       {empty ? (
         <div style={{
@@ -268,6 +299,9 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
   const [coFrontNote, setCoFrontNote] = useState('');
   const [coConMood, setCoConMood] = useState('');
   const [coConNote, setCoConNote] = useState('');
+  const [primaryEnergy, setPrimaryEnergy] = useState<number | undefined>(undefined);
+  const [coFrontEnergy, setCoFrontEnergy] = useState<number | undefined>(undefined);
+  const [coConEnergy, setCoConEnergy] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -286,10 +320,14 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
         setCoFrontNote(current.coFront.note || '');
         setCoConMood(current.coConscious.mood || '');
         setCoConNote(current.coConscious.note || '');
+        setPrimaryEnergy(current.primary.energyLevel);
+        setCoFrontEnergy(current.coFront.energyLevel);
+        setCoConEnergy(current.coConscious.energyLevel);
       } else {
         setPrimaryIds(new Set()); setCoFrontIds(new Set()); setCoConsciousIds(new Set());
         setPrimaryMood(''); setPrimaryLocation(''); setPrimaryNote('');
         setCoFrontMood(''); setCoFrontNote(''); setCoConMood(''); setCoConNote('');
+        setPrimaryEnergy(undefined); setCoFrontEnergy(undefined); setCoConEnergy(undefined);
       }
       setSearch({ primary: '', coFront: '', coConscious: '' });
     }
@@ -328,9 +366,9 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
 
   const handleSave = () => {
     onSave(
-      { memberIds: [...primaryIds], mood: primaryMood || undefined, note: primaryNote, location: primaryLocation || undefined },
-      { memberIds: [...coFrontIds], mood: coFrontMood || undefined, note: coFrontNote },
-      { memberIds: [...coConsciousIds], mood: coConMood || undefined, note: coConNote },
+      { memberIds: [...primaryIds], mood: primaryMood || undefined, note: primaryNote, location: primaryLocation || undefined, energyLevel: primaryEnergy },
+      { memberIds: [...coFrontIds], mood: coFrontMood || undefined, note: coFrontNote, energyLevel: coFrontEnergy },
+      { memberIds: [...coConsciousIds], mood: coConMood || undefined, note: coConNote, energyLevel: coConEnergy },
     );
     onClose();
   };
@@ -342,11 +380,12 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
     onClose();
   };
 
-  const TierPicker = ({ tierKey, selectedIds, mood, setMood, note, setNote, color }: {
+  const TierPicker = ({ tierKey, selectedIds, mood, setMood, note, setNote, color, energy, setEnergy }: {
     tierKey: FrontTierKey; selectedIds: Set<string>;
     mood: string; setMood: (v: string) => void;
     note: string; setNote: (v: string) => void;
     color: string;
+    energy?: number; setEnergy: (v: number | undefined) => void;
   }) => {
     const q = search[tierKey].toLowerCase();
     const filtered = members.filter(m => !selectedIds.has(m.id) && (!q || m.name.toLowerCase().includes(q)));
@@ -420,6 +459,16 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
         )}
 
         {/* Note */}
+        <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 28 }}>{energy ?? '—'}</span>
+          <input type="range" min={1} max={10} value={energy ?? 5}
+            onChange={e => setEnergy(Number(e.target.value))}
+            style={{ flex: 1, accentColor: color }} />
+          <button className="btn btn--ghost" style={{ padding: '2px 8px', fontSize: 10 }}
+            onClick={() => setEnergy(undefined)}>✕</button>
+        </div>
+
         <textarea className="field__input field__input--multi" value={note} onChange={e => setNote(e.target.value)}
           placeholder="What's happening?" style={{ minHeight: 48, fontSize: 12 }} />
       </div>
@@ -435,9 +484,9 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
             <Btn variant="solid" onClick={handleSave}>{t('common.save')}</Btn>
           </div>
         }>
-        <TierPicker tierKey="primary" selectedIds={primaryIds} mood={primaryMood} setMood={setPrimaryMood} note={primaryNote} setNote={setPrimaryNote} color="var(--accent)" />
-        <TierPicker tierKey="coFront" selectedIds={coFrontIds} mood={coFrontMood} setMood={setCoFrontMood} note={coFrontNote} setNote={setCoFrontNote} color="var(--info)" />
-        <TierPicker tierKey="coConscious" selectedIds={coConsciousIds} mood={coConMood} setMood={setCoConMood} note={coConNote} setNote={setCoConNote} color="var(--success)" />
+        <TierPicker tierKey="primary" selectedIds={primaryIds} mood={primaryMood} setMood={setPrimaryMood} note={primaryNote} setNote={setPrimaryNote} color="var(--accent)" energy={primaryEnergy} setEnergy={setPrimaryEnergy} />
+        <TierPicker tierKey="coFront" selectedIds={coFrontIds} mood={coFrontMood} setMood={setCoFrontMood} note={coFrontNote} setNote={setCoFrontNote} color="var(--info)" energy={coFrontEnergy} setEnergy={setCoFrontEnergy} />
+        <TierPicker tierKey="coConscious" selectedIds={coConsciousIds} mood={coConMood} setMood={setCoConMood} note={coConNote} setNote={setCoConNote} color="var(--success)" energy={coConEnergy} setEnergy={setCoConEnergy} />
       </Modal>
       <ConfirmDialog
         open={confirmClear}

@@ -15,7 +15,7 @@ export default function MembersTile({ members, onClick }: Props) {
         {active.length === 0 ? <span className="tile__empty">{t('members.noMembers')}</span> : (<>
           {preview.map(m => (
             <div key={m.id} className="tile__member-row">
-              <div className="tile__avatar" style={m.avatar ? { backgroundImage: `url(${m.avatar})` } : { backgroundColor: m.color }}>{!m.avatar && getInitials(m.name)}</div>
+              <div className="tile__avatar" style={!m.avatar ? { backgroundColor: m.color } : { overflow: "hidden" }}>{m.avatar ? <img src={m.avatar} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
               <span className="tile__member-name">{m.name}</span>
               <span className="tile__member-role">{m.role}</span>
             </div>

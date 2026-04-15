@@ -4,9 +4,15 @@ import { Btn, Section } from '../components/ui';
 import { store, KEYS, chatMsgKey } from '../storage';
 import {
   Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ChatMessage,
-  ExportPayload, uid, DEFAULT_CHANNELS,
+  ExportPayload, CustomFieldDef, NoteboardEntry, MemberPoll, uid, DEFAULT_CHANNELS,
 } from '../utils';
 import { CustomPalette } from '../theme';
+
+interface ExportCategories {
+  system: boolean; members: boolean; avatars: boolean; frontHistory: boolean; journal: boolean;
+  groups: boolean; chat: boolean; moods: boolean; palettes: boolean; settings: boolean;
+  customFields: boolean; noteboards: boolean; polls: boolean;
+}
 
 interface Props {
   system: SystemInfo;
@@ -28,8 +34,17 @@ export default function ImportExportView({ system, members, history, journal, se
   const [restoreSel, setRestoreSel] = useState({
     system: true, members: true, avatars: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
+    customFields: true, noteboards: true, polls: true,
   });
   const togR = (k: string) => setRestoreSel(s => ({ ...s, [k]: !s[k as keyof typeof s] }));
+
+  const [exportSel, setExportSel] = useState<ExportCategories>({
+    system: true, members: true, avatars: true, frontHistory: true, journal: true,
+    groups: true, chat: true, moods: true, palettes: true, settings: true,
+    customFields: true, noteboards: true, polls: true,
+  });
+  const togExp = (k: keyof ExportCategories) => setExportSel(s => ({ ...s, [k]: !s[k] }));
+  const [showExportOptions, setShowExportOptions] = useState(false);
 
   const showStatus = (msg: string) => {
     setStatus(msg);
@@ -39,40 +54,50 @@ export default function ImportExportView({ system, members, history, journal, se
   // ─── Export ─────────────────────────────────────────────────────────────
 
   const handleExport = async () => {
-    // Gather chat messages per channel
+    const cat = showExportOptions ? exportSel : {
+      system: true, members: true, avatars: true, frontHistory: true, journal: true,
+      groups: true, chat: true, moods: true, palettes: true, settings: true,
+      customFields: true, noteboards: true, polls: true,
+    };
+
     const chatMessages: Record<string, any[]> = {};
-    for (const ch of channels) {
-      const msgs = await store.get<any[]>(chatMsgKey(ch.id));
-      if (msgs && msgs.length > 0) chatMessages[ch.id] = msgs;
+    if (cat.chat) {
+      for (const ch of channels) {
+        const msgs = await store.get<any[]>(chatMsgKey(ch.id));
+        if (msgs && msgs.length > 0) chatMessages[ch.id] = msgs;
+      }
     }
 
-    // Extract avatars into a self-contained dict using the file:readAsBase64 IPC handler.
-    // Desktop avatars may be stored as local file paths; embed them as data: URIs so
-    // the backup is portable. Strip avatar from member objects — avatars dict is authoritative.
     const avatars: Record<string, string> = {};
-    for (const m of members) {
-      if (!m.avatar) continue;
-      if (m.avatar.startsWith('data:')) {
-        avatars[m.id] = m.avatar;
-      } else {
-        // Local file path — read and embed via IPC
-        const dataUri = await window.electronAPI.file.readAsBase64(m.avatar);
-        if (dataUri) avatars[m.id] = dataUri;
+    if (cat.avatars) {
+      for (const m of members) {
+        if (!m.avatar) continue;
+        if (m.avatar.startsWith('data:')) { avatars[m.id] = m.avatar; }
+        else {
+          const dataUri = await window.electronAPI.file.readAsBase64(m.avatar);
+          if (dataUri) avatars[m.id] = dataUri;
+        }
       }
     }
     const membersForExport = members.map(({ avatar: _a, ...rest }) => rest as Member);
 
     const payload: ExportPayload = {
-      _meta: { version: '1.1', app: 'Plural Space', exportedAt: new Date().toISOString() },
-      system, members: membersForExport, frontHistory: history, journal,
-      groups: await store.get(KEYS.groups) || [],
-      chatChannels: channels,
-      chatMessages,
-      settings,
-      front: await store.get(KEYS.front) || null,
-      palettes,
-      avatars,
-      customMoods: settings?.customMoods || [],
+      _meta: { version: '1.2', app: 'Plural Space', exportedAt: new Date().toISOString() },
+      system: cat.system ? system : undefined as any,
+      members: cat.members ? membersForExport : [],
+      frontHistory: cat.frontHistory ? history : [],
+      journal: cat.journal ? journal : [],
+      groups: cat.groups ? (await store.get(KEYS.groups) || []) : [],
+      chatChannels: cat.chat ? channels : [],
+      chatMessages: cat.chat ? chatMessages : {},
+      settings: cat.settings ? settings : undefined,
+      front: cat.frontHistory ? (await store.get(KEYS.front) || null) : undefined,
+      palettes: cat.palettes ? palettes : [],
+      avatars: cat.avatars ? avatars : {},
+      customMoods: cat.moods ? (settings?.customMoods || []) : [],
+      customFieldDefs: cat.customFields ? (await store.get(KEYS.customFieldDefs) || []) : [],
+      noteboards: cat.noteboards ? (await store.get(KEYS.noteboards) || []) : [],
+      polls: cat.polls ? (await store.get(KEYS.polls) || []) : [],
     };
     const json = JSON.stringify(payload, null, 2);
     const defaultName = `PluralSpace_Backup_${new Date().toISOString().slice(0, 10)}.json`;
@@ -160,6 +185,9 @@ export default function ImportExportView({ system, members, history, journal, se
         await store.set(KEYS.settings, newSettings);
       }
       if (restoreSel.palettes && restoreData.palettes) await store.set(KEYS.palettes, restoreData.palettes);
+      if (restoreSel.customFields && restoreData.customFieldDefs) await store.set(KEYS.customFieldDefs, restoreData.customFieldDefs);
+      if (restoreSel.noteboards && restoreData.noteboards) await store.set(KEYS.noteboards, restoreData.noteboards);
+      if (restoreSel.polls && restoreData.polls) await store.set(KEYS.polls, restoreData.polls);
 
       showStatus('Restore complete');
       setRestoreData(null);
@@ -201,7 +229,7 @@ export default function ImportExportView({ system, members, history, journal, se
             description: m.desc || m.description || '',
             tags: [],
             groupIds: [],
-            avatar: m.avatarUrl || m.avatar || undefined,
+            avatar: extSel.avatars ? (m.avatarUrl || m.avatar || undefined) : undefined,
           };
         });
 
@@ -248,7 +276,7 @@ export default function ImportExportView({ system, members, history, journal, se
   const [extToken, setExtToken] = useState('');
   const [extLoading, setExtLoading] = useState(false);
   const [extPreview, setExtPreview] = useState<{members: any[]; switches: any[]; system: any} | null>(null);
-  const [extSel, setExtSel] = useState({system: true, members: true, frontHistory: true});
+  const [extSel, setExtSel] = useState({system: true, members: true, avatars: true, frontHistory: true});
   const togE = (k: string) => setExtSel(s => ({...s, [k]: !s[k as keyof typeof s]}));
 
   const handleTokenFetch = async () => {
@@ -299,7 +327,7 @@ export default function ImportExportView({ system, members, history, journal, se
             role: isPK ? '' : (m.content?.role || ''),
             color: isPK ? (m.color ? `#${m.color}` : '#DAA520') : (m.content?.color || '#DAA520'),
             description: isPK ? (m.description || '') : (m.content?.desc || ''),
-            avatar: isPK ? (m.avatar_url || undefined) : (m.content?.avatarUrl || undefined),
+            avatar: extSel.avatars ? (isPK ? (m.avatar_url || undefined) : (m.content?.avatarUrl || undefined)) : undefined,
             tags: [] as string[], groupIds: [] as string[],
           }))
         : [];
@@ -383,6 +411,38 @@ export default function ImportExportView({ system, members, history, journal, se
           <span>·</span>
           <span>{t('share.journalCount', { count: journal.length })}</span>
         </div>
+
+        {/* Export Category Toggle */}
+        <button style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', padding: '4px 0', marginBottom: 8, fontWeight: 500 }}
+          onClick={() => setShowExportOptions(!showExportOptions)}>
+          {showExportOptions ? '▾' : '▸'} {t('share.customizeExport')}
+        </button>
+
+        {showExportOptions && (
+          <div style={{ background: 'var(--card)', borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 12 }}>
+            {([
+              ['system', t('share.systemNameDesc')],
+              ['members', t('share.memberProfiles')],
+              ['avatars', t('share.profilePictures')],
+              ['frontHistory', t('share.frontHistory')],
+              ['journal', t('share.journalEntries')],
+              ['groups', t('share.memberGroups')],
+              ['chat', t('share.chatData')],
+              ['moods', t('share.customMoodsLabel')],
+              ['palettes', t('share.themePalettes')],
+              ['settings', t('share.appSettings')],
+              ['customFields', t('customFields.title')],
+              ['noteboards', t('noteboard.title')],
+              ['polls', t('polls.title')],
+            ] as [keyof ExportCategories, string][]).map(([k, label]) => (
+              <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={exportSel[k]} onChange={() => togExp(k)} />
+                <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+
         <Btn variant="solid" onClick={handleExport}>{t('share.exportBackup')}</Btn>
       </div>
 
@@ -412,6 +472,9 @@ export default function ImportExportView({ system, members, history, journal, se
                 ['moods', t('share.customMoodsLabel'), !!(restoreData.customMoods?.length || restoreData.settings?.customMoods?.length), restoreData.customMoods?.length || restoreData.settings?.customMoods?.length || 0],
                 ['palettes', t('share.themePalettes'), !!restoreData.palettes?.length, restoreData.palettes?.length],
                 ['settings', t('share.appSettings'), !!restoreData.settings, null],
+                ['customFields', t('customFields.title'), !!restoreData.customFieldDefs?.length, restoreData.customFieldDefs?.length || 0],
+                ['noteboards', t('noteboard.title'), !!restoreData.noteboards?.length, restoreData.noteboards?.length || 0],
+                ['polls', t('polls.title'), !!restoreData.polls?.length, restoreData.polls?.length || 0],
               ] as [string, string, boolean, number | null][]).map(([k, label, avail, count]) => (
                 <label key={k} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
@@ -479,6 +542,7 @@ export default function ImportExportView({ system, members, history, journal, se
               {([
                 ['system', t('share.systemNameDesc'), true],
                 ['members', t('share.memberProfiles'), extPreview.members.length > 0],
+                ['avatars', t('share.profilePictures'), extPreview.members.length > 0],
                 ['frontHistory', t('share.frontHistory'), extPreview.switches.length > 0],
               ] as [string, string, boolean][]).map(([k, label, avail]) => (
                 <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: avail ? 1 : 0.4, cursor: avail ? 'pointer' : 'default' }}>

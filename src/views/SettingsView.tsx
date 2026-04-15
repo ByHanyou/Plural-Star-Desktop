@@ -16,11 +16,14 @@ interface Props {
 
 const HexField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
   const valid = isValidHex(normalizeHex(value)) || value.length < 2;
+  const normalized = valid ? normalizeHex(value) : '#333333';
   return (
     <div style={{ flex: 1 }}>
       <label className="field__label">{label}</label>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 20, height: 20, borderRadius: 4, background: valid ? normalizeHex(value) : '#333', border: '1px solid var(--border)' }} />
+        <input type="color" value={normalized}
+          onChange={e => onChange(e.target.value.toUpperCase())}
+          style={{ width: 28, height: 28, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', background: 'none' }} />
         <input className={`field__input field__input--mono ${valid ? '' : 'field__input--error'}`}
           value={value} onChange={e => onChange(e.target.value)} placeholder="#000000" maxLength={7}
           style={{ width: '100%' }} />
@@ -40,6 +43,8 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
 
   const [name, setName] = useState(system.name);
   const [desc, setDesc] = useState(system.description);
+  const [systemAvatar, setSystemAvatar] = useState(system.avatar || '');
+  const [systemBanner, setSystemBanner] = useState(system.banner || '');
   const [journalPw, setJournalPw] = useState(system.journalPassword || '');
   const [showPw, setShowPw] = useState(!!system.journalPassword);
 
@@ -126,11 +131,25 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
     onUpdate();
   };
 
+  const pickSystemImage = async (target: 'avatar' | 'banner') => {
+    const filePath = await window.electronAPI.dialog.openFile([
+      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
+    ]);
+    if (!filePath) return;
+    const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
+    if (dataUrl) {
+      if (target === 'avatar') setSystemAvatar(dataUrl);
+      else setSystemBanner(dataUrl);
+    }
+  };
+
   const save = async () => {
     try {
       await store.set(KEYS.system, {
         name: name.trim(), description: desc.trim(),
         journalPassword: showPw && journalPw ? journalPw : undefined,
+        avatar: systemAvatar || undefined,
+        banner: systemBanner || undefined,
       });
       await store.set(KEYS.settings, {
         ...settings, locations: locs, customMoods: moods, language: lang,
@@ -155,6 +174,37 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       <Section label={t('modal.systemName')} />
       <Field label={t('modal.systemName')} value={name} onChange={setName} placeholder={t('modal.systemNamePlaceholder')} />
       <Field label={t('modal.descriptionLabel')} value={desc} onChange={setDesc} placeholder={t('modal.descriptionFieldPlaceholder')} multiline />
+
+      {/* System Profile */}
+      <Section label={t('systemProfile.title')} />
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 72, height: 72, borderRadius: 36, border: '2px solid var(--accent)', overflow: 'hidden', cursor: 'pointer',
+            backgroundImage: systemAvatar ? `url(${systemAvatar})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
+            backgroundColor: systemAvatar ? undefined : 'var(--surface)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--dim)',
+          }} onClick={() => pickSystemImage('avatar')}>
+            {!systemAvatar && '📷'}
+          </div>
+          <div style={{ marginTop: 4, display: 'flex', gap: 6, justifyContent: 'center' }}>
+            <button style={{ fontSize: 10, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => pickSystemImage('avatar')}>{t('systemProfile.changeAvatar')}</button>
+            {systemAvatar && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => setSystemAvatar('')}>{t('systemProfile.removeAvatar')}</button>}
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 80, borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
+            backgroundImage: systemBanner ? `url(${systemBanner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
+            backgroundColor: systemBanner ? undefined : 'var(--surface)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 13,
+          }} onClick={() => pickSystemImage('banner')}>
+            {!systemBanner && t('systemProfile.changeBanner')}
+          </div>
+          {systemBanner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
+            onClick={() => setSystemBanner('')}>{t('systemProfile.removeBanner')}</button>}
+        </div>
+      </div>
 
       {/* Palette */}
       <Section label={t('modal.palette')} />

@@ -54,10 +54,7 @@
     "addMood": "+ Adicionar humor",
     "frontNote": "NOTA",
     "whatHappening": "O que está acontecendo agora?",
-    "noNote": "Sem nota. Toque ✎ para adicionar.",
-    "clearFront": "Limpar Front",
-    "clearFrontTitle": "Limpar Front?",
-    "clearFrontMsg": "Isso encerrará o front atual e o salvará no histórico. Tem certeza?"
+    "noNote": "Sem nota. Toque ✎ para adicionar."
   },
   "members": {
     "title": "Membros",
@@ -121,8 +118,7 @@
     "deleteEntry": "Excluir Entrada",
     "areYouSure": "Tem certeza?",
     "searchTags": "Buscar tags…",
-    "searchAuthors": "Buscar autores…",
-    "noEntriesFilter": "Nenhuma entrada corresponde aos seus filtros."
+    "searchAuthors": "Buscar autores…"
   },
   "share": {
     "title": "Compartilhar e Exportar",
@@ -210,26 +206,13 @@
     "spFileHint": "Importar de um arquivo de exportação do Simply Plural.",
     "pickSPFile": "Selecionar Arquivo SP",
     "notValidSPExport": "Este arquivo não parece ser uma exportação válida do Simply Plural.",
-    "clearAllConfirm": "Tem certeza absoluta? Todos os membros, histórico, entradas de diário, mensagens de chat e configurações serão excluídos permanentemente.",
-    "clearAllData": "Limpar Todos os Dados",
-    "clearAllDataDesc": "Excluir permanentemente todos os dados do Plural Space neste dispositivo. Isso não pode ser desfeito.",
-    "dangerZone": "Zona de Perigo",
-    "exportBackup": "Exportar Backup",
-    "exportDesc": "Exportar todos os dados do sistema (membros, histórico de front, entradas de diário) como arquivo JSON. Compatível com as versões mobile e desktop do Plural Space.",
-    "historyCount": "{{count}} entradas de histórico",
-    "importFromSP": "Importar do Simply Plural",
-    "importPSBackup": "Importar Backup do Plural Space",
-    "importing": "Importando…",
-    "journalCount": "{{count}} entradas de diário",
-    "membersCountSimple": "{{count}} membros",
-    "restoreDesc": "Restaurar a partir de um arquivo de backup do Plural Space. Isso substituirá os dados atuais.",
-    "spMergeDesc": "Importar de um arquivo de exportação do Simply Plural. Membros e histórico de front serão mesclados com os dados existentes — duplicatas são ignoradas.",
     "profilePictures": "Fotos de Perfil",
     "memberGroups": "Grupos de Membros",
     "chatData": "Canais e Mensagens de Chat",
     "customMoodsLabel": "Humores Personalizados",
     "themePalettes": "Paletas de Temas",
-    "appSettings": "Configurações do App"
+    "appSettings": "Configurações do App",
+    "customizeExport": "Personalizar Exportação"
   },
   "hub": {
     "title": "Central",
@@ -256,8 +239,7 @@
     "retroHistory": "Histórico Retro",
     "statistics": "Estatísticas",
     "systemChat": "Chat do Sistema",
-    "discord": "Discord",
-    "dashboard": "Painel"
+    "discord": "Discord"
   },
   "modal": {
     "updateFront": "Atualizar Frente",
@@ -368,7 +350,9 @@
     "de": "Deutsch",
     "pt": "Português",
     "fi": "Suomi",
-    "nb": "Norsk"
+    "nb": "Norsk",
+    "zh": "中文",
+    "ja": "日本語"
   },
   "memberGroups": {
     "title": "Grupos",
@@ -390,13 +374,7 @@
     "topCoCon": "Top Co-Consciente",
     "topChatters": "Mais Ativos",
     "topMoods": "Humores Frequentes",
-    "topLocations": "Locais Frequentes",
-    "chatMessages": "Mensagens de Chat",
-    "noLocationsRecorded": "Nenhum local registrado",
-    "noMoodsRecorded": "Nenhum humor registrado",
-    "totalFrontTime": "Tempo Total de Front",
-    "totalSessions": "Sessões Totais",
-    "uniqueFronters": "Fronters Únicos"
+    "topLocations": "Locais Frequentes"
   },
   "chat": {
     "channels": "Canais",

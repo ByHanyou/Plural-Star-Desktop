@@ -54,10 +54,7 @@
     "addMood": "+ Legg til humør",
     "frontNote": "NOTAT",
     "whatHappening": "Hva skjer akkurat nå?",
-    "noNote": "Ingen notat. Trykk ✎ for å legge til.",
-    "clearFront": "Tøm Front",
-    "clearFrontTitle": "Tøm Front?",
-    "clearFrontMsg": "Dette vil avslutte gjeldende front og lagre den i historikken. Er du sikker?"
+    "noNote": "Ingen notat. Trykk ✎ for å legge til."
   },
   "members": {
     "title": "Medlemmer",
@@ -121,8 +118,7 @@
     "unlockPasswordPrompt": "Skriv inn passord for å låse opp.",
     "unlock": "Lås Opp",
     "searchTags": "Søk tagger…",
-    "searchAuthors": "Søk forfattere…",
-    "noEntriesFilter": "Ingen oppføringer samsvarer med filtrene dine."
+    "searchAuthors": "Søk forfattere…"
   },
   "share": {
     "title": "Share & Export",
@@ -210,26 +206,13 @@
     "spFileHint": "Importer fra en Simply Plural eksportfil.",
     "pickSPFile": "Velg SP-eksportfil",
     "notValidSPExport": "Denne filen ser ikke ut til å være en gyldig Simply Plural-eksport.",
-    "clearAllConfirm": "Er du helt sikker? Alle medlemmer, historikk, dagbokoppføringer, chat-meldinger og innstillinger vil bli permanent slettet.",
-    "clearAllData": "Slett Alle Data",
-    "clearAllDataDesc": "Slett alle Plural Space-data på denne enheten permanent. Dette kan ikke angres.",
-    "dangerZone": "Faresone",
-    "exportBackup": "Eksporter Sikkerhetskopi",
-    "exportDesc": "Eksporter alle systemdata (medlemmer, fronthistorikk, dagbokoppføringer) som JSON-fil. Kompatibel med både mobil- og skrivebordsversjonen av Plural Space.",
-    "historyCount": "{{count}} historikkoppføringer",
-    "importFromSP": "Importer fra Simply Plural",
-    "importPSBackup": "Importer Plural Space-sikkerhetskopi",
-    "importing": "Importerer…",
-    "journalCount": "{{count}} dagbokoppføringer",
-    "membersCountSimple": "{{count}} medlemmer",
-    "restoreDesc": "Gjenopprett fra en Plural Space-sikkerhetskopifil. Dette vil overskrive gjeldende data.",
-    "spMergeDesc": "Importer fra en Simply Plural-eksportfil. Medlemmer og fronthistorikk vil bli slått sammen med eksisterende data — duplikater hoppes over.",
     "profilePictures": "Profilbilder",
     "memberGroups": "Medlemsgrupper",
     "chatData": "Chat-kanaler og Meldinger",
     "customMoodsLabel": "Egendefinerte Humør",
     "themePalettes": "Temapaletter",
-    "appSettings": "Appinnstillinger"
+    "appSettings": "Appinnstillinger",
+    "customizeExport": "Tilpass Eksport"
   },
   "hub": {
     "title": "Hub",
@@ -256,8 +239,7 @@
     "retroHistory": "Retroaktiv historikk",
     "statistics": "Statistikk",
     "systemChat": "Systemchat",
-    "discord": "Discord",
-    "dashboard": "Oversikt"
+    "discord": "Discord"
   },
   "modal": {
     "systemSettings": "Systeminnstillinger",
@@ -360,7 +342,9 @@
     "de": "Deutsch",
     "pt": "Português",
     "fi": "Suomi",
-    "nb": "Norsk"
+    "nb": "Norsk",
+    "zh": "中文",
+    "ja": "日本語"
   },
   "memberGroups": {
     "title": "Grupper",
@@ -382,13 +366,7 @@
     "topCoCon": "Mest co-bevisst",
     "topChatters": "Mest aktive",
     "topMoods": "Mest humør",
-    "topLocations": "Mest steder",
-    "chatMessages": "Chat-meldinger",
-    "noLocationsRecorded": "Ingen steder registrert",
-    "noMoodsRecorded": "Ingen humør registrert",
-    "totalFrontTime": "Total Fronttid",
-    "totalSessions": "Totale Økter",
-    "uniqueFronters": "Unike Frontere"
+    "topLocations": "Mest steder"
   },
   "chat": {
     "channels": "Kanaler",
