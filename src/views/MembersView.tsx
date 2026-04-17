@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, uid, getInitials, sortMembers, fmtTime } from '../utils';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown } from '../components/ui';
@@ -137,7 +137,11 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (dataUrl) set('banner', dataUrl);
+    if (!dataUrl) return;
+    try {
+      const resized = await resizeBannerDataUrl(dataUrl);
+      set('banner', resized);
+    } catch { set('banner', dataUrl); }
   };
 
   return (
@@ -255,7 +259,7 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
 
           {/* Banner */}
           <div style={{ marginBottom: 12 }}>
-            <div style={{ height: 64, borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
+            <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
               backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
               backgroundColor: f.banner ? undefined : 'var(--surface)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,

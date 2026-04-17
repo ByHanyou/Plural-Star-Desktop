@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn } from '../components/ui';
-import { SystemInfo, AppSettings, TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex } from '../utils';
+import { SystemInfo, AppSettings, TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex, resizeBannerDataUrl } from '../utils';
 import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
@@ -137,9 +137,14 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (dataUrl) {
-      if (target === 'avatar') setSystemAvatar(dataUrl);
-      else setSystemBanner(dataUrl);
+    if (!dataUrl) return;
+    if (target === 'avatar') {
+      setSystemAvatar(dataUrl);
+    } else {
+      try {
+        const resized = await resizeBannerDataUrl(dataUrl);
+        setSystemBanner(resized);
+      } catch { setSystemBanner(dataUrl); }
     }
   };
 
@@ -194,7 +199,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
           </div>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ height: 80, borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
+          <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
             backgroundImage: systemBanner ? `url(${systemBanner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
             backgroundColor: systemBanner ? undefined : 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 13,
