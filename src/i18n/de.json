@@ -11,7 +11,8 @@
     "unknown": "Unbekannt",
     "untitled": "Ohne Titel",
     "records": "{{count}} Einträge",
-    "notInExport": "Nicht im Export enthalten"
+    "notInExport": "Nicht im Export enthalten",
+    "ok": "OK"
   },
   "tabs": {
     "front": "Front",
@@ -30,7 +31,7 @@
     "primaryShort": "Primär",
     "coFrontShort": "Co-Front",
     "coConShort": "Co-Bew",
-    "editTier": "{{tier}} Bearbeiten"
+    "editTier": "{{tier}} bearbeiten"
   },
   "setup": {
     "welcome": "Willkommen",
@@ -42,24 +43,27 @@
     "enter": "Eintreten"
   },
   "front": {
-    "currentlyFronting": "Aktuell im Front",
+    "currentlyFronting": "Aktuell am Front",
     "update": "+ Aktualisieren",
-    "noOneFronting": "Niemand ist aktuell im Front.",
-    "setFront": "Front Setzen",
+    "noOneFronting": "Niemand ist am Front",
+    "setFront": "Front setzen",
     "frontingFor": "Im Front seit",
     "since": "seit",
-    "mood": "STIMMUNG",
+    "mood": "Stimmung",
     "location": "ORT",
     "addMoodLocation": "+ Stimmung / Ort hinzufügen",
     "addMood": "+ Stimmung hinzufügen",
     "frontNote": "NOTIZ",
     "whatHappening": "Was passiert gerade?",
-    "noNote": "Keine Notiz. Tippe ✎ um eine hinzuzufügen."
+    "noNote": "Keine Notiz. Tippe ✎ um eine hinzuzufügen.",
+    "clearFront": "Front leeren",
+    "clearFrontMsg": "Dies leert alle Ebenen und protokolliert das Ende der Sitzung. Fortfahren?",
+    "clearFrontTitle": "Front leeren?"
   },
   "members": {
     "title": "Mitglieder",
     "add": "+ Hinzufügen",
-    "search": "Suchen…",
+    "search": "Suchen...",
     "noMembers": "Noch keine Mitglieder. Füge deinen ersten Kopfbewohner hinzu.",
     "addMember": "Mitglied Hinzufügen",
     "noDetails": "Keine Details festgelegt",
@@ -94,7 +98,16 @@
     "mood": "Stimmung",
     "at": "bei",
     "searchMember": "Mitglieder suchen…",
-    "noHistoryFilter": "Kein Verlauf entspricht deinen Filtern."
+    "noHistoryFilter": "Kein Verlauf entspricht deinen Filtern.",
+    "allMembers": "Alle Mitglieder",
+    "deleteConfirm1": "Diesen Eintrag wirklich löschen?",
+    "deleteConfirm2": "Das kann nicht rückgängig gemacht werden. Wirklich löschen?",
+    "deleteConfirm3": "Letzte Bestätigung: endgültig löschen?",
+    "deleteEntry": "Eintrag löschen",
+    "deleteEntryMsg": "Dies löscht diesen Verlaufseintrag dauerhaft.",
+    "entryCount": "{{count}} Einträge",
+    "entryCountOne": "1 Eintrag",
+    "searchPlaceholder": "Verlauf durchsuchen..."
   },
   "journal": {
     "title": "Tagebuch",
@@ -118,7 +131,8 @@
     "deleteEntry": "Eintrag Löschen",
     "areYouSure": "Bist du sicher?",
     "searchTags": "Tags suchen…",
-    "searchAuthors": "Autoren suchen…"
+    "searchAuthors": "Autoren suchen…",
+    "noEntriesFilter": "Keine Einträge passen zu diesem Filter."
   },
   "share": {
     "title": "Teilen & Exportieren",
@@ -212,7 +226,25 @@
     "customMoodsLabel": "Eigene Stimmungen",
     "themePalettes": "Farbpaletten",
     "appSettings": "App-Einstellungen",
-    "customizeExport": "Export Anpassen"
+    "customizeExport": "Export Anpassen",
+    "savedToDownloads": "In Downloads gespeichert",
+    "savedToDownloadsMsg": "{{filename}} in Downloads gespeichert.",
+    "exportReady": "Export bereit",
+    "exportReadyMsg": "{{filename}} wurde erstellt, aber der Dialog konnte nicht geöffnet werden.",
+    "clearAllConfirm": "Sind Sie absolut sicher? Das kann nicht rückgängig gemacht werden.",
+    "clearAllData": "Alle Daten löschen",
+    "clearAllDataDesc": "Alle Daten dauerhaft löschen und zur Einrichtung zurückkehren.",
+    "dangerZone": "Gefahrenzone",
+    "exportBackup": "Backup exportieren",
+    "exportDesc": "Laden Sie ein vollständiges JSON-Backup der Systemdaten herunter.",
+    "historyCount": "{{count}} Verlaufseinträge",
+    "importFromSP": "Aus Simply Plural importieren",
+    "importPSBackup": "Tippen Sie, um eine .json-Datei auszuwählen",
+    "importing": "Importiere…",
+    "journalCount": "{{count}} Tagebuch-Einträge",
+    "membersCountSimple": "{{count}} Mitglieder",
+    "restoreDesc": "Zuvor exportiertes JSON-Backup laden.",
+    "spMergeDesc": "Simply-Plural-Backup in das aktuelle System einfügen."
   },
   "modal": {
     "updateFront": "Front Aktualisieren",
@@ -221,9 +253,9 @@
     "custom": "Benutzerdefiniert…",
     "enterMood": "Stimmung eingeben…",
     "location": "Ort",
-    "typeLocation": "Oder Ort eingeben…",
+    "typeLocation": "Ort eingeben...",
     "noteOptional": "Notiz (optional)",
-    "whatHappening": "Was passiert gerade?",
+    "whatHappening": "Was passiert?",
     "editFrontDetails": "Front-Details Bearbeiten",
     "note": "Notiz",
     "addMember": "Mitglied Hinzufügen",
@@ -246,7 +278,7 @@
     "entryTitlePlaceholder": "Eintragstitel…",
     "body": "Inhalt",
     "writeHere": "Hier schreiben…",
-    "tags": "Tags",
+    "tags": "Schlagwörter",
     "topic": "#Thema",
     "authors": "Autoren",
     "entryPassword": "Eintrags-Passwort",
@@ -269,7 +301,7 @@
     "addLocationPlaceholder": "Ort hinzufügen…",
     "addMoodPlaceholder": "Stimmung hinzufügen…",
     "supportPS": "☕  PS Unterstützen",
-    "memberTags": "Tags",
+    "memberTags": "Schlagwörter",
     "memberTagPlaceholder": "#Tag",
     "fileAccess": "Dateizugriff",
     "fileAccessDesc": "Import und Export von Dateien erlauben. Standardmäßig aktiviert.",
@@ -299,8 +331,8 @@
     "textScaleExtraLarge": "Sehr Groß"
   },
   "notification": {
-    "locationPermTitle": "Standortberechtigung",
-    "locationPermMsg": "Plural Space möchte deinen ungefähren Standort beim Fronten markieren.",
+    "locationPermTitle": "Standort",
+    "locationPermMsg": "Plural Space erlauben, Ihren ungefähren Standort beim Fronten zu markieren.",
     "allow": "Erlauben",
     "deny": "Ablehnen",
     "notifPermTitle": "Benachrichtigungen",
@@ -314,7 +346,12 @@
     "coFront": "Co-Front: {{names}}",
     "coConscious": "Co-Bewusst: {{names}}",
     "cfShort": "CF: {{names}}",
-    "ccShort": "CB: {{names}}"
+    "ccShort": "CB: {{names}}",
+    "frontCheck": "Front-Erinnerung",
+    "frontCheckDesc": "Regelmäßige Benachrichtigung, um den aktuellen Fronter zu prüfen.",
+    "everyNHours": "Alle {{count}}h",
+    "frontCheckInterval": "Intervall",
+    "whosFronting": "Wer ist gerade am Front?"
   },
   "language": {
     "en": "English",
@@ -360,7 +397,8 @@
     "retroHistory": "Retro-Verlauf",
     "statistics": "Statistiken",
     "systemChat": "System-Chat",
-    "discord": "Discord"
+    "discord": "Discord",
+    "dashboard": "← Startseite"
   },
   "stats": {
     "allTime": "Gesamt",
@@ -374,7 +412,24 @@
     "topCoCon": "Top Co-Bewusst",
     "topChatters": "Top Chatter",
     "topMoods": "Top Stimmungen",
-    "topLocations": "Top Orte"
+    "topLocations": "Top Orte",
+    "msgsSuffix": "Nachr.",
+    "sessionsSuffix": "Sitzungen",
+    "peakHours": "Spitzenzeiten",
+    "topCoMembers": "Häufige Co-Mitglieder",
+    "memberLeaderboard": "Details von {{name}}",
+    "avgEnergy": "Durchschn. Energie",
+    "customRange": "Benutzerdef. Bereich",
+    "energyPerTen": "/10 durchschn. Energie",
+    "from": "Von",
+    "sessionCount": "Sitzungen",
+    "to": "Bis",
+    "chatMessages": "Chat-Nachrichten",
+    "noLocationsRecorded": "Keine Orte erfasst.",
+    "noMoodsRecorded": "Keine Stimmungen erfasst.",
+    "totalFrontTime": "Gesamt-Frontzeit",
+    "totalSessions": "Sitzungen gesamt",
+    "uniqueFronters": "Einzigartige Fronter"
   },
   "chat": {
     "channels": "Kanäle",
@@ -398,5 +453,122 @@
     "noMessages": "Noch keine Nachrichten.",
     "typeMessage": "Nachricht schreiben…",
     "imageFailed": "Bild Fehlgeschlagen"
+  },
+  "noteboard": {
+    "title": "Notiztafel",
+    "placeholder": "Notiz schreiben...",
+    "noNotes": "Noch keine Notizen.",
+    "pin": "Anheften",
+    "unpin": "Lösen",
+    "deleteNote": "Notiz löschen",
+    "deleteNoteMsg": "Diese Notiz löschen?",
+    "writingAs": "Schreibend als:",
+    "hasNotes": "{{names}} hat Notizen auf der Tafel",
+    "addNote": "+ Notiz hinzufügen",
+    "by": "von {{name}}",
+    "pinned": "Angeheftet"
+  },
+  "customFields": {
+    "title": "Benutzerdefinierte Felder",
+    "noFields": "Keine Felder definiert.",
+    "noFieldsInfo": "Keine benutzerdefinierten Felder. Fügen Sie eines im Hub hinzu.",
+    "fieldName": "Feldname",
+    "fieldType": "Typ",
+    "deleteField": "Feld löschen",
+    "deleteFieldMsg": "Dies löscht das Feld und seine Werte. Fortfahren?",
+    "markdownSupport": "Markdown-Unterstützung",
+    "markdownLabel": "Markdown",
+    "fieldCount": "{{count}} definiert",
+    "typeText": "Text",
+    "typeMarkdown": "Rich-Text",
+    "typeColor": "Farbe",
+    "typeDate": "Datum",
+    "typeMonth": "Monat",
+    "typeYear": "Jahr",
+    "typeMonthYear": "Monat + Jahr",
+    "typeTimestamp": "Zeitstempel",
+    "typeMonthDay": "Monat + Tag",
+    "typeDateRange": "Datumsbereich",
+    "typeNumber": "Zahl",
+    "typeToggle": "Schalter",
+    "addField": "+ Feld hinzufügen",
+    "confirmChanges": "Änderungen bestätigen",
+    "editFieldsInfo": "Feldinfo bearbeiten",
+    "endDate": "Ende",
+    "manageFields": "Felder verwalten",
+    "reorder": "Neu sortieren",
+    "startDate": "Anfang"
+  },
+  "polls": {
+    "title": "Umfragen",
+    "createPoll": "Umfrage erstellen",
+    "noPolls": "Keine Umfragen.",
+    "questionPlaceholder": "Frage...",
+    "optionPlaceholder": "Option",
+    "addOption": "+ Option hinzufügen",
+    "hideVoters": "Abstimmende verbergen",
+    "closed": "Geschlossen",
+    "closePoll": "Schließen",
+    "reopenPoll": "Wieder öffnen",
+    "deletePoll": "Umfrage löschen",
+    "deletePollMsg": "Diese Umfrage löschen?",
+    "votes": "{{count}} Stimmen",
+    "votingAs": "Abstimmend als:",
+    "forMember": "Für Mitglied:",
+    "optionsLabel": "Optionen",
+    "activeCount": "{{count}} aktiv",
+    "question": "Frage",
+    "vote": "Abstimmen",
+    "votedBy": "Abgestimmt von: {{names}}"
+  },
+  "energy": {
+    "outOf10": "/10 Energie",
+    "avgEnergy": "Durchschn. Energie",
+    "high": "Hoch",
+    "label": "Energie",
+    "level": "Energielevel",
+    "low": "Niedrig",
+    "medium": "Mittel"
+  },
+  "memberProfile": {
+    "banner": "Banner",
+    "changeBanner": "Banner ändern",
+    "removeBanner": "Banner entfernen"
+  },
+  "memberSort": {
+    "age": "Älteste zuerst",
+    "alphabetical": "A → Z",
+    "color": "Nach Farbe",
+    "label": "Mitglieder sortieren",
+    "manual": "Manuelle Reihenfolge",
+    "reverse-alphabetical": "Z → A",
+    "role": "Nach Rolle"
+  },
+  "systemProfile": {
+    "avatar": "System-Avatar",
+    "banner": "System-Banner",
+    "changeAvatar": "Avatar ändern",
+    "changeBanner": "Banner ändern",
+    "removeAvatar": "Avatar entfernen",
+    "removeBanner": "Banner entfernen",
+    "title": "Systemprofil"
+  },
+  "tiles": {
+    "activePollOne": "1 aktive Umfrage",
+    "activePolls": "{{count}} aktive Umfragen",
+    "fieldCount": "{{count}} Felder",
+    "fieldCountOne": "1 Feld"
+  },
+  "mood": {
+    "Calm": "Ruhig",
+    "Happy": "Glücklich",
+    "Anxious": "Ängstlich",
+    "Tired": "Müde",
+    "Energetic": "Energisch",
+    "Dissociated": "Dissoziiert",
+    "Grounded": "Geerdet",
+    "Irritable": "Gereizt",
+    "Sad": "Traurig",
+    "Focused": "Fokussiert"
   }
 }

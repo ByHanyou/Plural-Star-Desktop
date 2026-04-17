@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, ChatMessage, fmtDur, getInitials } from '../utils';
+import { Member, HistoryEntry, ChatMessage, fmtDur, getInitials, translateMood } from '../utils';
 import { Section } from '../components/ui';
 import { store, chatMsgKey, KEYS } from '../storage';
 import type { ChatChannel } from '../utils';
@@ -269,7 +269,7 @@ export default function StatsView({ history, members, channels }: Props) {
         <div>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.topMoods')}</h3>
           {moodTotals.slice(0, 5).map(([mood, count]) => (
-            <Bar key={mood} label={mood} value={count} max={moodTotals[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
+            <Bar key={mood} label={translateMood(mood, t)} value={count} max={moodTotals[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
           ))}
           {moodTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noMoodsRecorded')}</span>}
         </div>
@@ -349,7 +349,7 @@ export default function StatsView({ history, members, channels }: Props) {
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('stats.topMoods')}</div>
                   {memberSpecific.moods.map(([mood, count]) => (
-                    <Bar key={mood} label={mood} value={count} max={memberSpecific.moods[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
+                    <Bar key={mood} label={translateMood(mood, t)} value={count} max={memberSpecific.moods[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
                   ))}
                 </div>
               )}

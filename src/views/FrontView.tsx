@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
-  fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, uid,
+  fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, uid, translateMood,
 } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
@@ -163,7 +163,7 @@ export default function FrontView({ front, members, groups, history, settings, o
             {tier.mood && (
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('front.mood')}</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.mood}</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{translateMood(tier.mood, t)}</div>
               </div>
             )}
             {isPrimary && tier.location && (
@@ -438,7 +438,7 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
           {allMoods.map(m => (
             <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
               style={{ padding: '4px 10px', fontSize: 11 }}
-              onClick={() => setMood(mood === m ? '' : m)}>{m}</button>
+              onClick={() => setMood(mood === m ? "" : m)}>{translateMood(m, t)}</button>
           ))}
         </div>
 
@@ -526,7 +526,7 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
         {allMoods.map(m => (
           <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
             style={{ padding: '4px 10px', fontSize: 11 }}
-            onClick={() => setMood(mood === m ? '' : m)}>{m}</button>
+            onClick={() => setMood(mood === m ? "" : m)}>{translateMood(m, t)}</button>
         ))}
       </div>
       {isPrimary && (

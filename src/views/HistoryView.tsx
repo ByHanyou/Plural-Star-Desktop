@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials } from '../utils';
+import { Member, HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials, translateMood } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, ConfirmDialog } from '../components/ui';
 
@@ -190,7 +190,7 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
                 {/* Mood / Note / Location / Energy */}
                 {(entry.mood || entry.note || entry.location || entry.energyLevel) && (
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'var(--dim)' }}>
-                    {entry.mood && <span>😊 {entry.mood}</span>}
+                    {entry.mood && <span>😊 {translateMood(entry.mood, t)}</span>}
                     {entry.location && <span>📍 {entry.location}</span>}
                     {entry.energyLevel && <span>⚡ {entry.energyLevel}/10</span>}
                     {entry.note && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{entry.note}</span>}
