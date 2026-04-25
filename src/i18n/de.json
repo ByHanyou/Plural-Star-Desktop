@@ -213,7 +213,7 @@
     "backupLooksLike": "Das sieht nach einer Sicherungsdatei aus. Verwende stattdessen Sicherung Wiederherstellen.",
     "unsupportedFormat": "Nicht unterstütztes Format \".{{ext}}\". Unterstützt: .txt, .md, .json",
     "importedAsEntry": "\"{{title}}\" als neuer Tagebucheintrag importiert.",
-    "notValidExport": "Keine gültige Plural Space Export-Datei.",
+    "notValidExport": "Keine gültige Plural Star Export-Datei.",
     "filesDisabled": "Dateizugriff ist deaktiviert. Aktiviere ihn in den Systemeinstellungen.",
     "spFile": "SP-Datei",
     "spFileImport": "Simply Plural Datei-Import",
@@ -244,7 +244,8 @@
     "journalCount": "{{count}} Tagebuch-Einträge",
     "membersCountSimple": "{{count}} Mitglieder",
     "restoreDesc": "Zuvor exportiertes JSON-Backup laden.",
-    "spMergeDesc": "Simply-Plural-Backup in das aktuelle System einfügen."
+    "spMergeDesc": "Simply-Plural-Backup in das aktuelle System einfügen.",
+    "banners": "Mitglied-Banner"
   },
   "modal": {
     "updateFront": "Front Aktualisieren",
@@ -332,11 +333,11 @@
   },
   "notification": {
     "locationPermTitle": "Standort",
-    "locationPermMsg": "Plural Space erlauben, Ihren ungefähren Standort beim Fronten zu markieren.",
+    "locationPermMsg": "Plural Star erlauben, Ihren ungefähren Standort beim Fronten zu markieren.",
     "allow": "Erlauben",
     "deny": "Ablehnen",
     "notifPermTitle": "Benachrichtigungen",
-    "notifPermMsg": "Erlaube Plural Space, Front-Status-Benachrichtigungen anzuzeigen.",
+    "notifPermMsg": "Erlaube Plural Star, Front-Status-Benachrichtigungen anzuzeigen.",
     "notNow": "Nicht jetzt",
     "mood": "Stimmung: {{mood}}",
     "at": "Bei: {{location}}",
@@ -362,7 +363,9 @@
     "fi": "Suomi",
     "nb": "Norsk",
     "zh": "中文",
-    "ja": "日本語"
+    "ja": "日本語",
+    "ru": "Русский",
+    "uk": "Українська"
   },
   "memberGroups": {
     "title": "Gruppen",
@@ -398,7 +401,11 @@
     "statistics": "Statistiken",
     "systemChat": "System-Chat",
     "discord": "Discord",
-    "dashboard": "← Startseite"
+    "dashboard": "← Startseite",
+    "credits": "Mitwirkende",
+    "creditLogo": "Plural Star Logo",
+    "creditIos": "Plural Star iOS-Portierung",
+    "creditsBlurb": "Community-Mitwirkende"
   },
   "stats": {
     "allTime": "Gesamt",

@@ -219,7 +219,7 @@
     "backupLooksLike": "バックアップファイルのようです。「バックアップを復元」を使用してください。",
     "unsupportedFormat": "サポートされていない形式 \".{{ext}}\"。対応：.txt, .md, .json",
     "importedAsEntry": "\"{{title}}\" が新しいジャーナルエントリとしてインポートされました。",
-    "notValidExport": "有効なPlural Spaceエクスポートファイルではありません。",
+    "notValidExport": "有効なPlural Starエクスポートファイルではありません。",
     "filesDisabled": "ファイルアクセスが無効です。システム設定で有効にしてください。",
     "spFile": "SPファイル",
     "spFileImport": "Simply Plural ファイルインポート",
@@ -244,7 +244,8 @@
     "savedToDownloads": "ダウンロードに保存",
     "savedToDownloadsMsg": "{{filename}} がダウンロードフォルダに保存されました。",
     "exportReady": "エクスポート完了",
-    "exportReadyMsg": "{{filename}} が生成されましたが、共有シートを自動で開けませんでした。"
+    "exportReadyMsg": "{{filename}} が生成されましたが、共有シートを自動で開けませんでした。",
+    "banners": "メンバーバナー"
   },
   "hub": {
     "title": "ハブ",
@@ -272,7 +273,11 @@
     "statistics": "統計",
     "systemChat": "システムチャット",
     "discord": "Discord",
-    "dashboard": "← ダッシュボード"
+    "dashboard": "← ダッシュボード",
+    "credits": "クレジット",
+    "creditLogo": "Plural Star ロゴ",
+    "creditIos": "Plural Star iOS 移植",
+    "creditsBlurb": "コミュニティの貢献者"
   },
   "modal": {
     "updateFront": "フロントを更新",
@@ -360,11 +365,11 @@
   },
   "notification": {
     "locationPermTitle": "位置情報の許可",
-    "locationPermMsg": "Plural Spaceがフロント時におおよその位置をタグ付けします。",
+    "locationPermMsg": "Plural Starがフロント時におおよその位置をタグ付けします。",
     "allow": "許可",
     "deny": "拒否",
     "notifPermTitle": "通知",
-    "notifPermMsg": "Plural Spaceにフロントステータス通知の表示を許可しますか。",
+    "notifPermMsg": "Plural Starにフロントステータス通知の表示を許可しますか。",
     "notNow": "今はしない",
     "mood": "気分：{{mood}}",
     "at": "場所：{{location}}",
@@ -390,7 +395,9 @@
     "fi": "Suomi",
     "nb": "Norsk",
     "zh": "中文",
-    "ja": "日本語"
+    "ja": "日本語",
+    "ru": "Русский",
+    "uk": "Українська"
   },
   "memberGroups": {
     "title": "グループ",

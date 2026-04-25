@@ -219,7 +219,7 @@
     "backupLooksLike": "That looks like a backup file. Use Restore Backup instead.",
     "unsupportedFormat": "Unsupported format \".{{ext}}\". Supported: .txt, .md, .json",
     "importedAsEntry": "\"{{title}}\" imported as a new journal entry.",
-    "notValidExport": "Not a valid Plural Space export file.",
+    "notValidExport": "Not a valid Plural Star export file.",
     "filesDisabled": "File access is disabled. Enable it in System Settings.",
     "spFile": "SP File",
     "spFileImport": "Simply Plural File Import",
@@ -244,7 +244,8 @@
     "journalCount": "{{count}} journal entries",
     "membersCountSimple": "{{count}} members",
     "restoreDesc": "Load a previously exported JSON backup.",
-    "spMergeDesc": "Merge Simply Plural backup data into your current system."
+    "spMergeDesc": "Merge Simply Plural backup data into your current system.",
+    "banners": "Member Banners"
   },
   "hub": {
     "title": "Hub",
@@ -272,7 +273,11 @@
     "statistics": "Statistics",
     "systemChat": "System Chat",
     "discord": "Discord",
-    "dashboard": "← Dashboard"
+    "dashboard": "← Dashboard",
+    "credits": "Credits",
+    "creditLogo": "Plural Star Logo",
+    "creditIos": "Plural Star iOS Port",
+    "creditsBlurb": "Community contributors"
   },
   "modal": {
     "updateFront": "Update Front",
@@ -360,11 +365,11 @@
   },
   "notification": {
     "locationPermTitle": "Location Permission",
-    "locationPermMsg": "Plural Space wants to tag your approximate location when fronting.",
+    "locationPermMsg": "Plural Star wants to tag your approximate location when fronting.",
     "allow": "Allow",
     "deny": "Deny",
     "notifPermTitle": "Notifications",
-    "notifPermMsg": "Allow Plural Space to show front status notifications.",
+    "notifPermMsg": "Allow Plural Star to show front status notifications.",
     "notNow": "Not now",
     "mood": "Mood: {{mood}}",
     "at": "At: {{location}}",
@@ -390,7 +395,9 @@
     "fi": "Suomi",
     "nb": "Norsk",
     "zh": "中文",
-    "ja": "日本語"
+    "ja": "日本語",
+    "ru": "Русский",
+    "uk": "Українська"
   },
   "memberGroups": {
     "title": "Groups",

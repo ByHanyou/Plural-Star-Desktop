@@ -10,8 +10,10 @@ import fi from './fi.json';
 import nb from './nb.json';
 import zh from './zh.json';
 import ja from './ja.json';
+import ru from './ru.json';
+import uk from './uk.json';
 
-export const SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de', 'pt', 'fi', 'nb', 'zh', 'ja'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de', 'pt', 'fi', 'nb', 'zh', 'ja', 'ru', 'uk'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 const getDeviceLanguage = (): SupportedLanguage => {
@@ -36,6 +38,8 @@ i18n
       nb: { translation: nb },
       zh: { translation: zh },
       ja: { translation: ja },
+      ru: { translation: ru },
+      uk: { translation: uk },
     },
     lng: getDeviceLanguage(),
     fallbackLng: 'en',

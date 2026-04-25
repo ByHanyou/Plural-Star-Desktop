@@ -213,7 +213,7 @@
     "backupLooksLike": "Tämä näyttää varmuuskopiotiedostolta. Käytä Palauta varmuuskopio sen sijaan.",
     "unsupportedFormat": "Tukematon muoto \".{{ext}}\". Tuetut: .txt, .md, .json",
     "importedAsEntry": "\"{{title}}\" tuotu uudeksi päiväkirjamerkinnäksi.",
-    "notValidExport": "Ei kelvollinen Plural Space -vientitiedosto.",
+    "notValidExport": "Ei kelvollinen Plural Star -vientitiedosto.",
     "filesDisabled": "Tiedostojen käyttö on poistettu käytöstä. Ota käyttöön järjestelmäasetuksista.",
     "spFile": "SP-tiedosto",
     "spFileImport": "Simply Plural -tiedoston tuonti",
@@ -244,7 +244,8 @@
     "journalCount": "{{count}} päiväkirjamerkintää",
     "membersCountSimple": "{{count}} jäsentä",
     "restoreDesc": "Lataa aiemmin viety JSON-varmuuskopio.",
-    "spMergeDesc": "Yhdistä Simply Plural -varmuuskopio nykyiseen järjestelmään."
+    "spMergeDesc": "Yhdistä Simply Plural -varmuuskopio nykyiseen järjestelmään.",
+    "banners": "Jäsenten Bannerit"
   },
   "hub": {
     "title": "Hub",
@@ -272,7 +273,11 @@
     "statistics": "Tilastot",
     "systemChat": "Järjestelmäkeskustelu",
     "discord": "Discord",
-    "dashboard": "← Hallintapaneeli"
+    "dashboard": "← Hallintapaneeli",
+    "credits": "Tekijät",
+    "creditLogo": "Plural Star -logo",
+    "creditIos": "Plural Starin iOS-portti",
+    "creditsBlurb": "Yhteisön avustajat"
   },
   "modal": {
     "systemSettings": "Järjestelmäasetukset",
@@ -360,11 +365,11 @@
   },
   "notification": {
     "locationPermTitle": "Sijainti",
-    "locationPermMsg": "Salli Plural Spacen merkitä likimääräinen sijainti frontissa.",
+    "locationPermMsg": "Salli Plural Starn merkitä likimääräinen sijainti frontissa.",
     "allow": "Salli",
     "deny": "Estä",
     "notifPermTitle": "Ilmoitukset",
-    "notifPermMsg": "Salli Plural Spacen näyttää front-ilmoituksia.",
+    "notifPermMsg": "Salli Plural Starn näyttää front-ilmoituksia.",
     "notNow": "Ei nyt",
     "mood": "Mieliala: {{mood}}",
     "at": "Paikassa: {{location}}",
@@ -390,7 +395,9 @@
     "fi": "Suomi",
     "nb": "Norsk",
     "zh": "中文",
-    "ja": "日本語"
+    "ja": "日本語",
+    "ru": "Русский",
+    "uk": "Українська"
   },
   "memberGroups": {
     "title": "Ryhmät",

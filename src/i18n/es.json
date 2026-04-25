@@ -213,7 +213,7 @@
     "backupLooksLike": "Eso parece un archivo de respaldo. Usa Restaurar Respaldo.",
     "unsupportedFormat": "Formato no soportado \".{{ext}}\". Soportados: .txt, .md, .json",
     "importedAsEntry": "\"{{title}}\" importado como nueva entrada.",
-    "notValidExport": "No es un archivo de exportación válido de Plural Space.",
+    "notValidExport": "No es un archivo de exportación válido de Plural Star.",
     "filesDisabled": "El acceso a archivos está desactivado. Actívalo en Ajustes del Sistema.",
     "spFile": "Archivo SP",
     "spFileImport": "Importar Archivo de Simply Plural",
@@ -244,7 +244,8 @@
     "journalCount": "{{count}} entradas de diario",
     "membersCountSimple": "{{count}} miembros",
     "restoreDesc": "Cargar una copia JSON exportada previamente.",
-    "spMergeDesc": "Fusionar copia de Simply Plural con el sistema actual."
+    "spMergeDesc": "Fusionar copia de Simply Plural con el sistema actual.",
+    "banners": "Banners de Miembros"
   },
   "hub": {
     "title": "Centro",
@@ -272,7 +273,11 @@
     "statistics": "Estadísticas",
     "systemChat": "Chat del Sistema",
     "discord": "Discord",
-    "dashboard": "← Panel"
+    "dashboard": "← Panel",
+    "credits": "Créditos",
+    "creditLogo": "Logo de Plural Star",
+    "creditIos": "Port de Plural Star para iOS",
+    "creditsBlurb": "Contribuyentes de la comunidad"
   },
   "modal": {
     "updateFront": "Actualizar Frente",
@@ -360,11 +365,11 @@
   },
   "notification": {
     "locationPermTitle": "Ubicación",
-    "locationPermMsg": "Permitir a Plural Space etiquetar tu ubicación aproximada al estar al frente.",
+    "locationPermMsg": "Permitir a Plural Star etiquetar tu ubicación aproximada al estar al frente.",
     "allow": "Permitir",
     "deny": "Denegar",
     "notifPermTitle": "Notificaciones",
-    "notifPermMsg": "Permitir que Plural Space muestre notificaciones de estado de frente.",
+    "notifPermMsg": "Permitir que Plural Star muestre notificaciones de estado de frente.",
     "notNow": "Ahora no",
     "mood": "Ánimo: {{mood}}",
     "at": "En: {{location}}",
@@ -390,7 +395,9 @@
     "fi": "Suomi",
     "nb": "Norsk",
     "zh": "中文",
-    "ja": "日本語"
+    "ja": "日本語",
+    "ru": "Русский",
+    "uk": "Українська"
   },
   "memberGroups": {
     "title": "Grupos",

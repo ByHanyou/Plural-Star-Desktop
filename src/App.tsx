@@ -19,6 +19,7 @@ import ImportExportTile from './tiles/ImportExportTile';
 import SettingsTile from './tiles/SettingsTile';
 import CustomFieldsTile from './tiles/CustomFieldsTile';
 import PollsTile from './tiles/PollsTile';
+import CreditsTile from './tiles/CreditsTile';
 
 // Full views
 import SettingsView from './views/SettingsView';
@@ -31,10 +32,11 @@ import FrontView from './views/FrontView';
 import ChatView from './views/ChatView';
 import CustomFieldsView from './views/CustomFieldsView';
 import PollsView from './views/PollsView';
+import CreditsView from './views/CreditsView';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits';
 
 interface AppState {
   system: SystemInfo;
@@ -124,7 +126,7 @@ export default function App() {
 
   // ─── Title Bar ──────────────────────────────────────────────────────────
 
-  const systemName = state.system.name || 'Plural Space';
+  const systemName = state.system.name || 'Plural Star';
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
@@ -196,6 +198,9 @@ export default function App() {
             <PollsTile
               onClick={() => setView('polls')}
             />
+            <CreditsTile
+              onClick={() => setView('credits')}
+            />
             <SettingsTile
               settings={state.settings}
               onClick={() => setView('settings')}
@@ -219,6 +224,7 @@ export default function App() {
                 : view === 'settings' ? t('modal.systemSettings')
                 : view === 'custom-fields' ? t('customFields.title')
                 : view === 'polls' ? t('polls.title')
+                : view === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
                 : view}
             </span>
           </div>
@@ -255,6 +261,9 @@ export default function App() {
             )}
             {view === 'polls' && (
               <PollsView members={state.members} onUpdate={loadData} />
+            )}
+            {view === 'credits' && (
+              <CreditsView />
             )}
           </div>
         </div>

@@ -219,7 +219,7 @@
     "backupLooksLike": "看起来像备份文件。请使用恢复备份代替。",
     "unsupportedFormat": "不支持的格式 \".{{ext}}\"。支持：.txt, .md, .json",
     "importedAsEntry": "\"{{title}}\" 已作为新日记条目导入。",
-    "notValidExport": "不是有效的 Plural Space 导出文件。",
+    "notValidExport": "不是有效的 Plural Star 导出文件。",
     "filesDisabled": "文件访问已禁用。请在系统设置中启用。",
     "spFile": "SP 文件",
     "spFileImport": "Simply Plural 文件导入",
@@ -244,7 +244,8 @@
     "savedToDownloads": "已保存到下载",
     "savedToDownloadsMsg": "{{filename}} 已保存到下载文件夹。",
     "exportReady": "导出完成",
-    "exportReadyMsg": "{{filename}} 已生成，但无法自动打开分享界面。"
+    "exportReadyMsg": "{{filename}} 已生成，但无法自动打开分享界面。",
+    "banners": "成员横幅"
   },
   "hub": {
     "title": "中心",
@@ -272,7 +273,11 @@
     "statistics": "统计",
     "systemChat": "系统聊天",
     "discord": "Discord",
-    "dashboard": "← 仪表板"
+    "dashboard": "← 仪表板",
+    "credits": "致谢",
+    "creditLogo": "Plural Star 标志",
+    "creditIos": "Plural Star iOS 移植",
+    "creditsBlurb": "社区贡献者"
   },
   "modal": {
     "updateFront": "更新前台",
@@ -360,11 +365,11 @@
   },
   "notification": {
     "locationPermTitle": "位置权限",
-    "locationPermMsg": "Plural Space 希望在前台时标记你的大致位置。",
+    "locationPermMsg": "Plural Star 希望在前台时标记你的大致位置。",
     "allow": "允许",
     "deny": "拒绝",
     "notifPermTitle": "通知",
-    "notifPermMsg": "允许 Plural Space 显示前台状态通知。",
+    "notifPermMsg": "允许 Plural Star 显示前台状态通知。",
     "notNow": "暂时不要",
     "mood": "情绪：{{mood}}",
     "at": "在：{{location}}",
@@ -390,7 +395,9 @@
     "fi": "Suomi",
     "nb": "Norsk",
     "zh": "中文",
-    "ja": "日本語"
+    "ja": "日本語",
+    "ru": "Русский",
+    "uk": "Українська"
   },
   "memberGroups": {
     "title": "组",

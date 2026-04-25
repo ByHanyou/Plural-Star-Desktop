@@ -213,7 +213,7 @@
     "backupLooksLike": "Cela ressemble à un fichier de sauvegarde. Utilisez Restaurer la Sauvegarde à la place.",
     "unsupportedFormat": "Format non supporté \".{{ext}}\". Supportés : .txt, .md, .json",
     "importedAsEntry": "\"{{title}}\" importé comme nouvelle entrée de journal.",
-    "notValidExport": "Ce n'est pas un fichier d'export Plural Space valide.",
+    "notValidExport": "Ce n'est pas un fichier d'export Plural Star valide.",
     "filesDisabled": "L'accès aux fichiers est désactivé. Activez-le dans les Paramètres du Système.",
     "spFile": "Fichier SP",
     "spFileImport": "Importer un Fichier Simply Plural",
@@ -244,7 +244,8 @@
     "journalCount": "{{count}} entrées de journal",
     "membersCountSimple": "{{count}} membres",
     "restoreDesc": "Charger une sauvegarde JSON exportée précédemment.",
-    "spMergeDesc": "Fusionner une sauvegarde Simply Plural avec votre système actuel."
+    "spMergeDesc": "Fusionner une sauvegarde Simply Plural avec votre système actuel.",
+    "banners": "Bannières des Membres"
   },
   "modal": {
     "updateFront": "Mettre à Jour le Front",
@@ -332,11 +333,11 @@
   },
   "notification": {
     "locationPermTitle": "Localisation",
-    "locationPermMsg": "Autoriser Plural Space à marquer votre position approximative au front.",
+    "locationPermMsg": "Autoriser Plural Star à marquer votre position approximative au front.",
     "allow": "Autoriser",
     "deny": "Refuser",
     "notifPermTitle": "Notifications",
-    "notifPermMsg": "Autoriser Plural Space à afficher les notifications d'état du front.",
+    "notifPermMsg": "Autoriser Plural Star à afficher les notifications d'état du front.",
     "notNow": "Pas maintenant",
     "mood": "Humeur : {{mood}}",
     "at": "À : {{location}}",
@@ -362,7 +363,9 @@
     "fi": "Suomi",
     "nb": "Norsk",
     "zh": "中文",
-    "ja": "日本語"
+    "ja": "日本語",
+    "ru": "Русский",
+    "uk": "Українська"
   },
   "memberGroups": {
     "title": "Groupes",
@@ -398,7 +401,11 @@
     "statistics": "Statistiques",
     "systemChat": "Chat Système",
     "discord": "Discord",
-    "dashboard": "← Tableau de bord"
+    "dashboard": "← Tableau de bord",
+    "credits": "Crédits",
+    "creditLogo": "Logo Plural Star",
+    "creditIos": "Portage iOS de Plural Star",
+    "creditsBlurb": "Contributeurs de la communauté"
   },
   "stats": {
     "allTime": "Tout",

@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import Store from 'electron-store';
 
-app.setName('Plural Space');
+app.setName('Plural Star');
 
 const userDataPath = app.getPath('userData');
 if (!fs.existsSync(userDataPath)) {
@@ -22,7 +22,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 400,
     minHeight: 600,
-    title: 'Plural Space',
+    title: 'Plural Star',
     backgroundColor: '#0A1F2E',
     titleBarStyle: 'hiddenInset',
     frame: process.platform === 'darwin' ? false : true,
@@ -196,9 +196,9 @@ ipcMain.on('window:close', () => mainWindow?.close());
 function createTray(): void {
   const icon = nativeImage.createEmpty();
   tray = new Tray(icon);
-  tray.setToolTip('Plural Space');
+  tray.setToolTip('Plural Star');
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open Plural Space', click: () => mainWindow?.show() },
+    { label: 'Open Plural Star', click: () => mainWindow?.show() },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]);

@@ -1,7 +1,7 @@
-# Privacy Policy — Plural Space Desktop
+# Privacy Policy — Plural Star Desktop
 
 **Last updated:** April 2026
-**App:** Plural Space Desktop
+**App:** Plural Star Desktop
 **Developer:** The Hanyou System / The Living Archive
 **Contact:** [your contact email here]
 
@@ -9,13 +9,13 @@
 
 ## Overview
 
-Plural Space Desktop is a private system management tool for plural individuals and systems. This policy describes how the desktop application handles your data.
+Plural Star Desktop is a private system management tool for plural individuals and systems. This policy describes how the desktop application handles your data.
 
 ---
 
 ## Data Collection
 
-**Plural Space Desktop collects no data from you.**
+**Plural Star Desktop collects no data from you.**
 
 The app does not:
 - Transmit any personal information to external servers
@@ -28,13 +28,13 @@ The app does not:
 
 ## Data Storage
 
-All data entered into Plural Space Desktop — including system name, member profiles, journal entries, front history, and chat messages — is stored exclusively on your device using `electron-store`, a local file-based store. On Windows this is located in your user data folder (`%APPDATA%\plural-space-data`). This data never leaves your device unless you explicitly choose to export it using the in-app export tools.
+All data entered into Plural Star Desktop — including system name, member profiles, journal entries, front history, and chat messages — is stored exclusively on your device using `electron-store`, a local file-based store. On Windows this is located in your user data folder (`%APPDATA%\plural-space-data`). This data never leaves your device unless you explicitly choose to export it using the in-app export tools.
 
 ---
 
 ## Export Features
 
-Plural Space Desktop includes optional export features you control entirely:
+Plural Star Desktop includes optional export features you control entirely:
 
 - **JSON export:** Saves a file to a location you choose via your system's file save dialog. You decide where it goes.
 - **HTML export:** Same as above. The file is for your personal use (e.g. opening in a browser or uploading to a cloud service of your choice).
@@ -45,7 +45,7 @@ The app does not transmit, upload, or share these files. All export operations a
 
 ## Sensitive Information
 
-Plural Space Desktop is designed for use by plural systems, which may include individuals with dissociative identity disorder (DID), other specified dissociative disorder (OSDD), or other plurality experiences. The app treats all entered information as private by default. No information about system identity, mental health, or personal history is collected or shared by the app.
+Plural Star Desktop is designed for use by plural systems, which may include individuals with dissociative identity disorder (DID), other specified dissociative disorder (OSDD), or other plurality experiences. The app treats all entered information as private by default. No information about system identity, mental health, or personal history is collected or shared by the app.
 
 ---
 
@@ -57,7 +57,7 @@ Unlike the mobile version, the desktop app does not include GPS location resolut
 
 ## Children
 
-Plural Space Desktop is not directed at children under the age of 13 and does not knowingly collect information from children.
+Plural Star Desktop is not directed at children under the age of 13 and does not knowingly collect information from children.
 
 ---
 

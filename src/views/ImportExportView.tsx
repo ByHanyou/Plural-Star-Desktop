@@ -9,7 +9,7 @@ import {
 import { CustomPalette } from '../theme';
 
 interface ExportCategories {
-  system: boolean; members: boolean; avatars: boolean; frontHistory: boolean; journal: boolean;
+  system: boolean; members: boolean; avatars: boolean; banners: boolean; frontHistory: boolean; journal: boolean;
   groups: boolean; chat: boolean; moods: boolean; palettes: boolean; settings: boolean;
   customFields: boolean; noteboards: boolean; polls: boolean;
 }
@@ -32,14 +32,14 @@ export default function ImportExportView({ system, members, history, journal, se
   const [restoreData, setRestoreData] = useState<ExportPayload | null>(null);
   const [restoreFile, setRestoreFile] = useState<string | null>(null);
   const [restoreSel, setRestoreSel] = useState({
-    system: true, members: true, avatars: true, frontHistory: true, journal: true,
+    system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
     customFields: true, noteboards: true, polls: true,
   });
   const togR = (k: string) => setRestoreSel(s => ({ ...s, [k]: !s[k as keyof typeof s] }));
 
   const [exportSel, setExportSel] = useState<ExportCategories>({
-    system: true, members: true, avatars: true, frontHistory: true, journal: true,
+    system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
     customFields: true, noteboards: true, polls: true,
   });
@@ -55,7 +55,7 @@ export default function ImportExportView({ system, members, history, journal, se
 
   const handleExport = async () => {
     const cat = showExportOptions ? exportSel : {
-      system: true, members: true, avatars: true, frontHistory: true, journal: true,
+      system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
       groups: true, chat: true, moods: true, palettes: true, settings: true,
       customFields: true, noteboards: true, polls: true,
     };
@@ -79,10 +79,21 @@ export default function ImportExportView({ system, members, history, journal, se
         }
       }
     }
-    const membersForExport = members.map(({ avatar: _a, ...rest }) => rest as Member);
+    const banners: Record<string, string> = {};
+    if (cat.banners) {
+      for (const m of members) {
+        if (!m.banner) continue;
+        if (m.banner.startsWith('data:')) { banners[m.id] = m.banner; }
+        else {
+          const dataUri = await window.electronAPI.file.readAsBase64(m.banner);
+          if (dataUri) banners[m.id] = dataUri;
+        }
+      }
+    }
+    const membersForExport = members.map(({ avatar: _a, banner: _b, ...rest }) => rest as Member);
 
     const payload: ExportPayload = {
-      _meta: { version: '1.2', app: 'Plural Space', exportedAt: new Date().toISOString() },
+      _meta: { version: '1.2', app: 'Plural Star', exportedAt: new Date().toISOString() },
       system: cat.system ? system : undefined as any,
       members: cat.members ? membersForExport : [],
       frontHistory: cat.frontHistory ? history : [],
@@ -94,13 +105,14 @@ export default function ImportExportView({ system, members, history, journal, se
       front: cat.frontHistory ? (await store.get(KEYS.front) || null) : undefined,
       palettes: cat.palettes ? palettes : [],
       avatars: cat.avatars ? avatars : {},
+      banners: cat.banners ? banners : {},
       customMoods: cat.moods ? (settings?.customMoods || []) : [],
       customFieldDefs: cat.customFields ? (await store.get(KEYS.customFieldDefs) || []) : [],
       noteboards: cat.noteboards ? (await store.get(KEYS.noteboards) || []) : [],
       polls: cat.polls ? (await store.get(KEYS.polls) || []) : [],
     };
     const json = JSON.stringify(payload, null, 2);
-    const defaultName = `PluralSpace_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    const defaultName = `PluralStar_Backup_${new Date().toISOString().slice(0, 10)}.json`;
     const filePath = await window.electronAPI.dialog.saveFile(defaultName);
     if (!filePath) return;
 
@@ -108,7 +120,7 @@ export default function ImportExportView({ system, members, history, journal, se
     showStatus('Backup exported successfully');
   };
 
-  // ─── Import (Plural Space format) ──────────────────────────────────────
+  // ─── Import (Plural Star native format — also accepts legacy Plural Space) ──────────────────────────────────────
 
   const handlePickBackup = async () => {
     try {
@@ -121,8 +133,8 @@ export default function ImportExportView({ system, members, history, journal, se
         const text = await file.text();
         const data = JSON.parse(text) as ExportPayload;
 
-        if (!data._meta?.app?.includes('PluralSpace') && !data._meta?.app?.includes('Plural Space')) {
-          showStatus('Error: Not a Plural Space backup file');
+        if (!data._meta?.app?.includes('PluralSpace') && !data._meta?.app?.includes('Plural Space') && !data._meta?.app?.includes('PluralStar') && !data._meta?.app?.includes('Plural Star')) {
+          showStatus('Error: Not a Plural Star backup file');
           return;
         }
 
@@ -142,19 +154,39 @@ export default function ImportExportView({ system, members, history, journal, se
       if (restoreSel.system && restoreData.system) await store.set(KEYS.system, restoreData.system);
       if (restoreSel.members && restoreData.members) {
         const avatarMap: Record<string, string> = { ...(restoreData.avatars || {}) };
+        const bannerMap: Record<string, string> = { ...(restoreData.banners || {}) };
         const importedMembers = restoreData.members.map((m: any) => {
-          if (!restoreSel.avatars) { const { avatar, ...rest } = m; return rest; }
-          // Prefer the avatars dict (embedded data: URI) over any inline avatar field
-          const resolvedAvatar = avatarMap[m.id] ?? m.avatar;
-          return resolvedAvatar ? { ...m, avatar: resolvedAvatar } : m;
+          let result: any = m;
+          if (!restoreSel.avatars) { const { avatar, ...rest } = result; result = rest; }
+          else {
+            const resolvedAvatar = avatarMap[m.id] ?? m.avatar;
+            if (resolvedAvatar) result = { ...result, avatar: resolvedAvatar };
+          }
+          if (!restoreSel.banners) { const { banner, ...rest } = result; result = rest; }
+          else {
+            const resolvedBanner = bannerMap[m.id] ?? m.banner;
+            if (resolvedBanner) result = { ...result, banner: resolvedBanner };
+          }
+          return result;
         });
         await store.set(KEYS.members, importedMembers);
-      } else if (restoreSel.avatars && !restoreSel.members) {
-        const avatarMap: Record<string, string> = { ...(restoreData.avatars || {}) };
-        for (const m of (restoreData.members || [])) { if ((m as any).avatar && !avatarMap[m.id]) avatarMap[m.id] = (m as any).avatar; }
-        if (Object.keys(avatarMap).length > 0) {
+      } else if ((restoreSel.avatars || restoreSel.banners) && !restoreSel.members) {
+        const avatarMap: Record<string, string> = restoreSel.avatars ? { ...(restoreData.avatars || {}) } : {};
+        const bannerMap: Record<string, string> = restoreSel.banners ? { ...(restoreData.banners || {}) } : {};
+        if (restoreSel.avatars) {
+          for (const m of (restoreData.members || [])) { if ((m as any).avatar && !avatarMap[m.id]) avatarMap[m.id] = (m as any).avatar; }
+        }
+        if (restoreSel.banners) {
+          for (const m of (restoreData.members || [])) { if ((m as any).banner && !bannerMap[m.id]) bannerMap[m.id] = (m as any).banner; }
+        }
+        if (Object.keys(avatarMap).length > 0 || Object.keys(bannerMap).length > 0) {
           const existing = await store.get<Member[]>(KEYS.members) || [];
-          const updated = existing.map(m => avatarMap[m.id] ? { ...m, avatar: avatarMap[m.id] } : m);
+          const updated = existing.map(m => {
+            let result: any = m;
+            if (avatarMap[m.id]) result = { ...result, avatar: avatarMap[m.id] };
+            if (bannerMap[m.id]) result = { ...result, banner: bannerMap[m.id] };
+            return result;
+          });
           await store.set(KEYS.members, updated);
         }
       }
@@ -424,6 +456,7 @@ export default function ImportExportView({ system, members, history, journal, se
               ['system', t('share.systemNameDesc')],
               ['members', t('share.memberProfiles')],
               ['avatars', t('share.profilePictures')],
+              ['banners', t('share.banners')],
               ['frontHistory', t('share.frontHistory')],
               ['journal', t('share.journalEntries')],
               ['groups', t('share.memberGroups')],
@@ -465,6 +498,7 @@ export default function ImportExportView({ system, members, history, journal, se
                 ['system', t('share.systemNameDesc'), !!restoreData.system, null],
                 ['members', t('share.memberProfiles'), !!restoreData.members, restoreData.members?.length],
                 ['avatars', t('share.profilePictures'), !!(restoreData.avatars && Object.keys(restoreData.avatars).length > 0) || !!(restoreData.members?.some((m: any) => m.avatar)), restoreData.avatars ? Object.keys(restoreData.avatars).length : restoreData.members?.filter((m: any) => m.avatar).length || 0],
+                ['banners', t('share.banners'), !!(restoreData.banners && Object.keys(restoreData.banners).length > 0) || !!(restoreData.members?.some((m: any) => m.banner)), restoreData.banners ? Object.keys(restoreData.banners).length : restoreData.members?.filter((m: any) => m.banner).length || 0],
                 ['frontHistory', t('share.frontHistory'), !!restoreData.frontHistory, restoreData.frontHistory?.length],
                 ['journal', t('share.journalEntries'), !!restoreData.journal, restoreData.journal?.length],
                 ['groups', t('share.memberGroups'), !!restoreData.groups?.length, restoreData.groups?.length],

@@ -1,4 +1,4 @@
-<h1 align="center">Plural Space — Desktop</h1>
+<h1 align="center">Plural Star — Desktop</h1>
 
 <p align="center">
   <strong>Front tracking, system journal & history for plural systems.</strong><br>
@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TheHanyou/Plural-Space-Desktop/releases/latest">
+  <a href="https://github.com/TheHanyou/Plural-Star-Desktop/releases/latest">
     <img src="https://img.shields.io/badge/Download-Latest%20Release-DAA520?style=for-the-badge&logo=windows&logoColor=white" alt="Download Latest Release" />
   </a>
   &nbsp;
@@ -21,9 +21,9 @@
 
 ---
 
-The desktop companion to [Plural Space](https://github.com/TheHanyou/Plural-Space). Built with Electron — your data stays on your machine, the same way it stays on your phone.
+The desktop companion to [Plural Star](https://github.com/TheHanyou/Plural-Star). Built with Electron — your data stays on your machine, the same way it stays on your phone.
 
-> **Simply Plural is being discontinued.** Plural Space is the replacement you own entirely.
+> **Simply Plural is being discontinued.** Plural Star is the replacement you own entirely.
 
 ---
 
@@ -69,13 +69,13 @@ Full privacy policy: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
 
 ## Installation
 
-Download the latest installer from [Releases](https://github.com/TheHanyou/Plural-Space-Desktop/releases):
+Download the latest installer from [Releases](https://github.com/TheHanyou/Plural-Star-Desktop/releases):
 
 | Platform | File |
 |---|---|
-| Windows | `Plural-Space-Setup-x.x.x.exe` (installer) or `Plural-Space-x.x.x-portable.exe` |
-| macOS | `Plural-Space-x.x.x.dmg` |
-| Linux | `Plural-Space-x.x.x.AppImage` or `.deb` |
+| Windows | `Plural-Star-Setup-x.x.x.exe` (installer) or `Plural-Star-x.x.x-portable.exe` |
+| macOS | `Plural-Star-x.x.x.dmg` |
+| Linux | `Plural-Star-x.x.x.AppImage` or `.deb` |
 
 **Windows note:** Because the app is not code-signed, Windows Defender SmartScreen may show a warning on first launch. Click "More info" → "Run anyway." The source is fully open and auditable here.
 
@@ -86,8 +86,8 @@ Download the latest installer from [Releases](https://github.com/TheHanyou/Plura
 Requirements: Node 22+
 
 ```bash
-git clone https://github.com/TheHanyou/Plural-Space-Desktop.git
-cd Plural-Space-Desktop
+git clone https://github.com/TheHanyou/Plural-Star-Desktop.git
+cd Plural-Star-Desktop
 npm install
 npm run electron:dev       # development
 npm run electron:build     # build installer for your platform
@@ -99,7 +99,7 @@ npm run electron:build     # build installer for your platform
 
 ## Relationship to the Mobile App
 
-This is a separate repository from the [Plural Space mobile app](https://github.com/TheHanyou/Plural-Space). The two apps share the same data model and export format, so JSON exports are cross-compatible — you can move your data between them freely. Features may land on one platform before the other.
+This is a separate repository from the [Plural Star mobile app](https://github.com/TheHanyou/Plural-Star). The two apps share the same data model and export format, so JSON exports are cross-compatible — you can move your data between them freely. Features may land on one platform before the other.
 
 ---
 
@@ -113,7 +113,7 @@ Free and open source. You are free to use, modify, and distribute it under the t
 
 ## Support
 
-Plural Space is free, always. If it's been useful to you, a contribution helps cover development time.
+Plural Star is free, always. If it's been useful to you, a contribution helps cover development time.
 
 <a href="https://www.buymeacoffee.com/PluralSpace">
   <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&emoji=%E2%98%95&slug=PluralSpace&button_colour=151929&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" alt="Support PS on Buy Me a Coffee" />
@@ -124,4 +124,4 @@ Plural Space is free, always. If it's been useful to you, a contribution helps c
 ## Contact
 
 **The Hanyou System**
-[Discord](https://discord.gg/FFQw33cu8m) · [r/PluralSpace](https://www.reddit.com/r/PluralSpace/) · [GitHub Issues](https://github.com/TheHanyou/Plural-Space-Desktop/issues)
+[Discord](https://discord.gg/FFQw33cu8m) · [r/PluralStar](https://www.reddit.com/r/PluralStar/) · [GitHub Issues](https://github.com/TheHanyou/Plural-Star-Desktop/issues)

@@ -1,7 +1,7 @@
 {
   "name": "plural-space-desktop",
-  "version": "1.1.4",
-  "description": "Plural Space — Desktop",
+  "version": "1.2.0",
+  "description": "Plural Star — Desktop",
   "author": {
     "name": "The Hanyou System",
     "email": "The1Hanyou@gmail.com"
@@ -40,7 +40,7 @@
   },
   "build": {
     "appId": "com.pluralspace.desktop",
-    "productName": "Plural Space",
+    "productName": "Plural Star",
     "directories": {
       "output": "release"
     },
