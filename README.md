@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/Download-Latest%20Release-DAA520?style=for-the-badge&logo=windows&logoColor=white" alt="Download Latest Release" />
   </a>
   &nbsp;
-  <a href="https://www.buymeacoffee.com/PluralSpace">
+  <a href="https://www.buymeacoffee.com/PluralStar">
     <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&emoji=%E2%98%95&slug=PluralSpace&button_colour=151929&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" alt="Support PS on Buy Me a Coffee" />
   </a>
   &nbsp;
@@ -115,7 +115,7 @@ Free and open source. You are free to use, modify, and distribute it under the t
 
 Plural Star is free, always. If it's been useful to you, a contribution helps cover development time.
 
-<a href="https://www.buymeacoffee.com/PluralSpace">
+<a href="https://www.buymeacoffee.com/PluralStar">
   <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&emoji=%E2%98%95&slug=PluralSpace&button_colour=151929&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" alt="Support PS on Buy Me a Coffee" />
 </a>
 
