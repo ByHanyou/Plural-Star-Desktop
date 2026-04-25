@@ -16,6 +16,9 @@ let tray: Tray | null = null;
 
 const isDev = !app.isPackaged;
 
+const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.png');
+const TRAY_ICON_PATH = path.join(__dirname, '..', 'build', 'tray.png');
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -23,6 +26,7 @@ function createWindow(): void {
     minWidth: 400,
     minHeight: 600,
     title: 'Plural Star',
+    icon: ICON_PATH,
     backgroundColor: '#0A1F2E',
     titleBarStyle: 'hiddenInset',
     frame: process.platform === 'darwin' ? false : true,
@@ -44,8 +48,6 @@ function createWindow(): void {
     mainWindow = null;
   });
 }
-
-// ─── IPC: Storage ───────────────────────────────────────────────────────────
 
 ipcMain.handle('store:get', (_e, key: string) => {
   try {
@@ -109,8 +111,6 @@ ipcMain.handle('store:allKeys', () => {
   }
 });
 
-// ─── IPC: File Dialogs ──────────────────────────────────────────────────────
-
 ipcMain.handle('dialog:openFile', async (_e, filters?: Electron.FileFilter[]) => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
@@ -132,8 +132,6 @@ ipcMain.handle('dialog:saveFile', async (_e, defaultName: string) => {
   });
   return result.canceled ? null : result.filePath;
 });
-
-// ─── IPC: File Reading ──────────────────────────────────────────────────────
 
 ipcMain.handle('file:readAsBase64', async (_e, filePath: string) => {
   try {
@@ -160,8 +158,6 @@ ipcMain.handle('file:write', async (_e, filePath: string, content: string) => {
   }
 });
 
-// ─── IPC: Network Fetch (CORS proxy) ────────────────────────────────────────
-
 ipcMain.handle('net:fetch', async (_e, url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) => {
   try {
     const res = await fetch(url, {
@@ -176,13 +172,9 @@ ipcMain.handle('net:fetch', async (_e, url: string, options?: { method?: string;
   }
 });
 
-// ─── IPC: Notifications ─────────────────────────────────────────────────────
-
 ipcMain.handle('notify', (_e, title: string, body: string) => {
   new Notification({ title, body }).show();
 });
-
-// ─── IPC: Window Controls ───────────────────────────────────────────────────
 
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:maximize', () => {
@@ -191,11 +183,17 @@ ipcMain.on('window:maximize', () => {
 });
 ipcMain.on('window:close', () => mainWindow?.close());
 
-// ─── System Tray ─────────────────────────────────────────────────────────────
-
 function createTray(): void {
-  const icon = nativeImage.createEmpty();
-  tray = new Tray(icon);
+  let trayImage = nativeImage.createFromPath(TRAY_ICON_PATH);
+  if (trayImage.isEmpty()) {
+    trayImage = nativeImage.createEmpty();
+  } else {
+    trayImage = trayImage.resize({ width: 22, height: 22 });
+    if (process.platform === 'darwin') {
+      trayImage.setTemplateImage(true);
+    }
+  }
+  tray = new Tray(trayImage);
   tray.setToolTip('Plural Star');
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Open Plural Star', click: () => mainWindow?.show() },
@@ -205,8 +203,6 @@ function createTray(): void {
   tray.setContextMenu(contextMenu);
   tray.on('click', () => mainWindow?.show());
 }
-
-// ─── Application Menu (enables Copy/Paste/Cut shortcuts) ─────────────────────
 
 function createAppMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
@@ -238,14 +234,11 @@ function createAppMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-// ─── App Lifecycle ───────────────────────────────────────────────────────────
-
 app.whenReady().then(() => {
   createAppMenu();
   createWindow();
   createTray();
 
-  // Right-click context menu in renderer
   if (mainWindow) {
     mainWindow.webContents.on('context-menu', (_e, params) => {
       const menu = Menu.buildFromTemplate([
