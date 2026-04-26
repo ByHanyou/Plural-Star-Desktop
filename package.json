@@ -1,6 +1,6 @@
 {
   "name": "plural-space-desktop",
-  "version": "1.2.1",
+  "version": "1.2.0",
   "description": "Plural Star — Desktop",
   "author": {
     "name": "The Hanyou System",
@@ -17,23 +17,23 @@
     "postinstall": "node scripts/fix-bin-permissions.js"
   },
   "dependencies": {
-    "@tiptap/extension-placeholder": "^2.11.0",
-    "@tiptap/react": "^2.11.0",
-    "@tiptap/starter-kit": "^2.11.0",
     "electron-store": "^8.2.0",
     "i18next": "^25.10.4",
-    "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-i18next": "^16.6.1"
+    "react-i18next": "^16.6.1",
+    "@tiptap/react": "^2.11.0",
+    "@tiptap/starter-kit": "^2.11.0",
+    "@tiptap/extension-placeholder": "^2.11.0",
+    "lucide-react": "^0.468.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.0",
-    "electron": "^41.3.0",
-    "electron-builder": "^26.8.1",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "wait-on": "^8.0.0"
@@ -52,24 +52,20 @@
       "build/tray.png"
     ],
     "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ],
+      "target": ["nsis", "portable"],
       "icon": "build/icon.png"
     },
     "mac": {
-      "target": [
-        "dmg"
-      ],
+      "target": ["dmg"],
       "category": "public.app-category.lifestyle",
-      "icon": "build/icon.png"
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
+      "target": ["AppImage", "deb"],
       "category": "Utility",
       "icon": "build/icons"
     }
