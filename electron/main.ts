@@ -19,6 +19,43 @@ const isDev = !app.isPackaged;
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.png');
 const TRAY_ICON_PATH = path.join(__dirname, '..', 'build', 'tray.png');
 
+const STORE_FILE = (store as any).path as string;
+
+function atomicWriteJson(filePath: string, data: unknown): void {
+  const json = JSON.stringify(data, null, '\t');
+  const dir = path.dirname(filePath);
+  const tmp = path.join(dir, `.${path.basename(filePath)}.tmp.${process.pid}.${Date.now()}`);
+  let fd: number | null = null;
+  try {
+    fd = fs.openSync(tmp, 'w', 0o666);
+    fs.writeSync(fd, json);
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
+    fd = null;
+    try {
+      fs.renameSync(tmp, filePath);
+    } catch (e: any) {
+      if (e?.code === 'EXDEV') {
+        fs.copyFileSync(tmp, filePath);
+        try { fs.unlinkSync(tmp); } catch {}
+      } else {
+        throw e;
+      }
+    }
+  } catch (e) {
+    if (fd !== null) { try { fs.closeSync(fd); } catch {} }
+    try { fs.unlinkSync(tmp); } catch {}
+    throw e;
+  }
+}
+
+function readJsonOrThrow(filePath: string): Record<string, unknown> {
+  if (!fs.existsSync(filePath)) return {};
+  const text = fs.readFileSync(filePath, 'utf8');
+  if (text.length === 0) return {};
+  return JSON.parse(text);
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -54,31 +91,42 @@ ipcMain.handle('store:get', (_e, key: string) => {
     return store.get(key, null);
   } catch (e) {
     console.error('[store:get] error:', e);
-    return null;
+    throw e;
   }
+});
+
+ipcMain.handle('store:getStrict', (_e, key: string) => {
+  return store.get(key, null);
 });
 
 ipcMain.handle('store:set', (_e, key: string, value: unknown) => {
   try {
     store.set(key, value);
+  } catch (e) {
+    console.error('[store:set] error:', e);
+    throw e;
+  }
+});
+
+ipcMain.handle('store:setBatch', (_e, updates: Record<string, unknown>) => {
+  if (!updates || typeof updates !== 'object') {
+    throw new TypeError('setBatch expects an object of {key: value} updates');
+  }
+  let current: Record<string, unknown>;
+  try {
+    current = readJsonOrThrow(STORE_FILE);
   } catch (e: any) {
-    if (e?.code === 'EXDEV') {
-      try {
-        const filePath = (store as any).path;
-        const current = fs.existsSync(filePath)
-          ? JSON.parse(fs.readFileSync(filePath, 'utf8'))
-          : {};
-        current[key] = value;
-        fs.writeFileSync(filePath, JSON.stringify(current, null, '\t'));
-      } catch (fallbackErr) {
-        console.error('[store:set] fallback write failed:', fallbackErr);
-        throw fallbackErr;
-      }
+    console.error('[store:setBatch] read failed, refusing to write:', e);
+    throw new Error(`Cannot batch-update: store file unreadable (${e.message}). Refusing to overwrite to prevent data loss.`);
+  }
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined) {
+      delete current[key];
     } else {
-      console.error('[store:set] error:', e);
-      throw e;
+      current[key] = value;
     }
   }
+  atomicWriteJson(STORE_FILE, current);
 });
 
 ipcMain.handle('store:remove', (_e, key: string) => {

@@ -151,7 +151,12 @@ export default function ImportExportView({ system, members, history, journal, se
     if (!restoreData) return;
     setImporting(true);
     try {
-      if (restoreSel.system && restoreData.system) await store.set(KEYS.system, restoreData.system);
+      // Collect every change into a single batch so the whole import is atomic at the file level.
+      // Either every selected category lands together, or the file is left untouched.
+      const batch: Record<string, unknown> = {};
+
+      if (restoreSel.system && restoreData.system) batch[KEYS.system] = restoreData.system;
+
       if (restoreSel.members && restoreData.members) {
         const avatarMap: Record<string, string> = { ...(restoreData.avatars || {}) };
         const bannerMap: Record<string, string> = { ...(restoreData.banners || {}) };
@@ -169,7 +174,7 @@ export default function ImportExportView({ system, members, history, journal, se
           }
           return result;
         });
-        await store.set(KEYS.members, importedMembers);
+        batch[KEYS.members] = importedMembers;
       } else if ((restoreSel.avatars || restoreSel.banners) && !restoreSel.members) {
         const avatarMap: Record<string, string> = restoreSel.avatars ? { ...(restoreData.avatars || {}) } : {};
         const bannerMap: Record<string, string> = restoreSel.banners ? { ...(restoreData.banners || {}) } : {};
@@ -180,32 +185,38 @@ export default function ImportExportView({ system, members, history, journal, se
           for (const m of (restoreData.members || [])) { if ((m as any).banner && !bannerMap[m.id]) bannerMap[m.id] = (m as any).banner; }
         }
         if (Object.keys(avatarMap).length > 0 || Object.keys(bannerMap).length > 0) {
-          const existing = await store.get<Member[]>(KEYS.members) || [];
+          // Strict get — if this read fails we MUST NOT proceed, otherwise we'd merge avatars into [] and wipe members.
+          const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
           const updated = existing.map(m => {
             let result: any = m;
             if (avatarMap[m.id]) result = { ...result, avatar: avatarMap[m.id] };
             if (bannerMap[m.id]) result = { ...result, banner: bannerMap[m.id] };
             return result;
           });
-          await store.set(KEYS.members, updated);
+          batch[KEYS.members] = updated;
         }
       }
-      if (restoreSel.journal && restoreData.journal) await store.set(KEYS.journal, restoreData.journal);
+
+      if (restoreSel.journal && restoreData.journal) batch[KEYS.journal] = restoreData.journal;
+
       if (restoreSel.frontHistory && restoreData.frontHistory) {
-        await store.set(KEYS.history, restoreData.frontHistory);
-        if (restoreData.front !== undefined) await store.set(KEYS.front, restoreData.front);
+        batch[KEYS.history] = restoreData.frontHistory;
+        if (restoreData.front !== undefined) batch[KEYS.front] = restoreData.front;
       }
-      if (restoreSel.groups && restoreData.groups) await store.set(KEYS.groups, restoreData.groups);
+
+      if (restoreSel.groups && restoreData.groups) batch[KEYS.groups] = restoreData.groups;
+
       if (restoreSel.chat) {
-        if (restoreData.chatChannels) await store.set(KEYS.chatChannels, restoreData.chatChannels);
+        if (restoreData.chatChannels) batch[KEYS.chatChannels] = restoreData.chatChannels;
         if (restoreData.chatMessages) {
           for (const [chId, msgs] of Object.entries(restoreData.chatMessages)) {
-            await store.set(chatMsgKey(chId), msgs);
+            batch[chatMsgKey(chId)] = msgs;
           }
         }
       }
+
       if (restoreSel.settings || restoreSel.moods) {
-        const currentSettings = await store.get<any>(KEYS.settings) || {};
+        const currentSettings = await store.getStrict<any>(KEYS.settings, {}) || {};
         let newSettings = { ...currentSettings };
         if (restoreSel.settings && restoreData.settings) {
           newSettings = { ...restoreData.settings };
@@ -214,19 +225,28 @@ export default function ImportExportView({ system, members, history, journal, se
         if (restoreSel.moods) {
           newSettings.customMoods = restoreData.customMoods || restoreData.settings?.customMoods || [];
         }
-        await store.set(KEYS.settings, newSettings);
+        batch[KEYS.settings] = newSettings;
       }
-      if (restoreSel.palettes && restoreData.palettes) await store.set(KEYS.palettes, restoreData.palettes);
-      if (restoreSel.customFields && restoreData.customFieldDefs) await store.set(KEYS.customFieldDefs, restoreData.customFieldDefs);
-      if (restoreSel.noteboards && restoreData.noteboards) await store.set(KEYS.noteboards, restoreData.noteboards);
-      if (restoreSel.polls && restoreData.polls) await store.set(KEYS.polls, restoreData.polls);
+
+      if (restoreSel.palettes && restoreData.palettes) batch[KEYS.palettes] = restoreData.palettes;
+      if (restoreSel.customFields && restoreData.customFieldDefs) batch[KEYS.customFieldDefs] = restoreData.customFieldDefs;
+      if (restoreSel.noteboards && restoreData.noteboards) batch[KEYS.noteboards] = restoreData.noteboards;
+      if (restoreSel.polls && restoreData.polls) batch[KEYS.polls] = restoreData.polls;
+
+      if (Object.keys(batch).length === 0) {
+        showStatus('Nothing selected to restore');
+        return;
+      }
+
+      await store.setBatch(batch);
 
       showStatus('Restore complete');
       setRestoreData(null);
       setRestoreFile(null);
       onUpdate();
     } catch (e: any) {
-      showStatus(`Restore error: ${e.message}`);
+      // If the batch write throws, the on-disk file is unchanged — the atomic write either rename-succeeded or didn't.
+      showStatus(`Restore error (no changes saved): ${e.message}`);
     } finally {
       setImporting(false);
     }
@@ -241,63 +261,72 @@ export default function ImportExportView({ system, members, history, journal, se
       input.type = 'file';
       input.accept = '.json,.txt';
       input.onchange = async () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        const text = await file.text();
-        const data = JSON.parse(text);
+        try {
+          const file = input.files?.[0];
+          if (!file) return;
+          const text = await file.text();
+          const data = JSON.parse(text);
 
-        // SP export structure: members array with content wrapper
-        const spMembers = data.members || [];
-        const spHistory = data.frontHistory || data.switches || [];
+          // SP export structure: members array with content wrapper
+          const spMembers = data.members || [];
+          const spHistory = data.frontHistory || data.switches || [];
 
-        const importedMembers: Member[] = spMembers.map((entry: any) => {
-          const m = entry.content || entry;
-          return {
-            id: m.id || m._id || uid(),
-            name: m.name || 'Unknown',
-            pronouns: m.pronouns || '',
-            role: m.role || '',
-            color: m.color || '#DAA520',
-            description: m.desc || m.description || '',
-            tags: [],
-            groupIds: [],
-            avatar: extSel.avatars ? (m.avatarUrl || m.avatar || undefined) : undefined,
-          };
-        });
+          const importedMembers: Member[] = spMembers.map((entry: any) => {
+            const m = entry.content || entry;
+            return {
+              id: m.id || m._id || uid(),
+              name: m.name || 'Unknown',
+              pronouns: m.pronouns || '',
+              role: m.role || '',
+              color: m.color || '#DAA520',
+              description: m.desc || m.description || '',
+              tags: [],
+              groupIds: [],
+              avatar: extSel.avatars ? (m.avatarUrl || m.avatar || undefined) : undefined,
+            };
+          });
 
-        const importedHistory: HistoryEntry[] = spHistory.map((entry: any) => {
-          const h = entry.content || entry;
-          const memberId = h.member || h.memberId;
-          return {
-            memberIds: memberId ? [memberId] : [],
-            startTime: typeof h.startTime === 'number'
-              ? (h.startTime > 1e12 ? h.startTime : h.startTime * 1000)
-              : new Date(h.startTime).getTime(),
-            endTime: h.endTime
-              ? (typeof h.endTime === 'number'
-                ? (h.endTime > 1e12 ? h.endTime : h.endTime * 1000)
-                : new Date(h.endTime).getTime())
-              : null,
-            note: '',
-          };
-        });
+          const importedHistory: HistoryEntry[] = spHistory.map((entry: any) => {
+            const h = entry.content || entry;
+            const memberId = h.member || h.memberId;
+            return {
+              memberIds: memberId ? [memberId] : [],
+              startTime: typeof h.startTime === 'number'
+                ? (h.startTime > 1e12 ? h.startTime : h.startTime * 1000)
+                : new Date(h.startTime).getTime(),
+              endTime: h.endTime
+                ? (typeof h.endTime === 'number'
+                  ? (h.endTime > 1e12 ? h.endTime : h.endTime * 1000)
+                  : new Date(h.endTime).getTime())
+                : null,
+              note: '',
+            };
+          });
 
-        // Merge with existing
-        const existing = await store.get<Member[]>(KEYS.members, []) || [];
-        const existingIds = new Set(existing.map(m => m.id));
-        const newMembers = importedMembers.filter(m => !existingIds.has(m.id));
-        await store.set(KEYS.members, [...existing, ...newMembers]);
+          // Strict reads — if these silently returned [] due to a corrupted/unreadable file,
+          // the merge below would overwrite existing data with just the imported entries.
+          const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
+          const existingHistory = await store.getStrict<HistoryEntry[]>(KEYS.history, []) || [];
 
-        const existingHistory = await store.get<HistoryEntry[]>(KEYS.history, []) || [];
-        await store.set(KEYS.history, [...existingHistory, ...importedHistory]);
+          const existingIds = new Set(existing.map(m => m.id));
+          const newMembers = importedMembers.filter(m => !existingIds.has(m.id));
 
-        showStatus(`SP Import: ${newMembers.length} new members, ${importedHistory.length} history entries`);
-        onUpdate();
+          await store.setBatch({
+            [KEYS.members]: [...existing, ...newMembers],
+            [KEYS.history]: [...existingHistory, ...importedHistory],
+          });
+
+          showStatus(`SP Import: ${newMembers.length} new members, ${importedHistory.length} history entries`);
+          onUpdate();
+        } catch (e: any) {
+          showStatus(`SP Import error (no changes saved): ${e.message}`);
+        } finally {
+          setImporting(false);
+        }
       };
       input.click();
     } catch (e: any) {
       showStatus(`SP Import error: ${e.message}`);
-    } finally {
       setImporting(false);
     }
   };
@@ -347,10 +376,12 @@ export default function ImportExportView({ system, members, history, journal, se
     const isPK = extSource === 'pk';
     setImporting(true);
     try {
+      const batch: Record<string, unknown> = {};
+
       if (extSel.system && extPreview.system) {
         const name = isPK ? extPreview.system.name : (extPreview.system.content?.username || extPreview.system.content?.name || extPreview.system.username || system.name);
         const desc = isPK ? (extPreview.system.description || system.description) : (extPreview.system.content?.desc || extPreview.system.content?.description || system.description);
-        await store.set(KEYS.system, {...system, name: name || system.name, description: desc});
+        batch[KEYS.system] = {...system, name: name || system.name, description: desc};
       }
       const newM: Member[] = extSel.members && extPreview.members.length > 0
         ? extPreview.members.map((m: any) => ({
@@ -365,7 +396,7 @@ export default function ImportExportView({ system, members, history, journal, se
         : [];
       if (newM.length > 0) {
         const merged = [...members, ...newM.filter(nm => !members.find(em => em.name.toLowerCase() === nm.name.toLowerCase()))];
-        await store.set(KEYS.members, merged);
+        batch[KEYS.members] = merged;
       }
       if (extSel.frontHistory && extPreview.switches.length > 0) {
         const allMembers = newM.length > 0 ? [...members, ...newM] : members;
@@ -394,13 +425,21 @@ export default function ImportExportView({ system, members, history, journal, se
             }).filter((h: HistoryEntry) => h.memberIds.length > 0 && h.startTime > 0);
         if (newH.length > 0) {
           const merged = [...newH, ...history].sort((a, b) => b.startTime - a.startTime).slice(0, 1000);
-          await store.set(KEYS.history, merged);
+          batch[KEYS.history] = merged;
         }
       }
+
+      if (Object.keys(batch).length === 0) {
+        showStatus('Nothing to import');
+        return;
+      }
+
+      await store.setBatch(batch);
+
       showStatus(`Imported: ${newM.length} members, ${extPreview.switches.length} switches`);
       setExtPreview(null); setExtToken('');
       onUpdate();
-    } catch (e: any) { showStatus(`Import error: ${e.message}`); }
+    } catch (e: any) { showStatus(`Import error (no changes saved): ${e.message}`); }
     finally { setImporting(false); }
   };
 

@@ -4,7 +4,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Storage
   store: {
     get: (key: string) => ipcRenderer.invoke('store:get', key),
+    getStrict: (key: string) => ipcRenderer.invoke('store:getStrict', key),
     set: (key: string, value: unknown) => ipcRenderer.invoke('store:set', key, value),
+    setBatch: (updates: Record<string, unknown>) => ipcRenderer.invoke('store:setBatch', updates),
     remove: (key: string) => ipcRenderer.invoke('store:remove', key),
     clearAll: () => ipcRenderer.invoke('store:clearAll'),
     allKeys: () => ipcRenderer.invoke('store:allKeys'),

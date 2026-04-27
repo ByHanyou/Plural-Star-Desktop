@@ -6,7 +6,9 @@ declare global {
     electronAPI: {
       store: {
         get: (key: string) => Promise<unknown>;
+        getStrict: (key: string) => Promise<unknown>;
         set: (key: string, value: unknown) => Promise<void>;
+        setBatch: (updates: Record<string, unknown>) => Promise<void>;
         remove: (key: string) => Promise<void>;
         clearAll: () => Promise<void>;
         allKeys: () => Promise<string[]>;
@@ -55,6 +57,7 @@ export const KEYS = {
 export const chatMsgKey = (channelId: string): string => `ps:chat:${channelId}`;
 
 export const store = {
+  // Permissive get — returns fallback on error, used by view-load paths where empty-on-failure is acceptable.
   async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
     try {
       const raw = await window.electronAPI.store.get(key);
@@ -65,12 +68,26 @@ export const store = {
     }
   },
 
+  // Strict get — throws on error. Use this when a silent empty fallback would cause a destructive merge
+  // (e.g., reading existing list to merge import into; if the read fails and we get [], we'd overwrite with just imported data).
+  async getStrict<T>(key: string, fallback: T | null = null): Promise<T | null> {
+    const raw = await window.electronAPI.store.getStrict(key);
+    if (raw === null || raw === undefined) return fallback;
+    return raw as T;
+  },
+
   async set(key: string, value: unknown): Promise<void> {
     try {
       await window.electronAPI.store.set(key, value);
     } catch (e) {
       console.error('Storage write error:', e);
     }
+  },
+
+  // Atomic multi-key write. Use for imports/restores where multiple keys must land together,
+  // or be unchanged together if anything fails. Errors are NOT swallowed — caller must catch.
+  async setBatch(updates: Record<string, unknown>): Promise<void> {
+    await window.electronAPI.store.setBatch(updates);
   },
 
   async remove(key: string): Promise<void> {
