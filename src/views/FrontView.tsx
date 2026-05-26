@@ -34,7 +34,6 @@ export default function FrontView({ front, members, groups, history, settings, o
   const [editingNote, setEditingNote] = useState<FrontTierKey | null>(null);
   const [noteText, setNoteText] = useState('');
 
-  // Live tick
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 30000);
     return () => clearInterval(id);
@@ -44,10 +43,8 @@ export default function FrontView({ front, members, groups, history, settings, o
   const activeMembers = members.filter(m => !m.archived);
   const allMoods = [...DEFAULT_MOODS, ...(settings.customMoods || [])];
 
-  // ─── Save Front ─────────────────────────────────────────────────────
 
   const saveFront = async (primary: any, coFront: any, coConscious: any) => {
-    // Close current front in history
     if (front && !isFrontEmpty(front)) {
       const entry = frontToHistoryEntry(front, Date.now());
       const h = await store.get<HistoryEntry[]>(KEYS.history, []) || [];
@@ -102,7 +99,6 @@ export default function FrontView({ front, members, groups, history, settings, o
     onUpdate();
   };
 
-  // ─── Tier Card ──────────────────────────────────────────────────────
 
   const TierCard = ({ tierKey }: { tierKey: FrontTierKey }) => {
     if (!front) return null;
@@ -115,7 +111,6 @@ export default function FrontView({ front, members, groups, history, settings, o
 
     return (
       <div style={{ marginBottom: 16 }}>
-        {/* Tier header */}
         <div className="section-div">
           <span className="section-div__dot" style={{ background: color }} />
           <span className="section-div__label" style={{ color }}>{TIER_LABELS[tierKey]}</span>
@@ -126,7 +121,6 @@ export default function FrontView({ front, members, groups, history, settings, o
           padding: 16, background: 'var(--card)', border: `1px solid ${color}40`,
           borderRadius: 'var(--radius)',
         }}>
-          {/* Members */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 10 }}>
             {tier.memberIds.map(id => {
               const m = getMember(id);
@@ -150,7 +144,6 @@ export default function FrontView({ front, members, groups, history, settings, o
             })}
           </div>
 
-          {/* Duration (primary only) */}
           {isPrimary && (
             <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0', marginBottom: 8, fontSize: 11, color: 'var(--muted)' }}>
               Fronting for <span style={{ color: 'var(--accent)' }}>{fmtDur(front.startTime)}</span>
@@ -158,7 +151,6 @@ export default function FrontView({ front, members, groups, history, settings, o
             </div>
           )}
 
-          {/* Mood / Location */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
             {tier.mood && (
               <div style={{ flex: 1 }}>
@@ -188,7 +180,6 @@ export default function FrontView({ front, members, groups, history, settings, o
             </button>
           )}
 
-          {/* Note */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <span style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>Front Note</span>
@@ -218,7 +209,6 @@ export default function FrontView({ front, members, groups, history, settings, o
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--text)', fontWeight: 600, fontStyle: 'italic' }}>
           {t('front.currentlyFronting')}
@@ -252,7 +242,6 @@ export default function FrontView({ front, members, groups, history, settings, o
         TIER_ORDER.map(t => <TierCard key={t} tierKey={t} />)
       )}
 
-      {/* ─── Set Front Modal ─────────────────────────────────────────── */}
       <SetFrontModal
         open={showSetFront}
         onClose={() => setShowSetFront(false)}
@@ -264,7 +253,6 @@ export default function FrontView({ front, members, groups, history, settings, o
         allMoods={allMoods}
       />
 
-      {/* ─── Edit Detail Modal ───────────────────────────────────────── */}
       {editDetailTier && front && (
         <EditDetailModal
           open={!!editDetailTier}
@@ -281,7 +269,6 @@ export default function FrontView({ front, members, groups, history, settings, o
   );
 }
 
-// ─── Set Front Modal ──────────────────────────────────────────────────────
 
 function SetFrontModal({ open, onClose, onSave, members, groups, current, settings, allMoods }: {
   open: boolean; onClose: () => void; onSave: (p: any, cf: any, cc: any) => void;
@@ -305,7 +292,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
   const [search, setSearch] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
   const [confirmClear, setConfirmClear] = useState(false);
 
-  // Only re-initialize when the modal transitions from closed → open
   const prevOpen = React.useRef(false);
   useEffect(() => {
     if (open && !prevOpen.current) {
@@ -352,7 +338,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
       next.delete(id);
     } else {
       next.add(id);
-      // Remove from other tiers (exclusive)
       for (const [key, [otherSet, otherSetter]] of Object.entries(setters)) {
         if (key !== tier && otherSet.has(id)) {
           const cleaned = new Set(otherSet);
@@ -399,7 +384,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
           <span className="section-div__line" />
         </div>
 
-        {/* Selected chips */}
         {selected.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
             {selected.map(m => (
@@ -413,7 +397,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
           </div>
         )}
 
-        {/* Search + available */}
         <input className="field__input" value={search[tierKey]}
           onChange={e => setSearch({ ...search, [tierKey]: e.target.value })}
           placeholder={t('members.search')} style={{ marginBottom: 6, fontSize: 12 }} />
@@ -433,7 +416,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
           })}
         </div>
 
-        {/* Mood */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
           {allMoods.map(m => (
             <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
@@ -442,7 +424,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
           ))}
         </div>
 
-        {/* Location (primary only) */}
         {tierKey === 'primary' && (
           <>
             <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
@@ -458,7 +439,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
           </>
         )}
 
-        {/* Note */}
         <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 28 }}>{energy ?? '—'}</span>
@@ -500,7 +480,6 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
   );
 }
 
-// ─── Edit Detail Modal ────────────────────────────────────────────────────
 
 function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocations, onClose, onSave }: {
   open: boolean; tier: FrontTierKey; tierData: FrontTier; isPrimary: boolean;

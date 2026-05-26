@@ -12,7 +12,13 @@
     "untitled": "无标题",
     "records": "{{count}} 条记录",
     "notInExport": "不在导出中",
-    "ok": "好的"
+    "ok": "好的",
+    "edit": "编辑"
+  },
+  "errorBoundary": {
+    "title": "出错了",
+    "body": "应用遇到了意外错误。请重试，或者如果问题持续存在，请重启。",
+    "retry": "重试"
   },
   "tabs": {
     "front": "前台",
@@ -132,7 +138,19 @@
     "deleteEntry": "删除条目",
     "areYouSure": "确定吗？",
     "searchTags": "搜索标签…",
-    "searchAuthors": "搜索作者…"
+    "searchAuthors": "搜索作者…",
+    "entriesTab": "条目",
+    "templatesTab": "模板",
+    "noTemplates": "暂无模板。创建一个以预填充新条目。",
+    "newTemplate": "+ 新模板",
+    "editTemplate": "编辑模板",
+    "fromTemplate": "从模板…",
+    "templateHint": "从已保存的模板预填充？",
+    "pickTemplate": "选择一个模板",
+    "templateName": "模板名称 *",
+    "templateNamePlaceholder": "例如 晨间随笔",
+    "templateTitle": "条目标题（预设）",
+    "templateBody": "条目内容（预设）"
   },
   "share": {
     "title": "分享与导出",
@@ -329,6 +347,9 @@
     "gpsDesc": "设置前台时自动填充 GPS 位置。默认关闭。",
     "notifications": "通知",
     "notificationsDesc": "显示持续的前台状态通知。",
+    "dyslexicFont": "阅读障碍字体",
+    "dyslexicFontDesc": "以 OpenDyslexic 显示文字。默认开启。",
+    "member": "成员",
     "language": "语言",
     "languageDesc": "选择显示语言。",
     "locations": "位置",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from './i18n/i18n';
 import { store, KEYS } from './storage';
 import { deriveTheme, applyThemeToDOM, applyTextScale, DARK_PALETTE, BUILTIN_PALETTES, CustomPalette, ThemeColors } from './theme';
 import {
@@ -21,7 +22,6 @@ import CustomFieldsTile from './tiles/CustomFieldsTile';
 import PollsTile from './tiles/PollsTile';
 import CreditsTile from './tiles/CreditsTile';
 
-// Full views
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
 import ImportExportView from './views/ImportExportView';
@@ -33,8 +33,6 @@ import ChatView from './views/ChatView';
 import CustomFieldsView from './views/CustomFieldsView';
 import PollsView from './views/PollsView';
 import CreditsView from './views/CreditsView';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
 
 type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits';
 
@@ -62,11 +60,47 @@ const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   activePaletteId: '__dark__',
   textScale: 1.0,
+  useDyslexicFont: true,
 };
 
-// ─── App ────────────────────────────────────────────────────────────────────
+const applyDyslexicFont = (on: boolean) => {
+  if (on) document.documentElement.classList.remove('no-dyslexic');
+  else document.documentElement.classList.add('no-dyslexic');
+};
 
-export default function App() {
+class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    if (typeof console !== 'undefined' && console.error) {
+      console.error('AppErrorBoundary caught:', error, info?.componentStack);
+    }
+  }
+  reset = () => this.setState({ error: null });
+  render() {
+    if (!this.state.error) return this.props.children;
+    const err = this.state.error as Error;
+    const msg = err?.message || String(err);
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#0a0a0a', color: '#fff', textAlign: 'center', fontFamily: 'var(--font-body)' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, fontFamily: 'var(--font-display)' }}>
+          {i18n.t('errorBoundary.title', { defaultValue: 'Something went wrong' })}
+        </h1>
+        <p style={{ fontSize: 14, color: '#bbb', marginBottom: 16, maxWidth: 480 }}>
+          {i18n.t('errorBoundary.body', { defaultValue: 'The app hit an unexpected error. Try again, or restart if it persists.' })}
+        </p>
+        <p style={{ fontSize: 12, color: '#666', marginBottom: 24, maxWidth: 480, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-wrap' }}>
+          {msg}
+        </p>
+        <button onClick={this.reset} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#3a7bd5', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          {i18n.t('errorBoundary.retry', { defaultValue: 'Try again' })}
+        </button>
+      </div>
+    );
+  }
+}
+
+function AppInner() {
   const { t } = useTranslation();
   const [view, setView] = useState<ViewId>('dashboard');
   const [state, setState] = useState<AppState>({
@@ -82,8 +116,6 @@ export default function App() {
     theme: deriveTheme(DARK_PALETTE.bg, DARK_PALETTE.accent, DARK_PALETTE.text, DARK_PALETTE.mid),
     loaded: false,
   });
-
-  // ─── Load Data ──────────────────────────────────────────────────────────
 
   const loadData = useCallback(async () => {
     const [system, members, groups, frontRaw, history, journal, channels, settings, palettes] = await Promise.all([
@@ -105,6 +137,7 @@ export default function App() {
     const theme = deriveTheme(activePalette.bg, activePalette.accent, activePalette.text, activePalette.mid);
     applyThemeToDOM(theme);
     applyTextScale(mergedSettings.textScale);
+    applyDyslexicFont(mergedSettings.useDyslexicFont !== false);
     changeLanguage(mergedSettings.language);
 
     setState({
@@ -124,11 +157,7 @@ export default function App() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ─── Title Bar ──────────────────────────────────────────────────────────
-
   const systemName = state.system.name || 'Plural Star';
-
-  // ─── Render ─────────────────────────────────────────────────────────────
 
   if (!state.loaded) {
     return (
@@ -144,7 +173,6 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* Title Bar */}
       <div className="titlebar">
         <span className="titlebar__title">
           {view === 'dashboard' ? systemName : `${systemName} — ${view.charAt(0).toUpperCase() + view.slice(1).replace('-', '/')}`}
@@ -156,7 +184,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Dashboard or Full View */}
       {view === 'dashboard' ? (
         <div className="dashboard">
           <div className="tile-grid">
@@ -269,5 +296,13 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppErrorBoundary>
+      <AppInner />
+    </AppErrorBoundary>
   );
 }

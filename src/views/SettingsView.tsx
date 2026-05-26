@@ -35,6 +35,7 @@ const HexField = ({ label, value, onChange }: { label: string; value: string; on
 const LANG_NAMES: Record<string, string> = {
   en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch',
   pt: 'Português', fi: 'Suomi', nb: 'Norsk',
+  zh: '中文', ja: '日本語', ru: 'Русский', uk: 'Українська',
 };
 
 export default function SettingsView({ system, settings, palettes, onUpdate }: Props) {
@@ -56,8 +57,8 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
   const [notif, setNotif] = useState(settings.notificationsEnabled);
   const [textScale, setTextScale] = useState<TextScale>(settings.textScale);
   const [activePaletteId, setActivePaletteId] = useState(settings.activePaletteId);
+  const [useDyslexicFont, setUseDyslexicFont] = useState<boolean>(settings.useDyslexicFont !== false);
 
-  // Palette editor
   const [editPalette, setEditPalette] = useState<CustomPalette | null>(null);
   const [palName, setPalName] = useState('');
   const [palBg, setPalBg] = useState('');
@@ -83,7 +84,6 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
     const p = allPalettes.find(p => p.id === id) || BUILTIN_PALETTES[0];
     const theme = deriveTheme(p.bg, p.accent, p.text, p.mid);
     applyThemeToDOM(theme);
-    // Persist immediately — without this, any onUpdate() reload reverts the theme
     await store.set(KEYS.settings, { ...settings, activePaletteId: id });
   };
 
@@ -158,10 +158,12 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       });
       await store.set(KEYS.settings, {
         ...settings, locations: locs, customMoods: moods, language: lang,
-        notificationsEnabled: notif, textScale, activePaletteId,
+        notificationsEnabled: notif, textScale, activePaletteId, useDyslexicFont,
       });
       changeLanguage(lang);
       applyTextScale(textScale);
+      if (useDyslexicFont) document.documentElement.classList.remove('no-dyslexic');
+      else document.documentElement.classList.add('no-dyslexic');
       onUpdate();
       setSaveStatus('Settings saved');
       setTimeout(() => setSaveStatus(null), 3000);
@@ -175,12 +177,10 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      {/* System Info */}
       <Section label={t('modal.systemName')} />
       <Field label={t('modal.systemName')} value={name} onChange={setName} placeholder={t('modal.systemNamePlaceholder')} />
       <Field label={t('modal.descriptionLabel')} value={desc} onChange={setDesc} placeholder={t('modal.descriptionFieldPlaceholder')} multiline />
 
-      {/* System Profile */}
       <Section label={t('systemProfile.title')} />
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
         <div style={{ textAlign: 'center' }}>
@@ -211,7 +211,6 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
         </div>
       </div>
 
-      {/* Palette */}
       <Section label={t('modal.palette')} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
         {allPalettes.map(p => {
@@ -271,7 +270,6 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       )}
       <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{t('modal.paletteSlots', { used: userPalettes.length, max: 10 })}</p>
 
-      {/* Journal Password */}
       <Section label={t('modal.globalJournalPassword')} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('modal.lockJournal')}</span>
@@ -281,10 +279,9 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       </div>
       {showPw && <Field value={journalPw} onChange={setJournalPw} placeholder={t('modal.lockJournal')} type="password" />}
 
-      {/* Toggles */}
       <Toggle label={t('modal.notifications')} description={t('modal.notificationsDesc')} value={notif} onChange={setNotif} />
+      <Toggle label={t('modal.dyslexicFont', { defaultValue: 'Dyslexic Font' })} description={t('modal.dyslexicFontDesc', { defaultValue: 'Renders text in OpenDyslexic. On by default.' })} value={useDyslexicFont} onChange={setUseDyslexicFont} />
 
-      {/* Language */}
       <Section label={t('modal.language')} />
       <Dropdown
         value={lang}
@@ -293,7 +290,6 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
         renderOption={v => t(`language.${v}`)}
       />
 
-      {/* Text Scale */}
       <Section label={t('modal.textSize')} />
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {TEXT_SCALE_OPTIONS.map(opt => (
@@ -306,24 +302,20 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
         ))}
       </div>
 
-      {/* Locations */}
       <Section label={t('modal.locations')} />
       <ChipList items={locs} onRemove={l => setLocs(locs.filter(x => x !== l))} color="var(--accent)" />
       <AddRow value={newLoc} onChange={setNewLoc} onAdd={addLoc} placeholder={t('modal.addLocationPlaceholder')} />
 
-      {/* Custom Moods */}
       <Section label={t('modal.customMoods')} />
       <ChipList items={moods} onRemove={m => setMoods(moods.filter(x => x !== m))} color="var(--info)" />
       <AddRow value={newMood} onChange={setNewMood} onAdd={addMood} placeholder={t('modal.addMoodPlaceholder')} />
 
-      {/* Support */}
       <div style={{ textAlign: 'center', padding: '24px 0', borderTop: '1px solid var(--border)', marginTop: 20 }}>
         <Btn variant="solid" onClick={() => window.open('https://www.buymeacoffee.com/PluralSpace', '_blank')}>
           ☕ {t('modal.supportPS')}
         </Btn>
       </div>
 
-      {/* Save */}
       <div style={{ position: 'sticky', bottom: 0, padding: '12px 0', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
         {saveStatus && (
           <div style={{

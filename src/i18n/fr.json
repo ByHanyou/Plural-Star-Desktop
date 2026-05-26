@@ -12,7 +12,13 @@
     "untitled": "Sans titre",
     "records": "{{count}} enregistrements",
     "notInExport": "Non inclus dans l'export",
-    "ok": "OK"
+    "ok": "OK",
+    "edit": "Modifier"
+  },
+  "errorBoundary": {
+    "title": "Une erreur s'est produite",
+    "body": "L'application a rencontré une erreur inattendue. Réessayez ou redémarrez si le problème persiste.",
+    "retry": "Réessayer"
   },
   "tabs": {
     "front": "Front",
@@ -132,7 +138,19 @@
     "areYouSure": "Êtes-vous sûr ?",
     "searchTags": "Rechercher des tags…",
     "searchAuthors": "Rechercher auteurs…",
-    "noEntriesFilter": "Aucune entrée ne correspond à ce filtre."
+    "noEntriesFilter": "Aucune entrée ne correspond à ce filtre.",
+    "entriesTab": "Entrées",
+    "templatesTab": "Modèles",
+    "noTemplates": "Aucun modèle pour l'instant. Créez-en un pour préremplir les nouvelles entrées.",
+    "newTemplate": "+ Nouveau Modèle",
+    "editTemplate": "Modifier le Modèle",
+    "fromTemplate": "Depuis un modèle…",
+    "templateHint": "Préremplir depuis un modèle enregistré ?",
+    "pickTemplate": "Choisir un modèle",
+    "templateName": "Nom du Modèle *",
+    "templateNamePlaceholder": "p. ex. Pages du Matin",
+    "templateTitle": "Titre d'Entrée (préréglé)",
+    "templateBody": "Corps d'Entrée (préréglé)"
   },
   "share": {
     "title": "Partager et Exporter",
@@ -295,6 +313,9 @@
     "gpsDesc": "Remplir automatiquement le lieu par GPS lors du changement de front. Désactivé par défaut.",
     "notifications": "Notifications",
     "notificationsDesc": "Afficher une notification persistante de l'état du front.",
+    "dyslexicFont": "Police Dyslexique",
+    "dyslexicFontDesc": "Affiche le texte en OpenDyslexic. Activé par défaut.",
+    "member": "Membre",
     "language": "Langue",
     "languageDesc": "Choisissez votre langue d'affichage.",
     "locations": "Lieux",

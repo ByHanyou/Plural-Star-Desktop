@@ -1,6 +1,3 @@
-// Desktop storage adapter — same interface as mobile storage.ts
-// Communicates with electron-store via IPC through the preload bridge
-
 declare global {
   interface Window {
     electronAPI: {
@@ -52,12 +49,12 @@ export const KEYS = {
   customFieldDefs: 'ps:customFieldDefs',
   noteboards:   'ps:noteboards',
   polls:        'ps:polls',
+  journalTemplates: 'ps:journalTemplates',
 };
 
 export const chatMsgKey = (channelId: string): string => `ps:chat:${channelId}`;
 
 export const store = {
-  // Permissive get — returns fallback on error, used by view-load paths where empty-on-failure is acceptable.
   async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
     try {
       const raw = await window.electronAPI.store.get(key);
@@ -68,8 +65,6 @@ export const store = {
     }
   },
 
-  // Strict get — throws on error. Use this when a silent empty fallback would cause a destructive merge
-  // (e.g., reading existing list to merge import into; if the read fails and we get [], we'd overwrite with just imported data).
   async getStrict<T>(key: string, fallback: T | null = null): Promise<T | null> {
     const raw = await window.electronAPI.store.getStrict(key);
     if (raw === null || raw === undefined) return fallback;
@@ -84,8 +79,6 @@ export const store = {
     }
   },
 
-  // Atomic multi-key write. Use for imports/restores where multiple keys must land together,
-  // or be unchanged together if anything fails. Errors are NOT swallowed — caller must catch.
   async setBatch(updates: Record<string, unknown>): Promise<void> {
     await window.electronAPI.store.setBatch(updates);
   },

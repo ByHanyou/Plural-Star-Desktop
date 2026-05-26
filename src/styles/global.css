@@ -1,6 +1,32 @@
-/* ─── Plural Space Desktop — Global Styles ─────────────────────────────── */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('../assets/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('../assets/fonts/OpenDyslexic-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('../assets/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('../assets/fonts/OpenDyslexic-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
 
-/* Default to Obsidian palette — overridden by applyThemeToDOM at runtime */
 :root {
   --bg: #0A1F2E;
   --surface: #132A3B;
@@ -20,12 +46,19 @@
   --info: #7B9FE8;
   --info-bg: #142340;
 
-  --font-display: 'Georgia', 'Times New Roman', serif;
-  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'OpenDyslexic', 'Georgia', 'Times New Roman', serif;
+  --font-body: 'OpenDyslexic', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display-fallback: 'Georgia', 'Times New Roman', serif;
+  --font-body-fallback: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --tile-min: 280px;
   --tile-gap: 16px;
   --radius: 10px;
   --radius-sm: 6px;
+}
+
+:root.no-dyslexic {
+  --font-display: var(--font-display-fallback);
+  --font-body: var(--font-body-fallback);
 }
 
 *, *::before, *::after {
@@ -47,8 +80,6 @@ body {
   user-select: none;
 }
 
-/* ─── Scrollbar ────────────────────────────────────────────────────────── */
-
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -62,8 +93,6 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
-
-/* ─── Title Bar ────────────────────────────────────────────────────────── */
 
 .titlebar {
   display: flex;
@@ -103,8 +132,6 @@ body {
 .titlebar__btn--minimize { background: var(--accent); }
 .titlebar__btn--maximize { background: var(--success); }
 
-/* ─── App Shell ────────────────────────────────────────────────────────── */
-
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -117,8 +144,6 @@ body {
   padding: var(--tile-gap);
 }
 
-/* ─── Tile Grid ────────────────────────────────────────────────────────── */
-
 .tile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
@@ -126,8 +151,6 @@ body {
   max-width: 1920px;
   margin: 0 auto;
 }
-
-/* ─── Tile ─────────────────────────────────────────────────────────────── */
 
 .tile {
   background: var(--card);
@@ -191,8 +214,6 @@ body {
   font-size: 13px;
   font-style: italic;
 }
-
-/* ─── Tile: Live Data Elements ─────────────────────────────────────────── */
 
 .tile__member-row {
   display: flex;
@@ -289,11 +310,9 @@ body {
   margin-top: 0;
 }
 
-/* ─── Full View (click-through from tile) ──────────────────────────────── */
-
 .full-view {
   position: fixed;
-  inset: 40px 0 0 0; /* below titlebar */
+  inset: 40px 0 0 0;
   background: var(--bg);
   z-index: 100;
   display: flex;

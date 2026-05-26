@@ -1,6 +1,3 @@
-// Theme system — ported from mobile, outputs CSS custom properties
-// Pure TypeScript, no React Native dependencies
-
 export interface ThemeColors {
   bg: string;
   surface: string;
@@ -124,8 +121,6 @@ export const PALETTE = [
   '#85B4E8', '#C97BE8', '#B4E885', '#E8C97B',
 ];
 
-// ─── CSS Variable Bridge ────────────────────────────────────────────────────
-
 export function applyThemeToDOM(theme: ThemeColors): void {
   const root = document.documentElement;
   root.style.setProperty('--bg', theme.bg);
@@ -148,6 +143,14 @@ export function applyThemeToDOM(theme: ThemeColors): void {
 }
 
 export function applyTextScale(scale: number): void {
-  // Electron is Chromium — CSS zoom works perfectly and scales everything uniformly
   (document.body.style as any).zoom = String(scale);
+}
+
+export function applyDyslexicFont(enabled: boolean): void {
+  const root = document.documentElement;
+  if (enabled) {
+    root.classList.remove('no-dyslexic');
+  } else {
+    root.classList.add('no-dyslexic');
+  }
 }

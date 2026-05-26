@@ -11,7 +11,7 @@ import { CustomPalette } from '../theme';
 interface ExportCategories {
   system: boolean; members: boolean; avatars: boolean; banners: boolean; frontHistory: boolean; journal: boolean;
   groups: boolean; chat: boolean; moods: boolean; palettes: boolean; settings: boolean;
-  customFields: boolean; noteboards: boolean; polls: boolean;
+  customFields: boolean; noteboards: boolean; polls: boolean; journalTemplates: boolean;
 }
 
 interface Props {
@@ -34,14 +34,14 @@ export default function ImportExportView({ system, members, history, journal, se
   const [restoreSel, setRestoreSel] = useState({
     system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
-    customFields: true, noteboards: true, polls: true,
+    customFields: true, noteboards: true, polls: true, journalTemplates: true,
   });
   const togR = (k: string) => setRestoreSel(s => ({ ...s, [k]: !s[k as keyof typeof s] }));
 
   const [exportSel, setExportSel] = useState<ExportCategories>({
     system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
-    customFields: true, noteboards: true, polls: true,
+    customFields: true, noteboards: true, polls: true, journalTemplates: true,
   });
   const togExp = (k: keyof ExportCategories) => setExportSel(s => ({ ...s, [k]: !s[k] }));
   const [showExportOptions, setShowExportOptions] = useState(false);
@@ -51,13 +51,11 @@ export default function ImportExportView({ system, members, history, journal, se
     setTimeout(() => setStatus(null), 4000);
   };
 
-  // ─── Export ─────────────────────────────────────────────────────────────
-
   const handleExport = async () => {
     const cat = showExportOptions ? exportSel : {
       system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
       groups: true, chat: true, moods: true, palettes: true, settings: true,
-      customFields: true, noteboards: true, polls: true,
+      customFields: true, noteboards: true, polls: true, journalTemplates: true,
     };
 
     const chatMessages: Record<string, any[]> = {};
@@ -110,6 +108,7 @@ export default function ImportExportView({ system, members, history, journal, se
       customFieldDefs: cat.customFields ? (await store.get(KEYS.customFieldDefs) || []) : [],
       noteboards: cat.noteboards ? (await store.get(KEYS.noteboards) || []) : [],
       polls: cat.polls ? (await store.get(KEYS.polls) || []) : [],
+      journalTemplates: cat.journalTemplates ? (await store.get(KEYS.journalTemplates) || []) : [],
     };
     const json = JSON.stringify(payload, null, 2);
     const defaultName = `PluralStar_Backup_${new Date().toISOString().slice(0, 10)}.json`;
@@ -120,7 +119,6 @@ export default function ImportExportView({ system, members, history, journal, se
     showStatus('Backup exported successfully');
   };
 
-  // ─── Import (Plural Star native format — also accepts legacy Plural Space) ──────────────────────────────────────
 
   const handlePickBackup = async () => {
     try {
@@ -151,8 +149,6 @@ export default function ImportExportView({ system, members, history, journal, se
     if (!restoreData) return;
     setImporting(true);
     try {
-      // Collect every change into a single batch so the whole import is atomic at the file level.
-      // Either every selected category lands together, or the file is left untouched.
       const batch: Record<string, unknown> = {};
 
       if (restoreSel.system && restoreData.system) batch[KEYS.system] = restoreData.system;
@@ -185,7 +181,6 @@ export default function ImportExportView({ system, members, history, journal, se
           for (const m of (restoreData.members || [])) { if ((m as any).banner && !bannerMap[m.id]) bannerMap[m.id] = (m as any).banner; }
         }
         if (Object.keys(avatarMap).length > 0 || Object.keys(bannerMap).length > 0) {
-          // Strict get — if this read fails we MUST NOT proceed, otherwise we'd merge avatars into [] and wipe members.
           const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
           const updated = existing.map(m => {
             let result: any = m;
@@ -232,6 +227,7 @@ export default function ImportExportView({ system, members, history, journal, se
       if (restoreSel.customFields && restoreData.customFieldDefs) batch[KEYS.customFieldDefs] = restoreData.customFieldDefs;
       if (restoreSel.noteboards && restoreData.noteboards) batch[KEYS.noteboards] = restoreData.noteboards;
       if (restoreSel.polls && restoreData.polls) batch[KEYS.polls] = restoreData.polls;
+      if (restoreSel.journalTemplates && restoreData.journalTemplates) batch[KEYS.journalTemplates] = restoreData.journalTemplates;
 
       if (Object.keys(batch).length === 0) {
         showStatus('Nothing selected to restore');
@@ -245,14 +241,12 @@ export default function ImportExportView({ system, members, history, journal, se
       setRestoreFile(null);
       onUpdate();
     } catch (e: any) {
-      // If the batch write throws, the on-disk file is unchanged — the atomic write either rename-succeeded or didn't.
       showStatus(`Restore error (no changes saved): ${e.message}`);
     } finally {
       setImporting(false);
     }
   };
 
-  // ─── Import (Simply Plural) ────────────────────────────────────────────
 
   const handleImportSP = async () => {
     setImporting(true);
@@ -267,7 +261,6 @@ export default function ImportExportView({ system, members, history, journal, se
           const text = await file.text();
           const data = JSON.parse(text);
 
-          // SP export structure: members array with content wrapper
           const spMembers = data.members || [];
           const spHistory = data.frontHistory || data.switches || [];
 
@@ -303,8 +296,6 @@ export default function ImportExportView({ system, members, history, journal, se
             };
           });
 
-          // Strict reads — if these silently returned [] due to a corrupted/unreadable file,
-          // the merge below would overwrite existing data with just the imported entries.
           const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
           const existingHistory = await store.getStrict<HistoryEntry[]>(KEYS.history, []) || [];
 
@@ -331,7 +322,6 @@ export default function ImportExportView({ system, members, history, journal, se
     }
   };
 
-  // ─── Token Import (SP + PK) ─────────────────────────────────────────────
 
   const [extSource, setExtSource] = useState<'sp' | 'pk'>('sp');
   const [extToken, setExtToken] = useState('');
@@ -443,7 +433,6 @@ export default function ImportExportView({ system, members, history, journal, se
     finally { setImporting(false); }
   };
 
-  // ─── Clear All Data ────────────────────────────────────────────────────
 
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -456,7 +445,6 @@ export default function ImportExportView({ system, members, history, journal, se
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
-      {/* Status bar */}
       {status && (
         <div style={{
           padding: '10px 16px', marginBottom: 16, borderRadius: 8,
@@ -469,7 +457,6 @@ export default function ImportExportView({ system, members, history, journal, se
         </div>
       )}
 
-      {/* Export */}
       <Section label={t('share.backup')} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
@@ -483,7 +470,6 @@ export default function ImportExportView({ system, members, history, journal, se
           <span>{t('share.journalCount', { count: journal.length })}</span>
         </div>
 
-        {/* Export Category Toggle */}
         <button style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', padding: '4px 0', marginBottom: 8, fontWeight: 500 }}
           onClick={() => setShowExportOptions(!showExportOptions)}>
           {showExportOptions ? '▾' : '▸'} {t('share.customizeExport')}
@@ -506,6 +492,7 @@ export default function ImportExportView({ system, members, history, journal, se
               ['customFields', t('customFields.title')],
               ['noteboards', t('noteboard.title')],
               ['polls', t('polls.title')],
+              ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' })],
             ] as [keyof ExportCategories, string][]).map(([k, label]) => (
               <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                 <input type="checkbox" checked={exportSel[k]} onChange={() => togExp(k)} />
@@ -518,7 +505,6 @@ export default function ImportExportView({ system, members, history, journal, se
         <Btn variant="solid" onClick={handleExport}>{t('share.exportBackup')}</Btn>
       </div>
 
-      {/* Import PS */}
       <Section label={t('share.restore')} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
@@ -548,6 +534,7 @@ export default function ImportExportView({ system, members, history, journal, se
                 ['customFields', t('customFields.title'), !!restoreData.customFieldDefs?.length, restoreData.customFieldDefs?.length || 0],
                 ['noteboards', t('noteboard.title'), !!restoreData.noteboards?.length, restoreData.noteboards?.length || 0],
                 ['polls', t('polls.title'), !!restoreData.polls?.length, restoreData.polls?.length || 0],
+                ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' }), !!restoreData.journalTemplates?.length, restoreData.journalTemplates?.length || 0],
               ] as [string, string, boolean, number | null][]).map(([k, label, avail, count]) => (
                 <label key={k} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
@@ -573,7 +560,6 @@ export default function ImportExportView({ system, members, history, journal, se
         )}
       </div>
 
-      {/* Import SP */}
       <Section label={t('share.spImport')} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
@@ -584,7 +570,6 @@ export default function ImportExportView({ system, members, history, journal, se
         </Btn>
       </div>
 
-      {/* Token Import (SP / PK) */}
       <Section label={t('share.spImport') + ' / ' + t('share.pkImport') + ' (Token)'} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -634,7 +619,6 @@ export default function ImportExportView({ system, members, history, journal, se
         )}
       </div>
 
-      {/* Danger Zone */}
       <Section label={t('share.dangerZone')} color="var(--danger)" />
       <div style={{ padding: 16, background: 'var(--danger-bg)', borderRadius: 8, border: '1px solid var(--danger)', marginBottom: 16 }}>
         {!confirmClear ? (

@@ -12,7 +12,13 @@
     "untitled": "Uten tittel",
     "records": "{{count}} oppføringer",
     "notInExport": "Ikke i eksport",
-    "ok": "OK"
+    "ok": "OK",
+    "edit": "Rediger"
+  },
+  "errorBoundary": {
+    "title": "Noe gikk galt",
+    "body": "Appen oppdaget en uventet feil. Prøv igjen eller start på nytt om det fortsetter.",
+    "retry": "Prøv igjen"
   },
   "tabs": {
     "front": "Front",
@@ -132,7 +138,19 @@
     "unlock": "Lås Opp",
     "searchTags": "Søk tagger…",
     "searchAuthors": "Søk forfattere…",
-    "noEntriesFilter": "Ingen oppføringer samsvarer med dette filteret."
+    "noEntriesFilter": "Ingen oppføringer samsvarer med dette filteret.",
+    "entriesTab": "Oppføringer",
+    "templatesTab": "Maler",
+    "noTemplates": "Ingen maler enda. Lag en for å forhåndsutfylle nye oppføringer.",
+    "newTemplate": "+ Ny Mal",
+    "editTemplate": "Rediger Mal",
+    "fromTemplate": "Fra mal…",
+    "templateHint": "Forhåndsutfyll fra en lagret mal?",
+    "pickTemplate": "Velg en mal",
+    "templateName": "Malnavn *",
+    "templateNamePlaceholder": "f.eks. Morgensider",
+    "templateTitle": "Oppføringstittel (forhåndsinnstilt)",
+    "templateBody": "Oppføringsinnhold (forhåndsinnstilt)"
   },
   "share": {
     "title": "Del & Eksporter",
@@ -321,6 +339,9 @@
     "gpsDesc": "Fyll ut sted fra GPS automatisk.",
     "notifications": "Varsler",
     "notificationsDesc": "Vis vedvarende frontstatusvarsel.",
+    "dyslexicFont": "Dysleksiskrift",
+    "dyslexicFontDesc": "Viser teksten i OpenDyslexic. På som standard.",
+    "member": "Medlem",
     "language": "Språk",
     "languageDesc": "Velg visningsspråk.",
     "locations": "Steder",

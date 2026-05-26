@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ui.css';
 
-// ─── Button ─────────────────────────────────────────────────────────────────
-
 type BtnVariant = 'primary' | 'ghost' | 'danger' | 'solid' | 'info';
 
 export function Btn({ children, onClick, variant = 'primary', disabled = false, className = '' }: {
@@ -15,7 +13,6 @@ export function Btn({ children, onClick, variant = 'primary', disabled = false, 
   );
 }
 
-// ─── Field ──────────────────────────────────────────────────────────────────
 
 export function Field({ label, value, onChange, placeholder, multiline = false, type = 'text', mono = false }: {
   label?: string; value: string; onChange: (v: string) => void; placeholder?: string;
@@ -35,7 +32,6 @@ export function Field({ label, value, onChange, placeholder, multiline = false, 
   );
 }
 
-// ─── Toggle ─────────────────────────────────────────────────────────────────
 
 export function Toggle({ value, onChange, label, description }: {
   value: boolean; onChange: (v: boolean) => void; label: string; description?: string;
@@ -53,7 +49,6 @@ export function Toggle({ value, onChange, label, description }: {
   );
 }
 
-// ─── Section Divider ────────────────────────────────────────────────────────
 
 export function Section({ label, color }: { label: string; color?: string }) {
   return (
@@ -65,7 +60,6 @@ export function Section({ label, color }: { label: string; color?: string }) {
   );
 }
 
-// ─── Dropdown ───────────────────────────────────────────────────────────────
 
 export function Dropdown<T extends string>({ value, options, onChange, label, renderOption }: {
   value: T; options: T[]; onChange: (v: T) => void; label?: string;
@@ -105,7 +99,6 @@ export function Dropdown<T extends string>({ value, options, onChange, label, re
   );
 }
 
-// ─── Chip List (for tags, locations, moods) ─────────────────────────────────
 
 export function ChipList({ items, onRemove, color = 'var(--info)' }: {
   items: string[]; onRemove: (item: string) => void; color?: string;
@@ -122,7 +115,6 @@ export function ChipList({ items, onRemove, color = 'var(--info)' }: {
   );
 }
 
-// ─── Add Row (input + add button) ───────────────────────────────────────────
 
 export function AddRow({ value, onChange, onAdd, placeholder }: {
   value: string; onChange: (v: string) => void; onAdd: () => void; placeholder?: string;
@@ -136,7 +128,6 @@ export function AddRow({ value, onChange, onAdd, placeholder }: {
   );
 }
 
-// ─── Color Picker (palette swatches + hex input) ────────────────────────────
 
 export function ColorPicker({ value, onChange, palette }: {
   value: string; onChange: (v: string) => void; palette: string[];
@@ -171,7 +162,6 @@ export function ColorPicker({ value, onChange, palette }: {
   );
 }
 
-// ─── Modal Overlay ──────────────────────────────────────────────────────────
 
 export function Modal({ open, title, onClose, footer, children }: {
   open: boolean; title: string; onClose: () => void; footer?: React.ReactNode; children: React.ReactNode;
@@ -191,7 +181,6 @@ export function Modal({ open, title, onClose, footer, children }: {
   );
 }
 
-// ─── Confirm Dialog ─────────────────────────────────────────────────────────
 
 export function ConfirmDialog({ open, title, message, onConfirm, onCancel, danger = false }: {
   open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; danger?: boolean;

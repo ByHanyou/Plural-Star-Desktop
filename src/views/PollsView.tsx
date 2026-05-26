@@ -69,7 +69,6 @@ export default function PollsView({ members, onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      {/* Voter selector */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
         <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('polls.votingAs')}</span>
         <select style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}
@@ -81,7 +80,6 @@ export default function PollsView({ members, onUpdate }: Props) {
         </div>
       </div>
 
-      {/* Polls list */}
       {polls.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {polls.map(poll => {
@@ -97,7 +95,6 @@ export default function PollsView({ members, onUpdate }: Props) {
                   {t('noteboard.by', { name: getName(poll.createdBy) })} · {fmtTime(poll.createdAt)} · {t('polls.votes', { count: totalVotes })}
                 </div>
 
-                {/* Options */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                   {poll.options.map(opt => {
                     const pct = totalVotes > 0 ? Math.round((opt.votes.length / totalVotes) * 100) : 0;
@@ -148,7 +145,6 @@ export default function PollsView({ members, onUpdate }: Props) {
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>{t('polls.noPolls')}</div>
       )}
 
-      {/* Create Modal */}
       <Modal open={showCreate} title={t('polls.createPoll')} onClose={() => setShowCreate(false)}
         footer={<Btn variant="solid" onClick={createPoll}>{t('common.add')}</Btn>}>
         <div style={{ marginBottom: 12 }}>

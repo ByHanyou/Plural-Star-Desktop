@@ -65,7 +65,6 @@ export default function CustomFieldsView({ onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      {/* Existing fields */}
       {fields.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 20 }}>
           {fields.map((fd, i) => (
@@ -79,10 +78,8 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 background: dragIdx === i ? 'var(--accent-bg)' : 'var(--card)',
                 border: '1px solid var(--border)', borderRadius: 8, cursor: 'grab',
               }}>
-              {/* Drag handle */}
               <span style={{ fontSize: 16, color: 'var(--muted)', cursor: 'grab', userSelect: 'none' }}>⋮⋮</span>
 
-              {/* Name (editable) */}
               <div style={{ flex: 1 }}>
                 {editId === fd.id ? (
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -103,12 +100,10 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 )}
               </div>
 
-              {/* Type badge */}
               <span style={{ fontSize: 11, color: 'var(--muted)', background: 'var(--surface)', padding: '3px 10px', borderRadius: 6, whiteSpace: 'nowrap' }}>
                 {typeLabel(fd.type)}
               </span>
 
-              {/* Delete */}
               <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: '4px' }}
                 onClick={() => setConfirmDelete(fd.id)}>🗑</button>
             </div>
@@ -120,7 +115,6 @@ export default function CustomFieldsView({ onUpdate }: Props) {
         </div>
       )}
 
-      {/* Add new field */}
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 160 }}>

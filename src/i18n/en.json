@@ -12,7 +12,13 @@
     "untitled": "Untitled",
     "records": "{{count}} records",
     "notInExport": "Not in export",
-    "ok": "OK"
+    "ok": "OK",
+    "edit": "Edit"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "The app hit an unexpected error. Try again, or restart if it persists.",
+    "retry": "Try again"
   },
   "tabs": {
     "front": "Front",
@@ -132,7 +138,19 @@
     "areYouSure": "Are you sure?",
     "searchTags": "Search tags…",
     "searchAuthors": "Search authors…",
-    "noEntriesFilter": "No entries match this filter."
+    "noEntriesFilter": "No entries match this filter.",
+    "entriesTab": "Entries",
+    "templatesTab": "Templates",
+    "noTemplates": "No templates yet. Create one to pre-fill new entries.",
+    "newTemplate": "+ New Template",
+    "editTemplate": "Edit Template",
+    "fromTemplate": "From template…",
+    "templateHint": "Pre-fill from a saved template?",
+    "pickTemplate": "Pick a template",
+    "templateName": "Template Name *",
+    "templateNamePlaceholder": "e.g. Morning Pages",
+    "templateTitle": "Entry Title (preset)",
+    "templateBody": "Entry Body (preset)"
   },
   "share": {
     "title": "Share & Export",
@@ -329,6 +347,9 @@
     "gpsDesc": "Auto-fill location from GPS when setting front. Off by default.",
     "notifications": "Notifications",
     "notificationsDesc": "Show persistent front status notification.",
+    "dyslexicFont": "Dyslexic Font",
+    "dyslexicFontDesc": "Renders text in OpenDyslexic. On by default.",
+    "member": "Member",
     "language": "Language",
     "languageDesc": "Choose your display language.",
     "locations": "Locations",

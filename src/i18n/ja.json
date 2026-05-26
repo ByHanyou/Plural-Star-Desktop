@@ -12,7 +12,13 @@
     "untitled": "無題",
     "records": "{{count}} 件",
     "notInExport": "エクスポートに含まれていません",
-    "ok": "OK"
+    "ok": "OK",
+    "edit": "編集"
+  },
+  "errorBoundary": {
+    "title": "問題が発生しました",
+    "body": "アプリで予期しないエラーが発生しました。再試行するか、解決しない場合は再起動してください。",
+    "retry": "再試行"
   },
   "tabs": {
     "front": "フロント",
@@ -132,7 +138,19 @@
     "deleteEntry": "エントリを削除",
     "areYouSure": "よろしいですか？",
     "searchTags": "タグを検索…",
-    "searchAuthors": "著者を検索…"
+    "searchAuthors": "著者を検索…",
+    "entriesTab": "エントリー",
+    "templatesTab": "テンプレート",
+    "noTemplates": "テンプレートはまだありません。作成して新規エントリーを事前入力できます。",
+    "newTemplate": "+ 新規テンプレート",
+    "editTemplate": "テンプレートを編集",
+    "fromTemplate": "テンプレートから…",
+    "templateHint": "保存したテンプレートから事前入力しますか？",
+    "pickTemplate": "テンプレートを選択",
+    "templateName": "テンプレート名 *",
+    "templateNamePlaceholder": "例：モーニングページ",
+    "templateTitle": "エントリーのタイトル（プリセット）",
+    "templateBody": "エントリーの本文（プリセット）"
   },
   "share": {
     "title": "共有とエクスポート",
@@ -329,6 +347,9 @@
     "gpsDesc": "フロント設定時にGPSから位置を自動入力。デフォルトはオフ。",
     "notifications": "通知",
     "notificationsDesc": "フロントステータスの持続的通知を表示。",
+    "dyslexicFont": "ディスレクシアフォント",
+    "dyslexicFontDesc": "OpenDyslexicでテキストを表示します。デフォルトでオンです。",
+    "member": "メンバー",
     "language": "言語",
     "languageDesc": "表示言語を選択。",
     "locations": "場所",

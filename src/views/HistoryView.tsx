@@ -51,7 +51,6 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
       .sort((a, b) => b.startTime - a.startTime);
   }, [history, cutoff, memberFilter, search]);
 
-  // Group by date
   const grouped = useMemo(() => {
     const groups: { date: string; entries: HistoryEntry[] }[] = [];
     let currentDate = '';
@@ -119,7 +118,6 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
-      {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
           placeholder={t('members.search')} style={{ flex: 1, minWidth: 200 }} />
@@ -141,12 +139,10 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
         </div>
       </div>
 
-      {/* Results count */}
       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
         {filtered.length} entr{filtered.length === 1 ? 'y' : 'ies'}
       </div>
 
-      {/* Grouped entries */}
       {grouped.map(group => (
         <div key={group.date} style={{ marginBottom: 20 }}>
           <div style={{
@@ -162,7 +158,6 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
                 padding: 12, background: 'var(--card)', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-sm)',
               }}>
-                {/* Primary */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {entry.memberIds.map(id => <MemberChip key={id} id={id} />)}
                   <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
@@ -173,7 +168,6 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
                   </span>
                 </div>
 
-                {/* Co-Front / Co-Conscious */}
                 {(entry.coFrontIds || []).length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                     <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Co-Front:</span>
@@ -187,7 +181,6 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
                   </div>
                 )}
 
-                {/* Mood / Note / Location / Energy */}
                 {(entry.mood || entry.note || entry.location || entry.energyLevel) && (
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'var(--dim)' }}>
                     {entry.mood && <span>😊 {translateMood(entry.mood, t)}</span>}
@@ -197,7 +190,6 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
                   </div>
                 )}
 
-                {/* Delete */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
                   <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 11, cursor: 'pointer', opacity: 0.6, padding: '2px 6px' }}
                     onClick={() => startDelete(history.indexOf(entry))}>
@@ -216,7 +208,6 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
         </div>
       )}
 
-      {/* Triple-confirm delete dialog */}
       <ConfirmDialog
         open={deleteStep > 0}
         title={`${t('history.deleteEntry')} (${deleteStep}/3)`}

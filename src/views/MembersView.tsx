@@ -20,7 +20,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
 
-  // Editor state
   const [f, setF] = useState<Member>({ id: '', name: '', pronouns: '', role: '', color: PALETTE[0], description: '' });
   const [tagInput, setTagInput] = useState('');
   const [fieldDefs, setFieldDefs] = useState<CustomFieldDef[]>([]);
@@ -29,11 +28,9 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
     store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFieldDefs(defs || []));
   }, []);
 
-  // Member sub-tabs
   type MemberTab = 'main' | 'fields' | 'noteboard';
   const [memberTab, setMemberTab] = useState<MemberTab>('main');
 
-  // Noteboard
   const [allNotes, setAllNotes] = useState<NoteboardEntry[]>([]);
   const [noteText, setNoteText] = useState('');
   const [noteAuthorId, setNoteAuthorId] = useState<string | null>(null);
@@ -89,7 +86,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
   const addTag = () => {
     const raw = tagInput.trim().replace(/^#/, '').toLowerCase();
     if (!raw) return;
-    // Use functional updater so we always read the latest tags, not a stale closure
     setF(x => {
       const cur = x.tags || [];
       if (cur.includes(`#${raw}`)) return x;
@@ -146,7 +142,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
-      {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
           placeholder={t('members.search')} style={{ flex: 1, minWidth: 140 }} />
@@ -162,7 +157,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
         <Btn variant="solid" onClick={openNew}>{t('members.add')}</Btn>
       </div>
 
-      {/* Member Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {filtered.map(m => (
           <div key={m.id} className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer' }}
@@ -204,7 +198,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
         </div>
       )}
 
-      {/* Edit Modal */}
       <Modal open={!!editing} title={isNew ? t('modal.addMember') : t('modal.editMember')} onClose={() => setEditing(null)}
         footer={
           <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
@@ -219,7 +212,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
             </div>
           </div>
         }>
-        {/* Sub-tabs */}
         {!isNew && (
           <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
             {(['main', 'fields', 'noteboard'] as MemberTab[]).map(tab => (
@@ -236,9 +228,7 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
           </div>
         )}
 
-        {/* ── Main Tab ── */}
         {(memberTab === 'main' || isNew) && (<>
-          {/* Avatar */}
           <div style={{ textAlign: 'center', marginBottom: 16 }}>
             <div className="tile__avatar" style={{
               width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
@@ -257,7 +247,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
             </div>
           </div>
 
-          {/* Banner */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
               backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
@@ -314,7 +303,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
           )}
         </>)}
 
-        {/* ── Custom Fields Tab ── */}
         {memberTab === 'fields' && !isNew && (
           <div>
             {fieldDefs.length > 0 ? (
@@ -401,7 +389,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
           </div>
         )}
 
-        {/* ── Noteboard Tab ── */}
         {memberTab === 'noteboard' && !isNew && (
           <div>
             {memberNotes.length > 0 ? (
@@ -437,7 +424,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
               <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>{t('noteboard.noNotes')}</div>
             )}
 
-            {/* Write note */}
             <div style={{ padding: 12, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('noteboard.writingAs')}</span>
@@ -457,7 +443,6 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
         )}
       </Modal>
 
-      {/* Confirm Delete */}
       <ConfirmDialog open={!!confirmDelete}
         title={t('modal.confirmDelete')}
         message={t('modal.confirmDelete')}

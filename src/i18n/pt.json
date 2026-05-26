@@ -12,7 +12,13 @@
     "untitled": "Sem título",
     "records": "{{count}} registros",
     "notInExport": "Não incluído",
-    "ok": "OK"
+    "ok": "OK",
+    "edit": "Editar"
+  },
+  "errorBoundary": {
+    "title": "Algo deu errado",
+    "body": "O aplicativo encontrou um erro inesperado. Tente novamente ou reinicie se persistir.",
+    "retry": "Tentar novamente"
   },
   "tabs": {
     "front": "Frente",
@@ -132,7 +138,19 @@
     "areYouSure": "Tem certeza?",
     "searchTags": "Buscar tags…",
     "searchAuthors": "Buscar autores…",
-    "noEntriesFilter": "Nenhuma entrada corresponde a este filtro."
+    "noEntriesFilter": "Nenhuma entrada corresponde a este filtro.",
+    "entriesTab": "Entradas",
+    "templatesTab": "Modelos",
+    "noTemplates": "Ainda sem modelos. Crie um para preencher novas entradas automaticamente.",
+    "newTemplate": "+ Novo Modelo",
+    "editTemplate": "Editar Modelo",
+    "fromTemplate": "De um modelo…",
+    "templateHint": "Pré-preencher a partir de um modelo salvo?",
+    "pickTemplate": "Escolher um modelo",
+    "templateName": "Nome do Modelo *",
+    "templateNamePlaceholder": "ex. Páginas da Manhã",
+    "templateTitle": "Título da Entrada (predefinido)",
+    "templateBody": "Corpo da Entrada (predefinido)"
   },
   "share": {
     "title": "Compartilhar e Exportar",
@@ -329,6 +347,9 @@
     "gpsDesc": "Preencher localização automaticamente via GPS ao definir frente. Desativado por padrão.",
     "notifications": "Notificações",
     "notificationsDesc": "Mostrar notificação persistente do estado de frente.",
+    "dyslexicFont": "Fonte Disléxica",
+    "dyslexicFontDesc": "Exibe o texto em OpenDyslexic. Ativado por padrão.",
+    "member": "Membro",
     "language": "Idioma",
     "languageDesc": "Escolha seu idioma de exibição.",
     "locations": "Localizações",

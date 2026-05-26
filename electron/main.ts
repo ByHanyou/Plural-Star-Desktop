@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog, Notification, Tray, Menu, nativeImage } from 'electron';
-import * as path from 'path';
-import * as fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 import Store from 'electron-store';
+
+const __dirname = import.meta.dirname;
 
 app.setName('Plural Star');
 
@@ -68,7 +70,7 @@ function createWindow(): void {
     titleBarStyle: 'hiddenInset',
     frame: process.platform === 'darwin' ? false : true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },

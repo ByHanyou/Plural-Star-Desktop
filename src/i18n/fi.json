@@ -12,7 +12,13 @@
     "untitled": "Nimetön",
     "records": "{{count}} tietuetta",
     "notInExport": "Ei viennissä",
-    "ok": "OK"
+    "ok": "OK",
+    "edit": "Muokkaa"
+  },
+  "errorBoundary": {
+    "title": "Jotain meni pieleen",
+    "body": "Sovelluksessa tapahtui odottamaton virhe. Yritä uudelleen tai käynnistä uudelleen, jos ongelma jatkuu.",
+    "retry": "Yritä uudelleen"
   },
   "tabs": {
     "front": "Edessä",
@@ -132,7 +138,19 @@
     "unlock": "Avaa",
     "searchTags": "Hae tunnisteita…",
     "searchAuthors": "Hae kirjoittajia…",
-    "noEntriesFilter": "Mikään merkintä ei vastaa tätä suodatinta."
+    "noEntriesFilter": "Mikään merkintä ei vastaa tätä suodatinta.",
+    "entriesTab": "Merkinnät",
+    "templatesTab": "Mallipohjat",
+    "noTemplates": "Ei vielä mallipohjia. Luo yksi täyttääksesi uudet merkinnät ennakkoon.",
+    "newTemplate": "+ Uusi Mallipohja",
+    "editTemplate": "Muokkaa Mallipohjaa",
+    "fromTemplate": "Mallipohjasta…",
+    "templateHint": "Esitäytä tallennetusta mallipohjasta?",
+    "pickTemplate": "Valitse mallipohja",
+    "templateName": "Mallipohjan Nimi *",
+    "templateNamePlaceholder": "esim. Aamusivut",
+    "templateTitle": "Merkinnän Otsikko (esiasetus)",
+    "templateBody": "Merkinnän Sisältö (esiasetus)"
   },
   "share": {
     "title": "Jaa & Vie",
@@ -321,6 +339,9 @@
     "gpsDesc": "Täytä sijainti GPS:stä automaattisesti.",
     "notifications": "Ilmoitukset",
     "notificationsDesc": "Näytä pysyvä front-ilmoitus.",
+    "dyslexicFont": "Lukihäiriö-fontti",
+    "dyslexicFontDesc": "Näyttää tekstin OpenDyslexicilla. Päällä oletuksena.",
+    "member": "Jäsen",
     "language": "Kieli",
     "languageDesc": "Valitse näyttökieli.",
     "locations": "Sijainnit",

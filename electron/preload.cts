@@ -1,7 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Storage
   store: {
     get: (key: string) => ipcRenderer.invoke('store:get', key),
     getStrict: (key: string) => ipcRenderer.invoke('store:getStrict', key),
@@ -12,34 +11,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     allKeys: () => ipcRenderer.invoke('store:allKeys'),
   },
 
-  // File dialogs
   dialog: {
     openFile: (filters?: any[]) => ipcRenderer.invoke('dialog:openFile', filters),
     saveFile: (defaultName: string) => ipcRenderer.invoke('dialog:saveFile', defaultName),
   },
 
-  // File reading
   file: {
     readAsBase64: (filePath: string) => ipcRenderer.invoke('file:readAsBase64', filePath),
     write: (filePath: string, content: string) => ipcRenderer.invoke('file:write', filePath, content),
   },
 
-  // Network fetch (CORS proxy)
   net: {
     fetch: (url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) =>
       ipcRenderer.invoke('net:fetch', url, options),
   },
 
-  // Notifications
   notify: (title: string, body: string) => ipcRenderer.invoke('notify', title, body),
 
-  // Window controls
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
   },
 
-  // Platform info
   platform: process.platform,
 });

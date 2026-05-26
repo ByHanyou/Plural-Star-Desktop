@@ -15,8 +15,6 @@ export interface MemberGroup {
   color?: string;
 }
 
-// ── Custom Fields ──────────────────────────────────────────────────────────
-
 export type CustomFieldType = 'text' | 'markdown' | 'date' | 'dateRange' | 'number' | 'toggle' | 'color' | 'month' | 'year' | 'monthYear' | 'timestamp' | 'monthDay';
 
 export interface CustomFieldDef {
@@ -32,8 +30,6 @@ export interface CustomFieldValue {
   value: string | number | boolean | null;
 }
 
-// ── Noteboard ─────────────────────────────────────────────────────────────
-
 export interface NoteboardEntry {
   id: string;
   memberId: string;
@@ -42,8 +38,6 @@ export interface NoteboardEntry {
   timestamp: number;
   pinned?: boolean;
 }
-
-// ── Polls ──────────────────────────────────────────────────────────────────
 
 export interface PollOption {
   id: string;
@@ -62,11 +56,7 @@ export interface MemberPoll {
   hideVoterNames?: boolean;
 }
 
-// ── Member Sorting ────────────────────────────────────────────────────────
-
 export type MemberSortMode = 'alphabetical' | 'reverse-alphabetical' | 'age' | 'color' | 'role' | 'manual';
-
-// ── Member ────────────────────────────────────────────────────────────────
 
 export interface Member {
   id: string;
@@ -134,6 +124,15 @@ export interface JournalEntry {
   timestamp: number;
 }
 
+export interface JournalTemplate {
+  id: string;
+  name: string;
+  title: string;
+  body: string;
+  hashtags: string[];
+  createdAt?: number;
+}
+
 export interface ShareSettings {
   showFront: boolean;
   showMembers: boolean;
@@ -154,6 +153,7 @@ export interface AppSettings {
   textScale: TextScale;
   memberSortMode?: MemberSortMode;
   frontCheckInterval?: number;
+  useDyslexicFont?: boolean;
 }
 
 export interface ExportPayload {
@@ -174,6 +174,7 @@ export interface ExportPayload {
   customFieldDefs?: CustomFieldDef[];
   noteboards?: NoteboardEntry[];
   polls?: MemberPoll[];
+  journalTemplates?: JournalTemplate[];
 }
 
 export type ChatMessageType = 'text' | 'image' | 'file' | 'reply' | 'reaction';
@@ -350,7 +351,6 @@ export const TEXT_SCALE_OPTIONS: {label: string; value: TextScale}[] = [
   {label: 'Extra Large', value: 1.5},
 ];
 
-// ── Banner dimensions ─────────────────────────────────────────────────────
 export const BANNER_WIDTH = 900;
 export const BANNER_HEIGHT = 300;
 

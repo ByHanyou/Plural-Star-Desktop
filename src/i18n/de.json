@@ -12,7 +12,13 @@
     "untitled": "Ohne Titel",
     "records": "{{count}} Einträge",
     "notInExport": "Nicht im Export enthalten",
-    "ok": "OK"
+    "ok": "OK",
+    "edit": "Bearbeiten"
+  },
+  "errorBoundary": {
+    "title": "Etwas ist schiefgelaufen",
+    "body": "In der App ist ein unerwarteter Fehler aufgetreten. Versuche es erneut oder starte sie neu, falls das Problem weiterhin besteht.",
+    "retry": "Erneut versuchen"
   },
   "tabs": {
     "front": "Front",
@@ -132,7 +138,19 @@
     "areYouSure": "Bist du sicher?",
     "searchTags": "Tags suchen…",
     "searchAuthors": "Autoren suchen…",
-    "noEntriesFilter": "Keine Einträge passen zu diesem Filter."
+    "noEntriesFilter": "Keine Einträge passen zu diesem Filter.",
+    "entriesTab": "Einträge",
+    "templatesTab": "Vorlagen",
+    "noTemplates": "Noch keine Vorlagen. Erstelle eine, um neue Einträge vorab auszufüllen.",
+    "newTemplate": "+ Neue Vorlage",
+    "editTemplate": "Vorlage Bearbeiten",
+    "fromTemplate": "Aus Vorlage…",
+    "templateHint": "Aus einer gespeicherten Vorlage vorab ausfüllen?",
+    "pickTemplate": "Vorlage auswählen",
+    "templateName": "Vorlagenname *",
+    "templateNamePlaceholder": "z. B. Morgenseiten",
+    "templateTitle": "Eintragstitel (voreingestellt)",
+    "templateBody": "Eintragstext (voreingestellt)"
   },
   "share": {
     "title": "Teilen & Exportieren",
@@ -295,6 +313,9 @@
     "gpsDesc": "Ort automatisch per GPS ausfüllen beim Front-Setzen. Standardmäßig deaktiviert.",
     "notifications": "Benachrichtigungen",
     "notificationsDesc": "Dauerhafte Front-Status-Benachrichtigung anzeigen.",
+    "dyslexicFont": "Legasthenie-Schrift",
+    "dyslexicFontDesc": "Stellt Text in OpenDyslexic dar. Standardmäßig aktiviert.",
+    "member": "Mitglied",
     "language": "Sprache",
     "languageDesc": "Wähle deine Anzeigesprache.",
     "locations": "Orte",

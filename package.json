@@ -1,11 +1,12 @@
 {
   "name": "plural-space-desktop",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Plural Star — Desktop",
   "author": {
     "name": "The Hanyou System",
     "email": "The1Hanyou@gmail.com"
   },
+  "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -17,26 +18,26 @@
     "postinstall": "node scripts/fix-bin-permissions.js"
   },
   "dependencies": {
-    "electron-store": "^8.2.0",
-    "i18next": "^25.10.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-i18next": "^16.6.1",
-    "@tiptap/react": "^2.11.0",
-    "@tiptap/starter-kit": "^2.11.0",
-    "@tiptap/extension-placeholder": "^2.11.0",
-    "lucide-react": "^0.468.0"
+    "electron-store": "^11.0.2",
+    "i18next": "^26.2.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-i18next": "^17.0.8",
+    "@tiptap/react": "^3.23.6",
+    "@tiptap/starter-kit": "^3.23.6",
+    "@tiptap/extension-placeholder": "^3.23.6",
+    "lucide-react": "^1.16.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react": "^4.3.4",
-    "concurrently": "^9.1.0",
-    "electron": "^34.0.0",
-    "electron-builder": "^25.1.8",
-    "typescript": "^5.7.0",
-    "vite": "^6.0.0",
-    "wait-on": "^8.0.0"
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.6",
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^9.2.1",
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14",
+    "wait-on": "^9.0.1"
   },
   "build": {
     "appId": "com.pluralspace.desktop",

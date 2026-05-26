@@ -18,7 +18,6 @@ export default function StatsView({ history, members, channels }: Props) {
   const [range, setRange] = useState<TimeRange>('all');
   const [chatCounts, setChatCounts] = useState<Record<string, number>>({});
 
-  // Load chat counts once
   React.useEffect(() => {
     (async () => {
       const counts: Record<string, number> = {};
@@ -51,7 +50,6 @@ export default function StatsView({ history, members, channels }: Props) {
     });
   }, [history, cutoff]);
 
-  // ─── Calculations ──────────────────────────────────────────────────────
 
   const totalSessions = filtered.length;
 
@@ -117,7 +115,6 @@ export default function StatsView({ history, members, channels }: Props) {
   const totalTime = fronterTotals.reduce((a, [, d]) => a + d, 0);
   const totalMsgs = chatSorted.reduce((a, [, c]) => a + c, 0);
 
-  // Energy averages per member
   const energyStats = useMemo(() => {
     const map: Record<string, { sum: number; count: number }> = {};
     for (const entry of filtered) {
@@ -141,7 +138,6 @@ export default function StatsView({ history, members, channels }: Props) {
       .sort((a, b) => b[1] - a[1]);
   }, [filtered]);
 
-  // Peak hours (0-23)
   const peakHours = useMemo(() => {
     const hours = new Array(24).fill(0);
     for (const entry of filtered) {
@@ -153,7 +149,6 @@ export default function StatsView({ history, members, channels }: Props) {
 
   const peakMax = Math.max(...peakHours, 1);
 
-  // Member-specific leaderboard
   const [selectedStatMember, setSelectedStatMember] = useState<string | null>(null);
 
   const memberSpecific = useMemo(() => {
@@ -183,7 +178,6 @@ export default function StatsView({ history, members, channels }: Props) {
     };
   }, [filtered, selectedStatMember]);
 
-  // ─── Bar Component ─────────────────────────────────────────────────────
 
   const Bar = ({ label, value, max, color, suffix }: {
     label: string; value: number; max: number; color: string; suffix: string;
@@ -228,7 +222,6 @@ export default function StatsView({ history, members, channels }: Props) {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
-      {/* Time range selector */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {(['all', '30d', '7d'] as TimeRange[]).map(r => (
           <button key={r} className={`btn ${range === r ? 'btn--primary' : 'btn--ghost'}`}
@@ -238,7 +231,6 @@ export default function StatsView({ history, members, channels }: Props) {
         ))}
       </div>
 
-      {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
         {[
           { label: t('stats.totalSessions'), value: totalSessions.toString() },
@@ -256,7 +248,6 @@ export default function StatsView({ history, members, channels }: Props) {
         ))}
       </div>
 
-      {/* Leaderboards — 2 column grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
         <Leaderboard title={t('stats.topFronters')} data={fronterTotals} mode="time" />
         <Leaderboard title={t('stats.topCoFronters')} data={coFrontTotals} mode="time" />
@@ -264,7 +255,6 @@ export default function StatsView({ history, members, channels }: Props) {
         <Leaderboard title={t('stats.topChatters')} data={chatSorted} mode="count" />
       </div>
 
-      {/* Moods & Locations */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20, marginTop: 20 }}>
         <div>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.topMoods')}</h3>
@@ -282,7 +272,6 @@ export default function StatsView({ history, members, channels }: Props) {
         </div>
       </div>
 
-      {/* Energy Averages */}
       {energyStats.length > 0 && (
         <div style={{ marginTop: 20 }}>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('energy.avgEnergy')}</h3>
@@ -293,7 +282,6 @@ export default function StatsView({ history, members, channels }: Props) {
         </div>
       )}
 
-      {/* Peak Hours */}
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.peakHours')}</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
@@ -310,7 +298,6 @@ export default function StatsView({ history, members, channels }: Props) {
         </div>
       </div>
 
-      {/* Member Leaderboard */}
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.memberLeaderboard', { name: '' }).replace(/^\s+/, '') || 'Member Details'}</h3>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
