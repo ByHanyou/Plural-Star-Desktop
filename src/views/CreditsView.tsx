@@ -16,9 +16,9 @@ export default function CreditsView() {
       url: 'https://x.com/theloudhousesys?s=21',
     },
     {
-      name: 'realcatdev',
+      name: 'sparklecatdev',
       role: t('hub.creditIos', { defaultValue: 'Plural Star iOS Port' }),
-      url: 'https://github.com/realcatdev',
+      url: 'https://github.com/sparklecatdev',
     },
   ];
 

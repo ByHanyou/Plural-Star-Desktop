@@ -5,6 +5,7 @@ import { store, KEYS, chatMsgKey } from '../storage';
 import {
   Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ChatMessage,
   ExportPayload, CustomFieldDef, NoteboardEntry, MemberPoll, uid, DEFAULT_CHANNELS,
+  parallelMap,
 } from '../utils';
 import { CustomPalette } from '../theme';
 
@@ -60,33 +61,29 @@ export default function ImportExportView({ system, members, history, journal, se
 
     const chatMessages: Record<string, any[]> = {};
     if (cat.chat) {
-      for (const ch of channels) {
-        const msgs = await store.get<any[]>(chatMsgKey(ch.id));
-        if (msgs && msgs.length > 0) chatMessages[ch.id] = msgs;
-      }
+      const fetched = await parallelMap(channels, async (ch) => ({id: ch.id, msgs: await store.get<any[]>(chatMsgKey(ch.id))}), 6);
+      for (const f of fetched) if (f && f.msgs && f.msgs.length > 0) chatMessages[f.id] = f.msgs;
     }
 
     const avatars: Record<string, string> = {};
     if (cat.avatars) {
-      for (const m of members) {
-        if (!m.avatar) continue;
-        if (m.avatar.startsWith('data:')) { avatars[m.id] = m.avatar; }
-        else {
-          const dataUri = await window.electronAPI.file.readAsBase64(m.avatar);
-          if (dataUri) avatars[m.id] = dataUri;
-        }
-      }
+      const withAvatars = members.filter(m => !!m.avatar);
+      const results = await parallelMap(withAvatars, async (m) => {
+        if (m.avatar!.startsWith('data:')) return {id: m.id, data: m.avatar!};
+        const dataUri = await window.electronAPI.file.readAsBase64(m.avatar!).catch(() => null);
+        return dataUri ? {id: m.id, data: dataUri} : null;
+      }, 6);
+      for (const r of results) if (r) avatars[r.id] = r.data;
     }
     const banners: Record<string, string> = {};
     if (cat.banners) {
-      for (const m of members) {
-        if (!m.banner) continue;
-        if (m.banner.startsWith('data:')) { banners[m.id] = m.banner; }
-        else {
-          const dataUri = await window.electronAPI.file.readAsBase64(m.banner);
-          if (dataUri) banners[m.id] = dataUri;
-        }
-      }
+      const withBanners = members.filter(m => !!m.banner);
+      const results = await parallelMap(withBanners, async (m) => {
+        if (m.banner!.startsWith('data:')) return {id: m.id, data: m.banner!};
+        const dataUri = await window.electronAPI.file.readAsBase64(m.banner!).catch(() => null);
+        return dataUri ? {id: m.id, data: dataUri} : null;
+      }, 6);
+      for (const r of results) if (r) banners[r.id] = r.data;
     }
     const membersForExport = members.map(({ avatar: _a, banner: _b, ...rest }) => rest as Member);
 
@@ -414,7 +411,7 @@ export default function ImportExportView({ system, members, history, journal, se
               return {memberIds: ids, startTime, endTime, note: ''} as HistoryEntry;
             }).filter((h: HistoryEntry) => h.memberIds.length > 0 && h.startTime > 0);
         if (newH.length > 0) {
-          const merged = [...newH, ...history].sort((a, b) => b.startTime - a.startTime).slice(0, 1000);
+          const merged = [...newH, ...history].sort((a, b) => b.startTime - a.startTime);
           batch[KEYS.history] = merged;
         }
       }

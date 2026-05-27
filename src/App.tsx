@@ -21,6 +21,8 @@ import SettingsTile from './tiles/SettingsTile';
 import CustomFieldsTile from './tiles/CustomFieldsTile';
 import PollsTile from './tiles/PollsTile';
 import CreditsTile from './tiles/CreditsTile';
+import SupportTile from './tiles/SupportTile';
+import DiscordTile from './tiles/DiscordTile';
 
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
@@ -60,7 +62,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   activePaletteId: '__dark__',
   textScale: 1.0,
-  useDyslexicFont: true,
+  useDyslexicFont: false,
 };
 
 const applyDyslexicFont = (on: boolean) => {
@@ -228,6 +230,12 @@ function AppInner() {
             <CreditsTile
               onClick={() => setView('credits')}
             />
+            <DiscordTile
+              onClick={() => window.open('https://discord.gg/FFQw33cu8m', '_blank')}
+            />
+            <SupportTile
+              onClick={() => window.open('https://www.buymeacoffee.com/PluralStar', '_blank')}
+            />
             <SettingsTile
               settings={state.settings}
               onClick={() => setView('settings')}
@@ -238,7 +246,7 @@ function AppInner() {
         <div className="full-view">
           <div className="full-view__header">
             <button className="full-view__back" onClick={() => setView('dashboard')}>
-              ← {t('hub.dashboard')}
+              {t('hub.dashboard')}
             </button>
             <span className="full-view__title">
               {view === 'front' ? t('tabs.front')

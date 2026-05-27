@@ -280,7 +280,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       {showPw && <Field value={journalPw} onChange={setJournalPw} placeholder={t('modal.lockJournal')} type="password" />}
 
       <Toggle label={t('modal.notifications')} description={t('modal.notificationsDesc')} value={notif} onChange={setNotif} />
-      <Toggle label={t('modal.dyslexicFont', { defaultValue: 'Dyslexic Font' })} description={t('modal.dyslexicFontDesc', { defaultValue: 'Renders text in OpenDyslexic. On by default.' })} value={useDyslexicFont} onChange={setUseDyslexicFont} />
+      <Toggle label={t('modal.dyslexicFont', { defaultValue: 'Dyslexic Font' })} description={t('modal.dyslexicFontDesc', { defaultValue: 'Renders text in OpenDyslexic.' })} value={useDyslexicFont} onChange={setUseDyslexicFont} />
 
       <Section label={t('modal.language')} />
       <Dropdown
@@ -309,12 +309,6 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       <Section label={t('modal.customMoods')} />
       <ChipList items={moods} onRemove={m => setMoods(moods.filter(x => x !== m))} color="var(--info)" />
       <AddRow value={newMood} onChange={setNewMood} onAdd={addMood} placeholder={t('modal.addMoodPlaceholder')} />
-
-      <div style={{ textAlign: 'center', padding: '24px 0', borderTop: '1px solid var(--border)', marginTop: 20 }}>
-        <Btn variant="solid" onClick={() => window.open('https://www.buymeacoffee.com/PluralSpace', '_blank')}>
-          ☕ {t('modal.supportPS')}
-        </Btn>
-      </div>
 
       <div style={{ position: 'sticky', bottom: 0, padding: '12px 0', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
         {saveStatus && (
