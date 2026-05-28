@@ -12,7 +12,7 @@
     "dev": "vite",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
     "preview": "vite preview",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && tsc -p tsconfig.electron.json && electron .\"",
+    "electron:dev": "concurrently -k -n vite,electron \"vite\" \"wait-on http://localhost:5173 && tsc -p tsconfig.electron.json && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:pack": "npm run build && electron-builder --dir",
     "postinstall": "node scripts/fix-bin-permissions.js"
