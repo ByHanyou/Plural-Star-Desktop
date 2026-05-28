@@ -209,8 +209,8 @@ export default function FrontView({ front, members, groups, history, settings, o
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--text)', fontWeight: 600, fontStyle: 'italic' }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text)', fontWeight: 600, fontStyle: 'italic', marginBottom: 10 }}>
           {t('front.currentlyFronting')}
         </h2>
         <Btn variant="primary" onClick={() => setShowSetFront(true)}>{t('front.update')}</Btn>
