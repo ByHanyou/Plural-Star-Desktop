@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn } from '../components/ui';
 import { SystemInfo, AppSettings, TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex, resizeBannerDataUrl } from '../utils';
-import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE } from '../theme';
+import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice } from '../theme';
 import { store, KEYS } from '../storage';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
 import type { SupportedLanguage } from '../i18n/i18n';
@@ -57,7 +57,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
   const [notif, setNotif] = useState(settings.notificationsEnabled);
   const [textScale, setTextScale] = useState<TextScale>(settings.textScale);
   const [activePaletteId, setActivePaletteId] = useState(settings.activePaletteId);
-  const [useDyslexicFont, setUseDyslexicFont] = useState<boolean>(settings.useDyslexicFont !== false);
+  const [fontChoice, setFontChoice] = useState<FontChoice>(settings.fontChoice ?? (settings.useDyslexicFont === true ? 'opendyslexic' : 'default'));
 
   const [editPalette, setEditPalette] = useState<CustomPalette | null>(null);
   const [palName, setPalName] = useState('');
@@ -158,12 +158,11 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       });
       await store.set(KEYS.settings, {
         ...settings, locations: locs, customMoods: moods, language: lang,
-        notificationsEnabled: notif, textScale, activePaletteId, useDyslexicFont,
+        notificationsEnabled: notif, textScale, activePaletteId, fontChoice, useDyslexicFont: fontChoice === 'opendyslexic',
       });
       changeLanguage(lang);
       applyTextScale(textScale);
-      if (useDyslexicFont) document.documentElement.classList.remove('no-dyslexic');
-      else document.documentElement.classList.add('no-dyslexic');
+      applyFontChoice(fontChoice);
       onUpdate();
       setSaveStatus('Settings saved');
       setTimeout(() => setSaveStatus(null), 3000);
@@ -280,7 +279,13 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       {showPw && <Field value={journalPw} onChange={setJournalPw} placeholder={t('modal.lockJournal')} type="password" />}
 
       <Toggle label={t('modal.notifications')} description={t('modal.notificationsDesc')} value={notif} onChange={setNotif} />
-      <Toggle label={t('modal.dyslexicFont', { defaultValue: 'Dyslexic Font' })} description={t('modal.dyslexicFontDesc', { defaultValue: 'Renders text in OpenDyslexic.' })} value={useDyslexicFont} onChange={setUseDyslexicFont} />
+      <Section label={t('modal.appFont', { defaultValue: 'App Font' })} />
+      <Dropdown
+        value={fontChoice}
+        options={FONT_OPTIONS.map(o => o.value)}
+        onChange={setFontChoice}
+        renderOption={v => FONT_OPTIONS.find(o => o.value === v)?.label || v}
+      />
 
       <Section label={t('modal.language')} />
       <Dropdown

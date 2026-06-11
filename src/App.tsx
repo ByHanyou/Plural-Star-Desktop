@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n/i18n';
 import { store, KEYS } from './storage';
-import { deriveTheme, applyThemeToDOM, applyTextScale, DARK_PALETTE, BUILTIN_PALETTES, CustomPalette, ThemeColors } from './theme';
+import { deriveTheme, applyThemeToDOM, applyTextScale, applyFontChoice, DARK_PALETTE, BUILTIN_PALETTES, CustomPalette, ThemeColors } from './theme';
 import {
   Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   AppSettings, SystemInfo, MemberGroup, migrateFrontState, isFrontEmpty,
-  fmtDur, getInitials, DEFAULT_CHANNELS,
+  fmtDur, getInitials, DEFAULT_CHANNELS, DEFAULT_MOODS, makeDefaultCustomFronts,
 } from './utils';
 import { changeLanguage } from './i18n/i18n';
 
@@ -23,6 +23,7 @@ import PollsTile from './tiles/PollsTile';
 import CreditsTile from './tiles/CreditsTile';
 import SupportTile from './tiles/SupportTile';
 import DiscordTile from './tiles/DiscordTile';
+import SystemManagerTile from './tiles/SystemManagerTile';
 
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
@@ -30,13 +31,14 @@ import ImportExportView from './views/ImportExportView';
 import StatsView from './views/StatsView';
 import JournalView from './views/JournalView';
 import HistoryView from './views/HistoryView';
-import FrontView from './views/FrontView';
+import FrontView, { SetFrontModal, applyFrontUpdate } from './views/FrontView';
 import ChatView from './views/ChatView';
 import CustomFieldsView from './views/CustomFieldsView';
 import PollsView from './views/PollsView';
 import CreditsView from './views/CreditsView';
+import SystemManagerView from './views/SystemManagerView';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager';
 
 interface AppState {
   system: SystemInfo;
@@ -63,11 +65,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   activePaletteId: '__dark__',
   textScale: 1.0,
   useDyslexicFont: false,
-};
-
-const applyDyslexicFont = (on: boolean) => {
-  if (on) document.documentElement.classList.remove('no-dyslexic');
-  else document.documentElement.classList.add('no-dyslexic');
 };
 
 class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
@@ -105,6 +102,7 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
 function AppInner() {
   const { t } = useTranslation();
   const [view, setView] = useState<ViewId>('dashboard');
+  const [showQuickFront, setShowQuickFront] = useState(false);
   const [state, setState] = useState<AppState>({
     system: { name: '', description: '' },
     members: [],
@@ -133,18 +131,34 @@ function AppInner() {
     ]);
 
     const mergedSettings = { ...DEFAULT_SETTINGS, ...settings };
-    const front = migrateFrontState(frontRaw);
+    let memberList = members || [];
+    if (!mergedSettings.customFrontsSeeded) {
+      memberList = [...memberList, ...makeDefaultCustomFronts()];
+      mergedSettings.customFrontsSeeded = true;
+      await store.setBatch({ [KEYS.members]: memberList, [KEYS.settings]: mergedSettings });
+    }
+    let front = migrateFrontState(frontRaw);
+    const archivedFrontIds = new Set(memberList.filter(m => m.archived).map(m => m.id));
+    if (front && archivedFrontIds.size > 0) {
+      const pruneTier = (tier: any) => tier ? {...tier, memberIds: (tier.memberIds || []).filter((id: string) => !archivedFrontIds.has(id))} : tier;
+      const next: any = {...front, primary: pruneTier(front.primary), coFront: pruneTier(front.coFront), coConscious: pruneTier(front.coConscious)};
+      const count = (f: any) => (f?.primary?.memberIds?.length || 0) + (f?.coFront?.memberIds?.length || 0) + (f?.coConscious?.memberIds?.length || 0);
+      if (count(next) !== count(front)) {
+        front = isFrontEmpty(next) ? null : next;
+        await store.set(KEYS.front, front);
+      }
+    }
     const allPalettes = [...BUILTIN_PALETTES, ...(palettes || [])];
     const activePalette = allPalettes.find(p => p.id === mergedSettings.activePaletteId) || DARK_PALETTE;
     const theme = deriveTheme(activePalette.bg, activePalette.accent, activePalette.text, activePalette.mid);
     applyThemeToDOM(theme);
     applyTextScale(mergedSettings.textScale);
-    applyDyslexicFont(mergedSettings.useDyslexicFont !== false);
+    applyFontChoice(mergedSettings.fontChoice ?? (mergedSettings.useDyslexicFont === true ? 'opendyslexic' : 'default'));
     changeLanguage(mergedSettings.language);
 
     setState({
       system: system || { name: '', description: '' },
-      members: members || [],
+      members: memberList,
       groups: groups || [],
       front,
       history: history || [],
@@ -193,6 +207,11 @@ function AppInner() {
               front={state.front}
               members={state.members}
               onClick={() => setView('front')}
+              onUpdateFront={() => setShowQuickFront(true)}
+            />
+            <SystemManagerTile
+              groups={state.groups}
+              onClick={() => setView('system-manager')}
             />
             <MembersTile
               members={state.members}
@@ -260,6 +279,7 @@ function AppInner() {
                 : view === 'custom-fields' ? t('customFields.title')
                 : view === 'polls' ? t('polls.title')
                 : view === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
+                : view === 'system-manager' ? t('systemManager.title')
                 : view}
             </span>
           </div>
@@ -288,6 +308,9 @@ function AppInner() {
               <FrontView front={state.front} members={state.members} groups={state.groups}
                 history={state.history} settings={state.settings} onUpdate={loadData} />
             )}
+            {view === 'system-manager' && (
+              <SystemManagerView members={state.members} groups={state.groups} onUpdate={loadData} />
+            )}
             {view === 'chat' && (
               <ChatView members={state.members} channels={state.channels} onUpdate={loadData} />
             )}
@@ -303,6 +326,17 @@ function AppInner() {
           </div>
         </div>
       )}
+
+      <SetFrontModal
+        open={showQuickFront}
+        onClose={() => setShowQuickFront(false)}
+        onSave={async (p: any, cf: any, cc: any) => { await applyFrontUpdate(state.front, p, cf, cc); loadData(); }}
+        members={state.members.filter(m => !m.archived)}
+        groups={state.groups}
+        current={state.front}
+        settings={state.settings}
+        allMoods={[...DEFAULT_MOODS, ...(state.settings.customMoods || [])]}
+      />
     </div>
   );
 }

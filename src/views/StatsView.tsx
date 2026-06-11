@@ -13,6 +13,9 @@ interface Props {
 
 type TimeRange = 'all' | '7d' | '30d';
 
+const MAX_BOARD = 25;
+const nextBoardLimit = (cur: number) => (cur < 10 ? 10 : MAX_BOARD);
+
 export default function StatsView({ history, members, channels }: Props) {
   const { t } = useTranslation();
   const [range, setRange] = useState<TimeRange>('all');
@@ -34,6 +37,10 @@ export default function StatsView({ history, members, channels }: Props) {
   }, [channels]);
 
   const getMember = (id: string) => members.find(m => m.id === id);
+  const customFrontIds = useMemo(() => new Set(members.filter(m => m.isCustomFront).map(m => m.id)), [members]);
+  const [boardLimits, setBoardLimits] = useState<Record<string, number>>({});
+  const limitFor = (k: string) => boardLimits[k] ?? 5;
+  const expandBoard = (k: string) => setBoardLimits(p => ({ ...p, [k]: nextBoardLimit(p[k] ?? 5) }));
 
   const cutoff = useMemo(() => {
     if (range === '7d') return Date.now() - 7 * 86400000;
@@ -63,8 +70,8 @@ export default function StatsView({ history, members, channels }: Props) {
         map[id] = (map[id] || 0) + dur;
       }
     }
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [filtered, cutoff]);
+    return Object.entries(map).filter(([id]) => !customFrontIds.has(id)).sort((a, b) => b[1] - a[1]);
+  }, [filtered, cutoff, customFrontIds]);
 
   const coFrontTotals = useMemo(() => {
     const map: Record<string, number> = {};
@@ -76,8 +83,8 @@ export default function StatsView({ history, members, channels }: Props) {
         map[id] = (map[id] || 0) + dur;
       }
     }
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [filtered, cutoff]);
+    return Object.entries(map).filter(([id]) => !customFrontIds.has(id)).sort((a, b) => b[1] - a[1]);
+  }, [filtered, cutoff, customFrontIds]);
 
   const coConTotals = useMemo(() => {
     const map: Record<string, number> = {};
@@ -89,8 +96,8 @@ export default function StatsView({ history, members, channels }: Props) {
         map[id] = (map[id] || 0) + dur;
       }
     }
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [filtered, cutoff]);
+    return Object.entries(map).filter(([id]) => !customFrontIds.has(id)).sort((a, b) => b[1] - a[1]);
+  }, [filtered, cutoff, customFrontIds]);
 
   const moodTotals = useMemo(() => {
     const map: Record<string, number> = {};
@@ -109,8 +116,8 @@ export default function StatsView({ history, members, channels }: Props) {
   }, [filtered]);
 
   const chatSorted = useMemo(() => {
-    return Object.entries(chatCounts).sort((a, b) => b[1] - a[1]);
-  }, [chatCounts]);
+    return Object.entries(chatCounts).filter(([id]) => !customFrontIds.has(id)).sort((a, b) => b[1] - a[1]);
+  }, [chatCounts, customFrontIds]);
 
   const totalTime = fronterTotals.reduce((a, [, d]) => a + d, 0);
   const totalMsgs = chatSorted.reduce((a, [, c]) => a + c, 0);
@@ -134,9 +141,10 @@ export default function StatsView({ history, members, channels }: Props) {
       }
     }
     return Object.entries(map)
+      .filter(([id]) => !customFrontIds.has(id))
       .map(([id, { sum, count }]) => [id, Math.round((sum / count) * 10) / 10] as [string, number])
       .sort((a, b) => b[1] - a[1]);
-  }, [filtered]);
+  }, [filtered, customFrontIds]);
 
   const peakHours = useMemo(() => {
     const hours = new Array(24).fill(0);
@@ -148,6 +156,16 @@ export default function StatsView({ history, members, channels }: Props) {
   }, [filtered]);
 
   const peakMax = Math.max(...peakHours, 1);
+
+  const energyByHour = useMemo(() => {
+    const sum = new Array(24).fill(0); const cnt = new Array(24).fill(0);
+    for (const e of filtered) {
+      const h = new Date(e.startTime).getHours();
+      if (e.energyLevel) { sum[h] += e.energyLevel; cnt[h]++; }
+      if (e.coFrontEnergy) { sum[h] += e.coFrontEnergy; cnt[h]++; }
+    }
+    return sum.map((s, h) => cnt[h] > 0 ? Math.round((s / cnt[h]) * 10) / 10 : 0);
+  }, [filtered]);
 
   const [selectedStatMember, setSelectedStatMember] = useState<string | null>(null);
 
@@ -197,24 +215,31 @@ export default function StatsView({ history, members, channels }: Props) {
     </div>
   );
 
-  const Leaderboard = ({ title, data, mode }: {
-    title: string; data: [string, number][]; mode: 'time' | 'count';
+  const Leaderboard = ({ title, data, mode, boardKey }: {
+    title: string; data: [string, number][]; mode: 'time' | 'count'; boardKey: string;
   }) => {
-    const top5 = data.slice(0, 5);
-    const maxVal = top5.length > 0 ? top5[0][1] : 1;
+    const limit = limitFor(boardKey);
+    const shown = data.slice(0, limit);
+    const maxVal = shown.length > 0 ? shown[0][1] : 1;
     return (
       <div style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{title}</h3>
-        {top5.length === 0 ? (
+        {shown.length === 0 ? (
           <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No data</span>
         ) : (
-          top5.map(([id, val]) => {
+          shown.map(([id, val]) => {
             const m = getMember(id);
             return (
               <Bar key={id} label={m?.name || id} value={val} max={maxVal} color={m?.color || 'var(--accent)'}
                 suffix={mode === 'time' ? fmtDur(0, val) : `${val}`} />
             );
           })
+        )}
+        {data.length > limit && limit < MAX_BOARD && (
+          <button onClick={() => expandBoard(boardKey)}
+            style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
+            {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limit, data.length)}/{data.length})
+          </button>
         )}
       </div>
     );
@@ -249,25 +274,35 @@ export default function StatsView({ history, members, channels }: Props) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
-        <Leaderboard title={t('stats.topFronters')} data={fronterTotals} mode="time" />
-        <Leaderboard title={t('stats.topCoFronters')} data={coFrontTotals} mode="time" />
-        <Leaderboard title={t('stats.topCoCon')} data={coConTotals} mode="time" />
-        <Leaderboard title={t('stats.topChatters')} data={chatSorted} mode="count" />
+        <Leaderboard title={t('stats.topFronters')} data={fronterTotals} mode="time" boardKey="fronters" />
+        <Leaderboard title={t('stats.topCoFronters')} data={coFrontTotals} mode="time" boardKey="cofronters" />
+        <Leaderboard title={t('stats.topCoCon')} data={coConTotals} mode="time" boardKey="cocon" />
+        <Leaderboard title={t('stats.topChatters')} data={chatSorted} mode="count" boardKey="chatters" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20, marginTop: 20 }}>
         <div>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.topMoods')}</h3>
-          {moodTotals.slice(0, 5).map(([mood, count]) => (
+          {moodTotals.slice(0, limitFor('moods')).map(([mood, count]) => (
             <Bar key={mood} label={translateMood(mood, t)} value={count} max={moodTotals[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
           ))}
+          {moodTotals.length > limitFor('moods') && limitFor('moods') < MAX_BOARD && (
+            <button onClick={() => expandBoard('moods')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
+              {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limitFor('moods'), moodTotals.length)}/{moodTotals.length})
+            </button>
+          )}
           {moodTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noMoodsRecorded')}</span>}
         </div>
         <div>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.topLocations')}</h3>
-          {locationTotals.slice(0, 5).map(([loc, count]) => (
+          {locationTotals.slice(0, limitFor('locations')).map(([loc, count]) => (
             <Bar key={loc} label={loc} value={count} max={locationTotals[0]?.[1] || 1} color="var(--success)" suffix={`${count}`} />
           ))}
+          {locationTotals.length > limitFor('locations') && limitFor('locations') < MAX_BOARD && (
+            <button onClick={() => expandBoard('locations')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
+              {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limitFor('locations'), locationTotals.length)}/{locationTotals.length})
+            </button>
+          )}
           {locationTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noLocationsRecorded')}</span>}
         </div>
       </div>
@@ -297,6 +332,20 @@ export default function StatsView({ history, members, channels }: Props) {
           ))}
         </div>
       </div>
+
+      {energyByHour.some(v => v > 0) && (
+        <div style={{ marginTop: 20 }}>
+          <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.energyByHour', { defaultValue: 'Energy by Hour' })}</h3>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
+            {energyByHour.map((avg, h) => (
+              <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '100%', background: avg > 0 ? 'var(--accent)' : 'var(--border)', borderRadius: 2, height: `${avg > 0 ? Math.max((avg / 10) * 100, 3) : 2}%`, minHeight: 2, transition: 'height 0.3s ease' }} />
+                {h % 4 === 0 && <span style={{ fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>{h}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.memberLeaderboard', { name: '' }).replace(/^\s+/, '') || 'Member Details'}</h3>

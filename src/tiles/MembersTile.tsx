@@ -6,7 +6,7 @@ interface Props { members: Member[]; onClick: () => void; }
 
 export default function MembersTile({ members, onClick }: Props) {
   const { t } = useTranslation();
-  const active = members.filter(m => !m.archived);
+  const active = members.filter(m => !m.archived && !m.isCustomFront);
   const preview = active.slice(0, 5);
   return (
     <div className="tile" onClick={onClick}>
@@ -20,7 +20,7 @@ export default function MembersTile({ members, onClick }: Props) {
               <span className="tile__member-role">{m.role}</span>
             </div>
           ))}
-          {active.length > 5 && <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>+{active.length - 5} {t('share.more')}</span>}
+          {active.length > 5 && <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{t('share.more', { count: active.length - 5 })}</span>}
         </>)}
       </div>
     </div>

@@ -154,3 +154,35 @@ export function applyDyslexicFont(enabled: boolean): void {
     root.classList.add('no-dyslexic');
   }
 }
+
+export type FontChoice = 'default' | 'opendyslexic' | 'atkinson' | 'lexend' | 'comicneue' | 'cause' | 'gelasio' | 'anton';
+
+const FONT_BODY_FALLBACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
+
+export const FONT_OPTIONS: { value: FontChoice; label: string; css: string | null }[] = [
+  { value: 'default', label: 'Default', css: null },
+  { value: 'opendyslexic', label: 'OpenDyslexic', css: null },
+  { value: 'atkinson', label: 'Atkinson Hyperlegible', css: `'Atkinson Hyperlegible', ${FONT_BODY_FALLBACK}` },
+  { value: 'lexend', label: 'Lexend', css: `'Lexend', ${FONT_BODY_FALLBACK}` },
+  { value: 'comicneue', label: 'Comic Neue', css: `'Comic Neue', ${FONT_BODY_FALLBACK}` },
+  { value: 'cause', label: 'Cause', css: `'Cause', ${FONT_BODY_FALLBACK}` },
+  { value: 'gelasio', label: 'Gelasio', css: "'Gelasio', Georgia, 'Times New Roman', serif" },
+  { value: 'anton', label: 'Anton', css: "'Anton', Impact, sans-serif" },
+];
+
+export function applyFontChoice(choice?: FontChoice): void {
+  const root = document.documentElement;
+  const opt = FONT_OPTIONS.find(o => o.value === choice) || FONT_OPTIONS[0];
+  root.style.removeProperty('--font-body');
+  root.style.removeProperty('--font-display');
+  if (opt.value === 'default') {
+    root.classList.add('no-dyslexic');
+    return;
+  }
+  root.classList.remove('no-dyslexic');
+  if (opt.value !== 'opendyslexic' && opt.css) {
+    root.style.setProperty('--font-body', opt.css);
+    const displayFamily = opt.css.split(',')[0].trim();
+    root.style.setProperty('--font-display', `${displayFamily}, var(--font-display-fallback)`);
+  }
+}

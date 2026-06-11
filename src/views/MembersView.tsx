@@ -16,7 +16,7 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
+  const [listView, setListView] = useState<'active' | 'archived' | 'customFronts'>('active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
 
@@ -62,15 +62,16 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
   const deleteNote = (id: string) => saveNotes(allNotes.filter(n => n.id !== id));
   const togglePin = (id: string) => saveNotes(allNotes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
 
-  const active = members.filter(m => !m.archived);
-  const archived = members.filter(m => m.archived);
-  const sorted = sortMembers(showArchived ? archived : active, sortMode);
+  const active = members.filter(m => !m.archived && !m.isCustomFront);
+  const archived = members.filter(m => m.archived && !m.isCustomFront);
+  const customFronts = members.filter(m => m.isCustomFront);
+  const sorted = sortMembers(listView === 'customFronts' ? customFronts : listView === 'archived' ? archived : active, sortMode);
   const filtered = sorted.filter(m =>
     !search || m.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const openNew = () => {
-    const m: Member = { id: uid(), name: '', pronouns: '', role: '', color: PALETTE[Math.floor(Math.random() * PALETTE.length)], description: '', tags: [], groupIds: [], createdAt: Date.now() };
+    const m: Member = { id: uid(), name: '', pronouns: '', role: '', color: PALETTE[Math.floor(Math.random() * PALETTE.length)], description: '', tags: [], groupIds: [], createdAt: Date.now(), isCustomFront: listView === 'customFronts' };
     setF(m); setIsNew(true); setEditing(m); setTagInput(''); setMemberTab('main'); setNoteText('');
     setNoteAuthorId(members.find(mm => !mm.archived)?.id || null);
   };
@@ -151,10 +152,16 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
           onChange={setSortMode}
           renderOption={v => t(`memberSort.${v}`)}
         />
-        <Btn variant={showArchived ? 'info' : 'ghost'} onClick={() => setShowArchived(!showArchived)}>
-          {showArchived ? `${t('members.archived')} (${archived.length})` : `${t('members.active')} (${active.length})`}
+        <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
+          {t('members.active')} ({active.length})
         </Btn>
-        <Btn variant="solid" onClick={openNew}>{t('members.add')}</Btn>
+        <Btn variant={listView === 'archived' ? 'info' : 'ghost'} onClick={() => setListView('archived')}>
+          {t('members.archived')} ({archived.length})
+        </Btn>
+        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => setListView('customFronts')}>
+          {t('members.customFronts')} ({customFronts.length})
+        </Btn>
+        <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : t('members.add')}</Btn>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
@@ -194,7 +201,7 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-          {search ? t('members.noMembers') : showArchived ? t('members.noArchived') : t('members.noMembers')}
+          {search ? t('members.noMembers') : listView === 'archived' ? t('members.noArchived') : listView === 'customFronts' ? t('members.noCustomFronts') : t('members.noMembers')}
         </div>
       )}
 
@@ -306,7 +313,7 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
         {memberTab === 'fields' && !isNew && (
           <div>
             {fieldDefs.length > 0 ? (
-              fieldDefs.map(fd => {
+              fieldDefs.map((fd, fdIdx) => {
                 const cfv = (f.customFields || []).find(v => v.fieldId === fd.id);
                 const val = cfv?.value ?? '';
                 const setFieldVal = (newVal: string | number | boolean | null) => {
@@ -317,7 +324,7 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
                   set('customFields' as any, updated);
                 };
                 return (
-                  <div key={fd.id} style={{ marginBottom: 14 }}>
+                  <div key={fd.id} style={{ marginBottom: 14, borderTop: fdIdx > 0 ? '1px solid var(--border)' : undefined, paddingTop: fdIdx > 0 ? 14 : undefined }}>
                     {fd.type === 'toggle' ? (
                       <Toggle label={fd.name} value={!!val} onChange={v => setFieldVal(v)} />
                     ) : fd.type === 'number' ? (
@@ -373,6 +380,27 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
                           <input className="field__input" type="date" value={String(val || '').split('|')[1] || ''}
                             onChange={e => setFieldVal(`${String(val || '').split('|')[0] || ''}|${e.target.value}`)} style={{ flex: 1 }} />
                         </div>
+                      </div>
+                    ) : fd.type === 'image' ? (
+                      <div>
+                        <label className="field__label">{fd.name}</label>
+                        {val ? (
+                          <div>
+                            <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />
+                            <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+                              <label style={{ fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }}>{t('common.change', { defaultValue: 'Change' })}
+                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setFieldVal(typeof reader.result === 'string' ? reader.result : null); reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
+                              </label>
+                              <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }} onClick={() => setFieldVal(null)}>{t('common.clear', { defaultValue: 'Clear' })}</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--surface)', cursor: 'pointer' }}>
+                            <span style={{ fontSize: 20, color: 'var(--dim)' }}>＋</span>
+                            <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.addImage', { defaultValue: 'Add image' })}</span>
+                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setFieldVal(typeof reader.result === 'string' ? reader.result : null); reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
+                          </label>
+                        )}
                       </div>
                     ) : (
                       <Field label={fd.name} value={String(val || '')} onChange={v => setFieldVal(v)}

@@ -4,6 +4,7 @@ import {
   Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, uid, translateMood,
+  parseMoodList, toggleMoodInList, serializeMoodList,
 } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
@@ -15,6 +16,8 @@ interface Props {
   history: HistoryEntry[];
   settings: AppSettings;
   onUpdate: () => void;
+  autoOpenEditor?: boolean;
+  onAutoOpenConsumed?: () => void;
 }
 
 const TIER_COLORS: Record<FrontTierKey, string> = {
@@ -25,10 +28,34 @@ const TIER_COLORS: Record<FrontTierKey, string> = {
 
 const TIER_ORDER: FrontTierKey[] = ['primary', 'coFront', 'coConscious'];
 
-export default function FrontView({ front, members, groups, history, settings, onUpdate }: Props) {
+export async function applyFrontUpdate(current: FrontState | null, primary: any, coFront: any, coConscious: any): Promise<FrontState | null> {
+  if (current && !isFrontEmpty(current)) {
+    const entry = frontToHistoryEntry(current, Date.now());
+    const h = await store.get<HistoryEntry[]>(KEYS.history, []) || [];
+    await store.set(KEYS.history, [entry, ...h]);
+  }
+  const newFront: FrontState = {
+    primary: { memberIds: primary.memberIds || [], mood: primary.mood, note: primary.note || '', location: primary.location, energyLevel: primary.energyLevel },
+    coFront: { memberIds: coFront.memberIds || [], mood: coFront.mood, note: coFront.note || '', energyLevel: coFront.energyLevel },
+    coConscious: { memberIds: coConscious.memberIds || [], mood: coConscious.mood, note: coConscious.note || '', energyLevel: coConscious.energyLevel },
+    startTime: Date.now(),
+  };
+  if (isFrontEmpty(newFront)) {
+    await store.set(KEYS.front, null);
+    return null;
+  }
+  await store.set(KEYS.front, newFront);
+  return newFront;
+}
+
+export default function FrontView({ front, members, groups, history, settings, onUpdate, autoOpenEditor, onAutoOpenConsumed }: Props) {
   const { t } = useTranslation();
   const [tick, setTick] = useState(0);
   const [showSetFront, setShowSetFront] = useState(false);
+
+  useEffect(() => {
+    if (autoOpenEditor) { setShowSetFront(true); onAutoOpenConsumed?.(); }
+  }, [autoOpenEditor]);
   const [editDetailTier, setEditDetailTier] = useState<FrontTierKey | null>(null);
   const [noteboardAlert, setNoteboardAlert] = useState<string[] | null>(null);
   const [editingNote, setEditingNote] = useState<FrontTierKey | null>(null);
@@ -45,23 +72,8 @@ export default function FrontView({ front, members, groups, history, settings, o
 
 
   const saveFront = async (primary: any, coFront: any, coConscious: any) => {
-    if (front && !isFrontEmpty(front)) {
-      const entry = frontToHistoryEntry(front, Date.now());
-      const h = await store.get<HistoryEntry[]>(KEYS.history, []) || [];
-      await store.set(KEYS.history, [entry, ...h]);
-    }
-
-    const newFront: FrontState = {
-      primary: { memberIds: primary.memberIds || [], mood: primary.mood, note: primary.note || '', location: primary.location },
-      coFront: { memberIds: coFront.memberIds || [], mood: coFront.mood, note: coFront.note || '' },
-      coConscious: { memberIds: coConscious.memberIds || [], mood: coConscious.mood, note: coConscious.note || '' },
-      startTime: Date.now(),
-    };
-
-    if (isFrontEmpty(newFront)) {
-      await store.set(KEYS.front, null);
-    } else {
-      await store.set(KEYS.front, newFront);
+    const newFront = await applyFrontUpdate(front, primary, coFront, coConscious);
+    if (newFront) {
       const allFrontIds = [...newFront.primary.memberIds, ...newFront.coFront.memberIds, ...newFront.coConscious.memberIds];
       try {
         const notes = await store.get<NoteboardEntry[]>(KEYS.noteboards, []) || [];
@@ -270,7 +282,7 @@ export default function FrontView({ front, members, groups, history, settings, o
 }
 
 
-function SetFrontModal({ open, onClose, onSave, members, groups, current, settings, allMoods }: {
+export function SetFrontModal({ open, onClose, onSave, members, groups, current, settings, allMoods }: {
   open: boolean; onClose: () => void; onSave: (p: any, cf: any, cc: any) => void;
   members: Member[]; groups: MemberGroup[]; current: FrontState | null;
   settings: AppSettings; allMoods: string[];
@@ -290,6 +302,9 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
   const [coFrontEnergy, setCoFrontEnergy] = useState<number | undefined>(undefined);
   const [coConEnergy, setCoConEnergy] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
+  const [searchCf, setSearchCf] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
+  const [customMood, setCustomMood] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
+  const [showCustomMood, setShowCustomMood] = useState<Record<FrontTierKey, boolean>>({ primary: false, coFront: false, coConscious: false });
   const [confirmClear, setConfirmClear] = useState(false);
 
   const prevOpen = React.useRef(false);
@@ -316,6 +331,9 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
         setPrimaryEnergy(undefined); setCoFrontEnergy(undefined); setCoConEnergy(undefined);
       }
       setSearch({ primary: '', coFront: '', coConscious: '' });
+      setSearchCf({ primary: '', coFront: '', coConscious: '' });
+      setCustomMood({ primary: '', coFront: '', coConscious: '' });
+      setShowCustomMood({ primary: false, coFront: false, coConscious: false });
     }
     prevOpen.current = open;
   }, [open]);
@@ -349,11 +367,17 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
     setter(next);
   };
 
+  const resolveMood = (tier: FrontTierKey, mood: string): string | undefined => {
+    const moods = parseMoodList(mood);
+    if (showCustomMood[tier] && customMood[tier].trim()) moods.push(customMood[tier].trim());
+    return serializeMoodList(moods) || undefined;
+  };
+
   const handleSave = () => {
     onSave(
-      { memberIds: [...primaryIds], mood: primaryMood || undefined, note: primaryNote, location: primaryLocation || undefined, energyLevel: primaryEnergy },
-      { memberIds: [...coFrontIds], mood: coFrontMood || undefined, note: coFrontNote, energyLevel: coFrontEnergy },
-      { memberIds: [...coConsciousIds], mood: coConMood || undefined, note: coConNote, energyLevel: coConEnergy },
+      { memberIds: [...primaryIds], mood: resolveMood('primary', primaryMood), note: primaryNote, location: primaryLocation || undefined, energyLevel: primaryEnergy },
+      { memberIds: [...coFrontIds], mood: resolveMood('coFront', coFrontMood), note: coFrontNote, energyLevel: coFrontEnergy },
+      { memberIds: [...coConsciousIds], mood: resolveMood('coConscious', coConMood), note: coConNote, energyLevel: coConEnergy },
     );
     onClose();
   };
@@ -372,9 +396,54 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
     color: string;
     energy?: number; setEnergy: (v: number | undefined) => void;
   }) => {
-    const q = search[tierKey].toLowerCase();
-    const filtered = members.filter(m => !selectedIds.has(m.id) && (!q || m.name.toLowerCase().includes(q)));
-    const selected = members.filter(m => selectedIds.has(m.id));
+    const renderPool = (pool: Member[], q: string, setQ: (v: string) => void, showHint: boolean) => {
+      const ql = q.toLowerCase();
+      const filtered = ql ? pool.filter(m => !selectedIds.has(m.id) && m.name.toLowerCase().includes(ql)) : [];
+      const poolSelected = pool.filter(m => selectedIds.has(m.id));
+      return (
+        <>
+          {poolSelected.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {poolSelected.map(m => (
+                <button key={m.id} className="chip" style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
+                  onClick={() => toggleMember(tierKey, m.id)}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                  <span style={{ color: m.color }}>{m.name}</span>
+                  <span style={{ fontSize: 10, color: m.color }}>✕</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <input className="field__input" value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder={t('members.searchToAdd')} style={{ marginBottom: 6, fontSize: 12 }} />
+          {ql && filtered.length > 0 && (
+            <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 10 }}>
+              {filtered.slice(0, 20).map(m => {
+                const assignedTo = allAssigned[m.id];
+                return (
+                  <button key={m.id} onClick={() => toggleMember(tierKey, m.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: assignedTo && assignedTo !== tierKey ? 0.5 : 1 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                    {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
+                    {assignedTo && assignedTo !== tierKey && (
+                      <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({TIER_LABELS[assignedTo].split(' ')[0]})</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {showHint && !ql && poolSelected.length === 0 && (
+            <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '4px 0 8px' }}>{t('members.searchHint')}</p>
+          )}
+        </>
+      );
+    };
+
+    const regularPool = members.filter(m => !m.isCustomFront);
+    const customPool = members.filter(m => m.isCustomFront);
 
     return (
       <div style={{ marginBottom: 16 }}>
@@ -384,45 +453,36 @@ function SetFrontModal({ open, onClose, onSave, members, groups, current, settin
           <span className="section-div__line" />
         </div>
 
-        {selected.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            {selected.map(m => (
-              <button key={m.id} className="chip" style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
-                onClick={() => toggleMember(tierKey, m.id)}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                <span style={{ color: m.color }}>{m.name}</span>
-                <span style={{ fontSize: 10, color: m.color }}>✕</span>
-              </button>
-            ))}
-          </div>
+        {renderPool(regularPool, search[tierKey], v => setSearch({ ...search, [tierKey]: v }), true)}
+
+        {customPool.length > 0 && (
+          <>
+            <label className="field__label">{t('members.customFronts')}</label>
+            {renderPool(customPool, searchCf[tierKey], v => setSearchCf({ ...searchCf, [tierKey]: v }), false)}
+          </>
         )}
 
-        <input className="field__input" value={search[tierKey]}
-          onChange={e => setSearch({ ...search, [tierKey]: e.target.value })}
-          placeholder={t('members.search')} style={{ marginBottom: 6, fontSize: 12 }} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, maxHeight: 100, overflowY: 'auto' }}>
-          {filtered.slice(0, 20).map(m => {
-            const assignedTo = allAssigned[m.id];
-            return (
-              <button key={m.id} className="chip" style={{ borderColor: 'var(--border)', background: 'var(--surface)', opacity: assignedTo ? 0.5 : 1 }}
-                onClick={() => toggleMember(tierKey, m.id)}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                <span style={{ color: 'var(--dim)', fontSize: 11 }}>{m.name}</span>
-                {assignedTo && assignedTo !== tierKey && (
-                  <span style={{ fontSize: 9, color: 'var(--muted)' }}>({TIER_LABELS[assignedTo].split(' ')[0]})</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
+        <label className="field__label" style={{ marginTop: 4 }}>{t('modal.mood')}</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-          {allMoods.map(m => (
-            <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
-              style={{ padding: '4px 10px', fontSize: 11 }}
-              onClick={() => setMood(mood === m ? "" : m)}>{translateMood(m, t)}</button>
-          ))}
+          {(() => { const sel = parseMoodList(mood); return allMoods.map(m => {
+            const on = sel.includes(m);
+            return (
+              <button key={m} className={`btn ${on ? 'btn--primary' : 'btn--ghost'}`}
+                style={{ padding: '4px 10px', fontSize: 11 }}
+                onClick={() => setMood(toggleMoodInList(mood, m))}>{translateMood(m, t)}</button>
+            );
+          }); })()}
+          <button className={`btn ${showCustomMood[tierKey] ? 'btn--primary' : 'btn--ghost'}`}
+            style={{ padding: '4px 10px', fontSize: 11 }}
+            onClick={() => setShowCustomMood({ ...showCustomMood, [tierKey]: !showCustomMood[tierKey] })}>
+            {showCustomMood[tierKey] ? `− ${t('modal.custom')}` : `+ ${t('modal.custom')}`}
+          </button>
         </div>
+        {showCustomMood[tierKey] && (
+          <input className="field__input" value={customMood[tierKey]}
+            onChange={e => setCustomMood({ ...customMood, [tierKey]: e.target.value })}
+            placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
+        )}
 
         {tierKey === 'primary' && (
           <>

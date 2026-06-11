@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, FrontState, FrontTierKey, isFrontEmpty, fmtDur, getInitials } from '../utils';
 
-interface Props { front: FrontState | null; members: Member[]; onClick: () => void; }
+interface Props { front: FrontState | null; members: Member[]; onClick: () => void; onUpdateFront: () => void; }
 const TIER_ORDER: FrontTierKey[] = ['primary', 'coFront', 'coConscious'];
 const TIER_I18N: Record<FrontTierKey, string> = { primary: 'tier.primaryFront', coFront: 'tier.coFront', coConscious: 'tier.coConscious' };
 
-export default function FrontTile({ front, members, onClick }: Props) {
+export default function FrontTile({ front, members, onClick, onUpdateFront }: Props) {
   const { t } = useTranslation();
   const [, setTick] = useState(0);
   useEffect(() => { if (!front) return; const id = setInterval(() => setTick(t => t + 1), 60000); return () => clearInterval(id); }, [front]);
@@ -31,7 +31,14 @@ export default function FrontTile({ front, members, onClick }: Props) {
   };
   return (
     <div className="tile" onClick={onClick}>
-      <div className="tile__header"><div className="tile__glyph">◉</div><span className="tile__title">{t('tabs.front')}</span></div>
+      <div className="tile__header">
+        <div className="tile__glyph">◉</div><span className="tile__title">{t('tabs.front')}</span>
+        <button
+          onClick={e => { e.stopPropagation(); onUpdateFront(); }}
+          style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 500, fontFamily: 'inherit', padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--accent-bg)', color: 'var(--accent)', cursor: 'pointer' }}>
+          {t('front.update')}
+        </button>
+      </div>
       <div className="tile__body">{isFrontEmpty(front) ? <span className="tile__empty">{t('front.noOneFronting')}</span> : TIER_ORDER.map(renderTier)}</div>
     </div>
   );

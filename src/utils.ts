@@ -9,13 +9,42 @@ export interface SystemInfo {
   banner?: string;
 }
 
+export type GroupNodeKind = 'group' | 'subsystem';
+
 export interface MemberGroup {
   id: string;
   name: string;
   color?: string;
+  kind?: GroupNodeKind;
+  parentId?: string | null;
+  sortOrder?: number;
 }
 
-export type CustomFieldType = 'text' | 'markdown' | 'date' | 'dateRange' | 'number' | 'toggle' | 'color' | 'month' | 'year' | 'monthYear' | 'timestamp' | 'monthDay';
+export const groupKind = (g: MemberGroup): GroupNodeKind => g.kind || 'group';
+export const groupParent = (g: MemberGroup): string | null => g.parentId ?? null;
+
+export const childrenOf = (nodes: MemberGroup[], parentId: string | null): MemberGroup[] =>
+  nodes
+    .filter(n => groupParent(n) === parentId)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name));
+
+export const descendantsOf = (nodes: MemberGroup[], id: string): MemberGroup[] => {
+  const out: MemberGroup[] = [];
+  const walk = (pid: string) => {
+    for (const n of nodes) {
+      if (groupParent(n) === pid) { out.push(n); walk(n.id); }
+    }
+  };
+  walk(id);
+  return out;
+};
+
+export const isDescendant = (nodes: MemberGroup[], candidateId: string, ofId: string): boolean => {
+  if (candidateId === ofId) return true;
+  return descendantsOf(nodes, ofId).some(n => n.id === candidateId);
+};
+
+export type CustomFieldType = 'text' | 'markdown' | 'date' | 'dateRange' | 'number' | 'toggle' | 'color' | 'month' | 'year' | 'monthYear' | 'timestamp' | 'monthDay' | 'image';
 
 export interface CustomFieldDef {
   id: string;
@@ -73,6 +102,8 @@ export interface Member {
   customFields?: CustomFieldValue[];
   sortOrder?: number;
   createdAt?: number;
+  isCustomFront?: boolean;
+  sourceId?: string;
 }
 
 export type HistoryChangeType = 'front' | 'mood' | 'location' | 'note';
@@ -154,6 +185,8 @@ export interface AppSettings {
   memberSortMode?: MemberSortMode;
   frontCheckInterval?: number;
   useDyslexicFont?: boolean;
+  fontChoice?: import('./theme').FontChoice;
+  customFrontsSeeded?: boolean;
 }
 
 export interface ExportPayload {
@@ -209,14 +242,51 @@ export const DEFAULT_MOODS = [
   'Dissociated', 'Grounded', 'Irritable', 'Sad', 'Focused',
 ];
 
+export const MOOD_DELIMITER = ', ';
+export const parseMoodList = (mood: string | undefined): string[] =>
+  (mood || '').split(',').map(s => s.trim()).filter(Boolean);
+export const serializeMoodList = (moods: string[]): string =>
+  moods.filter(Boolean).map(s => s.trim()).filter(Boolean).join(MOOD_DELIMITER);
+export const toggleMoodInList = (current: string | undefined, chip: string): string => {
+  const list = parseMoodList(current);
+  const i = list.indexOf(chip);
+  if (i >= 0) list.splice(i, 1);
+  else list.push(chip);
+  return serializeMoodList(list);
+};
+
 export const translateMood = (mood: string, t: (k: string) => string): string => {
   if (!mood) return '';
-  if (DEFAULT_MOODS.includes(mood)) {
-    const translated = t(`mood.${mood}`);
-    return translated && translated !== `mood.${mood}` ? translated : mood;
-  }
-  return mood;
+  const parts = mood.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 0) return '';
+  const translateOne = (one: string): string => {
+    const canon = DEFAULT_MOODS.find(d => d.toLowerCase() === one.toLowerCase());
+    if (canon) {
+      const translated = t(`mood.${canon}`);
+      return translated && translated !== `mood.${canon}` ? translated : canon;
+    }
+    return one;
+  };
+  return parts.map(translateOne).join(', ');
 };
+
+export const DEFAULT_CUSTOM_FRONT_NAMES = ['Chatty', 'Non-Verbal', 'IWC', 'DNI', 'Blurry', 'Blendy', 'Rapid Switching', 'Foggy', 'Grounded', 'Dissociated', 'Anxious', 'Depressed', 'Cheerful', 'Happy', 'Sad', 'Crisis', 'Melancholy', 'Stimming', 'Stressed', 'Working', 'Traveling', 'Sleeping', 'Hyperfocus'];
+
+const CUSTOM_FRONT_COLORS = ['#DAA520', '#7B9FE8', '#E87BA8', '#7BE8C4', '#A87BE8', '#E8A87B', '#6EC9A9', '#E87B7B', '#85B4E8', '#C97BE8', '#B4E885', '#E8C97B'];
+
+export const makeDefaultCustomFronts = (): Member[] =>
+  DEFAULT_CUSTOM_FRONT_NAMES.map((name, i) => ({
+    id: uid(),
+    name,
+    pronouns: '',
+    role: '',
+    color: CUSTOM_FRONT_COLORS[i % CUSTOM_FRONT_COLORS.length],
+    description: '',
+    isCustomFront: true,
+    tags: [],
+    groupIds: [],
+    customFields: [],
+  }));
 
 export const EMPTY_TIER: FrontTier = {memberIds: [], note: ''};
 

@@ -9,7 +9,7 @@ interface Props {
 }
 
 const FIELD_TYPES: CustomFieldType[] = [
-  'text', 'markdown', 'color', 'date', 'month', 'year', 'monthYear',
+  'text', 'markdown', 'image', 'color', 'date', 'month', 'year', 'monthYear',
   'timestamp', 'monthDay', 'dateRange', 'number', 'toggle',
 ];
 

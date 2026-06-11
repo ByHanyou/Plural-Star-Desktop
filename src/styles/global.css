@@ -27,6 +27,26 @@
   font-display: swap;
 }
 
+@font-face { font-family: 'Atkinson Hyperlegible'; src: url('../assets/fonts/AtkinsonHyperlegible_400Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Atkinson Hyperlegible'; src: url('../assets/fonts/AtkinsonHyperlegible_400Regular_Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Atkinson Hyperlegible'; src: url('../assets/fonts/AtkinsonHyperlegible_700Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Atkinson Hyperlegible'; src: url('../assets/fonts/AtkinsonHyperlegible_700Bold_Italic.ttf') format('truetype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lexend'; src: url('../assets/fonts/Lexend_400Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Lexend'; src: url('../assets/fonts/Lexend_500Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Lexend'; src: url('../assets/fonts/Lexend_600SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Lexend'; src: url('../assets/fonts/Lexend_700Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Comic Neue'; src: url('../assets/fonts/ComicNeue_400Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Comic Neue'; src: url('../assets/fonts/ComicNeue_400Regular_Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Comic Neue'; src: url('../assets/fonts/ComicNeue_700Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Comic Neue'; src: url('../assets/fonts/ComicNeue_700Bold_Italic.ttf') format('truetype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Cause'; src: url('../assets/fonts/Cause_400Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Cause'; src: url('../assets/fonts/Cause_700Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Gelasio'; src: url('../assets/fonts/Gelasio_400Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Gelasio'; src: url('../assets/fonts/Gelasio_400Regular_Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Gelasio'; src: url('../assets/fonts/Gelasio_700Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Gelasio'; src: url('../assets/fonts/Gelasio_700Bold_Italic.ttf') format('truetype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Anton'; src: url('../assets/fonts/Anton_400Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+
 :root {
   --bg: #0A1F2E;
   --surface: #132A3B;
