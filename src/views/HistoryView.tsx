@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials, translateMood } from '../utils';
+import { Member, HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials, translateMood, buildEffectiveEnd } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, ConfirmDialog } from '../components/ui';
 
@@ -8,11 +8,13 @@ interface Props {
   history: HistoryEntry[];
   members: Member[];
   onUpdate: () => void;
+  singlet?: boolean;
+  selfId?: string;
 }
 
 type TimeRange = 'all' | '7d' | '30d' | '90d';
 
-export default function HistoryView({ history, members, onUpdate }: Props) {
+export default function HistoryView({ history, members, onUpdate, singlet = false, selfId }: Props) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [range, setRange] = useState<TimeRange>('all');
@@ -50,6 +52,8 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
       })
       .sort((a, b) => b.startTime - a.startTime);
   }, [history, cutoff, memberFilter, search]);
+
+  const effEnd = useMemo(() => buildEffectiveEnd(history), [history]);
 
   const grouped = useMemo(() => {
     const groups: { date: string; entries: HistoryEntry[] }[] = [];
@@ -125,8 +129,8 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
           background: 'var(--surface)', color: memberFilter ? 'var(--accent)' : 'var(--muted)',
           border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
         }} value={memberFilter} onChange={e => setMemberFilter(e.target.value)}>
-          <option value="">{t('history.allMembers')}</option>
-          {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          <option value="">{singlet ? t('history.byStatus') : t('history.allMembers')}</option>
+          {members.filter(m => !m.archived && (!singlet || (m.isCustomFront && m.id !== selfId))).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
         <div style={{ display: 'flex', gap: 4 }}>
           {(['all', '90d', '30d', '7d'] as TimeRange[]).map(r => (
@@ -153,30 +157,34 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
             {group.date}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {group.entries.map((entry, i) => (
+            {group.entries.map((entry, i) => {
+              const displayEnd = entry.endTime ?? effEnd(entry);
+              const withoutSelf = singlet && selfId ? entry.memberIds.filter(id => id !== selfId) : entry.memberIds;
+              const chipIds = singlet && withoutSelf.length === 0 ? entry.memberIds : withoutSelf;
+              return (
               <div key={i} style={{
                 padding: 12, background: 'var(--card)', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-sm)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  {entry.memberIds.map(id => <MemberChip key={id} id={id} />)}
+                  {chipIds.map(id => <MemberChip key={id} id={id} />)}
                   <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtTime(entry.startTime)} — {entry.endTime ? fmtTime(entry.endTime) : 'now'}
+                    {fmtTime(entry.startTime)} — {displayEnd ? fmtTime(displayEnd) : 'now'}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtDur(entry.startTime, entry.endTime)}
+                    {fmtDur(entry.startTime, displayEnd)}
                   </span>
                 </div>
 
-                {(entry.coFrontIds || []).length > 0 && (
+                {!singlet && (entry.coFrontIds || []).length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                    <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Co-Front:</span>
+                    <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coFront')}:</span>
                     {(entry.coFrontIds || []).map(id => <MemberChip key={id} id={id} />)}
                   </div>
                 )}
-                {(entry.coConsciousIds || []).length > 0 && (
+                {!singlet && (entry.coConsciousIds || []).length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Co-Con:</span>
+                    <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coConShort')}:</span>
                     {(entry.coConsciousIds || []).map(id => <MemberChip key={id} id={id} />)}
                   </div>
                 )}
@@ -197,14 +205,15 @@ export default function HistoryView({ history, members, onUpdate }: Props) {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-          {search || memberFilter ? t('history.noHistoryFilter') : t('history.noHistory')}
+          {search || memberFilter ? t('history.noHistoryFilter') : singlet ? t('history.noHistorySinglet') : t('history.noHistory')}
         </div>
       )}
 

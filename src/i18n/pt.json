@@ -25,7 +25,37 @@
     "members": "Membros",
     "hub": "Central",
     "journal": "Diário",
-    "history": "Histórico"
+    "history": "Histórico",
+    "status": "Status",
+    "profile": "Perfil"
+  },
+  "status": {
+    "current": "Status atual",
+    "update": "Atualizar status",
+    "noneSet": "Nenhum status definido. Toque em Atualizar status para registrar.",
+    "noStatuses": "Nenhum status selecionado.",
+    "statuses": "Status",
+    "since": "Desde {{time}}",
+    "editDetails": "Editar detalhes do status",
+    "add": "Adicionar status",
+    "edit": "Editar status",
+    "clearTitle": "Limpar status?",
+    "clearMsg": "Isso limpará seu status e registrará o fim da sessão atual. Continuar?"
+  },
+  "profile": {
+    "edit": "Editar perfil",
+    "notSetUp": "Perfil ainda não configurado",
+    "noDescription": "Ainda não há descrição. Toque em Editar perfil para adicionar uma.",
+    "statuses": "Status",
+    "addStatus": "+ Adicionar status",
+    "statusesDesc": "Os status descrevem como você está — como Dormindo, Trabalhando ou Com ansiedade. Selecione-os ao atualizar seu status.",
+    "noStatuses": "Ainda não há status. Adicione um para começar.",
+    "activeStatus": "Ativo",
+    "favoriteColor": "Cor favorita"
+  },
+  "settings": {
+    "observatory": "Interface Observatório (individual)",
+    "observatoryDesc": "Modo de uma pessoa só: as abas Status e Perfil substituem Frente e Membros, e as ferramentas de sistema ficam ocultas."
   },
   "tier": {
     "primaryFront": "Frente Principal",
@@ -46,7 +76,9 @@
     "systemNamePlaceholder": "ex. O Sistema Hanyou",
     "description": "DESCRIÇÃO (OPCIONAL)",
     "descriptionPlaceholder": "Uma breve descrição…",
-    "enter": "Entrar"
+    "enter": "Entrar",
+    "yourNamePlaceholder": "ex. Alex",
+    "goalsPlaceholder": "O que você quer registrar ou alcançar?"
   },
   "front": {
     "currentlyFronting": "Atualmente no front",
@@ -109,6 +141,10 @@
     "at": "em",
     "noHistoryFilter": "Nenhum histórico corresponde aos seus filtros.",
     "allMembers": "Todos os membros",
+    "byStatus": "Por status",
+    "searchStatus": "Pesquisar status…",
+    "noHistorySinglet": "Ainda não há histórico. As atualizações de status aparecerão aqui automaticamente.",
+    "statusHistory": "Histórico de status",
     "deleteConfirm1": "Tem certeza que deseja excluir esta entrada?",
     "deleteConfirm2": "Isto não pode ser desfeito. Excluir mesmo?",
     "deleteConfirm3": "Confirmação final: excluir permanentemente?",
@@ -307,7 +343,8 @@
     "credits": "Créditos",
     "creditLogo": "Logo do Plural Star",
     "creditIos": "Port do Plural Star para iOS",
-    "creditsBlurb": "Colaboradores da comunidade"
+    "creditsBlurb": "Colaboradores da comunidade",
+    "archive": "Arquivo"
   },
   "modal": {
     "updateFront": "Atualizar Frente",
@@ -339,6 +376,8 @@
     "archiveDesc": "Ocultar da lista ativa e do seletor de frente. O histórico é preservado.",
     "newEntry": "Nova Entrada",
     "editEntry": "Editar Entrada",
+    "viewEntry": "Entrada do diário",
+    "goals": "Objetivos",
     "entryTitle": "Título",
     "entryTitlePlaceholder": "Título da entrada…",
     "body": "Corpo",
@@ -467,6 +506,8 @@
     "topFronters": "Mais Frequentes",
     "topCoFronters": "Top Co-Front",
     "topCoCon": "Top Co-Consciente",
+    "topStatuses": "Status mais frequentes",
+    "coStatuses": "Frequentemente ativos juntos",
     "topChatters": "Mais Ativos",
     "topMoods": "Humores Frequentes",
     "topLocations": "Locais Frequentes",

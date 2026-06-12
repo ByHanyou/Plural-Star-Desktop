@@ -25,7 +25,37 @@
     "members": "Jäsenet",
     "hub": "Keskus",
     "journal": "Päiväkirja",
-    "history": "Historia"
+    "history": "Historia",
+    "status": "Tila",
+    "profile": "Profiili"
+  },
+  "status": {
+    "current": "Nykyinen tila",
+    "update": "Päivitä tila",
+    "noneSet": "Tilaa ei ole asetettu. Napauta Päivitä tila kirjataksesi.",
+    "noStatuses": "Tiloja ei ole valittu.",
+    "statuses": "Tilat",
+    "since": "Alkaen {{time}}",
+    "editDetails": "Muokkaa tilan tietoja",
+    "add": "Lisää tila",
+    "edit": "Muokkaa tilaa",
+    "clearTitle": "Tyhjennetäänkö tila?",
+    "clearMsg": "Tämä tyhjentää tilasi ja kirjaa nykyisen istunnon päättyneeksi. Jatketaanko?"
+  },
+  "profile": {
+    "edit": "Muokkaa profiilia",
+    "notSetUp": "Profiilia ei ole vielä määritetty",
+    "noDescription": "Ei vielä kuvausta. Napauta Muokkaa profiilia lisätäksesi sellaisen.",
+    "statuses": "Tilat",
+    "addStatus": "+ Lisää tila",
+    "statusesDesc": "Tilat kuvaavat, miten voit — kuten Nukkumassa, Töissä tai Ahdistunut. Valitse ne tilaa päivittäessäsi.",
+    "noStatuses": "Ei vielä tiloja. Lisää yksi aloittaaksesi.",
+    "activeStatus": "Aktiivinen",
+    "favoriteColor": "Lempiväri"
+  },
+  "settings": {
+    "observatory": "Observatorio-käyttöliittymä (yksilö)",
+    "observatoryDesc": "Yhden henkilön tila: Tila- ja Profiili-välilehdet korvaavat Edessä- ja Jäsenet-välilehdet, ja järjestelmätyökalut piilotetaan."
   },
   "tier": {
     "primaryFront": "Ensisijainen",
@@ -46,7 +76,9 @@
     "systemNamePlaceholder": "esim. Järjestelmän Nimi",
     "description": "KUVAUS (VALINNAINEN)",
     "descriptionPlaceholder": "Lyhyt kuvaus…",
-    "enter": "Aloita"
+    "enter": "Aloita",
+    "yourNamePlaceholder": "esim. Alex",
+    "goalsPlaceholder": "Mitä haluat seurata tai saavuttaa?"
   },
   "front": {
     "currentlyFronting": "Parhaillaan frontissa",
@@ -109,6 +141,10 @@
     "at": "paikassa",
     "noHistoryFilter": "Mikään historia ei vastaa suodattimiasi.",
     "allMembers": "Kaikki jäsenet",
+    "byStatus": "Tilan mukaan",
+    "searchStatus": "Hae tiloja…",
+    "noHistorySinglet": "Ei vielä historiaa. Tilapäivitykset näkyvät täällä automaattisesti.",
+    "statusHistory": "Tilahistoria",
     "deleteConfirm1": "Haluatko varmasti poistaa tämän merkinnän?",
     "deleteConfirm2": "Tätä ei voi perua. Poistetaanko?",
     "deleteConfirm3": "Lopullinen vahvistus: poistetaanko pysyvästi?",
@@ -307,7 +343,8 @@
     "credits": "Tekijät",
     "creditLogo": "Plural Star -logo",
     "creditIos": "Plural Starin iOS-portti",
-    "creditsBlurb": "Yhteisön avustajat"
+    "creditsBlurb": "Yhteisön avustajat",
+    "archive": "Arkisto"
   },
   "modal": {
     "systemSettings": "Järjestelmäasetukset",
@@ -330,6 +367,8 @@
     "archiveDesc": "Piilota frontvalitsimesta. Historia säilyy.",
     "newEntry": "Uusi Merkintä",
     "editEntry": "Muokkaa Merkintää",
+    "viewEntry": "Päiväkirjamerkintä",
+    "goals": "Tavoitteet",
     "entryTitle": "Otsikko",
     "entryTitlePlaceholder": "Merkinnän otsikko…",
     "body": "Sisältö",
@@ -467,6 +506,8 @@
     "topFronters": "Eniten edessä",
     "topCoFronters": "Eniten rinnakkain",
     "topCoCon": "Eniten yhteistietoisia",
+    "topStatuses": "Yleisimmät tilat",
+    "coStatuses": "Usein aktiivisia yhdessä",
     "topChatters": "Eniten viestijät",
     "topMoods": "Yleisimmät mielialat",
     "topLocations": "Yleisimmät paikat",

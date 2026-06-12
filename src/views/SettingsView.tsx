@@ -41,6 +41,7 @@ const LANG_NAMES: Record<string, string> = {
 export default function SettingsView({ system, settings, palettes, onUpdate }: Props) {
   const { t } = useTranslation();
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [singletMode, setSingletMode] = useState(settings.accountMode === 'singlet');
 
   const [name, setName] = useState(system.name);
   const [desc, setDesc] = useState(system.description);
@@ -157,7 +158,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
         banner: systemBanner || undefined,
       });
       await store.set(KEYS.settings, {
-        ...settings, locations: locs, customMoods: moods, language: lang,
+        ...settings, accountMode: singletMode ? 'singlet' : 'system', locations: locs, customMoods: moods, language: lang,
         notificationsEnabled: notif, textScale, activePaletteId, fontChoice, useDyslexicFont: fontChoice === 'opendyslexic',
       });
       changeLanguage(lang);
@@ -176,10 +177,11 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      <Section label={t('modal.systemName')} />
-      <Field label={t('modal.systemName')} value={name} onChange={setName} placeholder={t('modal.systemNamePlaceholder')} />
-      <Field label={t('modal.descriptionLabel')} value={desc} onChange={setDesc} placeholder={t('modal.descriptionFieldPlaceholder')} multiline />
+      <Section label={singletMode ? t('modal.name') : t('modal.systemName')} />
+      <Field label={singletMode ? t('modal.name') : t('modal.systemName')} value={name} onChange={setName} placeholder={singletMode ? t('setup.yourNamePlaceholder') : t('modal.systemNamePlaceholder')} />
+      <Field label={singletMode ? t('modal.goals') : t('modal.descriptionLabel')} value={desc} onChange={setDesc} placeholder={singletMode ? t('setup.goalsPlaceholder') : t('modal.descriptionFieldPlaceholder')} multiline />
 
+      {!singletMode && (<>
       <Section label={t('systemProfile.title')} />
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
         <div style={{ textAlign: 'center' }}>
@@ -209,6 +211,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
             onClick={() => setSystemBanner('')}>{t('systemProfile.removeBanner')}</button>}
         </div>
       </div>
+      </>)}
 
       <Section label={t('modal.palette')} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
@@ -314,6 +317,8 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
       <Section label={t('modal.customMoods')} />
       <ChipList items={moods} onRemove={m => setMoods(moods.filter(x => x !== m))} color="var(--info)" />
       <AddRow value={newMood} onChange={setNewMood} onAdd={addMood} placeholder={t('modal.addMoodPlaceholder')} />
+
+      <Toggle label={t('settings.observatory')} description={t('settings.observatoryDesc')} value={singletMode} onChange={setSingletMode} />
 
       <div style={{ position: 'sticky', bottom: 0, padding: '12px 0', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
         {saveStatus && (

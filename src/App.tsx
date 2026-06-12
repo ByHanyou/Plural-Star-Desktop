@@ -7,6 +7,7 @@ import {
   Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   AppSettings, SystemInfo, MemberGroup, migrateFrontState, isFrontEmpty,
   fmtDur, getInitials, DEFAULT_CHANNELS, DEFAULT_MOODS, makeDefaultCustomFronts,
+  uid, singletStatuses,
 } from './utils';
 import { changeLanguage } from './i18n/i18n';
 
@@ -24,6 +25,10 @@ import CreditsTile from './tiles/CreditsTile';
 import SupportTile from './tiles/SupportTile';
 import DiscordTile from './tiles/DiscordTile';
 import SystemManagerTile from './tiles/SystemManagerTile';
+import ArchiveTile from './tiles/ArchiveTile';
+import RetroHistoryTile from './tiles/RetroHistoryTile';
+import StatusTile from './tiles/StatusTile';
+import ProfileTile from './tiles/ProfileTile';
 
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
@@ -37,8 +42,11 @@ import CustomFieldsView from './views/CustomFieldsView';
 import PollsView from './views/PollsView';
 import CreditsView from './views/CreditsView';
 import SystemManagerView from './views/SystemManagerView';
+import RetroHistoryView from './views/RetroHistoryView';
+import StatusView, { SetStatusModal } from './views/StatusView';
+import ProfileView from './views/ProfileView';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'archive' | 'retro-history';
 
 interface AppState {
   system: SystemInfo;
@@ -175,6 +183,33 @@ function AppInner() {
 
   const systemName = state.system.name || 'Plural Star';
 
+  const isSinglet = state.settings.accountMode === 'singlet';
+  const selfMember = isSinglet
+    ? (state.members.find(m => m.id === state.settings.selfMemberId && !m.isCustomFront)
+      || state.members.find(m => !m.isCustomFront && !m.archived))
+    : undefined;
+  const statuses = singletStatuses(state.members);
+
+  const ensureSelfMember = async (): Promise<Member> => {
+    if (selfMember) {
+      if (selfMember.id !== state.settings.selfMemberId) {
+        await store.set(KEYS.settings, { ...state.settings, selfMemberId: selfMember.id });
+        await loadData();
+      }
+      return selfMember;
+    }
+    const nm: Member = { id: uid(), name: state.system.name || 'Me', pronouns: '', role: '', color: '#DAA520', description: '', tags: [], groupIds: [], customFields: [], createdAt: Date.now() };
+    await store.set(KEYS.members, [...state.members, nm]);
+    await store.set(KEYS.settings, { ...state.settings, selfMemberId: nm.id });
+    await loadData();
+    return nm;
+  };
+
+  const saveQuickFront = async (p: any, cf: any, cc: any) => {
+    await applyFrontUpdate(state.front, p, cf, cc);
+    loadData();
+  };
+
   if (!state.loaded) {
     return (
       <div className="app-shell">
@@ -203,35 +238,60 @@ function AppInner() {
       {view === 'dashboard' ? (
         <div className="dashboard">
           <div className="tile-grid">
-            <FrontTile
-              front={state.front}
-              members={state.members}
-              onClick={() => setView('front')}
-              onUpdateFront={() => setShowQuickFront(true)}
-            />
-            <SystemManagerTile
-              groups={state.groups}
-              onClick={() => setView('system-manager')}
-            />
-            <MembersTile
-              members={state.members}
-              onClick={() => setView('members')}
-            />
+            {isSinglet ? (
+              <StatusTile
+                front={state.front}
+                members={state.members}
+                selfId={selfMember?.id}
+                onClick={() => setView('front')}
+                onUpdateStatus={async () => { await ensureSelfMember(); setShowQuickFront(true); }}
+              />
+            ) : (
+              <FrontTile
+                front={state.front}
+                members={state.members}
+                onClick={() => setView('front')}
+                onUpdateFront={() => setShowQuickFront(true)}
+              />
+            )}
+            {!isSinglet && (
+              <SystemManagerTile
+                groups={state.groups}
+                onClick={() => setView('system-manager')}
+              />
+            )}
+            {isSinglet ? (
+              <ProfileTile
+                member={selfMember}
+                statuses={statuses}
+                onClick={() => setView('members')}
+              />
+            ) : (
+              <MembersTile
+                members={state.members}
+                onClick={() => setView('members')}
+              />
+            )}
             <HistoryTile
               history={state.history}
               members={state.members}
               onClick={() => setView('history')}
+            />
+            <RetroHistoryTile
+              onClick={() => setView('retro-history')}
             />
             <JournalTile
               journal={state.journal}
               members={state.members}
               onClick={() => setView('journal')}
             />
-            <ChatTile
-              channels={state.channels}
-              members={state.members}
-              onClick={() => setView('chat')}
-            />
+            {!isSinglet && (
+              <ChatTile
+                channels={state.channels}
+                members={state.members}
+                onClick={() => setView('chat')}
+              />
+            )}
             <StatsTile
               history={state.history}
               members={state.members}
@@ -240,12 +300,22 @@ function AppInner() {
             <ImportExportTile
               onClick={() => setView('import-export')}
             />
-            <CustomFieldsTile
-              onClick={() => setView('custom-fields')}
-            />
-            <PollsTile
-              onClick={() => setView('polls')}
-            />
+            {!isSinglet && (
+              <CustomFieldsTile
+                onClick={() => setView('custom-fields')}
+              />
+            )}
+            {!isSinglet && (
+              <PollsTile
+                onClick={() => setView('polls')}
+              />
+            )}
+            {!isSinglet && (
+              <ArchiveTile
+                members={state.members}
+                onClick={() => setView('archive')}
+              />
+            )}
             <CreditsTile
               onClick={() => setView('credits')}
             />
@@ -268,8 +338,8 @@ function AppInner() {
               {t('hub.dashboard')}
             </button>
             <span className="full-view__title">
-              {view === 'front' ? t('tabs.front')
-                : view === 'members' ? t('members.title')
+              {view === 'front' ? (isSinglet ? t('tabs.status') : t('tabs.front'))
+                : view === 'members' ? (isSinglet ? t('tabs.profile') : t('members.title'))
                 : view === 'history' ? t('history.title')
                 : view === 'journal' ? t('journal.title')
                 : view === 'chat' ? t('hub.systemChat')
@@ -280,6 +350,8 @@ function AppInner() {
                 : view === 'polls' ? t('polls.title')
                 : view === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
                 : view === 'system-manager' ? t('systemManager.title')
+                : view === 'archive' ? t('hub.archive')
+                : view === 'retro-history' ? t('hub.retroHistory')
                 : view}
             </span>
           </div>
@@ -287,8 +359,19 @@ function AppInner() {
             {view === 'settings' && (
               <SettingsView system={state.system} settings={state.settings} palettes={state.palettes} onUpdate={loadData} />
             )}
-            {view === 'members' && (
+            {view === 'members' && (isSinglet ? (
+              <ProfileView member={selfMember} statuses={statuses} front={state.front}
+                members={state.members} onUpdate={loadData} onEnsureSelf={ensureSelfMember} />
+            ) : (
               <MembersView members={state.members} groups={state.groups} onUpdate={loadData} />
+            ))}
+            {view === 'archive' && (
+              <MembersView members={state.members} groups={state.groups} onUpdate={loadData} archiveOnly />
+            )}
+            {view === 'retro-history' && (
+              <RetroHistoryView members={state.members} history={state.history} front={state.front}
+                onUpdate={loadData} onDone={() => setView('dashboard')}
+                singlet={isSinglet} selfId={selfMember?.id} />
             )}
             {view === 'import-export' && (
               <ImportExportView system={state.system} members={state.members} history={state.history}
@@ -296,18 +379,24 @@ function AppInner() {
                 palettes={state.palettes} onUpdate={loadData} />
             )}
             {view === 'stats' && (
-              <StatsView history={state.history} members={state.members} channels={state.channels} />
+              <StatsView history={state.history} members={state.members} channels={state.channels}
+                singlet={isSinglet} selfId={selfMember?.id} />
             )}
             {view === 'journal' && (
               <JournalView journal={state.journal} members={state.members} onUpdate={loadData} />
             )}
             {view === 'history' && (
-              <HistoryView history={state.history} members={state.members} onUpdate={loadData} />
+              <HistoryView history={state.history} members={state.members} onUpdate={loadData}
+                singlet={isSinglet} selfId={selfMember?.id} />
             )}
-            {view === 'front' && (
+            {view === 'front' && (isSinglet ? (
+              <StatusView front={state.front} members={state.members} statuses={statuses}
+                selfId={selfMember?.id} settings={state.settings} onSaveStatus={saveQuickFront}
+                onEnsureSelf={ensureSelfMember} />
+            ) : (
               <FrontView front={state.front} members={state.members} groups={state.groups}
                 history={state.history} settings={state.settings} onUpdate={loadData} />
-            )}
+            ))}
             {view === 'system-manager' && (
               <SystemManagerView members={state.members} groups={state.groups} onUpdate={loadData} />
             )}
@@ -327,16 +416,28 @@ function AppInner() {
         </div>
       )}
 
-      <SetFrontModal
-        open={showQuickFront}
-        onClose={() => setShowQuickFront(false)}
-        onSave={async (p: any, cf: any, cc: any) => { await applyFrontUpdate(state.front, p, cf, cc); loadData(); }}
-        members={state.members.filter(m => !m.archived)}
-        groups={state.groups}
-        current={state.front}
-        settings={state.settings}
-        allMoods={[...DEFAULT_MOODS, ...(state.settings.customMoods || [])]}
-      />
+      {isSinglet ? (
+        <SetStatusModal
+          open={showQuickFront}
+          onClose={() => setShowQuickFront(false)}
+          onSave={saveQuickFront}
+          statuses={statuses}
+          selfId={selfMember?.id}
+          current={state.front}
+          settings={state.settings}
+        />
+      ) : (
+        <SetFrontModal
+          open={showQuickFront}
+          onClose={() => setShowQuickFront(false)}
+          onSave={saveQuickFront}
+          members={state.members.filter(m => !m.archived)}
+          groups={state.groups}
+          current={state.front}
+          settings={state.settings}
+          allMoods={[...DEFAULT_MOODS, ...(state.settings.customMoods || [])]}
+        />
+      )}
     </div>
   );
 }

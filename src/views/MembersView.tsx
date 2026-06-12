@@ -9,14 +9,15 @@ interface Props {
   members: Member[];
   groups: MemberGroup[];
   onUpdate: () => void;
+  archiveOnly?: boolean;
 }
 
-export default function MembersView({ members, groups, onUpdate }: Props) {
+export default function MembersView({ members, groups, onUpdate, archiveOnly = false }: Props) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
-  const [listView, setListView] = useState<'active' | 'archived' | 'customFronts'>('active');
+  const [listView, setListView] = useState<'active' | 'archived' | 'customFronts'>(archiveOnly ? 'archived' : 'active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
 
@@ -152,16 +153,15 @@ export default function MembersView({ members, groups, onUpdate }: Props) {
           onChange={setSortMode}
           renderOption={v => t(`memberSort.${v}`)}
         />
-        <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
-          {t('members.active')} ({active.length})
-        </Btn>
-        <Btn variant={listView === 'archived' ? 'info' : 'ghost'} onClick={() => setListView('archived')}>
-          {t('members.archived')} ({archived.length})
-        </Btn>
-        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => setListView('customFronts')}>
-          {t('members.customFronts')} ({customFronts.length})
-        </Btn>
-        <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : t('members.add')}</Btn>
+        {!archiveOnly && (<>
+          <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
+            {t('members.active')} ({active.length})
+          </Btn>
+          <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => setListView('customFronts')}>
+            {t('members.customFronts')} ({customFronts.length})
+          </Btn>
+          <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : t('members.add')}</Btn>
+        </>)}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>

@@ -464,7 +464,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
 
         <label className="field__label" style={{ marginTop: 4 }}>{t('modal.mood')}</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-          {(() => { const sel = parseMoodList(mood); return allMoods.map(m => {
+          {(() => { const sel = parseMoodList(mood); const chips = [...allMoods, ...sel.filter(m => !allMoods.includes(m))]; return chips.map(m => {
             const on = sel.includes(m);
             return (
               <button key={m} className={`btn ${on ? 'btn--primary' : 'btn--ghost'}`}

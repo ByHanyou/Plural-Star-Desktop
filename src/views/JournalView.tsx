@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, JournalEntry, JournalTemplate, uid, fmtDate } from '../utils';
+import { Member, JournalEntry, JournalTemplate, uid, fmtDate, fmtTime } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
 
@@ -20,6 +20,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
   const [authorFilter, setAuthorFilter] = useState('');
   const [editing, setEditing] = useState<JournalEntry | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [viewMode, setViewMode] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
@@ -55,6 +56,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
   const sorted = useMemo(() => {
     return [...journal]
       .sort((a, b) => b.timestamp - a.timestamp)
+      .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
       .filter(e => {
         if (search && !e.title.toLowerCase().includes(search.toLowerCase()) && !e.body.toLowerCase().includes(search.toLowerCase())) return false;
         if (tagFilter && !(e.hashtags || []).includes(tagFilter)) return false;
@@ -63,9 +65,17 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
       });
   }, [journal, search, tagFilter, authorFilter]);
 
+  const togglePin = async (entry: JournalEntry, ev: React.MouseEvent) => {
+    ev.stopPropagation();
+    const updated = journal.map(e => e.id === entry.id ? { ...e, pinned: !e.pinned } : e);
+    await store.set(KEYS.journal, updated);
+    onUpdate();
+  };
+
   const openNew = () => {
     setTitle(''); setBody(''); setHashtags([]); setAuthorIds([]); setTagInput('');
-    setIsNew(true); setEditing({ id: uid(), title: '', body: '', authorIds: [], hashtags: [], timestamp: Date.now() });
+    setIsNew(true); setViewMode(false);
+    setEditing({ id: uid(), title: '', body: '', authorIds: [], hashtags: [], timestamp: Date.now() });
   };
 
   const openNewFromTemplate = (tpl: JournalTemplate) => {
@@ -75,13 +85,14 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
     setAuthorIds([]);
     setTagInput('');
     setIsNew(true);
+    setViewMode(false);
     setEditing({ id: uid(), title: tpl.title, body: tpl.body, authorIds: [], hashtags: tpl.hashtags || [], timestamp: Date.now() });
     setShowTemplatePicker(false);
   };
 
   const openEdit = (e: JournalEntry) => {
     setTitle(e.title); setBody(e.body); setHashtags(e.hashtags || []); setAuthorIds(e.authorIds || []); setTagInput('');
-    setIsNew(false); setEditing(e);
+    setIsNew(false); setViewMode(true); setEditing(e);
   };
 
   const addTag = () => {
@@ -104,6 +115,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
       hashtags,
       timestamp: editing?.timestamp || Date.now(),
       password: editing?.password,
+      pinned: editing?.pinned,
     };
     const updated = isNew
       ? [...journal, entry]
@@ -209,12 +221,21 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {sorted.map(entry => (
-            <div key={entry.id} className="tile" style={{ minHeight: 'auto', padding: 16, cursor: 'pointer' }}
+            <div key={entry.id} className="tile" style={{
+              minHeight: 'auto', padding: 16, cursor: 'pointer',
+              ...(entry.pinned ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--card))', borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border))' } : {}),
+            }}
               onClick={() => openEdit(entry)}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{entry.title}</span>
-                <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', marginLeft: 12 }}>
-                  {fmtDate(entry.timestamp)}
+                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{entry.pinned ? '📌 ' : ''}{entry.title}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
+                  <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                    {fmtDate(entry.timestamp)}
+                  </span>
+                  <button onClick={ev => togglePin(entry, ev)} title={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: 12,
+                    filter: entry.pinned ? 'none' : 'grayscale(1) opacity(0.5)',
+                  }}>📌</button>
                 </span>
               </div>
               {entry.body && (
@@ -291,8 +312,12 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
         )}
       </>)}
 
-      <Modal open={!!editing} title={isNew ? t('modal.newEntry') : t('modal.editEntry')} onClose={() => setEditing(null)}
-        footer={
+      <Modal open={!!editing} title={viewMode ? t('modal.viewEntry') : isNew ? t('modal.newEntry') : t('modal.editEntry')} onClose={() => setEditing(null)}
+        footer={viewMode ? (
+          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
+            <Btn variant="solid" onClick={() => setViewMode(false)}>{t('common.edit')}</Btn>
+          </div>
+        ) : (
           <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
             <div>{!isNew && <Btn variant="danger" onClick={() => setConfirmDelete(editing?.id || '')}>{t('common.delete')}</Btn>}</div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -300,7 +325,42 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
               <Btn variant="solid" onClick={saveEntry}>{t('common.save')}</Btn>
             </div>
           </div>
-        }>
+        )}>
+        {viewMode ? (<>
+          <div style={{ fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)', marginBottom: 4 }}>
+            {title || t('common.untitled')}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 14 }}>{fmtTime(editing?.timestamp || Date.now())}</div>
+          {body && (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+              {body.replace(/<[^>]+>/g, '')}
+            </div>
+          )}
+          {hashtags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {hashtags.map(tag => (
+                <span key={tag} style={{ fontSize: 12, color: 'var(--info)', background: 'var(--info-bg)', padding: '4px 9px', borderRadius: 999, border: '1px solid var(--border)' }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+          {authorIds.length > 0 && (<>
+            <Section label={t('modal.authors')} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {authorIds.map(id => {
+                const m = getMember(id);
+                if (!m) return null;
+                return (
+                  <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: `${m.color}20`, border: `1px solid ${m.color}50`, fontSize: 12, color: m.color }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                    {m.name}
+                  </span>
+                );
+              })}
+            </div>
+          </>)}
+        </>) : (<>
         <Field label={t('modal.entryTitle')} value={title} onChange={setTitle} placeholder={t('modal.entryTitlePlaceholder')} />
 
         <Field label={t('modal.body')} value={body} onChange={setBody} placeholder={t('modal.writeHere')} multiline />
@@ -339,6 +399,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
             placeholder={t('modal.topic')} onKeyDown={e => { if (e.key === 'Enter') addTag(); }} />
           <Btn onClick={addTag}>{t('common.add')}</Btn>
         </div>
+        </>)}
       </Modal>
 
       <Modal open={!!editingTemplate} title={isNewTemplate ? t('journal.newTemplate', { defaultValue: 'New Template' }) : t('journal.editTemplate', { defaultValue: 'Edit Template' })} onClose={() => setEditingTemplate(null)}

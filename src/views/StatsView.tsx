@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, ChatMessage, fmtDur, getInitials, translateMood } from '../utils';
+import { Member, HistoryEntry, ChatMessage, fmtDur, getInitials, translateMood, buildEffectiveEnd, SINGLET_HIDDEN_STATUS_NAMES } from '../utils';
 import { Section } from '../components/ui';
 import { store, chatMsgKey, KEYS } from '../storage';
 import type { ChatChannel } from '../utils';
@@ -9,6 +9,8 @@ interface Props {
   history: HistoryEntry[];
   members: Member[];
   channels: ChatChannel[];
+  singlet?: boolean;
+  selfId?: string;
 }
 
 type TimeRange = 'all' | '7d' | '30d';
@@ -16,7 +18,7 @@ type TimeRange = 'all' | '7d' | '30d';
 const MAX_BOARD = 25;
 const nextBoardLimit = (cur: number) => (cur < 10 ? 10 : MAX_BOARD);
 
-export default function StatsView({ history, members, channels }: Props) {
+export default function StatsView({ history, members, channels, singlet = false, selfId }: Props) {
   const { t } = useTranslation();
   const [range, setRange] = useState<TimeRange>('all');
   const [chatCounts, setChatCounts] = useState<Record<string, number>>({});
@@ -38,6 +40,10 @@ export default function StatsView({ history, members, channels }: Props) {
 
   const getMember = (id: string) => members.find(m => m.id === id);
   const customFrontIds = useMemo(() => new Set(members.filter(m => m.isCustomFront).map(m => m.id)), [members]);
+  const hiddenStatusIds = useMemo(() => new Set(members.filter(m => m.isCustomFront && SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)).map(m => m.id)), [members]);
+  const rankExclude = (id: string): boolean => singlet
+    ? (id === selfId || !customFrontIds.has(id) || hiddenStatusIds.has(id))
+    : customFrontIds.has(id);
   const [boardLimits, setBoardLimits] = useState<Record<string, number>>({});
   const limitFor = (k: string) => boardLimits[k] ?? 5;
   const expandBoard = (k: string) => setBoardLimits(p => ({ ...p, [k]: nextBoardLimit(p[k] ?? 5) }));
@@ -57,6 +63,8 @@ export default function StatsView({ history, members, channels }: Props) {
     });
   }, [history, cutoff]);
 
+  const effEnd = useMemo(() => buildEffectiveEnd(history), [history]);
+  const entryEnd = (entry: HistoryEntry): number => effEnd(entry) ?? Date.now();
 
   const totalSessions = filtered.length;
 
@@ -64,40 +72,40 @@ export default function StatsView({ history, members, channels }: Props) {
     const map: Record<string, number> = {};
     for (const entry of filtered) {
       const start = Math.max(entry.startTime, cutoff);
-      const end = entry.endTime || Date.now();
-      const dur = end - start;
+      const end = entryEnd(entry);
+      const dur = Math.max(0, end - start);
       for (const id of entry.memberIds) {
         map[id] = (map[id] || 0) + dur;
       }
     }
-    return Object.entries(map).filter(([id]) => !customFrontIds.has(id)).sort((a, b) => b[1] - a[1]);
-  }, [filtered, cutoff, customFrontIds]);
+    return Object.entries(map).filter(([id]) => !rankExclude(id)).sort((a, b) => b[1] - a[1]);
+  }, [filtered, cutoff, customFrontIds, effEnd, singlet, selfId]);
 
   const coFrontTotals = useMemo(() => {
     const map: Record<string, number> = {};
     for (const entry of filtered) {
       const start = Math.max(entry.startTime, cutoff);
-      const end = entry.endTime || Date.now();
-      const dur = end - start;
+      const end = entryEnd(entry);
+      const dur = Math.max(0, end - start);
       for (const id of (entry.coFrontIds || [])) {
         map[id] = (map[id] || 0) + dur;
       }
     }
-    return Object.entries(map).filter(([id]) => !customFrontIds.has(id)).sort((a, b) => b[1] - a[1]);
-  }, [filtered, cutoff, customFrontIds]);
+    return Object.entries(map).filter(([id]) => !rankExclude(id)).sort((a, b) => b[1] - a[1]);
+  }, [filtered, cutoff, customFrontIds, effEnd, singlet, selfId]);
 
   const coConTotals = useMemo(() => {
     const map: Record<string, number> = {};
     for (const entry of filtered) {
       const start = Math.max(entry.startTime, cutoff);
-      const end = entry.endTime || Date.now();
-      const dur = end - start;
+      const end = entryEnd(entry);
+      const dur = Math.max(0, end - start);
       for (const id of (entry.coConsciousIds || [])) {
         map[id] = (map[id] || 0) + dur;
       }
     }
-    return Object.entries(map).filter(([id]) => !customFrontIds.has(id)).sort((a, b) => b[1] - a[1]);
-  }, [filtered, cutoff, customFrontIds]);
+    return Object.entries(map).filter(([id]) => !rankExclude(id)).sort((a, b) => b[1] - a[1]);
+  }, [filtered, cutoff, customFrontIds, effEnd, singlet, selfId]);
 
   const moodTotals = useMemo(() => {
     const map: Record<string, number> = {};
@@ -141,10 +149,10 @@ export default function StatsView({ history, members, channels }: Props) {
       }
     }
     return Object.entries(map)
-      .filter(([id]) => !customFrontIds.has(id))
+      .filter(([id]) => !rankExclude(id))
       .map(([id, { sum, count }]) => [id, Math.round((sum / count) * 10) / 10] as [string, number])
       .sort((a, b) => b[1] - a[1]);
-  }, [filtered, customFrontIds]);
+  }, [filtered, customFrontIds, singlet, selfId]);
 
   const peakHours = useMemo(() => {
     const hours = new Array(24).fill(0);
@@ -182,7 +190,7 @@ export default function StatsView({ history, members, channels }: Props) {
     for (const e of entries) {
       const allIds = [...e.memberIds, ...(e.coFrontIds || []), ...(e.coConsciousIds || [])];
       for (const id of allIds) {
-        if (id !== selectedStatMember) coMembers[id] = (coMembers[id] || 0) + 1;
+        if (id !== selectedStatMember && !(singlet && id === selfId)) coMembers[id] = (coMembers[id] || 0) + 1;
       }
       if (e.mood) moods[e.mood] = (moods[e.mood] || 0) + 1;
       if (e.energyLevel && e.memberIds.includes(selectedStatMember)) { energySum += e.energyLevel; energyCount++; }
@@ -194,7 +202,7 @@ export default function StatsView({ history, members, channels }: Props) {
       moods: Object.entries(moods).sort((a, b) => b[1] - a[1]).slice(0, 5),
       avgEnergy: energyCount > 0 ? Math.round((energySum / energyCount) * 10) / 10 : null,
     };
-  }, [filtered, selectedStatMember]);
+  }, [filtered, selectedStatMember, singlet, selfId]);
 
 
   const Bar = ({ label, value, max, color, suffix }: {
@@ -260,8 +268,10 @@ export default function StatsView({ history, members, channels }: Props) {
         {[
           { label: t('stats.totalSessions'), value: totalSessions.toString() },
           { label: t('stats.totalFrontTime'), value: fmtDur(0, totalTime) },
-          { label: t('stats.uniqueFronters'), value: fronterTotals.length.toString() },
-          { label: t('stats.chatMessages'), value: totalMsgs.toString() },
+          ...(singlet ? [] : [
+            { label: t('stats.uniqueFronters'), value: fronterTotals.length.toString() },
+            { label: t('stats.chatMessages'), value: totalMsgs.toString() },
+          ]),
         ].map(({ label, value }) => (
           <div key={label} style={{
             padding: 16, background: 'var(--card)', border: '1px solid var(--border)',
@@ -274,10 +284,10 @@ export default function StatsView({ history, members, channels }: Props) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
-        <Leaderboard title={t('stats.topFronters')} data={fronterTotals} mode="time" boardKey="fronters" />
-        <Leaderboard title={t('stats.topCoFronters')} data={coFrontTotals} mode="time" boardKey="cofronters" />
-        <Leaderboard title={t('stats.topCoCon')} data={coConTotals} mode="time" boardKey="cocon" />
-        <Leaderboard title={t('stats.topChatters')} data={chatSorted} mode="count" boardKey="chatters" />
+        <Leaderboard title={singlet ? t('stats.topStatuses') : t('stats.topFronters')} data={fronterTotals} mode="time" boardKey="fronters" />
+        {!singlet && <Leaderboard title={t('stats.topCoFronters')} data={coFrontTotals} mode="time" boardKey="cofronters" />}
+        {!singlet && <Leaderboard title={t('stats.topCoCon')} data={coConTotals} mode="time" boardKey="cocon" />}
+        {!singlet && <Leaderboard title={t('stats.topChatters')} data={chatSorted} mode="count" boardKey="chatters" />}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20, marginTop: 20 }}>
@@ -350,7 +360,7 @@ export default function StatsView({ history, members, channels }: Props) {
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.memberLeaderboard', { name: '' }).replace(/^\s+/, '') || 'Member Details'}</h3>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {members.filter(m => !m.archived).map(m => (
+          {members.filter(m => !m.archived && (!singlet || (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)))).map(m => (
             <button key={m.id} className={`chip`}
               style={{
                 borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
@@ -374,7 +384,7 @@ export default function StatsView({ history, members, channels }: Props) {
               </div>
               {memberSpecific.coMembers.length > 0 && (
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('stats.topCoMembers')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{singlet ? t('stats.coStatuses') : t('stats.topCoMembers')}</div>
                   {memberSpecific.coMembers.map(([id, count]) => {
                     const cm = getMember(id);
                     return <Bar key={id} label={cm?.name || '?'} value={count} max={memberSpecific.coMembers[0]?.[1] || 1} color={cm?.color || 'var(--info)'} suffix={`${count}`} />;

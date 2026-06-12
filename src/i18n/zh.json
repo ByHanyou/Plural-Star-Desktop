@@ -25,7 +25,37 @@
     "members": "成员",
     "hub": "中心",
     "journal": "日记",
-    "history": "历史"
+    "history": "历史",
+    "status": "状态",
+    "profile": "个人资料"
+  },
+  "status": {
+    "current": "当前状态",
+    "update": "更新状态",
+    "noneSet": "尚未设置状态。点按“更新状态”进行记录。",
+    "noStatuses": "未选择状态。",
+    "statuses": "状态",
+    "since": "自 {{time}}",
+    "editDetails": "编辑状态详情",
+    "add": "添加状态",
+    "edit": "编辑状态",
+    "clearTitle": "清除状态？",
+    "clearMsg": "这将清除你的状态并记录当前会话结束。是否继续？"
+  },
+  "profile": {
+    "edit": "编辑个人资料",
+    "notSetUp": "尚未设置个人资料",
+    "noDescription": "暂无描述。点按“编辑个人资料”添加。",
+    "statuses": "状态",
+    "addStatus": "+ 添加状态",
+    "statusesDesc": "状态描述你的近况——例如 睡觉中、工作中 或 焦虑。更新状态时选择它们。",
+    "noStatuses": "暂无状态。添加一个开始吧。",
+    "activeStatus": "当前",
+    "favoriteColor": "最喜欢的颜色"
+  },
+  "settings": {
+    "observatory": "天文台界面（个人）",
+    "observatoryDesc": "单人模式：“状态”和“个人资料”标签页取代“前台”和“成员”，并隐藏系统专用工具。"
   },
   "tier": {
     "primaryFront": "主前台",
@@ -46,7 +76,9 @@
     "systemNamePlaceholder": "例如 我们的系统",
     "description": "描述（可选）",
     "descriptionPlaceholder": "简要描述…",
-    "enter": "进入"
+    "enter": "进入",
+    "yourNamePlaceholder": "例如 Alex",
+    "goalsPlaceholder": "你想记录或实现什么？"
   },
   "front": {
     "currentlyFronting": "当前前台",
@@ -115,6 +147,10 @@
     "deleteConfirm3": "最终确认：永久删除此条目？",
     "searchPlaceholder": "搜索历史...",
     "allMembers": "所有成员",
+    "byStatus": "按状态",
+    "searchStatus": "搜索状态…",
+    "noHistorySinglet": "暂无历史记录。状态更新将自动显示在这里。",
+    "statusHistory": "状态历史",
     "entryCount": "{{count}} 条记录",
     "entryCountOne": "1 条记录"
   },
@@ -307,7 +343,8 @@
     "credits": "致谢",
     "creditLogo": "Plural Star 标志",
     "creditIos": "Plural Star iOS 移植",
-    "creditsBlurb": "社区贡献者"
+    "creditsBlurb": "社区贡献者",
+    "archive": "归档"
   },
   "modal": {
     "updateFront": "更新前台",
@@ -339,6 +376,8 @@
     "archiveDesc": "从活跃列表和前台选择器中隐藏。历史记录保留。",
     "newEntry": "新条目",
     "editEntry": "编辑条目",
+    "viewEntry": "日记条目",
+    "goals": "目标",
     "entryTitle": "标题",
     "entryTitlePlaceholder": "条目标题…",
     "body": "正文",
@@ -467,6 +506,8 @@
     "topFronters": "最常前台",
     "topCoFronters": "最常共前",
     "topCoCon": "最常共意",
+    "topStatuses": "最常用状态",
+    "coStatuses": "常同时活跃",
     "topChatters": "最多聊天",
     "topMoods": "最常见情绪",
     "topLocations": "最常见位置",
