@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl } from '../utils';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown } from '../components/ui';
@@ -8,12 +8,22 @@ import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, Conf
 interface Props {
   members: Member[];
   groups: MemberGroup[];
+  settings: AppSettings;
   onUpdate: () => void;
   archiveOnly?: boolean;
+  focusMemberId?: string | null;
+  onFocusHandled?: () => void;
+  onShowOnMap?: (id: string) => void;
 }
 
-export default function MembersView({ members, groups, onUpdate, archiveOnly = false }: Props) {
+export default function MembersView({ members, groups, settings, onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap }: Props) {
   const { t } = useTranslation();
+  const listFields = settings.memberListFields ?? { pronouns: true, roles: true, groups: false, descriptions: false };
+  const [showFields, setShowFields] = useState(false);
+  const saveListFields = async (next: NonNullable<AppSettings['memberListFields']>) => {
+    await store.set(KEYS.settings, { ...settings, memberListFields: next });
+    onUpdate();
+  };
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
@@ -29,8 +39,14 @@ export default function MembersView({ members, groups, onUpdate, archiveOnly = f
     store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFieldDefs(defs || []));
   }, []);
 
-  type MemberTab = 'main' | 'fields' | 'noteboard';
+  type MemberTab = 'main' | 'fields' | 'connections' | 'noteboard';
   const [memberTab, setMemberTab] = useState<MemberTab>('main');
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [relTypes, setRelTypes] = useState<RelationshipTypeDef[]>([]);
+  useEffect(() => {
+    store.get<Relationship[]>(KEYS.relationships, []).then(r => setRelationships(r || []));
+    store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(r => setRelTypes(r || []));
+  }, []);
 
   const [allNotes, setAllNotes] = useState<NoteboardEntry[]>([]);
   const [noteText, setNoteText] = useState('');
@@ -82,6 +98,15 @@ export default function MembersView({ members, groups, onUpdate, archiveOnly = f
     setIsNew(false); setEditing(m); setTagInput(''); setMemberTab('main'); setNoteText('');
     setNoteAuthorId(members.find(mm => !mm.archived)?.id || null);
   };
+
+  useEffect(() => {
+    if (focusMemberId) {
+      const m = members.find(mm => mm.id === focusMemberId);
+      if (m) openEdit(m);
+      onFocusHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusMemberId]);
 
   const set = (k: keyof Member, v: any) => setF(x => ({ ...x, [k]: v }));
 
@@ -162,6 +187,18 @@ export default function MembersView({ members, groups, onUpdate, archiveOnly = f
           </Btn>
           <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : t('members.add')}</Btn>
         </>)}
+        <div style={{ position: 'relative' }}>
+          <Btn variant="ghost" onClick={() => setShowFields(v => !v)}>{t('members.displayFields')}</Btn>
+          {showFields && (
+            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 30, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
+              {(['pronouns', 'roles', 'groups', 'descriptions'] as const).map(k => (
+                <Toggle key={k} label={t(`members.field${k.charAt(0).toUpperCase()}${k.slice(1)}`)}
+                  value={listFields[k] ?? false}
+                  onChange={v => saveListFields({ ...listFields, [k]: v })} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
@@ -177,12 +214,28 @@ export default function MembersView({ members, groups, onUpdate, archiveOnly = f
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{m.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  {[m.pronouns, m.role].filter(Boolean).join(' · ')}
-                </div>
+                {(((listFields.pronouns && m.pronouns) || (listFields.roles && m.role))) && (
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                    {[listFields.pronouns ? m.pronouns : '', listFields.roles ? m.role : ''].filter(Boolean).join(' · ')}
+                  </div>
+                )}
               </div>
               <div style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
             </div>
+            {listFields.descriptions && m.description && (
+              <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 8, lineHeight: 1.45, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                {m.description}
+              </div>
+            )}
+            {listFields.groups && (m.groupIds || []).length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                {(m.groupIds || []).map(gid => groups.find(g => g.id === gid)).filter(Boolean).slice(0, 6).map(g => (
+                  <span key={g!.id} style={{ fontSize: 10, color: 'var(--text)', background: 'var(--surface)', border: `1px solid ${g!.color || 'var(--border)'}`, padding: '1px 6px', borderRadius: 999 }}>
+                    {g!.name}
+                  </span>
+                ))}
+              </div>
+            )}
             {(m.tags || []).length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
                 {(m.tags || []).slice(0, 4).map(tag => (
@@ -221,7 +274,7 @@ export default function MembersView({ members, groups, onUpdate, archiveOnly = f
         }>
         {!isNew && (
           <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
-            {(['main', 'fields', 'noteboard'] as MemberTab[]).map(tab => (
+            {(['main', 'fields', 'connections', 'noteboard'] as MemberTab[]).map(tab => (
               <button key={tab} style={{
                 padding: '8px 16px', fontSize: 13, fontWeight: memberTab === tab ? 600 : 400, cursor: 'pointer',
                 color: memberTab === tab ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
@@ -229,6 +282,7 @@ export default function MembersView({ members, groups, onUpdate, archiveOnly = f
               }} onClick={() => setMemberTab(tab)}>
                 {tab === 'main' ? t('modal.editMember')
                   : tab === 'fields' ? t('customFields.title')
+                  : tab === 'connections' ? t('systemMap.connections')
                   : t('noteboard.title')}
               </button>
             ))}
@@ -416,6 +470,40 @@ export default function MembersView({ members, groups, onUpdate, archiveOnly = f
             )}
           </div>
         )}
+
+        {memberTab === 'connections' && !isNew && (() => {
+          const allTypes = allRelationshipTypes(relTypes);
+          const typeById = new Map(allTypes.map(ty => [ty.id, ty]));
+          const typeLabel = (id: string) => { const ty = typeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`, { defaultValue: ty.name }) : ty.name) : '?'; };
+          const mine = relationships.filter(r => r.fromId === f.id || r.toId === f.id);
+          return (
+            <div>
+              {onShowOnMap && (
+                <Btn variant="ghost" onClick={() => onShowOnMap(f.id)}>{t('systemMap.showOnMap')}</Btn>
+              )}
+              {mine.length === 0 ? (
+                <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginTop: 12 }}>{t('systemMap.noneForMember')}</p>
+              ) : (
+                <div style={{ marginTop: 12 }}>
+                  {mine.map(r => {
+                    const otherId = r.fromId === f.id ? r.toId : r.fromId;
+                    const other = members.find(m => m.id === otherId);
+                    return (
+                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 4, background: typeById.get(r.typeId)?.color || DEFAULT_REL_COLOR }} />
+                        <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{typeLabel(r.typeId)}</span>
+                        <button onClick={() => other && openEdit(other)} disabled={!other}
+                          style={{ flex: 1, textAlign: 'left', fontSize: 13, color: 'var(--text)', background: 'none', border: 'none', cursor: other ? 'pointer' : 'default' }}>
+                          {other?.name || '?'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {memberTab === 'noteboard' && !isNew && (
           <div>

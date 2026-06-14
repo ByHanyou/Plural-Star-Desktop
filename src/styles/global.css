@@ -229,6 +229,48 @@ body {
   gap: 6px;
 }
 
+/* plain helpers used by the simple navigation tiles */
+.tile__icon {
+  font-size: 30px;
+  line-height: 1;
+}
+.tile__stat {
+  font-size: 30px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--accent);
+  line-height: 1;
+}
+.tile__label {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Mobile Hub-style centering: icon above text, centered as a unit on the tile.
+   Applied only to simple navigation tiles (not data/list tiles). */
+.tile--center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.tile--center .tile__header {
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tile--center .tile__glyph {
+  background: none;
+  width: auto;
+  height: auto;
+  font-size: 30px;
+}
+.tile--center .tile__body {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
 .tile__empty {
   color: var(--muted);
   font-size: 13px;

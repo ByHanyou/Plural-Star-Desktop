@@ -39,6 +39,7 @@ export default function ImportExportView({ system, members, history, journal, se
     customFields: true, noteboards: true, polls: true, journalTemplates: true,
   });
   const togR = (k: string) => setRestoreSel(s => ({ ...s, [k]: !s[k as keyof typeof s] }));
+  const [mergeLogs, setMergeLogs] = useState(false);
 
   const [exportSel, setExportSel] = useState<ExportCategories>({
     system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
@@ -107,6 +108,10 @@ export default function ImportExportView({ system, members, history, journal, se
       noteboards: cat.noteboards ? (await store.get(KEYS.noteboards) || []) : [],
       polls: cat.polls ? (await store.get(KEYS.polls) || []) : [],
       journalTemplates: cat.journalTemplates ? (await store.get(KEYS.journalTemplates) || []) : [],
+      relationships: cat.groups ? (await store.get(KEYS.relationships) || []) : [],
+      relationshipTypes: cat.groups ? (await store.get(KEYS.relationshipTypes) || []) : [],
+      systemMapMembers: cat.groups ? (await store.get(KEYS.systemMapMembers) || []) : [],
+      medical: (await store.get(KEYS.medical)) || undefined,
     };
     const json = JSON.stringify(payload, null, 2);
     const defaultName = `PluralStar_Backup_${new Date().toISOString().slice(0, 10)}.json`;
@@ -194,20 +199,41 @@ export default function ImportExportView({ system, members, history, journal, se
         }
       }
 
-      if (restoreSel.journal && restoreData.journal) batch[KEYS.journal] = restoreData.journal;
+      if (restoreSel.journal && restoreData.journal) {
+        if (mergeLogs) {
+          const existing = await store.getStrict<any[]>(KEYS.journal, []) || [];
+          const seen = new Set(existing.map((j: any) => j.id));
+          batch[KEYS.journal] = [...existing, ...restoreData.journal.filter((j: any) => !seen.has(j.id))];
+        } else batch[KEYS.journal] = restoreData.journal;
+      }
 
       if (restoreSel.frontHistory && restoreData.frontHistory) {
-        batch[KEYS.history] = restoreData.frontHistory;
-        if (restoreData.front !== undefined) batch[KEYS.front] = restoreData.front;
+        if (mergeLogs) {
+          const existing = await store.getStrict<any[]>(KEYS.history, []) || [];
+          const sig = (e: any) => `${e.startTime}|${(e.memberIds || []).join(',')}`;
+          const seen = new Set(existing.map(sig));
+          batch[KEYS.history] = [...existing, ...restoreData.frontHistory.filter((e: any) => !seen.has(sig(e)))];
+        } else {
+          batch[KEYS.history] = restoreData.frontHistory;
+          if (restoreData.front !== undefined) batch[KEYS.front] = restoreData.front;
+        }
       }
 
       if (restoreSel.groups && restoreData.groups) batch[KEYS.groups] = restoreData.groups;
+      if (restoreSel.groups && restoreData.relationships) batch[KEYS.relationships] = restoreData.relationships;
+      if (restoreSel.groups && restoreData.relationshipTypes) batch[KEYS.relationshipTypes] = restoreData.relationshipTypes;
+      if (restoreSel.groups && restoreData.systemMapMembers) batch[KEYS.systemMapMembers] = restoreData.systemMapMembers;
+      if (restoreData.medical) batch[KEYS.medical] = restoreData.medical;
 
       if (restoreSel.chat) {
         if (restoreData.chatChannels) batch[KEYS.chatChannels] = restoreData.chatChannels;
         if (restoreData.chatMessages) {
           for (const [chId, msgs] of Object.entries(restoreData.chatMessages)) {
-            batch[chatMsgKey(chId)] = msgs;
+            if (mergeLogs) {
+              const existing = await store.getStrict<any[]>(chatMsgKey(chId), []) || [];
+              const seen = new Set(existing.map((m: any) => m.id));
+              batch[chatMsgKey(chId)] = [...existing, ...(msgs as any[]).filter((m: any) => !seen.has(m.id))];
+            } else batch[chatMsgKey(chId)] = msgs;
           }
         }
       }
@@ -228,7 +254,13 @@ export default function ImportExportView({ system, members, history, journal, se
       if (restoreSel.palettes && restoreData.palettes) batch[KEYS.palettes] = restoreData.palettes;
       if (restoreSel.customFields && restoreData.customFieldDefs) batch[KEYS.customFieldDefs] = restoreData.customFieldDefs;
       if (restoreSel.noteboards && restoreData.noteboards) batch[KEYS.noteboards] = restoreData.noteboards;
-      if (restoreSel.polls && restoreData.polls) batch[KEYS.polls] = restoreData.polls;
+      if (restoreSel.polls && restoreData.polls) {
+        if (mergeLogs) {
+          const existing = await store.getStrict<any[]>(KEYS.polls, []) || [];
+          const seen = new Set(existing.map((p: any) => p.id));
+          batch[KEYS.polls] = [...existing, ...restoreData.polls.filter((p: any) => !seen.has(p.id))];
+        } else batch[KEYS.polls] = restoreData.polls;
+      }
       if (restoreSel.journalTemplates && restoreData.journalTemplates) batch[KEYS.journalTemplates] = restoreData.journalTemplates;
 
       if (Object.keys(batch).length === 0) {
@@ -885,6 +917,10 @@ export default function ImportExportView({ system, members, history, journal, se
                 </label>
               ))}
             </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 10px', fontSize: 12, color: 'var(--dim)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={mergeLogs} onChange={() => setMergeLogs(v => !v)} />
+              {t('share.mergeLogs')}
+            </label>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => { setRestoreData(null); setRestoreFile(null); }}>{t('common.cancel')}</Btn>
               <Btn variant="danger" onClick={handleRestore} disabled={importing}>

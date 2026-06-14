@@ -212,7 +212,130 @@ export interface AppSettings {
   useDyslexicFont?: boolean;
   fontChoice?: import('./theme').FontChoice;
   customFrontsSeeded?: boolean;
+  memberListFields?: { groups?: boolean; descriptions?: boolean; pronouns?: boolean; roles?: boolean };
 }
+
+export interface Medication {
+  id: string;
+  name: string;
+  dosage?: string;
+  times: string[];
+  enabled: boolean;
+  notes?: string;
+  createdAt: number;
+}
+
+export interface MedicalAppointment {
+  id: string;
+  title: string;
+  time: number;
+  location?: string;
+  notes?: string;
+  reminderMinutesBefore?: number;
+  createdAt: number;
+}
+
+export interface MedicalHistoryEntry {
+  id: string;
+  title: string;
+  date?: number;
+  notes?: string;
+  createdAt: number;
+}
+
+export interface EmergencyInfo {
+  conditions?: string;
+  allergies?: string;
+  bloodType?: string;
+  notes?: string;
+  showOnNotification: boolean;
+}
+
+export interface MedicalData {
+  medications: Medication[];
+  appointments: MedicalAppointment[];
+  history: MedicalHistoryEntry[];
+  emergency: EmergencyInfo;
+}
+
+export const DEFAULT_MEDICAL: MedicalData = {
+  medications: [],
+  appointments: [],
+  history: [],
+  emergency: { showOnNotification: false },
+};
+
+export const isValidTimeHHMM = (v: string): boolean =>
+  /^([01]?\d|2[0-3]):[0-5]\d$/.test(v.trim());
+
+// Convert a 12-hour entry ("9", "9:30") + meridiem to canonical 24h "HH:MM". Returns null if invalid.
+export const time12to24 = (raw: string, ampm: 'AM' | 'PM'): string | null => {
+  const m = /^(\d{1,2})(?::(\d{2}))?$/.exec((raw || '').trim());
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  if (h < 1 || h > 12 || min < 0 || min > 59) return null;
+  if (ampm === 'AM') { if (h === 12) h = 0; } else { if (h !== 12) h += 12; }
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+};
+
+// Format a canonical 24h "HH:MM" for display as 12-hour with meridiem, e.g. "9:00 PM".
+export const formatTime12 = (hhmm24: string): string => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec((hhmm24 || '').trim());
+  if (!m) return hhmm24;
+  let h = parseInt(m[1], 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  return `${h}:${m[2]} ${ampm}`;
+};
+
+export interface RelationshipTypeDef {
+  id: string;
+  name: string;
+  inverseName?: string;
+  directional: boolean;
+  color?: string;
+  preset?: boolean;
+  overridden?: boolean;
+}
+
+export interface Relationship {
+  id: string;
+  fromId: string;
+  toId: string;
+  typeId: string;
+  note?: string;
+  createdAt: number;
+}
+
+export const DEFAULT_REL_COLOR = '#8A94A6';
+export const RELATIONSHIP_COLOR_CHOICES = ['#E05B5B', '#5BBF7A', '#D9B84A', '#E87BA8'];
+
+export const PRESET_RELATIONSHIP_TYPES: RelationshipTypeDef[] = [
+  { id: 'love', name: 'Love', directional: false, color: '#E87BA8', preset: true },
+  { id: 'friend', name: 'Friend', directional: false, color: '#5BBF7A', preset: true },
+  { id: 'ally', name: 'Ally', directional: false, color: '#D9B84A', preset: true },
+  { id: 'rival', name: 'Rival', directional: false, color: '#E05B5B', preset: true },
+];
+
+export const allRelationshipTypes = (customTypes: RelationshipTypeDef[]): RelationshipTypeDef[] => {
+  const overrides = new Map(customTypes.filter(t => t.preset).map(t => [t.id, t]));
+  const presets = PRESET_RELATIONSHIP_TYPES.map(p => {
+    const o = overrides.get(p.id);
+    return o ? { ...p, ...o, overridden: true } : p;
+  });
+  return [...presets, ...customTypes.filter(t => !t.preset)];
+};
+
+export const relationshipDegrees = (memberIds: string[], relationships: Relationship[]): Record<string, number> => {
+  const degrees: Record<string, number> = {};
+  for (const id of memberIds) degrees[id] = 0;
+  for (const r of relationships) {
+    if (degrees[r.fromId] !== undefined) degrees[r.fromId] += 1;
+    if (degrees[r.toId] !== undefined) degrees[r.toId] += 1;
+  }
+  return degrees;
+};
 
 export interface ExportPayload {
   _meta: {version: string; app: string; exportedAt: string;};
@@ -233,6 +356,10 @@ export interface ExportPayload {
   noteboards?: NoteboardEntry[];
   polls?: MemberPoll[];
   journalTemplates?: JournalTemplate[];
+  relationships?: Relationship[];
+  relationshipTypes?: RelationshipTypeDef[];
+  systemMapMembers?: string[];
+  medical?: MedicalData;
 }
 
 export type ChatMessageType = 'text' | 'image' | 'file' | 'reply' | 'reaction';

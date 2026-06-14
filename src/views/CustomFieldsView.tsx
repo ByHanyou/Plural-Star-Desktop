@@ -104,6 +104,13 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 {typeLabel(fd.type)}
               </span>
 
+              <button disabled={i === 0} onClick={() => moveField(i, i - 1)}
+                aria-label={i === 0 ? `${t('members.moveUp')}, ${fd.name}` : `${t('members.moveUp')}, ${fd.name}, ${t('members.moveAbove', { name: fields[i - 1].name })}`}
+                style={{ background: 'none', border: 'none', color: i === 0 ? 'var(--muted)' : 'var(--dim)', fontSize: 13, cursor: i === 0 ? 'default' : 'pointer', padding: '2px 4px' }}>▲</button>
+              <button disabled={i === fields.length - 1} onClick={() => moveField(i, i + 1)}
+                aria-label={i === fields.length - 1 ? `${t('members.moveDown')}, ${fd.name}` : `${t('members.moveDown')}, ${fd.name}, ${t('members.moveBelow', { name: fields[i + 1].name })}`}
+                style={{ background: 'none', border: 'none', color: i === fields.length - 1 ? 'var(--muted)' : 'var(--dim)', fontSize: 13, cursor: i === fields.length - 1 ? 'default' : 'pointer', padding: '2px 4px' }}>▼</button>
+
               <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: '4px' }}
                 onClick={() => setConfirmDelete(fd.id)}>🗑</button>
             </div>

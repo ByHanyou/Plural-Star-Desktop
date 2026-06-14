@@ -198,8 +198,8 @@ export default function StatsView({ history, members, channels, singlet = false,
     }
     return {
       sessions: entries.length,
-      coMembers: Object.entries(coMembers).sort((a, b) => b[1] - a[1]).slice(0, 5),
-      moods: Object.entries(moods).sort((a, b) => b[1] - a[1]).slice(0, 5),
+      coMembers: Object.entries(coMembers).sort((a, b) => b[1] - a[1]),
+      moods: Object.entries(moods).sort((a, b) => b[1] - a[1]),
       avgEnergy: energyCount > 0 ? Math.round((energySum / energyCount) * 10) / 10 : null,
     };
   }, [filtered, selectedStatMember, singlet, selfId]);
@@ -385,18 +385,28 @@ export default function StatsView({ history, members, channels, singlet = false,
               {memberSpecific.coMembers.length > 0 && (
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{singlet ? t('stats.coStatuses') : t('stats.topCoMembers')}</div>
-                  {memberSpecific.coMembers.map(([id, count]) => {
+                  {memberSpecific.coMembers.slice(0, limitFor('coMembers')).map(([id, count]) => {
                     const cm = getMember(id);
                     return <Bar key={id} label={cm?.name || '?'} value={count} max={memberSpecific.coMembers[0]?.[1] || 1} color={cm?.color || 'var(--info)'} suffix={`${count}`} />;
                   })}
+                  {memberSpecific.coMembers.length > limitFor('coMembers') && limitFor('coMembers') < MAX_BOARD && (
+                    <button onClick={() => expandBoard('coMembers')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
+                      {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limitFor('coMembers'), memberSpecific.coMembers.length)}/{memberSpecific.coMembers.length})
+                    </button>
+                  )}
                 </div>
               )}
               {memberSpecific.moods.length > 0 && (
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('stats.topMoods')}</div>
-                  {memberSpecific.moods.map(([mood, count]) => (
+                  {memberSpecific.moods.slice(0, limitFor('coMoods')).map(([mood, count]) => (
                     <Bar key={mood} label={translateMood(mood, t)} value={count} max={memberSpecific.moods[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
                   ))}
+                  {memberSpecific.moods.length > limitFor('coMoods') && limitFor('coMoods') < MAX_BOARD && (
+                    <button onClick={() => expandBoard('coMoods')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
+                      {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limitFor('coMoods'), memberSpecific.moods.length)}/{memberSpecific.moods.length})
+                    </button>
+                  )}
                 </div>
               )}
             </div>

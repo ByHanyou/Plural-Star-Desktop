@@ -8,7 +8,7 @@ export default function ArchiveTile({ members, onClick }: Props) {
   const { t } = useTranslation();
   const archived = members.filter(m => m.archived && !m.isCustomFront);
   return (
-    <div className="tile" onClick={onClick}>
+    <div className="tile tile--center" onClick={onClick}>
       <div className="tile__header"><div className="tile__glyph">🗃</div><span className="tile__title">{t('hub.archive')}</span></div>
       <div className="tile__body">
         {archived.length === 0 ? (

@@ -50,6 +50,10 @@ export const KEYS = {
   noteboards:   'ps:noteboards',
   polls:        'ps:polls',
   journalTemplates: 'ps:journalTemplates',
+  relationships: 'ps:relationships',
+  relationshipTypes: 'ps:relationshipTypes',
+  systemMapMembers: 'ps:systemMapMembers',
+  medical:      'ps:medical',
 };
 
 export const chatMsgKey = (channelId: string): string => `ps:chat:${channelId}`;

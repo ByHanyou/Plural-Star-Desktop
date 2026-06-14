@@ -170,6 +170,29 @@
 }
 .color-picker__swatch:hover { transform: scale(1.1); }
 .color-picker__swatch--active { border-color: #fff; }
+.color-picker__spectrum { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.color-picker__sv {
+  position: relative; width: 100%; max-width: 240px; height: 140px;
+  border-radius: 8px; cursor: crosshair; touch-action: none;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.color-picker__hue {
+  position: relative; width: 100%; max-width: 240px; height: 16px;
+  border-radius: 8px; cursor: pointer; touch-action: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+}
+.color-picker__thumb {
+  position: absolute; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.45);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+.color-picker__hue-thumb {
+  position: absolute; top: 50%; width: 6px; height: 22px; border-radius: 3px;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.45);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+.color-picker__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 
 .modal-overlay {

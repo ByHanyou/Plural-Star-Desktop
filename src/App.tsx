@@ -25,6 +25,8 @@ import CreditsTile from './tiles/CreditsTile';
 import SupportTile from './tiles/SupportTile';
 import DiscordTile from './tiles/DiscordTile';
 import SystemManagerTile from './tiles/SystemManagerTile';
+import SystemMapTile from './tiles/SystemMapTile';
+import MedicalTile from './tiles/MedicalTile';
 import ArchiveTile from './tiles/ArchiveTile';
 import RetroHistoryTile from './tiles/RetroHistoryTile';
 import StatusTile from './tiles/StatusTile';
@@ -32,6 +34,9 @@ import ProfileTile from './tiles/ProfileTile';
 
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
+import SystemMapView from './views/SystemMapView';
+import MedicalView from './views/MedicalView';
+import { startMedicalReminders } from './services/medicalReminders';
 import ImportExportView from './views/ImportExportView';
 import StatsView from './views/StatsView';
 import JournalView from './views/JournalView';
@@ -46,7 +51,7 @@ import RetroHistoryView from './views/RetroHistoryView';
 import StatusView, { SetStatusModal } from './views/StatusView';
 import ProfileView from './views/ProfileView';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'archive' | 'retro-history';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history';
 
 interface AppState {
   system: SystemInfo;
@@ -110,6 +115,8 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
 function AppInner() {
   const { t } = useTranslation();
   const [view, setView] = useState<ViewId>('dashboard');
+  const [memberFocus, setMemberFocus] = useState<string | null>(null);
+  const [mapFocus, setMapFocus] = useState<string | null>(null);
   const [showQuickFront, setShowQuickFront] = useState(false);
   const [state, setState] = useState<AppState>({
     system: { name: '', description: '' },
@@ -180,6 +187,7 @@ function AppInner() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => startMedicalReminders(), []);
 
   const systemName = state.system.name || 'Plural Star';
 
@@ -260,6 +268,12 @@ function AppInner() {
                 onClick={() => setView('system-manager')}
               />
             )}
+            {!isSinglet && (
+              <SystemMapTile
+                onClick={() => { setMapFocus(null); setView('system-map'); }}
+              />
+            )}
+            <MedicalTile onClick={() => setView('medical')} />
             {isSinglet ? (
               <ProfileTile
                 member={selfMember}
@@ -350,6 +364,8 @@ function AppInner() {
                 : view === 'polls' ? t('polls.title')
                 : view === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
                 : view === 'system-manager' ? t('systemManager.title')
+                : view === 'system-map' ? t('systemMap.title')
+                : view === 'medical' ? t('medical.title')
                 : view === 'archive' ? t('hub.archive')
                 : view === 'retro-history' ? t('hub.retroHistory')
                 : view}
@@ -363,10 +379,12 @@ function AppInner() {
               <ProfileView member={selfMember} statuses={statuses} front={state.front}
                 members={state.members} onUpdate={loadData} onEnsureSelf={ensureSelfMember} />
             ) : (
-              <MembersView members={state.members} groups={state.groups} onUpdate={loadData} />
+              <MembersView members={state.members} groups={state.groups} settings={state.settings} onUpdate={loadData}
+                focusMemberId={memberFocus} onFocusHandled={() => setMemberFocus(null)}
+                onShowOnMap={(id) => { setMapFocus(id); setView('system-map'); }} />
             ))}
             {view === 'archive' && (
-              <MembersView members={state.members} groups={state.groups} onUpdate={loadData} archiveOnly />
+              <MembersView members={state.members} groups={state.groups} settings={state.settings} onUpdate={loadData} archiveOnly />
             )}
             {view === 'retro-history' && (
               <RetroHistoryView members={state.members} history={state.history} front={state.front}
@@ -398,7 +416,15 @@ function AppInner() {
                 history={state.history} settings={state.settings} onUpdate={loadData} />
             ))}
             {view === 'system-manager' && (
-              <SystemManagerView members={state.members} groups={state.groups} onUpdate={loadData} />
+              <SystemManagerView members={state.members} groups={state.groups}
+                onViewMember={(id) => { setMemberFocus(id); setView('members'); }} onUpdate={loadData} />
+            )}
+            {view === 'system-map' && (
+              <SystemMapView members={state.members} focusMemberId={mapFocus}
+                onViewMember={(id) => { setMemberFocus(id); setView('members'); }} />
+            )}
+            {view === 'medical' && (
+              <MedicalView onUpdate={loadData} />
             )}
             {view === 'chat' && (
               <ChatView members={state.members} channels={state.channels} onUpdate={loadData} />
