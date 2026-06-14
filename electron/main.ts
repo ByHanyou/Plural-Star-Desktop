@@ -177,7 +177,9 @@ ipcMain.handle('dialog:saveFile', async (_e, defaultName: string) => {
   const result = await dialog.showSaveDialog({
     defaultPath: defaultName,
     filters: [
+      { name: 'Backup', extensions: ['zip'] },
       { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
     ],
   });
   return result.canceled ? null : result.filePath;
@@ -204,6 +206,15 @@ ipcMain.handle('file:write', async (_e, filePath: string, content: string) => {
     fs.writeFileSync(filePath, content, 'utf8');
   } catch (e) {
     console.error('[file:write] error:', e);
+    throw e;
+  }
+});
+
+ipcMain.handle('file:writeBytes', async (_e, filePath: string, base64: string) => {
+  try {
+    fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+  } catch (e) {
+    console.error('[file:writeBytes] error:', e);
     throw e;
   }
 });

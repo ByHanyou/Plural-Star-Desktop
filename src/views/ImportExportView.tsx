@@ -9,6 +9,13 @@ import {
 } from '../utils';
 import { CustomPalette } from '../theme';
 import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, convertAmpar, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
+import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
+
+const MIME_BY_EXT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+const extFromDataUri = (u: string): string => { const m = /^data:image\/([\w+]+)/.exec(u); const e = (m?.[1] || 'png').toLowerCase(); return e === 'jpeg' ? 'jpg' : e; };
+const dataUriToBytes = (u: string): Uint8Array => { const bin = atob(u.slice(u.indexOf(',') + 1)); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
+const u8ToBase64 = (bytes: Uint8Array): string => { let bin = ''; const chunk = 0x8000; for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk) as unknown as number[]); return btoa(bin); };
+const bytesToDataUri = (bytes: Uint8Array, pathOrExt: string): string => { const ext = (pathOrExt.split('.').pop() || 'png').toLowerCase(); return `data:${MIME_BY_EXT[ext] || 'image/png'};base64,${u8ToBase64(bytes)}`; };
 
 interface ExportCategories {
   system: boolean; members: boolean; avatars: boolean; banners: boolean; frontHistory: boolean; journal: boolean;
@@ -113,12 +120,39 @@ export default function ImportExportView({ system, members, history, journal, se
       systemMapMembers: cat.groups ? (await store.get(KEYS.systemMapMembers) || []) : [],
       medical: (await store.get(KEYS.medical)) || undefined,
     };
-    const json = JSON.stringify(payload, null, 2);
-    const defaultName = `PluralStar_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    // Externalize avatars/banners into media/ files (mobile-compatible .zip bundle)
+    const mediaFiles: Record<string, Uint8Array> = {};
+    payload.members = (payload.members as any[]).map((m: any) => {
+      const out: any = { ...m };
+      const av = avatars[m.id];
+      if (av && av.startsWith('data:')) {
+        const name = `media/avatar-${m.id}.${extFromDataUri(av)}`;
+        mediaFiles[name] = dataUriToBytes(av);
+        out.avatar_media_path = name;
+      }
+      const bn = banners[m.id];
+      if (bn && bn.startsWith('data:')) {
+        const name = `media/banner-${m.id}.${extFromDataUri(bn)}`;
+        mediaFiles[name] = dataUriToBytes(bn);
+        out.banner_media_path = name;
+      }
+      return out;
+    });
+    payload.avatars = {};
+    payload.banners = {};
+
+    const manifest = { app: 'Plural Star', format_version: '2.0', system_name: system?.name || '', export_date: new Date().toISOString() };
+    const zipBytes = zipSync({
+      'manifest.json': strToU8(JSON.stringify(manifest)),
+      'data.json': strToU8(JSON.stringify(payload)),
+      ...mediaFiles,
+    });
+    const slug = (system?.name || 'plural-star').replace(/\s+/g, '-').toLowerCase();
+    const defaultName = `${slug}-backup-${new Date().toISOString().slice(0, 10)}.zip`;
     const filePath = await window.electronAPI.dialog.saveFile(defaultName);
     if (!filePath) return;
 
-    await window.electronAPI.file.write(filePath, json);
+    await window.electronAPI.file.writeBytes(filePath, u8ToBase64(zipBytes));
     showStatus('Backup exported successfully');
   };
 
@@ -127,12 +161,29 @@ export default function ImportExportView({ system, members, history, journal, se
     try {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = '.json,.txt';
+      input.accept = '.zip,.json,.txt';
       input.onchange = async () => {
         const file = input.files?.[0];
         if (!file) return;
-        const text = await file.text();
-        const data = JSON.parse(text) as ExportPayload;
+        let data: ExportPayload;
+        if (file.name.toLowerCase().endsWith('.zip')) {
+          const files = unzipSync(new Uint8Array(await file.arrayBuffer()));
+          const dj = files['data.json'];
+          if (!dj) { showStatus('Error: backup bundle is missing data.json'); return; }
+          data = JSON.parse(strFromU8(dj)) as ExportPayload;
+          // rebuild inline avatars/banners from the bundled media/ files
+          const avatars: Record<string, string> = { ...(data.avatars || {}) };
+          const banners: Record<string, string> = { ...(data.banners || {}) };
+          for (const m of (data.members || []) as any[]) {
+            if (m.avatar_media_path && files[m.avatar_media_path]) avatars[m.id] = bytesToDataUri(files[m.avatar_media_path], m.avatar_media_path);
+            if (m.banner_media_path && files[m.banner_media_path]) banners[m.id] = bytesToDataUri(files[m.banner_media_path], m.banner_media_path);
+          }
+          data.avatars = avatars;
+          data.banners = banners;
+        } else {
+          const text = await file.text();
+          data = JSON.parse(text) as ExportPayload;
+        }
 
         if (detectPluralSpace(data)) {
           showStatus(`Error: ${t('share.psUseSection')}`);
