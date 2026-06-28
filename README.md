@@ -10,8 +10,8 @@
     <img src="https://img.shields.io/badge/Download-Latest%20Release-DAA520?style=for-the-badge&logo=windows&logoColor=white" alt="Download Latest Release" />
   </a>
   &nbsp;
-  <a href="https://www.buymeacoffee.com/PluralStar">
-    <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&emoji=%E2%98%95&slug=PluralSpace&button_colour=151929&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" alt="Support PS on Buy Me a Coffee" />
+   <a href="https://www.buymeacoffee.com/PluralStar">
+    <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&amp;emoji=%E2%98%95&amp;slug=PluralStar&amp;button_colour=151929&amp;font_colour=ffffff&amp;font_family=Cookie&amp;outline_colour=ffffff&amp;coffee_colour=FFDD00" alt="Support Plural Star on Buy Me a Coffee" />
   </a>
   &nbsp;
   <a href="https://discord.gg/FFQw33cu8m">
