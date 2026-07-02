@@ -220,6 +220,17 @@ export class NodeClient {
     }, delay);
   }
 
+  // Immediate reconnect (skips any pending backoff) if the socket is down.
+  ensureConnected(): void {
+    if (!this.wantOpen || this.ws) return;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
+    this.openSocket();
+  }
+
   disconnect(): void {
     this.wantOpen = false;
     if (this.reconnectTimer) {
