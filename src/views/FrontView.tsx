@@ -144,7 +144,7 @@ export default function FrontView({ front, members, groups, history, settings, o
                     fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
                     ...(!m.avatar ? { backgroundColor: m.color } : {}),
                   }}>
-                    {m.avatar ? <img src={m.avatar} style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
+                    {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: isPrimary ? 16 : 14, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
@@ -251,7 +251,7 @@ export default function FrontView({ front, members, groups, history, settings, o
           <Btn onClick={() => setShowSetFront(true)}>{t('front.setFront')}</Btn>
         </div>
       ) : (
-        TIER_ORDER.map(t => <TierCard key={t} tierKey={t} />)
+        TIER_ORDER.map(t => <React.Fragment key={t}>{TierCard({ tierKey: t })}</React.Fragment>)
       )}
 
       <SetFrontModal
@@ -442,8 +442,8 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
       );
     };
 
-    const regularPool = members.filter(m => !m.isCustomFront);
-    const customPool = members.filter(m => m.isCustomFront);
+    const regularPool = members.filter(m => !m.isCustomFront && !m.deleted);
+    const customPool = members.filter(m => m.isCustomFront && !m.deleted);
 
     return (
       <div style={{ marginBottom: 16 }}>
@@ -502,7 +502,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 28 }}>{energy ?? '—'}</span>
-          <input type="range" min={1} max={10} value={energy ?? 5}
+          <input type="range" min={1} max={10} value={energy ?? 5} aria-label={t('energy.level')}
             onChange={e => setEnergy(Number(e.target.value))}
             style={{ flex: 1, accentColor: color }} />
           <button className="btn btn--ghost" style={{ padding: '2px 8px', fontSize: 10 }}
@@ -524,9 +524,12 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             <Btn variant="solid" onClick={handleSave}>{t('common.save')}</Btn>
           </div>
         }>
-        <TierPicker tierKey="primary" selectedIds={primaryIds} mood={primaryMood} setMood={setPrimaryMood} note={primaryNote} setNote={setPrimaryNote} color="var(--accent)" energy={primaryEnergy} setEnergy={setPrimaryEnergy} />
-        <TierPicker tierKey="coFront" selectedIds={coFrontIds} mood={coFrontMood} setMood={setCoFrontMood} note={coFrontNote} setNote={setCoFrontNote} color="var(--info)" energy={coFrontEnergy} setEnergy={setCoFrontEnergy} />
-        <TierPicker tierKey="coConscious" selectedIds={coConsciousIds} mood={coConMood} setMood={setCoConMood} note={coConNote} setNote={setCoConNote} color="var(--success)" energy={coConEnergy} setEnergy={setCoConEnergy} />
+        {/* Call as a function (not <TierPicker/>) so the inputs are part of this modal's
+            own render tree — defining a component inside render gave it a new identity on
+            every keystroke, remounting the input and dropping focus after one character. */}
+        {TierPicker({ tierKey: 'primary', selectedIds: primaryIds, mood: primaryMood, setMood: setPrimaryMood, note: primaryNote, setNote: setPrimaryNote, color: 'var(--accent)', energy: primaryEnergy, setEnergy: setPrimaryEnergy })}
+        {TierPicker({ tierKey: 'coFront', selectedIds: coFrontIds, mood: coFrontMood, setMood: setCoFrontMood, note: coFrontNote, setNote: setCoFrontNote, color: 'var(--info)', energy: coFrontEnergy, setEnergy: setCoFrontEnergy })}
+        {TierPicker({ tierKey: 'coConscious', selectedIds: coConsciousIds, mood: coConMood, setMood: setCoConMood, note: coConNote, setNote: setCoConNote, color: 'var(--success)', energy: coConEnergy, setEnergy: setCoConEnergy })}
       </Modal>
       <ConfirmDialog
         open={confirmClear}

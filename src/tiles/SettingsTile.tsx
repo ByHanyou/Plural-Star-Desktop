@@ -10,7 +10,7 @@ export default function SettingsTile({ settings, onClick }: Props) {
   const palette = BUILTIN_PALETTES.find(p => p.id === settings.activePaletteId);
   const paletteName = palette?.name || 'Custom';
   return (
-    <div className="tile" onClick={onClick}>
+    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header"><div className="tile__glyph">⚙</div><span className="tile__title">{t('modal.systemSettings')}</span></div>
       <div className="tile__body">
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.palette')}</span><span className="tile__stat-value">{paletteName}</span></div>

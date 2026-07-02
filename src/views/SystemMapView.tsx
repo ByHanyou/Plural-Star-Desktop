@@ -6,7 +6,7 @@ import {
   DEFAULT_REL_COLOR, RELATIONSHIP_COLOR_CHOICES, getInitials,
 } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, Modal, ConfirmDialog, ColorPicker, Dropdown } from '../components/ui';
+import { Btn, Modal, ConfirmDialog, ColorPicker, Dropdown, clickable } from '../components/ui';
 import { PALETTE } from '../theme';
 
 interface Props {
@@ -216,7 +216,7 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
                 <span style={{ width: 8, height: 8, borderRadius: 4, background: ty?.color || DEFAULT_REL_COLOR }} />
                 <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{ty ? typeLabel(ty) : '?'}</span>
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', cursor: onViewMember ? 'pointer' : 'default' }}
-                  onClick={() => onViewMember && onViewMember(otherId)}>{other?.name || '?'}</span>
+                  {...(onViewMember ? clickable(() => onViewMember(otherId), other?.name) : {})}>{other?.name || '?'}</span>
                 <button onClick={() => setConfirmDelRel(r.id)} aria-label={t('systemMap.deleteRelationship')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }}>✕</button>
               </div>
             );
@@ -278,7 +278,7 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label className="field__label">{t('systemMap.typeName')}</label>
-              <input className="field__input" value={typeDraft.name} onChange={e => setTypeDraft({ ...typeDraft, name: e.target.value })} />
+              <input className="field__input" aria-label={t('systemMap.typeName')} value={typeDraft.name} onChange={e => setTypeDraft({ ...typeDraft, name: e.target.value })} />
             </div>
             <ColorPicker value={typeDraft.color} onChange={v => setTypeDraft({ ...typeDraft, color: v })} palette={[...RELATIONSHIP_COLOR_CHOICES, ...PALETTE]} />
             {typeDraft.preset && <p style={{ fontSize: 11, color: 'var(--muted)' }}>{t('systemMap.presetEditNote')}</p>}

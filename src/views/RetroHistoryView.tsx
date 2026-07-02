@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, HistoryEntry, FrontState, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Toggle } from '../components/ui';
+import { Btn, Field, Toggle, useEscapeKey } from '../components/ui';
 
 interface Props {
   members: Member[];
@@ -48,6 +48,7 @@ export default function RetroHistoryView({ members, history, front, onUpdate, on
   const [endDate, setEndDate] = useState(new Date());
   const [isCurrent, setIsCurrent] = useState(false);
   const [choice, setChoice] = useState<Choice | null>(null);
+  useEscapeKey(!!choice, () => setChoice(null));
   const [search, setSearch] = useState<Record<string, string>>({});
 
   const allSelected: Record<FrontTierKey, string[]> = { primary: primaryIds, coFront: coFrontIds, coConscious: coConIds };
@@ -243,7 +244,7 @@ export default function RetroHistoryView({ members, history, front, onUpdate, on
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <label className="field__label">{t('hub.startTime')}</label>
-      <input className="field__input" type="datetime-local" value={toLocalInput(startDate)}
+      <input className="field__input" aria-label={t('hub.startTime')} type="datetime-local" value={toLocalInput(startDate)}
         onChange={e => { if (e.target.value) setStartDate(new Date(e.target.value)); }}
         style={{ marginBottom: 14 }} />
 
@@ -252,7 +253,7 @@ export default function RetroHistoryView({ members, history, front, onUpdate, on
         <Toggle value={isCurrent} onChange={setIsCurrent} label={t('hub.current')} />
       </div>
       {!isCurrent && (
-        <input className="field__input" type="datetime-local" value={toLocalInput(endDate)}
+        <input className="field__input" aria-label={t('hub.endTime')} type="datetime-local" value={toLocalInput(endDate)}
           onChange={e => { if (e.target.value) setEndDate(new Date(e.target.value)); }}
           style={{ marginBottom: 14 }} />
       )}
@@ -297,8 +298,8 @@ export default function RetroHistoryView({ members, history, front, onUpdate, on
       </div>
 
       {choice && (
-        <div className="modal-overlay" onClick={() => setChoice(null)}>
-          <div className="modal modal--sm" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" role="presentation" onClick={() => setChoice(null)}>
+          <div className="modal modal--sm" role="presentation" onClick={e => e.stopPropagation()}>
             <div className="modal__header">
               <span className="modal__title">{choice.title}</span>
             </div>

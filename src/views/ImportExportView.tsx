@@ -16,6 +16,32 @@ const extFromDataUri = (u: string): string => { const m = /^data:image\/([\w+]+)
 const dataUriToBytes = (u: string): Uint8Array => { const bin = atob(u.slice(u.indexOf(',') + 1)); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
 const u8ToBase64 = (bytes: Uint8Array): string => { let bin = ''; const chunk = 0x8000; for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk) as unknown as number[]); return btoa(bin); };
 const bytesToDataUri = (bytes: Uint8Array, pathOrExt: string): string => { const ext = (pathOrExt.split('.').pop() || 'png').toLowerCase(); return `data:${MIME_BY_EXT[ext] || 'image/png'};base64,${u8ToBase64(bytes)}`; };
+// Simply Plural members often have only an avatarUuid (no full avatarUrl); build the
+// Apparyllis CDN URL like the mobile importer so the avatar actually resolves.
+const spAvatarUrl = (m: any, fallbackUid?: string): string | undefined => {
+  const url = String(m?.avatarUrl || '').trim();
+  if (/^https?:\/\//.test(url)) return url;
+  if (url.startsWith('/avatars/')) return 'https://spaces.apparyllis.com' + url;
+  const uuid = String(m?.avatarUuid || '').trim();
+  const uid = String(m?.uid || fallbackUid || '').trim();
+  if (uuid && uid) return `https://spaces.apparyllis.com/avatars/${uid}/${uuid}`;
+  return undefined;
+};
+// Download any remote (http) avatar and inline it as a base64 data URI — so imported
+// avatars are self-contained and offline-safe, exactly like the mobile app (which saves
+// them to local files). Falls back to leaving the URL if the fetch fails.
+const inlineRemoteAvatars = async (mem: Member[]): Promise<Member[]> => {
+  const out = [...mem];
+  const targets = out.map((m, i) => ({ i, url: String(m.avatar || '') })).filter(t => /^https?:\/\//i.test(t.url));
+  const CONC = 6;
+  for (let k = 0; k < targets.length; k += CONC) {
+    await Promise.all(targets.slice(k, k + CONC).map(async t => {
+      const data = await window.electronAPI.net.fetchImage(t.url).catch(() => null);
+      if (data) out[t.i] = { ...out[t.i], avatar: data };
+    }));
+  }
+  return out;
+};
 
 interface ExportCategories {
   system: boolean; members: boolean; avatars: boolean; banners: boolean; frontHistory: boolean; journal: boolean;
@@ -360,7 +386,7 @@ export default function ImportExportView({ system, members, history, journal, se
               description: m.desc || m.description || '',
               tags: [],
               groupIds: [],
-              avatar: extSel.avatars ? (m.avatarUrl || m.avatar || undefined) : undefined,
+              avatar: extSel.avatars ? (spAvatarUrl(m) || m.avatar || undefined) : undefined,
             };
           });
 
@@ -385,7 +411,8 @@ export default function ImportExportView({ system, members, history, journal, se
           const existingHistory = await store.getStrict<HistoryEntry[]>(KEYS.history, []) || [];
 
           const existingIds = new Set(existing.map(m => m.id));
-          const newMembers = importedMembers.filter(m => !existingIds.has(m.id));
+          const newMembersRaw = importedMembers.filter(m => !existingIds.has(m.id));
+          const newMembers = extSel.avatars ? await inlineRemoteAvatars(newMembersRaw) : newMembersRaw;
 
           await store.setBatch({
             [KEYS.members]: [...existing, ...newMembers],
@@ -436,10 +463,17 @@ export default function ImportExportView({ system, members, history, journal, se
         const idRemap: Record<string, string> = {};
         const toAdd: Member[] = [];
         conv.members.forEach(nm => {
-          const dup = (nm.sourceId && merged.find(e => e.sourceId === nm.sourceId)) || merged.find(e => !e.sourceId && e.name.toLowerCase() === nm.name.toLowerCase());
-          if (dup) { idRemap[nm.id] = dup.id; } else { idRemap[nm.id] = nm.id; toAdd.push(nm); }
+          const di = merged.findIndex(e => (nm.sourceId && e.sourceId === nm.sourceId) || (!e.sourceId && e.name.toLowerCase() === nm.name.toLowerCase()));
+          if (di >= 0) {
+            const dup = merged[di];
+            idRemap[nm.id] = dup.id;
+            // Re-importing a member is an explicit "I want this member back":
+            // revive a soft-delete tombstone instead of leaving it invisible.
+            if (dup.deleted) merged[di] = { ...dup, deleted: false, archived: nm.archived ?? false };
+          } else { idRemap[nm.id] = nm.id; toAdd.push(nm); }
         });
-        batch[KEYS.members] = [...merged, ...toAdd];
+        const toAddInlined = await inlineRemoteAvatars(toAdd);
+        batch[KEYS.members] = [...merged, ...toAddInlined];
 
         if (conv.history.length > 0) {
           const remapped = conv.history.map(h => ({ ...h, memberIds: h.memberIds.map(id => idRemap[id] || id) }));
@@ -447,8 +481,16 @@ export default function ImportExportView({ system, members, history, journal, se
         }
         if (conv.groups && conv.groups.length > 0) {
           const existingGroups = await store.getStrict<any[]>(KEYS.groups, []) || [];
-          const names = new Set(existingGroups.map((g: any) => String(g.name || '').toLowerCase()));
-          batch[KEYS.groups] = [...existingGroups, ...conv.groups.filter(g => !names.has(g.name.toLowerCase()))];
+          const mergedGroupList = [...existingGroups];
+          conv.groups.forEach(g => {
+            const srcId = `ext:${String(g.id)}`;
+            const idx = mergedGroupList.findIndex((e: any) => e.sourceId === srcId);
+            const nameIdx = idx < 0 ? mergedGroupList.findIndex((e: any) => !e.sourceId && String(e.name || '').toLowerCase() === g.name.toLowerCase()) : -1;
+            const at = idx >= 0 ? idx : nameIdx;
+            if (at >= 0) mergedGroupList[at] = { ...mergedGroupList[at], name: g.name, sourceId: srcId };
+            else mergedGroupList.push({ ...g, sourceId: srcId });
+          });
+          batch[KEYS.groups] = mergedGroupList;
         }
         if (conv.customFieldDefs && conv.customFieldDefs.length > 0) {
           const existingDefs = await store.getStrict<any[]>(KEYS.customFieldDefs, []) || [];
@@ -471,7 +513,7 @@ export default function ImportExportView({ system, members, history, journal, se
 
   const handleImportPluralSpace = async () => {
     const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'PluralSpace export (data.json)', extensions: ['json'] },
+      { name: 'PluralSpace export (.zip or data.json)', extensions: ['zip', 'json'] },
       { name: 'All Files', extensions: ['*'] },
     ]);
     if (!filePath) return;
@@ -483,7 +525,18 @@ export default function ImportExportView({ system, members, history, journal, se
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const text = new TextDecoder('utf-8').decode(bytes);
+      let zipFiles: Record<string, Uint8Array> | null = null;
+      let text: string;
+      if (/\.zip$/i.test(filePath)) {
+        zipFiles = unzipSync(bytes);
+        const jsonEntry = zipFiles['data.json']
+          ? 'data.json'
+          : Object.keys(zipFiles).find(k => /(^|\/)data\.json$/i.test(k)) || Object.keys(zipFiles).find(k => /\.json$/i.test(k));
+        if (!jsonEntry) throw new Error(t('share.psNotExport'));
+        text = strFromU8(zipFiles[jsonEntry]);
+      } else {
+        text = new TextDecoder('utf-8').decode(bytes);
+      }
       let d: any;
       try { d = JSON.parse(text); } catch { throw new Error(t('share.psNotExport')); }
       if (!detectPluralSpace(d)) throw new Error(t('share.psNotExport'));
@@ -503,11 +556,24 @@ export default function ImportExportView({ system, members, history, journal, se
       const existingGroups = await store.getStrict<MemberGroup[]>(KEYS.groups, []) || [];
       const groupRemap: Record<string, string> = {};
       const groupsToAdd: MemberGroup[] = [];
+      const mergedGroupList = [...existingGroups];
+      let groupsChanged = false;
       (conv.groups || []).forEach(g => {
-        const ex = existingGroups.find(e => String(e.name).toLowerCase() === g.name.toLowerCase());
-        if (ex) { groupRemap[g.id] = ex.id; } else { groupRemap[g.id] = g.id; groupsToAdd.push(g); }
+        const srcId = `ps:${String(g.id)}`;
+        const idx = mergedGroupList.findIndex(e => e.sourceId === srcId);
+        const nameIdx = idx < 0 ? mergedGroupList.findIndex(e => !e.sourceId && String(e.name).toLowerCase() === g.name.toLowerCase()) : -1;
+        const at = idx >= 0 ? idx : nameIdx;
+        if (at >= 0) {
+          groupRemap[g.id] = mergedGroupList[at].id;
+          mergedGroupList[at] = { ...mergedGroupList[at], name: g.name, sourceId: srcId };
+          groupsChanged = true;
+        } else {
+          groupRemap[g.id] = g.id;
+          mergedGroupList.push({ ...g, sourceId: srcId });
+          groupsChanged = true;
+        }
       });
-      if (groupsToAdd.length > 0) batch[KEYS.groups] = [...existingGroups, ...groupsToAdd];
+      if (groupsChanged) batch[KEYS.groups] = mergedGroupList;
 
       const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
       const merged = [...existing];
@@ -533,6 +599,10 @@ export default function ImportExportView({ system, members, history, journal, se
             description: fixed.description, archived: fixed.archived, isCustomFront: fixed.isCustomFront,
             sourceId: nm.sourceId, customFields: mergedCF,
             groupIds: [...new Set([...(dup.groupIds || []), ...(fixed.groupIds || [])])],
+            // Re-importing a member is an explicit "I want this member back":
+            // never let a soft-delete tombstone survive the merge (it made
+            // members invisible until a full wipe + reimport).
+            ...(dup.deleted ? { deleted: false } : {}),
           };
         } else {
           idRemap[nm.id] = nm.id;
@@ -548,10 +618,21 @@ export default function ImportExportView({ system, members, history, journal, se
         const localId = idRemap[origId] || origId;
         const relNorm = String(rel).replace(/^[/\\]+/, '');
         if (relNorm.includes('..')) continue;
+        if (zipFiles) {
+          const zipKey = relNorm.replace(/\\/g, '/');
+          const entry = zipFiles[zipKey] || zipFiles[String(rel)];
+          if (entry) {
+            allMembers = allMembers.map(m => m.id === localId ? { ...m, avatar: bytesToDataUri(entry, zipKey) } : m);
+            avatarsLoaded++;
+          }
+          continue;
+        }
         const abs = baseDir + sep + relNorm.replace(/[/\\]+/g, sep);
         const dataUrl = await window.electronAPI.file.readAsBase64(abs).catch(() => null);
         if (dataUrl) { allMembers = allMembers.map(m => m.id === localId ? { ...m, avatar: dataUrl } : m); avatarsLoaded++; }
       }
+      // Inline any remaining remote (http) avatar_path URLs to base64 too.
+      allMembers = await inlineRemoteAvatars(allMembers);
       batch[KEYS.members] = allMembers;
 
       if (conv.history.length > 0) {
@@ -625,7 +706,7 @@ export default function ImportExportView({ system, members, history, journal, se
   const [extToken, setExtToken] = useState('');
   const [extLoading, setExtLoading] = useState(false);
   const [extPreview, setExtPreview] = useState<{members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[]} | null>(null);
-  const [extSel, setExtSel] = useState({system: true, members: true, avatars: true, frontHistory: true, customFields: true, groups: true});
+  const [extSel, setExtSel] = useState({system: true, members: true, avatars: true, frontHistory: true, customFields: true, groups: true, displayNames: true});
   const togE = (k: string) => setExtSel(s => ({...s, [k]: !s[k as keyof typeof s]}));
 
   const spGet = async (url: string, headers: Record<string, string>): Promise<any | null> => {
@@ -694,17 +775,19 @@ export default function ImportExportView({ system, members, history, journal, se
         const desc = isPK ? (extPreview.system.description || system.description) : (extPreview.system.content?.desc || extPreview.system.content?.description || system.description);
         batch[KEYS.system] = {...system, name: name || system.name, description: desc};
       }
-      const newM: Member[] = extSel.members && extPreview.members.length > 0
+      const spUid = String(extPreview.system?.id || extPreview.system?.uid || '');
+      let newM: Member[] = extSel.members && extPreview.members.length > 0
         ? extPreview.members.map((m: any) => ({
-            id: uid(), name: isPK ? (m.display_name || m.name) : (m.content?.name || m.name || 'Unknown'),
+            id: uid(), name: isPK ? ((extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) || 'Unknown') : (m.content?.name || m.name || 'Unknown'),
             pronouns: isPK ? (m.pronouns || '') : (m.content?.pronouns || ''),
             role: isPK ? '' : (m.content?.role || ''),
             color: isPK ? (m.color ? `#${m.color}` : '#DAA520') : (m.content?.color || '#DAA520'),
             description: isPK ? (m.description || '') : (m.content?.desc || ''),
-            avatar: extSel.avatars ? (isPK ? (m.avatar_url || undefined) : (m.content?.avatarUrl || undefined)) : undefined,
+            avatar: extSel.avatars ? (isPK ? (m.avatar_url || undefined) : (spAvatarUrl(m.content, spUid) || undefined)) : undefined,
             tags: [] as string[], groupIds: [] as string[],
           }))
         : [];
+      if (extSel.avatars && newM.length > 0) newM = await inlineRemoteAvatars(newM);
       let membersAfter: Member[] = members;
       let membersDirty = false;
       if (newM.length > 0) {
@@ -1043,6 +1126,7 @@ export default function ImportExportView({ system, members, history, journal, se
               {([
                 ['system', t('share.systemNameDesc'), true],
                 ['members', t('share.memberProfiles'), extPreview.members.length > 0],
+                ...(extSource === 'pk' ? [['displayNames', t('share.usePkDisplayNames'), true]] as [string, string, boolean][] : []),
                 ['avatars', t('share.profilePictures'), extPreview.members.length > 0],
                 ['frontHistory', t('share.frontHistory'), extPreview.switches.length > 0],
                 ...(extSource === 'sp' ? [

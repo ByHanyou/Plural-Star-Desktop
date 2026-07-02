@@ -21,7 +21,7 @@ export default function MedicalTile({ onClick }: Props) {
   const row: React.CSSProperties = { fontSize: 13, color: 'var(--text)', display: 'flex', gap: 6, alignItems: 'baseline' };
 
   return (
-    <div className="tile tile--clickable" onClick={onClick}>
+    <div className="tile tile--clickable" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header"><div className="tile__glyph">⚕</div><span className="tile__title">{t('medical.title')}</span></div>
       <div className="tile__body">
         {empty && <span className="tile__empty">{t('medical.noMedications')}</span>}

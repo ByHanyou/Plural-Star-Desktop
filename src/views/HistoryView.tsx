@@ -79,7 +79,7 @@ export default function HistoryView({ history, members, onUpdate, singlet = fals
         borderRadius: 999, background: `${m.color}15`, border: `1px solid ${m.color}30`,
       }}>
         {m.avatar ? (
-          <img src={m.avatar} style={{ width: 16, height: 16, borderRadius: 8, objectFit: 'cover', display: 'inline-block' }} />
+          <img src={m.avatar} alt="" style={{ width: 16, height: 16, borderRadius: 8, objectFit: 'cover', display: 'inline-block' }} />
         ) : (
           <span style={{ width: 16, height: 16, borderRadius: 8, background: m.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700 }}>
             {getInitials(m.name)}
@@ -125,7 +125,7 @@ export default function HistoryView({ history, members, onUpdate, singlet = fals
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
           placeholder={t('members.search')} style={{ flex: 1, minWidth: 200 }} />
-        <select style={{
+        <select aria-label="Filter by member" style={{
           background: 'var(--surface)', color: memberFilter ? 'var(--accent)' : 'var(--muted)',
           border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
         }} value={memberFilter} onChange={e => setMemberFilter(e.target.value)}>

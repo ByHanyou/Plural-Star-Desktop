@@ -1,6 +1,6 @@
 {
   "name": "plural-space-desktop",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Plural Star — Desktop",
   "author": {
     "name": "The Hanyou System",
@@ -23,6 +23,7 @@
   "dependencies": {
     "electron-store": "^11.0.2",
     "fflate": "^0.8.2",
+    "tweetnacl": "^1.0.3",
     "i18next": "^26.2.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

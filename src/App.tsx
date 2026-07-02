@@ -31,6 +31,8 @@ import ArchiveTile from './tiles/ArchiveTile';
 import RetroHistoryTile from './tiles/RetroHistoryTile';
 import StatusTile from './tiles/StatusTile';
 import ProfileTile from './tiles/ProfileTile';
+import NetworkTile from './tiles/NetworkTile';
+import MailboxTile from './tiles/MailboxTile';
 
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
@@ -50,8 +52,12 @@ import SystemManagerView from './views/SystemManagerView';
 import RetroHistoryView from './views/RetroHistoryView';
 import StatusView, { SetStatusModal } from './views/StatusView';
 import ProfileView from './views/ProfileView';
+import NetworkView from './views/NetworkView';
+import MailboxView from './views/MailboxView';
+import { NetworkManager } from './network/NetworkManager';
+import { Modal, Btn } from './components/ui';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox';
 
 interface AppState {
   system: SystemInfo;
@@ -148,7 +154,9 @@ function AppInner() {
     const mergedSettings = { ...DEFAULT_SETTINGS, ...settings };
     let memberList = members || [];
     if (!mergedSettings.customFrontsSeeded) {
-      memberList = [...memberList, ...makeDefaultCustomFronts()];
+      const existingCustomNames = new Set(memberList.filter(m => m.isCustomFront).map(m => (m.name || '').toLowerCase()));
+      const seeds = makeDefaultCustomFronts().filter(cf => !existingCustomNames.has(cf.name.toLowerCase()));
+      memberList = [...memberList, ...seeds];
       mergedSettings.customFrontsSeeded = true;
       await store.setBatch({ [KEYS.members]: memberList, [KEYS.settings]: mergedSettings });
     }
@@ -188,6 +196,19 @@ function AppInner() {
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => startMedicalReminders(), []);
+
+  // ---- Network (Friends & device Sync) ----
+  const [syncConflict, setSyncConflict] = useState<{peerId: string; deviceName: string} | null>(null);
+  const [roleMismatch, setRoleMismatch] = useState<{deviceName: string} | null>(null);
+  useEffect(() => { NetworkManager.init().catch(e => console.error('[NETWORK] init failed:', e)); }, []);
+  // Share the current front with accepted friends whenever it changes.
+  useEffect(() => { NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.front, state.members]);
+  // Poke the sync engine when any synced data changes (it debounces + rate-limits).
+  useEffect(() => { NetworkManager.notifyDataChanged(); }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.settings, state.palettes]);
+  // Apply incoming device-sync writes by reloading app state.
+  useEffect(() => NetworkManager.onSyncApplied(() => { loadData(); }), [loadData]);
+  useEffect(() => NetworkManager.onSyncConflict(c => setSyncConflict({peerId: c.peerId, deviceName: c.deviceName})), []);
+  useEffect(() => NetworkManager.onSyncRoleMismatch(c => setRoleMismatch({deviceName: c.deviceName})), []);
 
   const systemName = state.system.name || 'Plural Star';
 
@@ -274,6 +295,7 @@ function AppInner() {
               />
             )}
             <MedicalTile onClick={() => setView('medical')} />
+            <NetworkTile onClick={() => setView('network')} />
             {isSinglet ? (
               <ProfileTile
                 member={selfMember}
@@ -304,6 +326,12 @@ function AppInner() {
                 channels={state.channels}
                 members={state.members}
                 onClick={() => setView('chat')}
+              />
+            )}
+            {!isSinglet && (
+              <MailboxTile
+                members={state.members}
+                onClick={() => setView('mailbox')}
               />
             )}
             <StatsTile
@@ -368,6 +396,8 @@ function AppInner() {
                 : view === 'medical' ? t('medical.title')
                 : view === 'archive' ? t('hub.archive')
                 : view === 'retro-history' ? t('hub.retroHistory')
+                : view === 'network' ? t('network.title')
+                : view === 'mailbox' ? t('mailbox.title')
                 : view}
             </span>
           </div>
@@ -438,6 +468,12 @@ function AppInner() {
             {view === 'credits' && (
               <CreditsView />
             )}
+            {view === 'network' && (
+              <NetworkView />
+            )}
+            {view === 'mailbox' && (
+              <MailboxView members={state.members} />
+            )}
           </div>
         </div>
       )}
@@ -464,6 +500,42 @@ function AppInner() {
           allMoods={[...DEFAULT_MOODS, ...(state.settings.customMoods || [])]}
         />
       )}
+
+      {/* Device-sync conflict: which device's data wins. Global — a conflict can
+          arrive while any view is open. */}
+      <Modal
+        open={!!syncConflict}
+        title={t('network.syncConflictTitle')}
+        onClose={() => setSyncConflict(null)}
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Btn onClick={() => { const c = syncConflict!; setSyncConflict(null); NetworkManager.resolveConflict(c.peerId, 'mine'); }}>
+              {t('network.keepThisDevice')}
+            </Btn>
+            <Btn onClick={() => { const c = syncConflict!; setSyncConflict(null); NetworkManager.resolveConflict(c.peerId, 'theirs'); }}>
+              {t('network.keepOtherDevice')}
+            </Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--text)' }}>
+          {t('network.syncConflictMsg', { device: syncConflict?.deviceName || '', defaultValue: `Your data differs from ${syncConflict?.deviceName}. Which device should win?` })}
+        </p>
+      </Modal>
+
+      {/* Both devices picked the same clone direction — the initial copy was skipped. */}
+      <Modal
+        open={!!roleMismatch}
+        title={t('network.syncRoleMismatchTitle')}
+        onClose={() => setRoleMismatch(null)}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Btn onClick={() => setRoleMismatch(null)}>{t('common.ok', { defaultValue: 'OK' })}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--text)' }}>
+          {t('network.syncRoleMismatchMsg', { device: roleMismatch?.deviceName || '' })}
+        </p>
+      </Modal>
     </div>
   );
 }

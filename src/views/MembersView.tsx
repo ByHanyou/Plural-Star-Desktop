@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown } from '../components/ui';
+import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
 
 interface Props {
   members: Member[];
@@ -79,9 +79,9 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
   const deleteNote = (id: string) => saveNotes(allNotes.filter(n => n.id !== id));
   const togglePin = (id: string) => saveNotes(allNotes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
 
-  const active = members.filter(m => !m.archived && !m.isCustomFront);
-  const archived = members.filter(m => m.archived && !m.isCustomFront);
-  const customFronts = members.filter(m => m.isCustomFront);
+  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.deleted);
+  const archived = members.filter(m => m.archived && !m.isCustomFront && !m.deleted);
+  const customFronts = members.filter(m => m.isCustomFront && !m.deleted);
   const sorted = sortMembers(listView === 'customFronts' ? customFronts : listView === 'archived' ? archived : active, sortMode);
   const filtered = sorted.filter(m =>
     !search || m.name.toLowerCase().includes(search.toLowerCase())
@@ -139,7 +139,9 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
   };
 
   const deleteMember = async (id: string) => {
-    await store.set(KEYS.members, members.filter(m => m.id !== id));
+    // Soft-delete: keep a hidden tombstone (archived + deleted) so front history & stats
+    // still resolve the member's name instead of showing the raw ID ("scary symbols").
+    await store.set(KEYS.members, members.map(m => m.id === id ? { ...m, archived: true, deleted: true } : m));
     setConfirmDelete(null);
     setEditing(null);
     onUpdate();
@@ -204,13 +206,13 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {filtered.map(m => (
           <div key={m.id} className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer' }}
-            onClick={() => openEdit(m)}>
+            {...clickable(() => openEdit(m), m.name)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="tile__avatar" style={{
                 width: 40, height: 40, fontSize: 14, overflow: 'hidden',
                 ...(!m.avatar ? { backgroundColor: m.color } : {}),
               }}>
-                {m.avatar ? <img src={m.avatar} style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover' }} /> : getInitials(m.name)}
+                {m.avatar ? <img src={m.avatar} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover' }} /> : getInitials(m.name)}
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{m.name}</div>
@@ -295,8 +297,8 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
               width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
               border: `2px solid ${f.color}`, overflow: 'hidden',
               ...(!f.avatar ? { backgroundColor: f.color } : {}),
-            }} onClick={pickAvatar}>
-              {f.avatar ? <img src={f.avatar} style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
+            }} {...clickable(pickAvatar, 'Change profile picture')}>
+              {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
             </div>
             <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
               <button style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -313,7 +315,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
               backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
               backgroundColor: f.banner ? undefined : 'var(--surface)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,
-            }} onClick={pickBanner}>
+            }} {...clickable(pickBanner, 'Change banner')}>
               {!f.banner && t('memberProfile.changeBanner')}
             </div>
             {f.banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
@@ -388,33 +390,33 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
                         <label className="field__label">{fd.name}</label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 28, height: 28, borderRadius: 6, background: String(val || '#333'), border: '1px solid var(--border)' }} />
-                          <input className="field__input" type="color" value={String(val || '#333333')}
+                          <input className="field__input" aria-label={fd.name} type="color" value={String(val || '#333333')}
                             onChange={e => setFieldVal(e.target.value)} style={{ width: 60, padding: 2 }} />
                         </div>
                       </div>
                     ) : fd.type === 'date' || fd.type === 'timestamp' ? (
                       <div>
                         <label className="field__label">{fd.name}</label>
-                        <input className="field__input" type={fd.type === 'timestamp' ? 'datetime-local' : 'date'}
+                        <input className="field__input" aria-label={fd.name} type={fd.type === 'timestamp' ? 'datetime-local' : 'date'}
                           value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
                       </div>
                     ) : fd.type === 'month' ? (
                       <div>
                         <label className="field__label">{fd.name}</label>
-                        <input className="field__input" type="month" value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
+                        <input className="field__input" aria-label={fd.name} type="month" value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
                       </div>
                     ) : fd.type === 'year' ? (
                       <Field label={fd.name} value={String(val || '')} onChange={v => setFieldVal(v)} placeholder="YYYY" />
                     ) : fd.type === 'monthYear' ? (
                       <div>
                         <label className="field__label">{fd.name}</label>
-                        <input className="field__input" type="month" value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
+                        <input className="field__input" aria-label={fd.name} type="month" value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
                       </div>
                     ) : fd.type === 'monthDay' ? (
                       <div>
                         <label className="field__label">{fd.name}</label>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <select className="field__input" style={{ flex: 1 }} value={String(val || '').split('-')[0] || ''}
+                          <select className="field__input" aria-label={fd.name} style={{ flex: 1 }} value={String(val || '').split('-')[0] || ''}
                             onChange={e => setFieldVal(`${e.target.value}-${String(val || '').split('-')[1] || '01'}`)}>
                             <option value="">Month</option>
                             {Array.from({length: 12}, (_, i) => <option key={i+1} value={String(i+1).padStart(2,'0')}>{new Date(2000, i).toLocaleString('default', {month: 'long'})}</option>)}
@@ -429,9 +431,9 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
                       <div>
                         <label className="field__label">{fd.name}</label>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <input className="field__input" type="date" value={String(val || '').split('|')[0] || ''}
+                          <input className="field__input" aria-label={`${fd.name} (start)`} type="date" value={String(val || '').split('|')[0] || ''}
                             onChange={e => setFieldVal(`${e.target.value}|${String(val || '').split('|')[1] || ''}`)} style={{ flex: 1 }} />
-                          <input className="field__input" type="date" value={String(val || '').split('|')[1] || ''}
+                          <input className="field__input" aria-label={`${fd.name} (end)`} type="date" value={String(val || '').split('|')[1] || ''}
                             onChange={e => setFieldVal(`${String(val || '').split('|')[0] || ''}|${e.target.value}`)} style={{ flex: 1 }} />
                         </div>
                       </div>
@@ -544,7 +546,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('noteboard.writingAs')}</span>
                 <select style={{ background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 12 }}
-                  value={noteAuthorId || ''} onChange={e => setNoteAuthorId(e.target.value)}>
+                  aria-label={t('noteboard.writingAs')} value={noteAuthorId || ''} onChange={e => setNoteAuthorId(e.target.value)}>
                   {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>

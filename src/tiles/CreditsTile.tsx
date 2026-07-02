@@ -6,7 +6,7 @@ interface Props { onClick: () => void; }
 export default function CreditsTile({ onClick }: Props) {
   const { t } = useTranslation();
   return (
-    <div className="tile tile--clickable tile--center" onClick={onClick}>
+    <div className="tile tile--clickable tile--center" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header">
         <span className="tile__icon">✦</span>
         <span className="tile__title">{t('hub.credits', { defaultValue: 'Credits' })}</span>

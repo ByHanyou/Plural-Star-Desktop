@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, JournalEntry, JournalTemplate, uid, fmtDate, fmtTime } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
 
 interface Props {
   journal: JournalEntry[];
@@ -200,7 +200,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
           <select style={{
             background: 'var(--surface)', color: tagFilter ? 'var(--accent)' : 'var(--muted)',
             border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
-          }} value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
+          }} aria-label="Filter by tag" value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
             <option value="">All tags</option>
             {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
           </select>
@@ -208,7 +208,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
           <select style={{
             background: 'var(--surface)', color: authorFilter ? 'var(--accent)' : 'var(--muted)',
             border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
-          }} value={authorFilter} onChange={e => setAuthorFilter(e.target.value)}>
+          }} aria-label="Filter by author" value={authorFilter} onChange={e => setAuthorFilter(e.target.value)}>
             <option value="">All authors</option>
             {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
@@ -225,7 +225,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
               minHeight: 'auto', padding: 16, cursor: 'pointer',
               ...(entry.pinned ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--card))', borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border))' } : {}),
             }}
-              onClick={() => openEdit(entry)}>
+              {...clickable(() => openEdit(entry))}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{entry.pinned ? '📌 ' : ''}{entry.title}</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
@@ -279,7 +279,7 @@ export default function JournalView({ journal, members, onUpdate }: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {templates.map(tpl => (
             <div key={tpl.id} className="tile" style={{ minHeight: 'auto', padding: 16, cursor: 'pointer' }}
-              onClick={() => openEditTemplate(tpl)}>
+              {...clickable(() => openEditTemplate(tpl))}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{tpl.name}</span>
               </div>

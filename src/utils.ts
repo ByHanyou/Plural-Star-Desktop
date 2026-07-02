@@ -18,6 +18,7 @@ export interface MemberGroup {
   kind?: GroupNodeKind;
   parentId?: string | null;
   sortOrder?: number;
+  sourceId?: string;
 }
 
 export const groupKind = (g: MemberGroup): GroupNodeKind => g.kind || 'group';
@@ -97,6 +98,9 @@ export interface Member {
   tags?: string[];
   groupIds?: string[];
   archived?: boolean;
+  // Soft-delete tombstone: hidden from every member list but kept so front history &
+  // stats resolve the member's name/color instead of the raw ID.
+  deleted?: boolean;
   avatar?: string;
   banner?: string;
   customFields?: CustomFieldValue[];

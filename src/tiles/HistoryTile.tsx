@@ -9,7 +9,7 @@ export default function HistoryTile({ history, members, onClick }: Props) {
   const recent = history.filter(h => !h.changeType || h.changeType === 'front').slice(0, 4);
   const getMember = (id: string) => members.find(m => m.id === id);
   return (
-    <div className="tile" onClick={onClick}>
+    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header"><div className="tile__glyph">◷</div><span className="tile__title">{t('history.title')}</span></div>
       <div className="tile__body">
         {recent.length === 0 ? <span className="tile__empty">{t('history.noHistory')}</span> : recent.map((entry, i) => {

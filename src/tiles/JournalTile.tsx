@@ -9,7 +9,7 @@ export default function JournalTile({ journal, members, onClick }: Props) {
   const recent = [...journal].sort((a, b) => b.timestamp - a.timestamp).slice(0, 3);
   const getMember = (id: string) => members.find(m => m.id === id);
   return (
-    <div className="tile" onClick={onClick}>
+    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header"><div className="tile__glyph">📓</div><span className="tile__title">{t('journal.title')}</span></div>
       <div className="tile__body">
         {recent.length === 0 ? <span className="tile__empty">{t('journal.noEntries')}</span> : recent.map(entry => (

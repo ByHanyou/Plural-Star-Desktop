@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, MemberGroup, GroupNodeKind, uid, childrenOf, descendantsOf, isDescendant, groupKind } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, ConfirmDialog, ColorPicker } from '../components/ui';
+import { Btn, ConfirmDialog, ColorPicker, useEscapeKey } from '../components/ui';
 import { PALETTE } from '../theme';
 
 interface Props {
@@ -23,6 +23,7 @@ export default function SystemManagerView({ members, groups, onUpdate, onViewMem
   const [editColor, setEditColor] = useState<string>(PALETTE[0]);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  useEscapeKey(!!confirmDeleteId, () => setConfirmDeleteId(null));
   const [showNewColor, setShowNewColor] = useState(false);
   const [showEditColor, setShowEditColor] = useState(false);
   const [browse, setBrowse] = useState(false);
@@ -95,7 +96,7 @@ export default function SystemManagerView({ members, groups, onUpdate, onViewMem
           )}
           {isEditing ? (
             <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input className="field__input" value={editName} autoFocus onChange={e => setEditName(e.target.value)}
+              <input className="field__input" aria-label="Group name" value={editName} autoFocus onChange={e => setEditName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') renameNode(g.id); if (e.key === 'Escape') setEditId(null); }}
                 style={{ flex: 1, fontSize: 13 }} />
               <button onClick={() => renameNode(g.id)} title={t('common.save')} style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}>✓</button>
@@ -218,8 +219,8 @@ export default function SystemManagerView({ members, groups, onUpdate, onViewMem
           danger onConfirm={() => deleteLeaf(confirmTarget.id)} onCancel={() => setConfirmDeleteId(null)} />
       )}
       {confirmTarget && confirmKids.length > 0 && (
-        <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
-          <div className="modal modal--sm" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" role="presentation" onClick={() => setConfirmDeleteId(null)}>
+          <div className="modal modal--sm" role="presentation" onClick={e => e.stopPropagation()}>
             <div className="modal__header"><span className="modal__title">{t('memberGroups.deleteGroup')}</span></div>
             <div className="modal__body">
               <p style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5 }}>{t('memberGroups.deleteWithChildrenMsg', { count: confirmKids.length })}</p>

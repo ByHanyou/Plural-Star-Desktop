@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   net: {
     fetch: (url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) =>
       ipcRenderer.invoke('net:fetch', url, options),
+    fetchImage: (url: string) => ipcRenderer.invoke('net:fetchImage', url),
   },
 
   notify: (title: string, body: string) => ipcRenderer.invoke('notify', title, body),

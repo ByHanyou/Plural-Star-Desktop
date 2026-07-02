@@ -5,7 +5,7 @@ import {
   uid, getInitials, fmtTime,
 } from '../utils';
 import { store, KEYS, chatMsgKey } from '../storage';
-import { Btn, Field, Modal, ConfirmDialog } from '../components/ui';
+import { Btn, Field, Modal, ConfirmDialog, clickable } from '../components/ui';
 
 interface Props {
   members: Member[];
@@ -168,7 +168,7 @@ export default function ChatView({ members, channels, onUpdate }: Props) {
               display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer',
               background: activeChannelId === ch.id ? 'var(--accent-bg)' : 'transparent',
               borderLeft: activeChannelId === ch.id ? '3px solid var(--accent)' : '3px solid transparent',
-            }} onClick={() => setActiveChannelId(ch.id)}
+            }} {...clickable(() => setActiveChannelId(ch.id), ch.name)}
               onContextMenu={e => { e.preventDefault(); setEditChannelId(ch.id); setEditChannelName(ch.name); }}>
               <span style={{ color: activeChannelId === ch.id ? 'var(--accent)' : 'var(--dim)', fontSize: 13 }}>
                 # {ch.name}
@@ -186,7 +186,7 @@ export default function ChatView({ members, channels, onUpdate }: Props) {
               </button>
               {showArchived && archivedChannels.map(ch => (
                 <div key={ch.id} style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.5 }}
-                  onClick={() => setActiveChannelId(ch.id)}>
+                  {...clickable(() => setActiveChannelId(ch.id), ch.name)}>
                   <span style={{ color: 'var(--muted)', fontSize: 12 }}># {ch.name}</span>
                 </div>
               ))}
@@ -209,7 +209,7 @@ export default function ChatView({ members, channels, onUpdate }: Props) {
                   width: 22, height: 22, fontSize: 9, overflow: 'hidden',
                   ...(!activeMember.avatar ? { backgroundColor: activeMember.color } : {}),
                 }}>
-                  {activeMember.avatar ? <img src={activeMember.avatar} style={{ width: 22, height: 22, borderRadius: 11, objectFit: 'cover' }} /> : getInitials(activeMember.name)}
+                  {activeMember.avatar ? <img src={activeMember.avatar} alt="" style={{ width: 22, height: 22, borderRadius: 11, objectFit: 'cover' }} /> : getInitials(activeMember.name)}
                 </div>
                 <span style={{ fontSize: 12, color: activeMember.color, flex: 1, textAlign: 'left' }}>{activeMember.name}</span>
               </>
@@ -279,7 +279,7 @@ export default function ChatView({ members, channels, onUpdate }: Props) {
                     width: 32, height: 32, fontSize: 12, flexShrink: 0, marginTop: 2, overflow: 'hidden',
                     ...(!author?.avatar ? { backgroundColor: author?.color || 'var(--muted)' } : {}),
                   }}>
-                    {author?.avatar ? <img src={author.avatar} style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(author?.name || '?')}
+                    {author?.avatar ? <img src={author.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(author?.name || '?')}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>

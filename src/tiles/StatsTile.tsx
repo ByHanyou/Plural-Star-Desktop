@@ -17,7 +17,7 @@ export default function StatsTile({ history, members, onClick }: Props) {
   const totalSessions = frontEntries.length;
   const totalTime = Object.values(totalsByMember).reduce((a, b) => a + b, 0);
   return (
-    <div className="tile" onClick={onClick}>
+    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header"><div className="tile__glyph">⊞</div><span className="tile__title">{t('hub.statistics')}</span></div>
       <div className="tile__body">
         {totalSessions === 0 ? <span className="tile__empty">{t('history.noHistory')}</span> : (<>

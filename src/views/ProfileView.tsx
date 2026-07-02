@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Member, FrontState, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Section, ColorPicker, Modal, ConfirmDialog } from '../components/ui';
+import { Btn, Field, Section, ColorPicker, Modal, ConfirmDialog, clickable } from '../components/ui';
 
 type SubTab = 'profile' | 'statuses';
 
@@ -122,11 +122,11 @@ export default function ProfileView({ member, statuses, front, members, onUpdate
       {subTab === 'profile' && (
         <div>
           {member?.banner && (
-            <img src={member.banner} style={{ width: '100%', aspectRatio: '3', objectFit: 'cover', borderRadius: 'var(--radius)' }} />
+            <img src={member.banner} alt="" style={{ width: '100%', aspectRatio: '3', objectFit: 'cover', borderRadius: 'var(--radius)' }} />
           )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: member?.banner ? -36 : 0, marginBottom: 14 }}>
             {member?.avatar ? (
-              <img src={member.avatar} style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: `2px solid ${member.color || 'var(--accent)'}` }} />
+              <img src={member.avatar} alt="" style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: `2px solid ${member.color || 'var(--accent)'}` }} />
             ) : (
               <div style={{ width: 88, height: 88, borderRadius: 20, background: member?.color || 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.15)' }}>
                 <span style={{ fontSize: 30, fontWeight: 700, color: 'rgba(0,0,0,0.75)' }}>{getInitials(member?.name || '?')}</span>
@@ -199,8 +199,8 @@ export default function ProfileView({ member, statuses, front, members, onUpdate
             width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
             border: `2px solid ${f.color}`, overflow: 'hidden',
             ...(!f.avatar ? { backgroundColor: f.color } : {}),
-          }} onClick={pickAvatar}>
-            {f.avatar ? <img src={f.avatar} style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
+          }} {...clickable(pickAvatar, 'Change profile picture')}>
+            {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
           </div>
           <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
             <button style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -217,7 +217,7 @@ export default function ProfileView({ member, statuses, front, members, onUpdate
             backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
             backgroundColor: f.banner ? undefined : 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,
-          }} onClick={pickBanner}>
+          }} {...clickable(pickBanner, 'Change banner')}>
             {!f.banner && t('memberProfile.changeBanner')}
           </div>
           {f.banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}

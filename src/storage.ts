@@ -22,6 +22,7 @@ declare global {
       net: {
         fetch: (url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) =>
           Promise<{ ok: boolean; status: number; text: string }>;
+        fetchImage: (url: string) => Promise<string | null>;
       };
       notify: (title: string, body: string) => Promise<void>;
       window: {

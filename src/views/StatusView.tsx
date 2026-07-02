@@ -5,7 +5,7 @@ import {
   fmtTime, fmtDur, isFrontEmpty, translateMood,
   parseMoodList, toggleMoodInList, serializeMoodList,
 } from '../utils';
-import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
 
 export function SetStatusModal({ open, onClose, onSave, statuses, selfId, current, settings }: {
   open: boolean; onClose: () => void; onSave: (p: any, cf: any, cc: any) => void;
@@ -201,7 +201,7 @@ export default function StatusView({ front, members, statuses, selfId, settings,
         </div>
       ) : (
         <div style={{ padding: 16, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer' }}
-          onClick={openSet}>
+          {...clickable(openSet, t('status.update'))}>
           {activeStatuses.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
               {activeStatuses.map(m => (

@@ -233,6 +233,33 @@ ipcMain.handle('net:fetch', async (_e, url: string, options?: { method?: string;
   }
 });
 
+// Fetch a remote image in the main process (no renderer CSP restriction) and return it
+// as a self-contained base64 data URI, so imported avatars work like the mobile app
+// (downloaded + inlined) instead of depending on a live remote URL.
+ipcMain.handle('net:fetchImage', async (_e, url: string) => {
+  try {
+    if (!/^https?:\/\//i.test(String(url || ''))) return null;
+    const res = await fetch(url, { headers: { 'User-Agent': 'PluralStar-Desktop' } });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length === 0 || buf.length > 12 * 1024 * 1024) return null;
+    const extMime: Record<string, string> = {
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+    };
+    const ct = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    let mime = ct.startsWith('image/') ? ct : '';
+    if (!mime) {
+      const ext = path.extname(String(url).split('?')[0]).toLowerCase().replace('.', '');
+      mime = extMime[ext] || 'image/png';
+    }
+    return `data:${mime};base64,${buf.toString('base64')}`;
+  } catch (e: any) {
+    console.error('[net:fetchImage] error:', e?.message || e);
+    return null;
+  }
+});
+
 ipcMain.handle('notify', (_e, title: string, body: string) => {
   new Notification({ title, body }).show();
 });

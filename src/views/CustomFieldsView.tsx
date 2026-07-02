@@ -83,7 +83,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
               <div style={{ flex: 1 }}>
                 {editId === fd.id ? (
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <input className="field__input" value={editName} onChange={e => setEditName(e.target.value)}
+                    <input className="field__input" aria-label="Field name" value={editName} onChange={e => setEditName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') renameField(fd.id); }}
                       autoFocus style={{ flex: 1, fontSize: 13 }} />
                     <Btn onClick={() => renameField(fd.id)}>✓</Btn>
@@ -132,7 +132,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
           </div>
           <div style={{ minWidth: 140 }}>
             <label className="field__label">{t('customFields.fieldType')}</label>
-            <select style={{
+            <select aria-label={t('customFields.fieldType')} style={{
               width: '100%', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)',
               borderRadius: 8, padding: '9px 10px', fontSize: 13,
             }} value={newType} onChange={e => setNewType(e.target.value as CustomFieldType)}>

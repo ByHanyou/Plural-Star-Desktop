@@ -1,6 +1,28 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import './ui.css';
+
+// Spread onto a non-<button> element that acts as a button, so keyboard users can
+// operate it (Enter/Space) and screen readers announce it as a button (WCAG 2.1.1 / 4.1.2).
+export const clickable = (onClick?: () => void, label?: string) => ({
+  role: 'button' as const,
+  tabIndex: 0,
+  ...(label ? { 'aria-label': label } : {}),
+  onClick,
+  onKeyDown: (e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && onClick) { e.preventDefault(); onClick(); }
+  },
+});
+
+// Close a modal/dialog on Escape while it's open.
+export function useEscapeKey(active: boolean, onEscape: () => void) {
+  useEffect(() => {
+    if (!active) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onEscape(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [active, onEscape]);
+}
 
 type BtnVariant = 'primary' | 'ghost' | 'danger' | 'solid' | 'info';
 
@@ -19,14 +41,15 @@ export function Field({ label, value, onChange, placeholder, multiline = false, 
   label?: string; value: string; onChange: (v: string) => void; placeholder?: string;
   multiline?: boolean; type?: string; mono?: boolean;
 }) {
+  const id = useId();
   return (
     <div className="field">
-      {label && <label className="field__label">{label}</label>}
+      {label && <label className="field__label" htmlFor={id}>{label}</label>}
       {multiline ? (
-        <textarea className="field__input field__input--multi" value={value} onChange={e => onChange(e.target.value)}
+        <textarea id={id} aria-label={label ? undefined : placeholder} className="field__input field__input--multi" value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder} rows={4} />
       ) : (
-        <input className={`field__input ${mono ? 'field__input--mono' : ''}`} type={type} value={value}
+        <input id={id} aria-label={label ? undefined : placeholder} className={`field__input ${mono ? 'field__input--mono' : ''}`} type={type} value={value}
           onChange={e => onChange(e.target.value)} placeholder={placeholder} />
       )}
     </div>
@@ -291,10 +314,11 @@ export function ColorPicker({ value, onChange, palette }: {
 export function Modal({ open, title, onClose, footer, children }: {
   open: boolean; title: string; onClose: () => void; footer?: React.ReactNode; children: React.ReactNode;
 }) {
+  useEscapeKey(open, onClose);
   if (!open) return null;
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" role="presentation" onClick={onClose}>
+      <div className="modal" role="presentation" onClick={e => e.stopPropagation()}>
         <div className="modal__header">
           <span className="modal__title">{title}</span>
           <button className="modal__close" onClick={onClose}>✕</button>
@@ -311,10 +335,11 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, dange
   open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; danger?: boolean;
 }) {
   const { t } = useTranslation();
+  useEscapeKey(open, onCancel);
   if (!open) return null;
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal modal--sm" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" role="presentation" onClick={onCancel}>
+      <div className="modal modal--sm" role="presentation" onClick={e => e.stopPropagation()}>
         <div className="modal__header">
           <span className="modal__title">{title}</span>
         </div>

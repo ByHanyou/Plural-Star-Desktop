@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn } from '../components/ui';
+import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn, clickable } from '../components/ui';
 import { SystemInfo, AppSettings, TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex, resizeBannerDataUrl } from '../utils';
 import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice } from '../theme';
 import { store, KEYS } from '../storage';
@@ -21,7 +21,7 @@ const HexField = ({ label, value, onChange }: { label: string; value: string; on
     <div style={{ flex: 1 }}>
       <label className="field__label">{label}</label>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <input type="color" value={normalized}
+        <input type="color" aria-label={label} value={normalized}
           onChange={e => onChange(e.target.value.toUpperCase())}
           style={{ width: 28, height: 28, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', background: 'none' }} />
         <input className={`field__input field__input--mono ${valid ? '' : 'field__input--error'}`}
@@ -189,7 +189,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
             backgroundImage: systemAvatar ? `url(${systemAvatar})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
             backgroundColor: systemAvatar ? undefined : 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--dim)',
-          }} onClick={() => pickSystemImage('avatar')}>
+          }} {...clickable(() => pickSystemImage('avatar'), 'Change system picture')}>
             {!systemAvatar && '📷'}
           </div>
           <div style={{ marginTop: 4, display: 'flex', gap: 6, justifyContent: 'center' }}>
@@ -204,7 +204,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
             backgroundImage: systemBanner ? `url(${systemBanner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
             backgroundColor: systemBanner ? undefined : 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 13,
-          }} onClick={() => pickSystemImage('banner')}>
+          }} {...clickable(() => pickSystemImage('banner'), 'Change system banner')}>
             {!systemBanner && t('systemProfile.changeBanner')}
           </div>
           {systemBanner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
@@ -224,7 +224,7 @@ export default function SettingsView({ system, settings, palettes, onUpdate }: P
               display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
               borderRadius: 8, border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
               background: isActive ? 'var(--accent-bg)' : 'var(--surface)', cursor: 'pointer',
-            }} onClick={() => selectPalette(p.id)}>
+            }} {...clickable(() => selectPalette(p.id), p.name)}>
               <div style={{ display: 'flex', gap: 3 }}>
                 {[preview.bg, preview.accent, preview.text, preview.surface].map((c, i) => (
                   <div key={i} style={{ width: 14, height: 14, borderRadius: 3, background: c, border: '1px solid rgba(255,255,255,0.1)' }} />

@@ -5,7 +5,7 @@ import {
   DEFAULT_MEDICAL, time12to24, formatTime12, uid, fmtTime,
 } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, Toggle, ConfirmDialog } from '../components/ui';
+import { Btn, Toggle, ConfirmDialog, clickable } from '../components/ui';
 
 interface Props { onUpdate?: () => void; }
 
@@ -92,7 +92,7 @@ export default function MedicalView({ onUpdate }: Props) {
         {data.medications.length === 0 && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('medical.noMedications')}</p>}
         {data.medications.map(m => (
           <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-            <input type="checkbox" checked={m.enabled} onChange={() => toggleMed(m.id)} />
+            <input type="checkbox" checked={m.enabled} onChange={() => toggleMed(m.id)} aria-label={m.name} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{m.name}{m.dosage ? ` · ${m.dosage}` : ''}</div>
               {m.times.length > 0 && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{m.times.map(formatTime12).join(', ')}</div>}
@@ -117,7 +117,7 @@ export default function MedicalView({ onUpdate }: Props) {
           <Btn variant="ghost" onClick={addMedTime}>{t('medical.addTime')}</Btn>
           {medTimes.map(tm => (
             <span key={tm} style={{ fontSize: 11, background: 'var(--surface)', color: 'var(--text)', padding: '2px 8px', borderRadius: 999, cursor: 'pointer' }}
-              onClick={() => setMedTimes(medTimes.filter(x => x !== tm))}>{formatTime12(tm)} ✕</span>
+              {...clickable(() => setMedTimes(medTimes.filter(x => x !== tm)), `Remove ${formatTime12(tm)}`)}>{formatTime12(tm)} ✕</span>
           ))}
           <div style={{ flex: 1 }} />
           <Btn variant="solid" onClick={addMedication}>{t('medical.addMedication')}</Btn>
@@ -140,7 +140,7 @@ export default function MedicalView({ onUpdate }: Props) {
         ))}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
           <input className="field__input" value={apptTitle} onChange={e => setApptTitle(e.target.value)} placeholder={t('medical.apptPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
-          <input className="field__input" type="datetime-local" value={apptWhen} onChange={e => setApptWhen(e.target.value)} style={{ width: 200 }} />
+          <input className="field__input" aria-label={t('medical.apptPlaceholder')} type="datetime-local" value={apptWhen} onChange={e => setApptWhen(e.target.value)} style={{ width: 200 }} />
           <select className="field__input" value={apptRemind} onChange={e => setApptRemind(Number(e.target.value))} title={t('medical.remindBefore')} style={{ width: 130 }}>
             <option value={0}>{t('medical.atTime')}</option>
             <option value={15}>15m</option>
@@ -167,7 +167,7 @@ export default function MedicalView({ onUpdate }: Props) {
         ))}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
           <input className="field__input" value={histTitle} onChange={e => setHistTitle(e.target.value)} placeholder={t('medical.historyPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
-          <input className="field__input" type="date" value={histWhen} onChange={e => setHistWhen(e.target.value)} style={{ width: 160 }} />
+          <input className="field__input" aria-label={t('medical.historyPlaceholder')} type="date" value={histWhen} onChange={e => setHistWhen(e.target.value)} style={{ width: 160 }} />
           <Btn variant="solid" onClick={addHistory}>{t('medical.addHistory')}</Btn>
         </div>
       </div>

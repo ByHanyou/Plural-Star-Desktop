@@ -9,13 +9,13 @@ export default function MembersTile({ members, onClick }: Props) {
   const active = members.filter(m => !m.archived && !m.isCustomFront);
   const preview = active.slice(0, 5);
   return (
-    <div className="tile" onClick={onClick}>
+    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header"><div className="tile__glyph">👥</div><span className="tile__title">{t('members.title')}</span></div>
       <div className="tile__body">
         {active.length === 0 ? <span className="tile__empty">{t('members.noMembers')}</span> : (<>
           {preview.map(m => (
             <div key={m.id} className="tile__member-row">
-              <div className="tile__avatar" style={!m.avatar ? { backgroundColor: m.color } : { overflow: "hidden" }}>{m.avatar ? <img src={m.avatar} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
+              <div className="tile__avatar" style={!m.avatar ? { backgroundColor: m.color } : { overflow: "hidden" }}>{m.avatar ? <img src={m.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
               <span className="tile__member-name">{m.name}</span>
               <span className="tile__member-role">{m.role}</span>
             </div>
