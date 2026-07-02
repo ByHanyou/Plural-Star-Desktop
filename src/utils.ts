@@ -67,6 +67,7 @@ export interface NoteboardEntry {
   content: string;
   timestamp: number;
   pinned?: boolean;
+  read?: boolean;
 }
 
 export interface PollOption {
