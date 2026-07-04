@@ -202,7 +202,7 @@ function AppInner() {
   const [roleMismatch, setRoleMismatch] = useState<{deviceName: string} | null>(null);
   useEffect(() => { NetworkManager.init().catch(e => console.error('[NETWORK] init failed:', e)); }, []);
   // Share the current front with accepted friends whenever it changes.
-  useEffect(() => { NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.front, state.members]);
+  useEffect(() => { if (state.loaded) NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.loaded, state.front, state.members]);
   // Poke the sync engine when any synced data changes (it debounces + rate-limits).
   useEffect(() => { NetworkManager.notifyDataChanged(); }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.settings, state.palettes]);
   // Apply incoming device-sync writes by reloading app state.

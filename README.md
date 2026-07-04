@@ -46,11 +46,14 @@ Manage your groups and subsystems from one dedicated screen — create, rename, 
 **✦ Custom Fields**  
 Define your own per-member fields beyond the built-in ones. Support for text, number, toggle, date, month/year, month, year, and markdown types. Create fields once from the dashboard; fill them out per-member in the member edit modal. Fields are reorderable, renameable, and fully exportable. Compatible with Simply Plural custom field imports.
 
-**📋 Per-Member Noteboards**  
-Each member has their own noteboard — a shared space inside the member profile where any headmate can leave notes for or about them. Notes record author, timestamp, and content; can be pinned to the top; and display chronologically in the member's profile sub-tab. Useful for leaving messages between alters, shared observations, or ongoing context that doesn't fit anywhere else.
-
 **📊 System Polls**  
 Create polls the whole system can vote on — decisions, preferences, member opinions. Polls live on the dashboard with options (each with its own vote tallies), voter tracking (who voted for what), and optional closure. Every active member can cast one vote per poll; votes can be changed until the poll is closed.
+
+**🛰 Friends & Syncing**  
+Connect with other systems and your own devices over the Plural Star network — fully end-to-end encrypted, with the relay seeing nothing but sealed blobs. Add friends with short shareable codes (mutual by design: both sides must enter each other's code) and see their current front — fronters, mood, location — update live with online status from the Network tile. Link your desktop with your phone using a directed first copy — you choose which device sends and which receives — then everything stays in sync both ways automatically: members, history, journal, chat, polls, settings, even profile pictures and banners. Networking is fully opt-in and off by default.
+
+**✉ Mailbox**  
+System-wide mail between headmates, right on the dashboard: per-member inboxes with unread badges, compose with From/To pickers, quick replies, pinning, and delete confirmation — and mail syncs across your linked devices.
 
 **◷ History & Insights**  
 Front History gives you a complete timestamped log of every switch, organized by day, with co-front and co-conscious tiers displayed inline. Filter by member, time range, or search across names, notes, and moods. Add retroactive history entries manually with full three-tier support, mood, location, and energy, searchable Custom Front pickers for Front and Co-Front, start/end time selection, and a "Current" option for ongoing sessions — the app detects overlaps with existing entries and lets you choose how to handle them.
@@ -70,7 +73,7 @@ Migrating from another app? Import your full system data — members, history, c
 Export your full system data as JSON (reimportable), HTML (opens in Google Docs), or send a formatted summary to any email address. Granular per-category toggles — pick exactly what to export or restore: system info, members, avatars, banners, front history, journal, groups, chat, moods, palettes, settings, custom fields, noteboards, polls. Import `.txt`, `.md`, or `.json` files directly as journal entries.
 
 **🌐 Multilingual**  
-Full interface available in English, Español, Français, Deutsch, Português, Suomi, Norsk, Русский, Українська, 中文, and 日本語 — 11 languages total. Auto-detects your device language on first launch. Change anytime via the dropdown in System Settings.
+Full interface available in English, Español, Français, Deutsch, Português, Suomi, Norsk, Italiano, Türkçe, Bahasa Melayu, Tiếng Việt, ไทย, 简体中文, 繁體中文, 日本語, Русский, and Українська — 17 languages total. Auto-detects your device language on first launch. Change anytime via the dropdown in System Settings.
 
 **Other Features**
 - Obsidian Blue dark theme and Steel light theme built-in, plus 10 custom palette slots — define your own four-color theme
