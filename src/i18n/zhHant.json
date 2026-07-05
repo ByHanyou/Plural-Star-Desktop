@@ -722,6 +722,8 @@
     "manage": "群組",
     "allGroups": "所有群組",
     "addPlaceholder": "新群組名稱…",
+    "addMembers": "新增成員",
+    "removeMembers": "移除成員",
     "deleteGroup": "刪除群組",
     "deleteGroupMsg": "移除此群組？成員不會被刪除。",
     "deleteWithChildrenMsg": "此群組包含 {{count}} 個巢狀項目。要保留並上移一層，還是全部刪除？"

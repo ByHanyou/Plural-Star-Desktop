@@ -722,6 +722,8 @@
     "manage": "Nhóm",
     "allGroups": "Tất cả Nhóm",
     "addPlaceholder": "Tên nhóm mới…",
+    "addMembers": "Thêm thành viên",
+    "removeMembers": "Gỡ thành viên",
     "deleteGroup": "Xóa Nhóm",
     "deleteGroupMsg": "Gỡ nhóm này? Thành viên sẽ không bị xóa.",
     "deleteWithChildrenMsg": "Nhóm này chứa {{count}} mục lồng nhau. Giữ chúng và chuyển lên một cấp, hay xóa tất cả?"

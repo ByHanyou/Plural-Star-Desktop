@@ -469,7 +469,8 @@ function AppInner() {
             ))}
             {view === 'system-manager' && (
               <SystemManagerView members={state.members} groups={state.groups}
-                onViewMember={(id) => { setMemberFocus(id); setView('members'); }} onUpdate={loadData} />
+                onViewMember={(id) => { setMemberFocus(id); setView('members'); }} onUpdate={loadData}
+                front={state.front} onQuickFront={quickAddToFront} onRemoveFromFront={removeFromFront} />
             )}
             {view === 'system-map' && (
               <SystemMapView members={state.members} focusMemberId={mapFocus}

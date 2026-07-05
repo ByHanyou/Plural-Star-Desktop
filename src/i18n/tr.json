@@ -722,6 +722,8 @@
     "manage": "Gruplar",
     "allGroups": "Tüm Gruplar",
     "addPlaceholder": "Yeni grup adı…",
+    "addMembers": "Üye ekle",
+    "removeMembers": "Üye çıkar",
     "deleteGroup": "Grubu Sil",
     "deleteGroupMsg": "Bu grup kaldırılsın mı? Üyeler silinmeyecek.",
     "deleteWithChildrenMsg": "Bu, {{count}} iç içe öğe içeriyor. Onları bir üst düzeye taşıyarak tutalım mı, yoksa her şey silinsin mi?"

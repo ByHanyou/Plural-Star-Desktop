@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, GroupNodeKind, uid, childrenOf, descendantsOf, isDescendant, groupKind } from '../utils';
+import { Member, MemberGroup, GroupNodeKind, FrontState, uid, childrenOf, descendantsOf, isDescendant, groupKind } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, ConfirmDialog, ColorPicker, useEscapeKey } from '../components/ui';
+import { Btn, Modal, ConfirmDialog, ColorPicker, useEscapeKey } from '../components/ui';
+import { NetworkManager } from '../network/NetworkManager';
 import { PALETTE } from '../theme';
 
 interface Props {
@@ -10,9 +11,12 @@ interface Props {
   groups: MemberGroup[];
   onUpdate: () => void;
   onViewMember?: (id: string) => void;
+  front?: FrontState | null;
+  onQuickFront?: (memberId: string, tier: 'primary' | 'coFront' | 'coConscious') => void;
+  onRemoveFromFront?: (memberId: string) => void;
 }
 
-export default function SystemManagerView({ members, groups, onUpdate, onViewMember }: Props) {
+export default function SystemManagerView({ members, groups, onUpdate, onViewMember, front, onQuickFront, onRemoveFromFront }: Props) {
   const { t } = useTranslation();
 
   const [newName, setNewName] = useState('');
@@ -28,10 +32,49 @@ export default function SystemManagerView({ members, groups, onUpdate, onViewMem
   const [showEditColor, setShowEditColor] = useState(false);
   const [browse, setBrowse] = useState(false);
   const [browseId, setBrowseId] = useState<string | null>(null);
+  const [quickFrontFor, setQuickFrontFor] = useState<Member | null>(null);
+  const [confirmRemoveFront, setConfirmRemoveFront] = useState<Member | null>(null);
+  const [addPickOpen, setAddPickOpen] = useState(false);
+  const [addPickIds, setAddPickIds] = useState<string[]>([]);
+  const [addSearch, setAddSearch] = useState('');
+  const [removeMode, setRemoveMode] = useState(false);
+  const [removeIds, setRemoveIds] = useState<string[]>([]);
+  const [confirmGroupRemove, setConfirmGroupRemove] = useState(false);
 
   const saveGroups = async (g: MemberGroup[]) => {
     await store.set(KEYS.groups, g);
     onUpdate();
+  };
+
+  const saveMembers = async (next: Member[]) => {
+    await store.set(KEYS.members, next);
+    NetworkManager.notifyDataChanged();
+    onUpdate();
+  };
+
+  const addMembersToGroup = (ids: string[], groupId: string) => {
+    const idSet = new Set(ids);
+    saveMembers(members.map(m => idSet.has(m.id) ? { ...m, groupIds: [...new Set([...(m.groupIds || []), groupId])] } : m));
+  };
+
+  const removeMembersFromGroup = (ids: string[], groupId: string) => {
+    const idSet = new Set(ids);
+    saveMembers(members.map(m => idSet.has(m.id) ? { ...m, groupIds: (m.groupIds || []).filter(g => g !== groupId) } : m));
+  };
+
+  const isFronting = (id: string): boolean => !!front && (
+    (front.primary?.memberIds || []).includes(id) ||
+    (front.coFront?.memberIds || []).includes(id) ||
+    (front.coConscious?.memberIds || []).includes(id)
+  );
+
+  const goBrowseTo = (id: string | null) => {
+    setBrowseId(id);
+    setRemoveMode(false);
+    setRemoveIds([]);
+    setAddPickOpen(false);
+    setAddPickIds([]);
+    setAddSearch('');
   };
 
   const addNode = () => {
@@ -144,41 +187,131 @@ export default function SystemManagerView({ members, groups, onUpdate, onViewMem
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <p style={{ flex: 1, fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, margin: 0 }}>{t('systemManager.desc')}</p>
-        <Btn variant={browse ? 'info' : 'ghost'} onClick={() => { setBrowse(b => !b); setBrowseId(null); }}>🗂 {t('systemManager.browse')}</Btn>
+        <Btn variant={browse ? 'info' : 'ghost'} onClick={() => { setBrowse(b => !b); goBrowseTo(null); }}>🗂 {t('systemManager.browse')}</Btn>
       </div>
 
       {browse && (() => {
         const folder = browseId ? groups.find(g => g.id === browseId) : null;
         const subFolders = childrenOf(groups, browseId);
         const folderMembers = browseId
-          ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived)
-          : members.filter(m => (m.groupIds || []).length === 0 && !m.archived);
+          ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && !m.isCustomFront)
+          : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && !m.isCustomFront);
+        const addCandidates = folder
+          ? members
+              .filter(m => !m.archived && !m.isCustomFront && !(m.groupIds || []).includes(folder.id) && (!addSearch || m.name.toLowerCase().includes(addSearch.toLowerCase())))
+              .sort((a, b) => a.name.localeCompare(b.name))
+          : [];
+        const toggleAddPick = (id: string) => setAddPickIds(sel => sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
+        const toggleRemovePick = (id: string) => setRemoveIds(sel => sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
         return (
           <div style={{ marginBottom: 16, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               {browseId && (
-                <button onClick={() => setBrowseId(folder?.parentId ?? null)} aria-label={t('common.back')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 14, cursor: 'pointer' }}>←</button>
+                <button onClick={() => goBrowseTo(folder?.parentId ?? null)} aria-label={t('common.back')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 14, cursor: 'pointer' }}>←</button>
               )}
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{folder ? folder.name : t('systemManager.title')}</span>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{folder ? folder.name : t('systemManager.title')}</span>
+              {folder && !removeMode && (
+                <button onClick={() => { setAddPickIds([]); setAddSearch(''); setAddPickOpen(true); }} aria-label={t('memberGroups.addMembers')} title={t('memberGroups.addMembers')}
+                  style={{ width: 24, height: 24, borderRadius: 12, cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 14, lineHeight: 1 }}>＋</button>
+              )}
+              {folder && folderMembers.length > 0 && !removeMode && (
+                <button onClick={() => { setRemoveIds([]); setRemoveMode(true); }} aria-label={t('memberGroups.removeMembers')} title={t('memberGroups.removeMembers')}
+                  style={{ width: 24, height: 24, borderRadius: 12, cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 14, lineHeight: 1 }}>−</button>
+              )}
             </div>
+            {removeMode && folder && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: 8, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--danger)' }}>
+                <span style={{ flex: 1, fontSize: 11, color: 'var(--dim)' }}>{t('members.selectedCount', { count: removeIds.length })}</span>
+                <button onClick={() => { if (removeIds.length > 0) setConfirmGroupRemove(true); }} disabled={removeIds.length === 0}
+                  style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: removeIds.length === 0 ? 0.45 : 1 }}>{t('network.remove')}</button>
+                <button onClick={() => { setRemoveMode(false); setRemoveIds([]); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 11, cursor: 'pointer' }}>{t('common.cancel')}</button>
+              </div>
+            )}
             {subFolders.map(g => (
-              <button key={g.id} onClick={() => setBrowseId(g.id)}
+              <button key={g.id} onClick={() => goBrowseTo(g.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
                 <span style={{ fontSize: 14 }}>{groupKind(g) === 'subsystem' ? '⊟' : '📁'}</span>
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{g.name}</span>
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>›</span>
               </button>
             ))}
-            {folderMembers.map(m => (
-              <button key={m.id} onClick={() => onViewMember?.(m.id)} disabled={!onViewMember}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: onViewMember ? 'pointer' : 'default', textAlign: 'left' }}>
+            {folderMembers.map(m => removeMode ? (
+              <button key={m.id} onClick={() => toggleRemovePick(m.id)} role="checkbox" aria-checked={removeIds.includes(m.id)} aria-label={m.name}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ fontSize: 14, color: removeIds.includes(m.id) ? 'var(--danger)' : 'var(--muted)' }}>{removeIds.includes(m.id) ? '☑' : '☐'}</span>
                 <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
               </button>
+            ) : (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }}>
+                <button onClick={() => onViewMember?.(m.id)} disabled={!onViewMember}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, padding: 8, background: 'none', border: 'none', cursor: onViewMember ? 'pointer' : 'default', textAlign: 'left' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
+                </button>
+                {onQuickFront && onRemoveFromFront && (
+                  isFronting(m.id) ? (
+                    <button onClick={() => setConfirmRemoveFront(m)} aria-label={`${t('members.removeFromFront')} — ${m.name}`} title={t('members.removeFromFront')}
+                      style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>−</button>
+                  ) : (
+                    <button onClick={() => setQuickFrontFor(m)} aria-label={`${t('members.addToFront')} — ${m.name}`} title={t('members.addToFront')}
+                      style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>＋</button>
+                  )
+                )}
+              </div>
             ))}
             {subFolders.length === 0 && folderMembers.length === 0 && (
               <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('systemManager.emptyFolder')}</p>
             )}
+
+            <Modal open={addPickOpen} title={`${t('memberGroups.addMembers')} — ${folder?.name || ''}`} onClose={() => setAddPickOpen(false)}
+              footer={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                  <span style={{ flex: 1, fontSize: 11, color: 'var(--dim)' }}>{t('members.selectedCount', { count: addPickIds.length })}</span>
+                  <Btn variant="ghost" onClick={() => setAddPickOpen(false)}>{t('common.cancel')}</Btn>
+                  <Btn variant="solid" disabled={addPickIds.length === 0} onClick={() => { if (folder && addPickIds.length > 0) addMembersToGroup(addPickIds, folder.id); setAddPickOpen(false); setAddPickIds([]); }}>{t('common.add')}</Btn>
+                </div>
+              }>
+              <input className="field__input" value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} style={{ marginBottom: 10, width: '100%' }} />
+              <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                {addCandidates.map(m => (
+                  <button key={m.id} onClick={() => toggleAddPick(m.id)} role="checkbox" aria-checked={addPickIds.includes(m.id)} aria-label={m.name}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                    <span style={{ fontSize: 14, color: addPickIds.includes(m.id) ? 'var(--accent)' : 'var(--muted)' }}>{addPickIds.includes(m.id) ? '☑' : '☐'}</span>
+                    <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
+                  </button>
+                ))}
+                {addCandidates.length === 0 && (
+                  <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('members.noMembers')}</p>
+                )}
+              </div>
+            </Modal>
+
+            <Modal open={!!quickFrontFor} title={`${t('members.addToFront')} — ${quickFrontFor?.name || ''}`} onClose={() => setQuickFrontFor(null)}>
+              {(['primary', 'coFront', 'coConscious'] as const).map(tier => (
+                <button key={tier} onClick={() => { const m = quickFrontFor; setQuickFrontFor(null); if (m) onQuickFront?.(m.id, tier); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 10, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 5, flexShrink: 0, background: tier === 'primary' ? 'var(--accent)' : tier === 'coFront' ? 'var(--info)' : 'var(--success)' }} />
+                  <span style={{ fontSize: 13, color: 'var(--text)' }}>{tier === 'primary' ? t('tier.primaryFront') : tier === 'coFront' ? t('tier.coFront') : t('tier.coConscious')}</span>
+                </button>
+              ))}
+            </Modal>
+
+            <ConfirmDialog open={!!confirmRemoveFront}
+              title={t('members.removeFromFront')}
+              message={confirmRemoveFront ? t('members.removeFromFrontMsg', { name: confirmRemoveFront.name }) : ''}
+              danger
+              onConfirm={() => { if (confirmRemoveFront) onRemoveFromFront?.(confirmRemoveFront.id); setConfirmRemoveFront(null); }}
+              onCancel={() => setConfirmRemoveFront(null)} />
+
+            <ConfirmDialog open={confirmGroupRemove}
+              title={t('memberGroups.removeMembers')}
+              message={t('members.selectedCount', { count: removeIds.length })}
+              danger
+              onConfirm={() => { if (folder && removeIds.length > 0) removeMembersFromGroup(removeIds, folder.id); setConfirmGroupRemove(false); setRemoveMode(false); setRemoveIds([]); }}
+              onCancel={() => setConfirmGroupRemove(false)} />
           </div>
         );
       })()}

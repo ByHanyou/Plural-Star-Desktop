@@ -722,6 +722,8 @@
     "manage": "กลุ่ม",
     "allGroups": "กลุ่มทั้งหมด",
     "addPlaceholder": "ชื่อกลุ่มใหม่…",
+    "addMembers": "เพิ่มสมาชิก",
+    "removeMembers": "นำสมาชิกออก",
     "deleteGroup": "ลบกลุ่ม",
     "deleteGroupMsg": "นำกลุ่มนี้ออก? สมาชิกจะไม่ถูกลบ",
     "deleteWithChildrenMsg": "กลุ่มนี้มี {{count}} รายการซ้อนอยู่ เก็บไว้แล้วย้ายขึ้นหนึ่งระดับ หรือลบทั้งหมด?"
