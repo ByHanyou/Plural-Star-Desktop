@@ -21,7 +21,7 @@
 
 ---
 
-The desktop companion to [Plural Star](https://github.com/TheHanyou/Plural-Star). Built with Electron — your data stays on your machine, the same way it stays on your phone.
+The desktop companion to [Plural Star](https://github.com/ByHanyou/Plural-Star). Built with Electron — your data stays on your machine, the same way it stays on your phone.
 
 Plural Star is a private, offline-first system management app built for plural individuals — those with DID, OSDD, or any form of plurality.
 
@@ -105,7 +105,7 @@ Full privacy policy: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
 
 ## Installation
 
-Download the latest installer from [Releases](https://github.com/TheHanyou/Plural-Star-Desktop/releases):
+Download the latest installer from [Releases](https://github.com/ByHanyou/Plural-Star-Desktop/releases):
 
 | Platform | File |
 |---|---|
@@ -135,7 +135,7 @@ npm run electron:build     # build installer for your platform
 
 ## Relationship to the Mobile App
 
-This is a separate repository from the [Plural Star mobile app](https://github.com/TheHanyou/Plural-Star). The two apps share the same data model and export format, so JSON exports are cross-compatible — you can move your data between them freely. Features may land on one platform before the other.
+This is a separate repository from the [Plural Star mobile app](https://github.com/ByHanyou/Plural-Star). The two apps share the same data model and export format, so JSON exports are cross-compatible — you can move your data between them freely. Features may land on one platform before the other.
 
 ---
 
