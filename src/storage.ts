@@ -55,6 +55,8 @@ export const KEYS = {
   relationships: 'ps:relationships',
   relationshipTypes: 'ps:relationshipTypes',
   systemMapMembers: 'ps:systemMapMembers',
+  systemMapPositions: 'ps:systemMapPositions',
+  whiteboard:   'ps:whiteboard',
   medical:      'ps:medical',
 };
 

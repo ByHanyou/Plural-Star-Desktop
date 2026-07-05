@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl } from '../utils';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl, sortGroupsForDisplay } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
@@ -14,9 +14,12 @@ interface Props {
   focusMemberId?: string | null;
   onFocusHandled?: () => void;
   onShowOnMap?: (id: string) => void;
+  front?: FrontState | null;
+  onQuickFront?: (memberId: string, tier: 'primary' | 'coFront' | 'coConscious') => void;
+  onRemoveFromFront?: (memberId: string) => void;
 }
 
-export default function MembersView({ members, groups, settings, onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap }: Props) {
+export default function MembersView({ members, groups, settings, onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, front, onQuickFront, onRemoveFromFront }: Props) {
   const { t } = useTranslation();
   const listFields = settings.memberListFields ?? { pronouns: true, roles: true, groups: false, descriptions: false };
   const [showFields, setShowFields] = useState(false);
@@ -30,6 +33,15 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
   const [listView, setListView] = useState<'active' | 'archived' | 'customFronts'>(archiveOnly ? 'archived' : 'active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
+  const [quickFrontFor, setQuickFrontFor] = useState<Member | null>(null);
+  const [confirmRemoveFront, setConfirmRemoveFront] = useState<Member | null>(null);
+
+  const isFronting = (id: string): boolean => !!front && (
+    (front.primary?.memberIds || []).includes(id) ||
+    (front.coFront?.memberIds || []).includes(id) ||
+    (front.coConscious?.memberIds || []).includes(id)
+  );
+  const quickFrontEnabled = !!onQuickFront && !!onRemoveFromFront && !archiveOnly;
 
   const [f, setF] = useState<Member>({ id: '', name: '', pronouns: '', role: '', color: PALETTE[0], description: '' });
   const [tagInput, setTagInput] = useState('');
@@ -222,6 +234,25 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
                   </div>
                 )}
               </div>
+              {quickFrontEnabled && listView !== 'archived' && !m.archived && (
+                isFronting(m.id) ? (
+                  <button
+                    aria-label={`${t('members.removeFromFront')} — ${m.name}`}
+                    title={t('members.removeFromFront')}
+                    onClick={e => { e.stopPropagation(); setConfirmRemoveFront(m); }}
+                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, cursor: 'pointer', background: 'var(--danger-bg, transparent)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 15, lineHeight: 1 }}>
+                    −
+                  </button>
+                ) : (
+                  <button
+                    aria-label={`${t('members.addToFront')} — ${m.name}`}
+                    title={t('members.addToFront')}
+                    onClick={e => { e.stopPropagation(); setQuickFrontFor(m); }}
+                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 15, lineHeight: 1 }}>
+                    ＋
+                  </button>
+                )
+              )}
               <div style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
             </div>
             {listFields.descriptions && m.description && (
@@ -231,7 +262,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
             )}
             {listFields.groups && (m.groupIds || []).length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-                {(m.groupIds || []).map(gid => groups.find(g => g.id === gid)).filter(Boolean).slice(0, 6).map(g => (
+                {sortGroupsForDisplay(groups.filter(g => (m.groupIds || []).includes(g.id)), groups).slice(0, 6).map(g => (
                   <span key={g!.id} style={{ fontSize: 10, color: 'var(--text)', background: 'var(--surface)', border: `1px solid ${g!.color || 'var(--border)'}`, padding: '1px 6px', borderRadius: 999 }}>
                     {g!.name}
                   </span>
@@ -333,7 +364,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
             <>
               <Section label={t('memberGroups.title')} />
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
-                {groups.map(g => {
+                {sortGroupsForDisplay(groups, groups).map(g => {
                   const active = (f.groupIds || []).includes(g.id);
                   return (
                     <button key={g.id} className={`chip ${active ? '' : ''}`}
@@ -567,6 +598,28 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
         danger
         onConfirm={() => confirmDelete && deleteMember(confirmDelete)}
         onCancel={() => setConfirmDelete(null)} />
+
+      <Modal open={!!quickFrontFor} title={quickFrontFor ? `${t('members.addToFront')} — ${quickFrontFor.name}` : t('members.addToFront')} onClose={() => setQuickFrontFor(null)}>
+        {quickFrontFor && (['primary', 'coFront', 'coConscious'] as const)
+          .filter(tier => tier !== 'coConscious' || !quickFrontFor.isCustomFront)
+          .map(tier => (
+            <button key={tier}
+              onClick={() => { onQuickFront?.(quickFrontFor.id, tier); setQuickFrontFor(null); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 10, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+              <span style={{ width: 10, height: 10, borderRadius: 5, flexShrink: 0, background: tier === 'primary' ? 'var(--accent)' : tier === 'coFront' ? 'var(--info)' : 'var(--success)' }} />
+              <span style={{ fontSize: 13, color: 'var(--text)' }}>
+                {tier === 'primary' ? t('tier.primaryFront') : tier === 'coFront' ? t('tier.coFront') : t('tier.coConscious')}
+              </span>
+            </button>
+          ))}
+      </Modal>
+
+      <ConfirmDialog open={!!confirmRemoveFront}
+        title={t('members.removeFromFront')}
+        message={confirmRemoveFront ? t('members.removeFromFrontMsg', { name: confirmRemoveFront.name }) : ''}
+        danger
+        onConfirm={() => { if (confirmRemoveFront) onRemoveFromFront?.(confirmRemoveFront.id); setConfirmRemoveFront(null); }}
+        onCancel={() => setConfirmRemoveFront(null)} />
     </div>
   );
 }

@@ -5,12 +5,19 @@ import { NoteboardEntry, Member, uid, fmtTime, getInitials } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 
-interface Props { members: Member[]; }
+interface Props { members: Member[]; onUpdate?: () => void; }
 
-export default function MailboxView({ members }: Props) {
+export default function MailboxView({ members, onUpdate }: Props) {
   const { t } = useTranslation();
   const [notes, setNotes] = useState<NoteboardEntry[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
+  const [pwFor, setPwFor] = useState<string | null>(null);
+  const [pwInput, setPwInput] = useState('');
+  const [pwError, setPwError] = useState(false);
+  const [lockManage, setLockManage] = useState(false);
+  const [lockInput, setLockInput] = useState('');
+  const [confirmUnlockRemove, setConfirmUnlockRemove] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
   const [composeTo, setComposeTo] = useState<string>('');
   const [composeFrom, setComposeFrom] = useState<string>('');
@@ -31,7 +38,7 @@ export default function MailboxView({ members }: Props) {
     NetworkManager.notifyDataChanged();
   };
 
-  const openMailbox = (memberId: string) => {
+  const reallyOpen = (memberId: string) => {
     setOpenId(memberId);
     let changed = false;
     const updated = notes.map(n => {
@@ -39,6 +46,54 @@ export default function MailboxView({ members }: Props) {
       return n;
     });
     if (changed) save(updated);
+  };
+
+  const openMailbox = (memberId: string) => {
+    const m = members.find(x => x.id === memberId);
+    if (m?.mailboxPassword && !unlockedIds.has(memberId)) {
+      setPwInput('');
+      setPwError(false);
+      setPwFor(memberId);
+      return;
+    }
+    reallyOpen(memberId);
+  };
+
+  const submitUnlock = () => {
+    if (!pwFor) return;
+    const m = members.find(x => x.id === pwFor);
+    if (pwInput === (m?.mailboxPassword || '')) {
+      setUnlockedIds(prev => new Set(prev).add(pwFor));
+      reallyOpen(pwFor);
+      setPwFor(null);
+      setPwInput('');
+      setPwError(false);
+    } else {
+      setPwError(true);
+    }
+  };
+
+  const setMailboxPassword = async (memberId: string, password?: string) => {
+    const updated = members.map(m => (m.id === memberId ? { ...m, mailboxPassword: password } : m));
+    await store.set(KEYS.members, updated);
+    NetworkManager.notifyDataChanged();
+    onUpdate?.();
+  };
+
+  const submitLock = () => {
+    if (!openId) return;
+    const owner = members.find(x => x.id === openId);
+    const next = lockInput.trim();
+    if (!next && owner?.mailboxPassword) {
+      setConfirmUnlockRemove(true);
+      return;
+    }
+    if (next) {
+      setMailboxPassword(openId, next);
+      setUnlockedIds(prev => new Set(prev).add(openId));
+    }
+    setLockManage(false);
+    setLockInput('');
   };
 
   const sendMessage = async () => {
@@ -108,7 +163,9 @@ export default function MailboxView({ members }: Props) {
                 {getInitials(mb.name)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mb.name}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {mb.name}{members.find(x => x.id === mb.id)?.mailboxPassword ? ' 🔒' : ''}
+                </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('mailbox.messageCount', { count: mb.count })}</div>
               </div>
               {mb.unread > 0 && (
@@ -123,7 +180,10 @@ export default function MailboxView({ members }: Props) {
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <Btn variant="ghost" onClick={() => setOpenId(null)}>←</Btn>
-            <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text)' }}>{t('mailbox.inboxOf', { name: nameOf(openId) })}</h3>
+            <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text)', flex: 1 }}>{t('mailbox.inboxOf', { name: nameOf(openId) })}</h3>
+            <Btn variant="ghost" aria-label={t('mailbox.lockTitle')} onClick={() => { setLockInput(''); setLockManage(true); }}>
+              {members.find(x => x.id === openId)?.mailboxPassword ? '🔒' : '🔓'}
+            </Btn>
           </div>
           {openMessages.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '32px 0' }}>{t('mailbox.emptyInbox')}</p>
@@ -182,6 +242,65 @@ export default function MailboxView({ members }: Props) {
         danger
         onConfirm={() => { const m = deleteTarget!; setDeleteTarget(null); save(notes.filter(n => n.id !== m.id)); }}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <Modal
+        open={!!pwFor}
+        title={`🔒 ${nameOf(pwFor || '')}`}
+        onClose={() => { setPwFor(null); setPwInput(''); setPwError(false); }}
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Btn variant="ghost" onClick={() => { setPwFor(null); setPwInput(''); setPwError(false); }}>{t('common.cancel')}</Btn>
+            <Btn onClick={submitUnlock}>{t('journal.unlock')}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--dim)', marginTop: 0 }}>{t('mailbox.lockedPrompt')}</p>
+        <input
+          type="password"
+          value={pwInput}
+          onChange={e => { setPwInput(e.target.value); setPwError(false); }}
+          onKeyDown={e => { if (e.key === 'Enter') submitUnlock(); }}
+          placeholder={t('journal.password')}
+          aria-label={t('journal.password')}
+          style={{ display: 'block', width: '100%', background: 'var(--bg)', color: 'var(--text)', border: `1px solid ${pwError ? 'var(--danger)' : 'var(--border)'}`, borderRadius: 8, padding: 10, fontSize: 13 }}
+        />
+        {pwError && <p role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 0 }}>{t('journal.incorrectPassword')}</p>}
+      </Modal>
+
+      <Modal
+        open={lockManage}
+        title={t('mailbox.lockTitle')}
+        onClose={() => { setLockManage(false); setLockInput(''); }}
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Btn variant="ghost" onClick={() => { setLockManage(false); setLockInput(''); }}>{t('common.cancel')}</Btn>
+            <Btn onClick={submitLock}>{t('common.save')}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--dim)', marginTop: 0 }}>{t('mailbox.lockHint')}</p>
+        <input
+          type="password"
+          value={lockInput}
+          onChange={e => setLockInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') submitLock(); }}
+          placeholder={t('journal.password')}
+          aria-label={t('journal.password')}
+          style={{ display: 'block', width: '100%', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13 }}
+        />
+      </Modal>
+
+      <ConfirmDialog
+        open={confirmUnlockRemove}
+        title={t('mailbox.lockTitle')}
+        message={t('mailbox.removeLockMsg')}
+        danger
+        onConfirm={() => {
+          setConfirmUnlockRemove(false);
+          if (openId) setMailboxPassword(openId, undefined);
+          setLockManage(false);
+          setLockInput('');
+        }}
+        onCancel={() => setConfirmUnlockRemove(false)}
       />
     </div>
   );

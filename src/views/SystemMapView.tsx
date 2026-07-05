@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Member, Relationship, RelationshipTypeDef, uid,
@@ -6,6 +6,7 @@ import {
   DEFAULT_REL_COLOR, RELATIONSHIP_COLOR_CHOICES, getInitials,
 } from '../utils';
 import { store, KEYS } from '../storage';
+import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Modal, ConfirmDialog, ColorPicker, Dropdown, clickable } from '../components/ui';
 import { PALETTE } from '../theme';
 
@@ -25,6 +26,10 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
   const [customTypes, setCustomTypes] = useState<RelationshipTypeDef[]>([]);
   const [mapIds, setMapIds] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({});
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<{ id: string; pointerId: number; startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
+  const lastDragMovedRef = useRef(false);
 
   const [showAddMember, setShowAddMember] = useState(false);
   const [showTypes, setShowTypes] = useState(false);
@@ -37,14 +42,23 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
 
   useEffect(() => {
     (async () => {
-      const [rels, savedTypes, savedMapIds] = await Promise.all([
+      const [rels, savedTypes, savedMapIds, savedPos] = await Promise.all([
         store.get<Relationship[]>(KEYS.relationships, []),
         store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []),
         store.get<string[]>(KEYS.systemMapMembers),
+        store.get<Record<string, { x: number; y: number }>>(KEYS.systemMapPositions),
       ]);
       setCustomTypes(savedTypes || []);
       const all = rels || [];
       const ids = new Set(members.map(m => m.id));
+      if (savedPos) {
+        const pruned: Record<string, { x: number; y: number }> = {};
+        for (const id in savedPos) {
+          const p = savedPos[id];
+          if (ids.has(id) && p && typeof p.x === 'number' && typeof p.y === 'number') pruned[id] = p;
+        }
+        setPosOverrides(pruned);
+      }
       const valid = all.filter(r => ids.has(r.fromId) && ids.has(r.toId));
       setRelationships(valid);
       if (valid.length !== all.length) await store.set(KEYS.relationships, valid);
@@ -94,18 +108,63 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
   }, [selectedId, mapRels]);
 
   // ----- layout -----
-  const W = 900, H = 560, cx = W / 2, cy = H / 2;
+  const W = 900, H = 560;
+  const HALF_WORLD = 2000;
   const n = mapMembers.length;
-  const radius = n <= 1 ? 0 : Math.min(W, H) / 2 - 80;
+  const radius = n <= 1 ? 0 : 200;
   const pos = useMemo(() => {
     const m = new Map<string, { x: number; y: number }>();
     mapMembers.forEach((mem, i) => {
-      if (n === 1) { m.set(mem.id, { x: cx, y: cy }); return; }
+      const o = posOverrides[mem.id];
+      if (o) { m.set(mem.id, { x: o.x, y: o.y }); return; }
+      if (n === 1) { m.set(mem.id, { x: 0, y: 0 }); return; }
       const a = (2 * Math.PI * i) / n - Math.PI / 2;
-      m.set(mem.id, { x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) });
+      m.set(mem.id, { x: radius * Math.cos(a), y: radius * Math.sin(a) });
     });
     return m;
-  }, [mapMembers, n, radius]);
+  }, [mapMembers, n, radius, posOverrides]);
+  const [extX, extY] = useMemo(() => {
+    let ex = radius + 100;
+    let ey = (radius + 100) * (H / W);
+    pos.forEach(p => { ex = Math.max(ex, Math.abs(p.x) + 70); ey = Math.max(ey, Math.abs(p.y) + 70); });
+    ex = Math.max(ex, ey * (W / H));
+    return [ex, ex * (H / W)];
+  }, [pos, radius]);
+
+  const persistPositions = (next: Record<string, { x: number; y: number }>) => {
+    store.set(KEYS.systemMapPositions, next).then(() => NetworkManager.notifyDataChanged()).catch(() => {});
+  };
+  const worldPerPixel = (): number => {
+    const el = svgRef.current;
+    if (!el) return 1;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 ? (extX * 2) / r.width : 1;
+  };
+  const onNodePointerDown = (id: string, p: { x: number; y: number }) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    dragRef.current = { id, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, origX: p.x, origY: p.y, moved: false };
+  };
+  const onNodePointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d || e.pointerId !== d.pointerId) return;
+    if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 4) return;
+    d.moved = true;
+    const s = worldPerPixel();
+    const clamp = (v: number) => Math.max(-HALF_WORLD, Math.min(HALF_WORLD, Math.round(v)));
+    const nx = clamp(d.origX + (e.clientX - d.startX) * s);
+    const ny = clamp(d.origY + (e.clientY - d.startY) * s);
+    setPosOverrides(prev => ({ ...prev, [d.id]: { x: nx, y: ny } }));
+  };
+  const onNodePointerUp = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d || e.pointerId !== d.pointerId) return;
+    dragRef.current = null;
+    if (d.moved) {
+      lastDragMovedRef.current = true;
+      setPosOverrides(prev => { persistPositions(prev); return prev; });
+    }
+  };
 
   const degrees = useMemo(() => relationshipDegrees(mapMembers.map(m => m.id), mapRels), [mapMembers, mapRels]);
 
@@ -159,7 +218,7 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
         </div>
       ) : (
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }} onClick={() => setSelectedId(null)}>
+          <svg ref={svgRef} viewBox={`${-extX} ${-extY} ${extX * 2} ${extY * 2}`} style={{ width: '100%', display: 'block' }} onClick={() => { if (lastDragMovedRef.current) { lastDragMovedRef.current = false; return; } setSelectedId(null); }}>
             {mapRels.map(r => {
               const a = pos.get(r.fromId), b = pos.get(r.toId);
               if (!a || !b) return null;
@@ -178,7 +237,10 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
                 <g key={mem.id} style={{ cursor: 'pointer' }} opacity={dim ? 0.3 : 1}
                   role="button" tabIndex={0} aria-label={mem.name} aria-pressed={isSel}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(isSel ? null : mem.id); } }}
-                  onClick={e => { e.stopPropagation(); setSelectedId(isSel ? null : mem.id); }}>
+                  onPointerDown={onNodePointerDown(mem.id, p)}
+                  onPointerMove={onNodePointerMove}
+                  onPointerUp={onNodePointerUp}
+                  onClick={e => { e.stopPropagation(); if (lastDragMovedRef.current) { lastDragMovedRef.current = false; return; } setSelectedId(isSel ? null : mem.id); }}>
                   <circle cx={p.x} cy={p.y} r={isSel ? 26 : 22} fill={mem.color || 'var(--accent)'}
                     stroke={isSel ? '#fff' : 'rgba(255,255,255,0.25)'} strokeWidth={isSel ? 3 : 1.5} />
                   <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize={12} fontWeight={700} fill="#0a0508">{getInitials(mem.name)}</text>

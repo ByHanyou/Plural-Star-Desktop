@@ -33,6 +33,7 @@ import StatusTile from './tiles/StatusTile';
 import ProfileTile from './tiles/ProfileTile';
 import NetworkTile from './tiles/NetworkTile';
 import MailboxTile from './tiles/MailboxTile';
+import WhiteboardTile from './tiles/WhiteboardTile';
 
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
@@ -54,10 +55,11 @@ import StatusView, { SetStatusModal } from './views/StatusView';
 import ProfileView from './views/ProfileView';
 import NetworkView from './views/NetworkView';
 import MailboxView from './views/MailboxView';
+import WhiteboardView from './views/WhiteboardView';
 import { NetworkManager } from './network/NetworkManager';
 import { Modal, Btn } from './components/ui';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard';
 
 interface AppState {
   system: SystemInfo;
@@ -239,6 +241,23 @@ function AppInner() {
     loadData();
   };
 
+  const quickAddToFront = async (memberId: string, tier: 'primary' | 'coFront' | 'coConscious') => {
+    const f = state.front;
+    const strip = (tr: any) => ({ ...(tr || {}), memberIds: ((tr && tr.memberIds) || []).filter((id: string) => id !== memberId) });
+    const p = strip(f?.primary), cf = strip(f?.coFront), cc = strip(f?.coConscious);
+    if (tier === 'primary') p.memberIds = [...p.memberIds, memberId];
+    else if (tier === 'coFront') cf.memberIds = [...cf.memberIds, memberId];
+    else cc.memberIds = [...cc.memberIds, memberId];
+    await saveQuickFront(p, cf, cc);
+  };
+
+  const removeFromFront = async (memberId: string) => {
+    const f = state.front;
+    if (!f) return;
+    const strip = (tr: any) => ({ ...(tr || {}), memberIds: ((tr && tr.memberIds) || []).filter((id: string) => id !== memberId) });
+    await saveQuickFront(strip(f.primary), strip(f.coFront), strip(f.coConscious));
+  };
+
   if (!state.loaded) {
     return (
       <div className="app-shell">
@@ -334,6 +353,7 @@ function AppInner() {
                 onClick={() => setView('mailbox')}
               />
             )}
+            <WhiteboardTile onClick={() => setView('whiteboard')} />
             <StatsTile
               history={state.history}
               members={state.members}
@@ -398,6 +418,7 @@ function AppInner() {
                 : view === 'retro-history' ? t('hub.retroHistory')
                 : view === 'network' ? t('network.title')
                 : view === 'mailbox' ? t('mailbox.title')
+                : view === 'whiteboard' ? t('whiteboard.title')
                 : view}
             </span>
           </div>
@@ -411,7 +432,8 @@ function AppInner() {
             ) : (
               <MembersView members={state.members} groups={state.groups} settings={state.settings} onUpdate={loadData}
                 focusMemberId={memberFocus} onFocusHandled={() => setMemberFocus(null)}
-                onShowOnMap={(id) => { setMapFocus(id); setView('system-map'); }} />
+                onShowOnMap={(id) => { setMapFocus(id); setView('system-map'); }}
+                front={state.front} onQuickFront={quickAddToFront} onRemoveFromFront={removeFromFront} />
             ))}
             {view === 'archive' && (
               <MembersView members={state.members} groups={state.groups} settings={state.settings} onUpdate={loadData} archiveOnly />
@@ -469,10 +491,13 @@ function AppInner() {
               <CreditsView />
             )}
             {view === 'network' && (
-              <NetworkView />
+              <NetworkView members={state.members} groups={state.groups} journal={state.journal} />
             )}
             {view === 'mailbox' && (
-              <MailboxView members={state.members} />
+              <MailboxView members={state.members} onUpdate={loadData} />
+            )}
+            {view === 'whiteboard' && (
+              <WhiteboardView />
             )}
           </div>
         </div>
