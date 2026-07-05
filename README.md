@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Front tracking, system journal & history for plural systems.</strong><br>
-  Private. Offline-first. No accounts. No servers.
+  Private. Offline-first.
 </p>
 
 <p align="center">
