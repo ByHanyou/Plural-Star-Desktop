@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, FrontState, FrontTierKey, isFrontEmpty, fmtDur, getInitials } from '../utils';
+import { FrontTierKey, isFrontEmpty, fmtDur, getInitials } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { front: FrontState | null; members: Member[]; onClick: () => void; onUpdateFront: () => void; }
+interface Props { onClick: () => void; onUpdateFront: () => void; }
 const TIER_ORDER: FrontTierKey[] = ['primary', 'coFront', 'coConscious'];
 const TIER_I18N: Record<FrontTierKey, string> = { primary: 'tier.primaryFront', coFront: 'tier.coFront', coConscious: 'tier.coConscious' };
 
-export default function FrontTile({ front, members, onClick, onUpdateFront }: Props) {
+export default function FrontTile({ onClick, onUpdateFront }: Props) {
+  const front = useAppStore(s => s.state.front);
+  const members = useAppStore(s => s.state.members);
   const { t } = useTranslation();
   const [, setTick] = useState(0);
   useEffect(() => { if (!front) return; const id = setInterval(() => setTick(t => t + 1), 60000); return () => clearInterval(id); }, [front]);

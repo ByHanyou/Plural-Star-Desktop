@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "白色",
+    "black": "黑色",
+    "red": "紅色",
+    "orange": "橙色",
+    "yellow": "黃色",
+    "green": "綠色",
+    "blue": "藍色",
+    "indigo": "靛藍",
+    "brown": "棕色",
+    "gray": "灰色",
+    "slate": "石板灰",
+    "goldenrod": "金菊黃",
+    "periwinkle": "長春花藍",
+    "pink": "粉紅色",
+    "mint": "薄荷綠",
+    "lavender": "薰衣草紫",
+    "peach": "桃色",
+    "seaGreen": "海綠色",
+    "coral": "珊瑚色",
+    "skyBlue": "天藍色",
+    "orchid": "蘭花紫",
+    "lime": "青檸色",
+    "sand": "沙色"
+  },
   "mailbox": {
     "title": "信箱",
     "compose": "撰寫",
@@ -264,7 +289,9 @@
     "bulkRestore": "還原成員",
     "bulkRestoreMsg": "將 {{count}} 位成員還原為使用中？",
     "bulkDelete": "刪除成員",
-    "bulkDeleteMsg": "永久刪除 {{count}} 位成員？此操作無法復原。"
+    "bulkDeleteMsg": "永久刪除 {{count}} 位成員？此操作無法復原。",
+    "clone": "複製",
+    "cloneFields": "要複製哪些欄位？"
   },
   "history": {
     "title": "歷史",
@@ -525,6 +552,7 @@
     "endBeforeStart": "結束時間必須晚於開始時間。",
     "overlapDetected": "偵測到重疊",
     "overlapMsg": "此條目與現有條目重疊：",
+    "overlapMore": "+{{count}} 個",
     "keepBoth": "保留兩者",
     "replace": "取代",
     "activeFrontExists": "已有進行中的前台",
@@ -545,6 +573,7 @@
     "supportPS": "支持 PS"
   },
   "modal": {
+    "read": "閱讀",
     "linkPfp": "連結圖片",
     "appFont": "應用程式字型",
     "appFontDesc": "整個應用程式文字所使用的字型。",
@@ -961,6 +990,9 @@
     "when": "時間",
     "remindBefore": "提前提醒",
     "atTime": "準時",
+    "remind30m": "30分鐘",
+    "remind1h": "1小時",
+    "remind1d": "1天",
     "noAppointments": "尚無預約。",
     "history": "病史",
     "addHistory": "+ 新增記錄",

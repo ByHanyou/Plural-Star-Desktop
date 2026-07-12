@@ -1,11 +1,3 @@
-// Node API client (desktop port). Same endpoints and events as mobile's
-// NodeClient, adapted for Electron:
-//   - HTTP goes through the main-process net bridge (window.electronAPI.net.fetch)
-//     so renderer CORS never applies to the relay's plain-JSON API.
-//   - WebSocket uses the renderer's native WebSocket (WS is not CORS-gated).
-//   - Every HTTP call has a hard timeout — same rationale as mobile: a hung
-//     request must never freeze UI busy-states.
-
 import { ConnStatus } from './types';
 
 type Listener = (payload: any) => void;
@@ -30,8 +22,6 @@ interface BridgeResponse {
   text: string;
 }
 
-// The main-process bridge promise can't be aborted, but the caller must never
-// hang on it — race it against a timeout so the UI stays responsive.
 const bridgeFetch = async (
   url: string,
   options?: { method?: string; headers?: Record<string, string>; body?: string },
@@ -220,7 +210,6 @@ export class NodeClient {
     }, delay);
   }
 
-  // Immediate reconnect (skips any pending backoff) if the socket is down.
   ensureConnected(): void {
     if (!this.wantOpen || this.ws) return;
     if (this.reconnectTimer) {

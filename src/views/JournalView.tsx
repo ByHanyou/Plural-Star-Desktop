@@ -1,19 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, JournalEntry, JournalTemplate, uid, fmtDate, fmtTime } from '../utils';
+import { JournalEntry, JournalTemplate, uid, fmtDate, fmtTime } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  journal: JournalEntry[];
-  members: Member[];
   onUpdate: () => void;
 }
 
 type TabId = 'entries' | 'templates';
 
-export default function JournalView({ journal, members, onUpdate }: Props) {
+export default function JournalView({ onUpdate }: Props) {
   const { t } = useTranslation();
+  const journal = useAppStore(s => s.state.journal);
+  const members = useAppStore(s => s.state.members);
   const [tab, setTab] = useState<TabId>('entries');
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState('');

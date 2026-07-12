@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NoteboardEntry, Member } from '../utils';
+import { NoteboardEntry } from '../utils';
 import { store, KEYS } from '../storage';
+import { useAppStore } from '../store/appStore';
 
-interface Props { members: Member[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function MailboxTile({ members, onClick }: Props) {
+export default function MailboxTile({ onClick }: Props) {
   const { t } = useTranslation();
+  const members = useAppStore(s => s.state.members);
   const [notes, setNotes] = useState<NoteboardEntry[]>([]);
   useEffect(() => { store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setNotes(n || [])); }, []);
 

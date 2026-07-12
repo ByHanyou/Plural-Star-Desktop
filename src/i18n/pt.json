@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "Branco",
+    "black": "Preto",
+    "red": "Vermelho",
+    "orange": "Laranja",
+    "yellow": "Amarelo",
+    "green": "Verde",
+    "blue": "Azul",
+    "indigo": "Índigo",
+    "brown": "Marrom",
+    "gray": "Cinza",
+    "slate": "Ardósia",
+    "goldenrod": "Ouro-velho",
+    "periwinkle": "Pervinca",
+    "pink": "Rosa",
+    "mint": "Menta",
+    "lavender": "Lavanda",
+    "peach": "Pêssego",
+    "seaGreen": "Verde-mar",
+    "coral": "Coral",
+    "skyBlue": "Azul-céu",
+    "orchid": "Orquídea",
+    "lime": "Lima",
+    "sand": "Areia"
+  },
   "mailbox": {
     "title": "Caixa de correio",
     "compose": "Escrever",
@@ -140,6 +165,9 @@
     "rival": "Rival"
   },
   "medical": {
+    "remind30m": "30m",
+    "remind1h": "1h",
+    "remind1d": "1d",
     "title": "Médico",
     "medications": "Medicamentos",
     "addMedication": "+ Adicionar medicamento",
@@ -272,6 +300,8 @@
     "clearFrontTitle": "Limpar front?"
   },
   "members": {
+    "clone": "Clonar",
+    "cloneFields": "Copiar quais campos?",
     "displayFields": "Campos exibidos",
     "fieldPronouns": "Pronomes",
     "fieldRoles": "Funções",
@@ -501,6 +531,7 @@
     "banners": "Banners dos Membros"
   },
   "hub": {
+    "overlapMore": "+{{count}} mais",
     "title": "Central",
     "shareExport": "Compartilhar e Exportar",
     "shareExportDesc": "Exportar dados, importar de outros apps, compartilhar perfil do sistema.",
@@ -547,6 +578,7 @@
     "note": "Nota",
     "addMember": "Adicionar Membro",
     "editMember": "Editar Membro",
+    "read": "Ler",
     "name": "Nome *",
     "headmateName": "Nome do colega de sistema",
     "pronouns": "Pronomes",

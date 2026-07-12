@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, ChatChannel, ChatMessage } from '../utils';
+import { ChatMessage } from '../utils';
 import { store, chatMsgKey } from '../storage';
+import { useAppStore } from '../store/appStore';
 
-interface Props { channels: ChatChannel[]; members: Member[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function ChatTile({ channels, members, onClick }: Props) {
+export default function ChatTile({ onClick }: Props) {
   const { t } = useTranslation();
+  const channels = useAppStore(s => s.state.channels);
+  const members = useAppStore(s => s.state.members);
   const [lastMsg, setLastMsg] = useState<{ msg: ChatMessage; channel: string } | null>(null);
   const getMember = (id: string) => members.find(m => m.id === id);
   useEffect(() => {

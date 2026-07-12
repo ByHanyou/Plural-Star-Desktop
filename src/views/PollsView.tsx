@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberPoll, PollOption, uid, fmtTime } from '../utils';
+import { MemberPoll, PollOption, uid, fmtTime } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  members: Member[];
   onUpdate: () => void;
 }
 
-export default function PollsView({ members, onUpdate }: Props) {
+export default function PollsView({ onUpdate }: Props) {
   const { t } = useTranslation();
+  const members = useAppStore(s => s.state.members);
   const [polls, setPolls] = useState<MemberPoll[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [question, setQuestion] = useState('');

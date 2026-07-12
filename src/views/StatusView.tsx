@@ -6,6 +6,7 @@ import {
   parseMoodList, toggleMoodInList, serializeMoodList,
 } from '../utils';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { useAppStore } from '../store/appStore';
 
 export function SetStatusModal({ open, onClose, onSave, statuses, selfId, current, settings }: {
   open: boolean; onClose: () => void; onSave: (p: any, cf: any, cc: any) => void;
@@ -147,16 +148,16 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
 }
 
 interface Props {
-  front: FrontState | null;
-  members: Member[];
   statuses: Member[];
   selfId?: string;
-  settings: AppSettings;
   onSaveStatus: (p: any, cf: any, cc: any) => void;
   onEnsureSelf?: () => Promise<Member>;
 }
 
-export default function StatusView({ front, members, statuses, selfId, settings, onSaveStatus, onEnsureSelf }: Props) {
+export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSelf }: Props) {
+  const front = useAppStore(s => s.state.front);
+  const members = useAppStore(s => s.state.members);
+  const settings = useAppStore(s => s.state.settings);
   const { t } = useTranslation();
   const [showSet, setShowSet] = useState(false);
   const [tick, setTick] = useState(0);

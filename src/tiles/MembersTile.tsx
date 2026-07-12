@@ -1,10 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, getInitials } from '../utils';
+import { getInitials } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { members: Member[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function MembersTile({ members, onClick }: Props) {
+export default function MembersTile({ onClick }: Props) {
+  const members = useAppStore(s => s.state.members);
   const { t } = useTranslation();
   const active = members.filter(m => !m.archived && !m.isCustomFront);
   const preview = active.slice(0, 5);

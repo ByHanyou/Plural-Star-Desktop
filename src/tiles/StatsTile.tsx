@@ -1,11 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, fmtDur } from '../utils';
+import { fmtDur } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { history: HistoryEntry[]; members: Member[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function StatsTile({ history, members, onClick }: Props) {
+export default function StatsTile({ onClick }: Props) {
   const { t } = useTranslation();
+  const history = useAppStore(s => s.state.history);
+  const members = useAppStore(s => s.state.members);
   const getMember = (id: string) => members.find(m => m.id === id);
   const frontEntries = history.filter(h => !h.changeType || h.changeType === 'front');
   const totalsByMember: Record<string, number> = {};

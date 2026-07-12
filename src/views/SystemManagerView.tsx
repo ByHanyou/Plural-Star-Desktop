@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, GroupNodeKind, FrontState, uid, childrenOf, descendantsOf, isDescendant, groupKind } from '../utils';
+import { Member, MemberGroup, GroupNodeKind, uid, childrenOf, descendantsOf, isDescendant, groupKind } from '../utils';
 import { store, KEYS } from '../storage';
+import { useAppStore } from '../store/appStore';
 import { Btn, Modal, ConfirmDialog, ColorPicker, useEscapeKey } from '../components/ui';
 import { NetworkManager } from '../network/NetworkManager';
 import { PALETTE } from '../theme';
 
 interface Props {
-  members: Member[];
-  groups: MemberGroup[];
   onUpdate: () => void;
   onViewMember?: (id: string) => void;
-  front?: FrontState | null;
   onQuickFront?: (memberId: string, tier: 'primary' | 'coFront' | 'coConscious') => void;
   onRemoveFromFront?: (memberId: string) => void;
 }
 
-export default function SystemManagerView({ members, groups, onUpdate, onViewMember, front, onQuickFront, onRemoveFromFront }: Props) {
+export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront, onRemoveFromFront }: Props) {
+  const members = useAppStore(s => s.state.members);
+  const groups = useAppStore(s => s.state.groups);
+  const front = useAppStore(s => s.state.front);
   const { t } = useTranslation();
 
   const [newName, setNewName] = useState('');
@@ -212,11 +213,11 @@ export default function SystemManagerView({ members, groups, onUpdate, onViewMem
               <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{folder ? folder.name : t('systemManager.title')}</span>
               {folder && !removeMode && (
                 <button onClick={() => { setAddPickIds([]); setAddSearch(''); setAddPickOpen(true); }} aria-label={t('memberGroups.addMembers')} title={t('memberGroups.addMembers')}
-                  style={{ width: 24, height: 24, borderRadius: 12, cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 14, lineHeight: 1 }}>＋</button>
+                  style={{ width: 24, height: 24, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 14, lineHeight: 1 }}>＋</button>
               )}
               {folder && folderMembers.length > 0 && !removeMode && (
                 <button onClick={() => { setRemoveIds([]); setRemoveMode(true); }} aria-label={t('memberGroups.removeMembers')} title={t('memberGroups.removeMembers')}
-                  style={{ width: 24, height: 24, borderRadius: 12, cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 14, lineHeight: 1 }}>−</button>
+                  style={{ width: 24, height: 24, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 14, lineHeight: 1 }}>−</button>
               )}
             </div>
             {removeMode && folder && (
@@ -253,10 +254,10 @@ export default function SystemManagerView({ members, groups, onUpdate, onViewMem
                 {onQuickFront && onRemoveFromFront && (
                   isFronting(m.id) ? (
                     <button onClick={() => setConfirmRemoveFront(m)} aria-label={`${t('members.removeFromFront')} — ${m.name}`} title={t('members.removeFromFront')}
-                      style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>−</button>
+                      style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>−</button>
                   ) : (
                     <button onClick={() => setQuickFrontFor(m)} aria-label={`${t('members.addToFront')} — ${m.name}`} title={t('members.addToFront')}
-                      style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>＋</button>
+                      style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>＋</button>
                   )
                 )}
               </div>

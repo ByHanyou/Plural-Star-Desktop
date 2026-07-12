@@ -1,5 +1,3 @@
-// React hook: subscribe a component to the NetworkManager's state.
-
 import { useEffect, useState } from 'react';
 import { NetworkManager, NetworkState } from './NetworkManager';
 

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, FrontState, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl } from '../utils';
+import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
+import { useAppStore } from '../store/appStore';
 import { Btn, Field, Section, ColorPicker, Modal, ConfirmDialog, clickable } from '../components/ui';
 
 type SubTab = 'profile' | 'statuses';
@@ -10,13 +11,12 @@ type SubTab = 'profile' | 'statuses';
 interface Props {
   member?: Member;
   statuses: Member[];
-  front: FrontState | null;
-  members: Member[];
   onUpdate: () => void;
   onEnsureSelf: () => Promise<Member>;
 }
 
-export default function ProfileView({ member, statuses, front, members, onUpdate, onEnsureSelf }: Props) {
+export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }: Props) {
+  const front = useAppStore(s => s.state.front);
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState<SubTab>('profile');
   const [editingProfile, setEditingProfile] = useState<Member | null>(null);

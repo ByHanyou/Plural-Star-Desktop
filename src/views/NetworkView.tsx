@@ -1,24 +1,16 @@
-// Network view (desktop) — Friends & device Sync. Mirrors mobile's
-// NetworkScreen: mutual friend codes, directed initial device clone with an
-// explicit send/receive choice, live status, and a custom-relay override.
-
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Btn, Field, Toggle, Section, Modal, ConfirmDialog } from '../components/ui';
 import { useNetwork } from '../network/useNetwork';
 import { NetworkManager } from '../network/NetworkManager';
 import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY } from '../network/types';
-import { fmtDur, fmtTime, uid, Member, MemberGroup, JournalEntry } from '../utils';
+import { fmtDur, fmtTime, uid } from '../utils';
 import { store } from '../storage';
+import { logError } from '../log';
+import { useAppStore } from '../store/appStore';
 
 type Kind = 'friend' | 'device';
-type BucketFeature = 'members' | 'groups' | 'journal' | 'history';
-
-interface Props {
-  members?: Member[];
-  groups?: MemberGroup[];
-  journal?: JournalEntry[];
-}
+type BucketFeature = 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections';
 
 const emptyScope = (): PrivacyScope => ({ mode: 'none', ids: [] });
 const newBucket = (): PrivacyBucket => ({
@@ -28,13 +20,30 @@ const newBucket = (): PrivacyBucket => ({
   groups: emptyScope(),
   journal: emptyScope(),
   history: emptyScope(),
+  customFields: emptyScope(),
+  medical: emptyScope(),
+  connections: emptyScope(),
   friendPeerIds: [],
   createdAt: Date.now(),
 });
 
-export default function NetworkView({ members = [], groups = [], journal = [] }: Props) {
+const normalizeBucket = (b: PrivacyBucket): PrivacyBucket => ({
+  ...b,
+  members: b.members || emptyScope(),
+  groups: b.groups || emptyScope(),
+  journal: b.journal || emptyScope(),
+  history: b.history || emptyScope(),
+  customFields: b.customFields || emptyScope(),
+  medical: b.medical || emptyScope(),
+  connections: b.connections || emptyScope(),
+});
+
+export default function NetworkView() {
   const { t } = useTranslation();
   const net = useNetwork();
+  const members = useAppStore(s => s.state.members);
+  const groups = useAppStore(s => s.state.groups);
+  const journal = useAppStore(s => s.state.journal);
 
   const [theirFriend, setTheirFriend] = useState('');
   const [theirDevice, setTheirDevice] = useState('');
@@ -49,8 +58,8 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
 
   useEffect(() => {
     store.get<PrivacyBucket[]>(PRIVACY_BUCKETS_KEY, []).then(saved => {
-      if (saved && Array.isArray(saved)) setBuckets(saved);
-    }).catch(() => {});
+      if (saved && Array.isArray(saved)) setBuckets(saved.map(normalizeBucket));
+    }).catch(e => logError('network', e));
   }, []);
 
   const saveBuckets = async (next: PrivacyBucket[]) => {
@@ -60,7 +69,7 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
   };
 
   const featureLabel = (f: BucketFeature): string =>
-    f === 'members' ? t('tabs.members') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : t('tabs.history');
+    f === 'members' ? t('tabs.members') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'medical' ? t('medical.title', { defaultValue: 'Medical' }) : t('systemMap.title', { defaultValue: 'Connections' });
   const scopeSummary = (s: PrivacyScope): string =>
     s.mode === 'all' ? t('network.scopeAll') : s.mode === 'none' ? t('network.scopeNone') : `${s.ids.length}`;
   const setScopeMode = (f: BucketFeature, mode: PrivacyScopeMode) => {
@@ -91,6 +100,9 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
       groups: { mode: b.groups.mode, ids: [...b.groups.ids] },
       journal: { mode: b.journal.mode, ids: [...b.journal.ids] },
       history: { mode: b.history.mode, ids: [...b.history.ids] },
+      customFields: { mode: b.customFields.mode, ids: [...b.customFields.ids] },
+      medical: { mode: b.medical.mode, ids: [...b.medical.ids] },
+      connections: { mode: b.connections.mode, ids: [...b.connections.ids] },
       friendPeerIds: [],
       createdAt: Date.now(),
     });
@@ -98,7 +110,7 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
   const pickableMembers = members.filter(m => !m.deleted && !m.isCustomFront);
   const [error, setError] = useState<string | null>(null);
   const [copiedKind, setCopiedKind] = useState<Kind | null>(null);
-  const [directionFor, setDirectionFor] = useState<string | null>(null); // device code awaiting send/receive choice
+  const [directionFor, setDirectionFor] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<Friend | null>(null);
   const [, setNowTick] = useState(0);
 
@@ -156,7 +168,7 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
       await navigator.clipboard.writeText(code);
       setCopiedKind(kind);
       setTimeout(() => setCopiedKind(c => (c === kind ? null : c)), 1500);
-    } catch {}
+    } catch (e) { logError('network', e); }
   };
 
   const enterWith = (kind: Kind, value: string, clear: () => void, role?: 'source' | 'target') =>
@@ -169,8 +181,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
   const onEnter = (kind: Kind, value: string, clear: () => void) => {
     if (!value.trim()) return;
     if (kind === 'device') {
-      // The initial copy is directed: the user must say which device's data
-      // survives. After that first copy, sync runs both ways.
       setDirectionFor(value.trim());
       return;
     }
@@ -191,7 +201,13 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
     if (!s) return [online ? t('network.online') : t('network.offline')];
     const lines: string[] = [];
     const dur = s.startTime ? fmtDur(s.startTime) : '';
-    lines.push(`◈ ${s.fronters}${dur ? `  ·  ${dur}` : ''}`);
+    const tierLines: string[] = [];
+    if (s.primary) tierLines.push(t('notification.primary', { names: s.primary, defaultValue: `Primary: ${s.primary}` }));
+    if (s.coFront) tierLines.push(t('notification.coFront', { names: s.coFront, defaultValue: `Co-Front: ${s.coFront}` }));
+    if (s.coConscious) tierLines.push(t('notification.coConscious', { names: s.coConscious, defaultValue: `Co-Conscious: ${s.coConscious}` }));
+    if (tierLines.length === 0) tierLines.push(s.fronters);
+    tierLines[0] = `◈ ${tierLines[0]}${dur ? `  ·  ${dur}` : ''}`;
+    lines.push(...tierLines);
     if (s.mood) lines.push(t('notification.mood', { mood: s.mood, defaultValue: `Mood: ${s.mood}` }));
     if (s.location) lines.push(t('notification.at', { location: s.location, defaultValue: `At: ${s.location}` }));
     if (s.note) lines.push(t('notification.note', { note: s.note, defaultValue: `Note: ${s.note}` }));
@@ -265,7 +281,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         </div>
       )}
 
-      {/* Connection */}
       <Section label={t('network.enable')} />
       <Toggle value={net.enabled} onChange={v => guard(() => NetworkManager.setEnabled(v))} label={t('network.enable')} description={t('network.enableDesc')} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 20 }} role="status" aria-label={`${t('network.enable')} — ${statusLabel()}`}>
@@ -273,12 +288,10 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         <span style={{ fontSize: 13, color: 'var(--text)' }}>{statusLabel()}</span>
       </div>
 
-      {/* Add a friend */}
       <Section label={t('network.addFriend')} />
       <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('network.howItWorks')}</p>
       {renderPairing('friend', net.activeFriendCode, net.activeFriendExpiresAt, theirFriend, setTheirFriend)}
 
-      {/* Friends */}
       <div style={{ marginTop: 20 }}>
         <Section label={t('network.friends')} />
         {net.friends.length === 0 ? (
@@ -288,7 +301,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         )}
       </div>
 
-      {/* Sync your devices */}
       <div style={{ marginTop: 24 }}>
         <Section label={t('network.syncTitle')} />
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('network.syncDesc')}</p>
@@ -303,7 +315,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         </div>
       </div>
 
-      {/* Other / custom network */}
       <div style={{ marginTop: 24 }}>
         <Section label={t('network.customNetwork')} />
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('network.customNetworkDesc')}</p>
@@ -315,7 +326,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         </Btn>
       </div>
 
-      {/* Privacy Buckets (groundwork for the friends sharing expansion) */}
       <div style={{ marginTop: 24 }}>
         <Section label={t('network.tabPrivacy')} />
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('network.privacyDesc')}</p>
@@ -328,10 +338,10 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
               <div role="button" tabIndex={0} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                 onClick={() => setEditBucket({ ...b })}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditBucket({ ...b }); } }}
-                aria-label={`${b.name}. ${(['members', 'groups', 'journal', 'history'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
+                aria-label={`${b.name}. ${(['members', 'groups', 'journal', 'history', 'customFields', 'medical', 'connections'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  {(['members', 'groups', 'journal', 'history'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
+                  {(['members', 'groups', 'journal', 'history', 'customFields', 'medical', 'connections'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
                 </div>
               </div>
               <Btn variant="ghost" aria-label={`${t('network.cloneBucket')} — ${b.name}`} onClick={() => cloneBucket(b)}>⧉</Btn>
@@ -341,7 +351,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         </div>
       </div>
 
-      {/* Bucket editor */}
       <Modal
         open={!!editBucket && !pickerFeature}
         title={editBucket && buckets.some(b => b.id === editBucket.id) ? editBucket.name : t('network.newBucket')}
@@ -353,7 +362,7 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
           </div>
         }>
         <Field label={t('network.bucketName')} value={editBucket?.name || ''} onChange={v => editBucket && setEditBucket({ ...editBucket, name: v })} placeholder={t('network.bucketName')} />
-        {editBucket && (['members', 'groups', 'journal', 'history'] as BucketFeature[]).map(f => (
+        {editBucket && (['members', 'groups', 'journal', 'history', 'customFields', 'medical', 'connections'] as BucketFeature[]).map(f => (
           <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
             <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{featureLabel(f)}</span>
             {(['all', 'select', 'none'] as PrivacyScopeMode[]).map(mode => {
@@ -381,7 +390,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         ))}
       </Modal>
 
-      {/* Bucket selection picker */}
       <Modal
         open={!!editBucket && !!pickerFeature}
         title={`${pickerFeature ? featureLabel(pickerFeature) : ''} — ${t('network.scopeSelect')}`}
@@ -421,7 +429,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         </div>
       </Modal>
 
-      {/* Bucket delete confirmation */}
       <ConfirmDialog
         open={!!deleteBucketTarget}
         title={t('network.deleteBucket')}
@@ -431,7 +438,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         onCancel={() => setDeleteBucketTarget(null)}
       />
 
-      {/* Direction chooser for the initial device copy */}
       <Modal
         open={!!directionFor}
         title={t('network.syncDirectionTitle')}
@@ -450,7 +456,6 @@ export default function NetworkView({ members = [], groups = [], journal = [] }:
         <p style={{ fontSize: 13, color: 'var(--text)' }}>{t('network.syncDirectionMsg')}</p>
       </Modal>
 
-      {/* Remove confirmation */}
       <ConfirmDialog
         open={!!removeTarget}
         title={t('network.remove')}

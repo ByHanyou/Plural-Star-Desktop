@@ -1,8 +1,3 @@
-// Build the front/status payload a friend shares over the network. This mirrors
-// NotificationService.buildFrontContent so a friend's row shows the same content
-// the on-device notification would (names resolved here; duration derived from
-// startTime on the receiving side so it stays live).
-
 import { Member } from '../utils';
 import { FrontShare } from './types';
 
@@ -34,7 +29,7 @@ export const buildFrontShare = (front: any, members: Member[]): FrontShare | nul
   if (!primary && !coFront && !coConscious) return null;
 
   return {
-    fronters: primary || coFront || coConscious,
+    fronters: [primary, coFront, coConscious].filter(Boolean).join(', '),
     primary: primary || undefined,
     coFront: coFront || undefined,
     coConscious: coConscious || undefined,

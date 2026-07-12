@@ -1,6 +1,3 @@
-// NetworkManager — the single coordinator for the app's network client.
-// Wire-identical port of mobile src/network/NetworkManager.ts.
-
 import { store, KEYS } from '../storage';
 import {
   Identity,
@@ -32,18 +29,17 @@ import {
   MAX_NOTIF_FRIENDS,
 } from './types';
 
-const SYNC_DEBOUNCE_MS = 8000; // coalesce bursts of edits
-const SYNC_MIN_INTERVAL_MS = 8000; // floor between push cycles
-const SYNC_MSG_BUDGET = 64 * 1024; // max value bytes packed into one 'sync' message
-const SYNC_CHUNK_SIZE = 48 * 1024; // a value larger than the budget streams in parts this big
-const SYNC_PACE_MS = 300; // delay between consecutive messages (the anti-burst throttle)
-const SYNC_MAX_PARTS = 4096; // reject absurd part counts on receive
+const SYNC_DEBOUNCE_MS = 8000;
+const SYNC_MIN_INTERVAL_MS = 8000;
+const SYNC_MSG_BUDGET = 64 * 1024;
+const SYNC_CHUNK_SIZE = 48 * 1024;
+const SYNC_PACE_MS = 300;
+const SYNC_MAX_PARTS = 4096;
 
 const SYNC_EXCLUDE = new Set(SYNC_EXCLUDE_KEYS);
 
 const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms));
 
-// Fast non-cryptographic content hash for change detection (FNV-1a, 32-bit).
 const contentHash = (s: string): string => {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
@@ -94,7 +90,6 @@ const generateFriendCode = (): string =>
 const generateSyncCode = (): string =>
   `${randomCodeGroup(5)}-${randomCodeGroup(5)}-${randomCodeGroup(5)}-${randomCodeGroup(5)}`;
 
-// Raw string form of a stored value (what mobile's AsyncStorage holds verbatim).
 const getRaw = async (key: string): Promise<string | null> => {
   const v = await window.electronAPI.store.get(key);
   if (v === null || v === undefined) return null;
@@ -106,7 +101,7 @@ const setRaw = async (key: string, raw: string): Promise<void> => {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    parsed = raw; // non-JSON payloads stored as plain strings
+    parsed = raw;
   }
   await window.electronAPI.store.set(key, parsed);
 };
@@ -160,11 +155,10 @@ class NetworkManagerImpl {
   private myFront: FrontShare | null = null;
   private myFrontKnown = false;
 
-  // ---- sync engine state ----
   private lastHashes: Record<string, string> = {};
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
   private lastPushAt = 0;
-  private syncing = false; // guard against overlapping push cycles
+  private syncing = false;
   private chunkBuffers: Map<string, {parts: string[]; total: number; seqs: Set<number>; init: boolean}> = new Map();
   private pendingConflicts: Map<string, {key: string; remoteValue: string; remoteHash: string}[]> = new Map();
   private syncAppliedListeners: Set<() => void> = new Set();
@@ -239,11 +233,13 @@ class NetworkManagerImpl {
     } catch {}
     window.addEventListener('focus', () => {
       this.expireStaleClones();
+      store.get<{ name?: string }>(KEYS.system, null).then(sys => { if (sys && sys.name) this.systemName = sys.name; }).catch(() => {});
       if (this.settings.enabled && this.client) this.client.ensureConnected();
     });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         this.expireStaleClones();
+        store.get<{ name?: string }>(KEYS.system, null).then(sys => { if (sys && sys.name) this.systemName = sys.name; }).catch(() => {});
         if (this.settings.enabled && this.client) this.client.ensureConnected();
       }
     });
@@ -349,9 +345,6 @@ class NetworkManagerImpl {
     } catch {}
   }
 
-  // ---- code lifecycle ----
-
-  // Generate (or regenerate) my shareable code and publish my identity under it.
   async generateCode(kind: LinkKind = 'friend'): Promise<string> {
     if (!this.identity) this.identity = await loadOrCreateIdentity();
     const client = this.client;
@@ -359,7 +352,7 @@ class NetworkManagerImpl {
     const code = kind === 'device' ? generateSyncCode() : generateFriendCode();
     const namespace = rendezvousNamespace(code, kind === 'device' ? 'sync' : 'friend');
     const record = makeRendezvousRecord(this.identity);
-    await client.rendezvousRegister(namespace, record, RENDEZVOUS_TTL_SECONDS); // throws -> UI alert
+    await client.rendezvousRegister(namespace, record, RENDEZVOUS_TTL_SECONDS);
     this.active[kind] = { code, namespace, expiresAt: Date.now() + RENDEZVOUS_TTL_SECONDS * 1000 };
     const prev = this.codeTimers[kind];
     if (prev) clearTimeout(prev);
@@ -398,8 +391,6 @@ class NetworkManagerImpl {
     this.notify();
   }
 
-  // ---- entering a friend's code ----
-
   async enterCode(theirCode: string, kind: LinkKind, role?: 'source' | 'target'): Promise<void> {
     const self = this.identity;
     const client = this.client;
@@ -415,7 +406,6 @@ class NetworkManagerImpl {
     if (id.peerId === self.peerId) throw new Error('that is your own code');
 
     const existing = this.friends.find(f => f.peerId === id.peerId);
-    // If they already entered my code, both sides have now acted -> accepted.
     const status: Friend['status'] =
       existing?.status === 'accepted' || existing?.status === 'entered_mine' ? 'accepted' : 'entered_theirs';
     const fallbackName = kind === 'device' ? 'Device' : 'Friend';
@@ -426,9 +416,7 @@ class NetworkManagerImpl {
     await this.persistFriends();
     this.notify();
 
-    // Tell them I entered their code (rides the E2E channel).
     await this.sendConnectTo(id.peerId, kind, false);
-    // If this completed the link, kick off the right initial exchange.
     if (status === 'accepted') {
       if (kind === 'friend') await this.sendMyFrontTo(id.peerId);
       else {
@@ -445,8 +433,6 @@ class NetworkManagerImpl {
   async enterDeviceCode(code: string, role: 'source' | 'target'): Promise<void> {
     return this.enterCode(code, 'device', role);
   }
-
-  // ---- inbound ----
 
   private handlePacket(p: PacketReceived): void {
     const self = this.identity;
@@ -504,7 +490,6 @@ class NetworkManagerImpl {
         } else if (msg.ack) {
           break;
         } else {
-          // They entered my code first; wait until I enter theirs.
           const kind = msg.kind || 'friend';
           this.upsertFriend({
             ...this.friendFrom(sender, msg.name || (kind === 'device' ? 'Device' : 'Friend'), 'entered_mine', kind),
@@ -566,8 +551,6 @@ class NetworkManagerImpl {
     }
   }
 
-  // ---- outbound ----
-
   private async sendTo(recipientPeerId: string, msg: NetMessage): Promise<void> {
     const self = this.identity;
     const client = this.client;
@@ -595,8 +578,12 @@ class NetworkManagerImpl {
     for (const f of this.friends) {
       const pending = f.status === 'entered_theirs';
       const deviceRefresh = f.kind === 'device' && f.status === 'accepted';
-      if (!pending && !deviceRefresh) continue;
-      this.sendConnectTo(f.peerId, f.kind, false).catch(() => {});
+      const friendRefresh = f.kind !== 'device' && f.status === 'accepted';
+      if (pending || deviceRefresh) {
+        this.sendConnectTo(f.peerId, f.kind, false).catch(() => {});
+      } else if (friendRefresh) {
+        this.sendConnectTo(f.peerId, f.kind, true).catch(() => {});
+      }
     }
   }
 
@@ -612,7 +599,6 @@ class NetworkManagerImpl {
     try {
       await this.sendTo(peerId, { t: 'disconnect' });
     } catch {
-      // best-effort; remove locally regardless
     }
     this.friends = this.friends.filter(f => f.peerId !== peerId);
     await this.persistFriends();
@@ -659,8 +645,6 @@ class NetworkManagerImpl {
       this.sendMyFrontTo(f.peerId);
     }
   }
-
-  // ---- live data sync (between your own linked devices) ----
 
   private onDeviceLinkAccepted(f: Friend): void {
     if (f.kind !== 'device') return;
@@ -727,15 +711,11 @@ class NetworkManagerImpl {
     });
   }
 
-  // Devices eligible for live diff-sync. Excludes links mid-initial-clone.
   private acceptedDevices(): Friend[] {
     return this.friends.filter(f => f.kind === 'device' && f.status === 'accepted' && !f.initPending);
   }
 
-  // Poke from the app whenever local data changes. Debounced + rate-limited.
   notifyDataChanged(): void {
-    // While this device is the TARGET of a pending initial clone, never push:
-    // its data is about to be replaced and must not leak back at the source.
     if (this.friends.some(f => f.kind === 'device' && f.initRole === 'target' && f.initPending)) return;
     if (!this.settings.enabled || this.acceptedDevices().length === 0) return;
     if (this.syncTimer) clearTimeout(this.syncTimer);
@@ -756,8 +736,6 @@ class NetworkManagerImpl {
     return out;
   }
 
-  // Virtual media entries: avatars/banners as data URIs under ps:media:* keys.
-  // Desktop stores media as data URIs already, so this is a direct read.
   private mediaEntries(membersRaw: string | undefined): Record<string, string> {
     const out: Record<string, string> = {};
     if (!membersRaw) return out;
@@ -778,7 +756,6 @@ class NetworkManagerImpl {
     return out;
   }
 
-  // Incoming media: desktop keeps data URIs inline on the member record.
   private async applyMedia(key: string, dataUri: string): Promise<void> {
     const m = key.match(/^ps:media:(av|bn):(.+)$/);
     if (!m) return;
@@ -798,8 +775,6 @@ class NetworkManagerImpl {
     } catch {}
   }
 
-  // Media never travels inside ps:members (paths/data are device-local): keep
-  // this device's avatar/banner per member; ps:media entries carry the images.
   private preserveLocalMedia(incomingRaw: string, localRaw: string | null): string {
     try {
       const inc = JSON.parse(incomingRaw);
@@ -818,9 +793,6 @@ class NetworkManagerImpl {
     }
   }
 
-  // A wedged target-side clone flag would mute this device's outbound sync
-  // forever and freeze it out of reconciliation; expire it after 10 minutes
-  // (no timestamp = wedged by an older build → clear immediately).
   private expireStaleClones(): void {
     const CLONE_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
     let changed = false;
@@ -851,15 +823,11 @@ class NetworkManagerImpl {
   }
 
   private async handleSyncReq(sender: FriendIdentity, theirs: Record<string, string>): Promise<void> {
-    // A sync_req only comes from a device that considers the link fully live —
-    // if we're still muted as a clone target, the clone era is over: unmute.
     const pending = this.friends.find(f => f.peerId === sender.peerId && f.kind === 'device' && f.status === 'accepted' && f.initRole === 'target' && f.initPending);
     if (pending) {
       this.upsertFriend({ ...pending, initPending: false });
       await this.persistFriends();
       this.notify();
-      // A freshly-healed clone target may hold partial data — it must PULL from
-      // the source, never diff-push its own skeleton back over it.
       this.sendSyncReqTo(sender.peerId).catch(() => {});
       return;
     }
@@ -920,14 +888,14 @@ class NetworkManagerImpl {
 
   private async doSyncPush(): Promise<void> {
     if (this.syncing) {
-      this.notifyDataChanged(); // busy (clone/reconciliation in flight) — retry, never drop
+      this.notifyDataChanged();
       return;
     }
     const devices = this.acceptedDevices();
     if (devices.length === 0) return;
     const now = Date.now();
     if (now - this.lastPushAt < SYNC_MIN_INTERVAL_MS) {
-      this.notifyDataChanged(); // too soon — try again after the floor
+      this.notifyDataChanged();
       return;
     }
 
@@ -974,7 +942,7 @@ class NetworkManagerImpl {
           batch[c.k] = {v: c.v, h: c.h};
           size += c.v.length;
         }
-        this.lastHashes[c.k] = c.h; // our value becomes the new shared base
+        this.lastHashes[c.k] = c.h;
       }
       await flush();
       await store.set(SYNC_STATE_KEY, this.lastHashes);
@@ -983,14 +951,9 @@ class NetworkManagerImpl {
     }
   }
 
-  // The directed initial copy: push EVERY syncable key to one device, flagged
-  // `init` so the target overwrites without conflict prompts, ending with an
-  // `initDone` marker that lifts the target's outbound suppression.
   private async doInitClonePush(peerId: string): Promise<void> {
     const dev = this.friends.find(f => f.peerId === peerId && f.kind === 'device' && f.status === 'accepted');
     if (!dev || dev.initRole !== 'source' || !dev.initPending) return;
-    // Never clone at an offline target — the relay silently drops those packets
-    // and we'd wrongly mark the clone done. The peer_online handler retries.
     if (!this.online.has(peerId)) return;
     if (this.syncing) {
       setTimeout(() => this.doInitClonePush(peerId).catch(() => {}), SYNC_MIN_INTERVAL_MS);
@@ -1036,10 +999,9 @@ class NetworkManagerImpl {
           batch[k] = {v, h};
           size += v.length;
         }
-        this.lastHashes[k] = h; // cloned value = the new shared base
+        this.lastHashes[k] = h;
       }
       await flush();
-      // End-of-clone marker (also fine as the only message when there's no data).
       await sendOne({t: 'sync', keys: {}, init: true, initDone: true});
       await store.set(SYNC_STATE_KEY, this.lastHashes);
       this.upsertFriend({ ...dev, initPending: false });
@@ -1051,7 +1013,6 @@ class NetworkManagerImpl {
     }
   }
 
-  // Reassemble a streamed oversized value, then apply it like any synced key.
   private handleSyncChunk(sender: FriendIdentity, m: {key: string; h: string; seq: number; total: number; data: string; init?: boolean}): void {
     if (!m.key || m.total <= 0 || m.total > SYNC_MAX_PARTS || m.seq < 0 || m.seq >= m.total) return;
     const id = `${sender.peerId}:${m.key}:${m.h}`;
@@ -1072,23 +1033,18 @@ class NetworkManagerImpl {
 
   private async applySync(sender: FriendIdentity, keys: Record<string, {v: string; h: string}>, init = false, initDone = false): Promise<void> {
     let dev = this.friends.find(f => f.peerId === sender.peerId && f.kind === 'device');
-    if (!dev || dev.status === 'entered_mine') return; // only sync with linked devices
+    if (!dev || dev.status === 'entered_mine') return;
     if (dev.status === 'entered_theirs') {
-      // They're syncing to us -> on their side the link is accepted, and we
-      // entered their code — mutual. Heal our stuck pending status.
       dev = { ...dev, status: 'accepted' };
       this.upsertFriend(dev);
       await this.persistFriends();
       this.notify();
     }
-    // The clone only overwrites unconditionally when WE opted in as the target.
     const cloning = init && dev.initRole === 'target';
     if (cloning && dev.initPending) {
       this.upsertFriend({ ...dev, initStartedAt: Date.now() });
     }
     if (!init && dev.initRole === 'target' && dev.initPending) {
-      // Normal diff traffic from the source while we still think a clone is
-      // pending = the clone era is over on their side (their initDone was lost).
       dev = { ...dev, initPending: false };
       this.upsertFriend(dev);
       await this.persistFriends();
@@ -1112,7 +1068,7 @@ class NetworkManagerImpl {
       const base = this.lastHashes[k];
       if (localHash === incoming.h) {
         this.lastHashes[k] = incoming.h;
-        continue; // already identical
+        continue;
       }
       if (localRaw != null && canonicalForSync(localRaw) === canonicalForSync(incoming.v)) {
         this.lastHashes[k] = localHash;
@@ -1130,14 +1086,10 @@ class NetworkManagerImpl {
         applied.push(k);
       };
       if (cloning) {
-        // Directed initial copy: the user explicitly chose to replace this
-        // device's data, so incoming always wins — no conflict prompts.
         await writeValue();
         continue;
       }
       if (k === KEYS.members && localRaw != null && realMemberCount(incoming.v) === 0 && realMemberCount(localRaw) > 0) {
-        // An incoming roster with zero real members never silently replaces a
-        // populated one — the user decides, no matter what the hashes say.
         conflicts.push({key: k, remoteValue: incoming.v, remoteHash: incoming.h});
         continue;
       }
@@ -1145,12 +1097,10 @@ class NetworkManagerImpl {
       if (noConflict) {
         await writeValue();
       } else {
-        // Local changed since last sync (or no shared base, both populated) -> ask.
         conflicts.push({key: k, remoteValue: incoming.v, remoteHash: incoming.h});
       }
     }
     if (initDone && dev.initRole === 'target' && dev.initPending) {
-      // Clone complete: resume normal bidirectional sync from the shared base.
       this.upsertFriend({ ...dev, initPending: false });
       await this.persistFriends();
       this.notify();
@@ -1170,7 +1120,6 @@ class NetworkManagerImpl {
     }
   }
 
-  // Resolve a pending conflict batch: keep this device's data or the other's.
   async resolveConflict(peerId: string, keep: 'mine' | 'theirs'): Promise<void> {
     const conflicts = this.pendingConflicts.get(peerId);
     if (!conflicts) return;

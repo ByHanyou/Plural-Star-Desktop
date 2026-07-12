@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../components/ui';
 import { uid } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
+import { logError } from '../log';
 
 const WORLD = 8000;
 const HALF = WORLD / 2;
@@ -20,7 +21,7 @@ interface Stroke {
 type Tool = 'draw' | 'move' | 'erase';
 
 const COLORS = ['#FFFFFF', '#111111', '#E05B5B', '#E8933A', '#D9B84A', '#5BBF7A', '#4AA8D9', '#7B6BE8', '#E87BA8', '#8B5A2B', '#9AA5B1', '#DAA520'];
-const WIDTHS = [3, 6, 12];
+const WIDTHS = [1, 3, 6, 12, 15];
 
 const strokePath = (pts: number[]): string => {
   if (pts.length < 2) return '';
@@ -35,7 +36,7 @@ export default function WhiteboardView() {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [current, setCurrent] = useState<Stroke | null>(null);
   const [color, setColor] = useState(COLORS[0]);
-  const [width, setWidth] = useState(WIDTHS[1]);
+  const [width, setWidth] = useState(WIDTHS[2]);
   const [tool, setTool] = useState<Tool>('draw');
   const [view, setView] = useState({ tx: 0, ty: 0, scale: 0.5 });
   const [confirmClear, setConfirmClear] = useState(false);
@@ -61,7 +62,7 @@ export default function WhiteboardView() {
   }, []);
 
   const persist = useCallback((next: Stroke[]) => {
-    store.set(KEYS.whiteboard, next).then(() => NetworkManager.notifyDataChanged()).catch(() => {});
+    store.set(KEYS.whiteboard, next).then(() => NetworkManager.notifyDataChanged()).catch(e => logError('whiteboard', e));
   }, []);
 
   const toWorld = (clientX: number, clientY: number): [number, number] => {
@@ -78,8 +79,7 @@ export default function WhiteboardView() {
   const clampWorld = (v: number) => Math.max(-HALF + 20, Math.min(HALF - 20, Math.round(v)));
 
   const eraseAt = (wx: number, wy: number) => {
-    const v = viewRef.current;
-    const radius = Math.max(18, 18 / v.scale);
+    const radius = widthRef.current;
     const survivors = strokesRef.current.filter(s => {
       for (let i = 0; i < s.pts.length; i += 2) {
         if (Math.hypot(s.pts[i] - wx, s.pts[i + 1] - wy) < radius + s.w / 2) return false;

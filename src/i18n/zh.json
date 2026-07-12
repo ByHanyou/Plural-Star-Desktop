@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "白色",
+    "black": "黑色",
+    "red": "红色",
+    "orange": "橙色",
+    "yellow": "黄色",
+    "green": "绿色",
+    "blue": "蓝色",
+    "indigo": "靛蓝",
+    "brown": "棕色",
+    "gray": "灰色",
+    "slate": "石板灰",
+    "goldenrod": "金菊黄",
+    "periwinkle": "长春花蓝",
+    "pink": "粉色",
+    "mint": "薄荷绿",
+    "lavender": "薰衣草紫",
+    "peach": "桃色",
+    "seaGreen": "海绿色",
+    "coral": "珊瑚色",
+    "skyBlue": "天蓝色",
+    "orchid": "兰花紫",
+    "lime": "青柠色",
+    "sand": "沙色"
+  },
   "mailbox": {
     "title": "信箱",
     "compose": "撰写",
@@ -155,6 +180,9 @@
     "apptPlaceholder": "如 牙医…",
     "remindBefore": "提前提醒",
     "atTime": "准时",
+    "remind30m": "30分钟",
+    "remind1h": "1小时",
+    "remind1d": "1天",
     "noAppointments": "还没有预约。",
     "history": "病史",
     "addHistory": "+ 添加记录",
@@ -300,7 +328,9 @@
     "searchHint": "输入名字或选择标签来查找成员",
     "active": "活跃",
     "archived": "已归档",
-    "noArchived": "没有已归档的成员。"
+    "noArchived": "没有已归档的成员。",
+    "clone": "克隆",
+    "cloneFields": "复制哪些字段？"
   },
   "history": {
     "title": "历史",
@@ -515,6 +545,7 @@
     "endBeforeStart": "结束时间必须在开始时间之后。",
     "overlapDetected": "检测到重叠",
     "overlapMsg": "此条目与现有条目重叠：",
+    "overlapMore": "+{{count}} 更多",
     "keepBoth": "保留两者",
     "replace": "替换",
     "activeFrontExists": "存在活跃前台",
@@ -534,6 +565,7 @@
     "archive": "归档"
   },
   "modal": {
+    "read": "阅读",
     "updateFront": "更新前台",
     "addMembersFirst": "请先添加成员。",
     "mood": "情绪",

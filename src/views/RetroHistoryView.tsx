@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, HistoryEntry, FrontState, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses } from '../utils';
 import { store, KEYS } from '../storage';
+import { useAppStore } from '../store/appStore';
 import { Btn, Field, Toggle, useEscapeKey } from '../components/ui';
 
 interface Props {
-  members: Member[];
-  history: HistoryEntry[];
-  front: FrontState | null;
   onUpdate: () => void;
   onDone: () => void;
   singlet?: boolean;
@@ -31,7 +29,10 @@ const toLocalInput = (d: Date): string => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-export default function RetroHistoryView({ members, history, front, onUpdate, onDone, singlet = false, selfId }: Props) {
+export default function RetroHistoryView({ onUpdate, onDone, singlet = false, selfId }: Props) {
+  const members = useAppStore(s => s.state.members);
+  const history = useAppStore(s => s.state.history);
+  const front = useAppStore(s => s.state.front);
   const { t } = useTranslation();
   const regularMembers = members.filter(m => !m.isCustomFront && !m.archived);
   const customFronts = members.filter(m => m.isCustomFront && !m.archived);
@@ -159,7 +160,7 @@ export default function RetroHistoryView({ members, history, front, onUpdate, on
       }).join('\n');
       setChoice({
         title: t('hub.overlapDetected'),
-        message: `${t('hub.overlapMsg')}\n\n${overlapNames}${overlaps.length > 3 ? `\n+${overlaps.length - 3} more` : ''}`,
+        message: `${t('hub.overlapMsg')}\n\n${overlapNames}${overlaps.length > 3 ? `\n${t('hub.overlapMore', { count: overlaps.length - 3 })}` : ''}`,
         buttons: [
           { label: t('common.cancel'), onClick: () => setChoice(null) },
           { label: t('hub.keepBoth'), onClick: async () => { await saveHistory(replaceEntries()); finish(); } },

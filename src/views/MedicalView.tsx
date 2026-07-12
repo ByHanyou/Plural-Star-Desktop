@@ -14,7 +14,6 @@ export default function MedicalView({ onUpdate }: Props) {
   const [data, setData] = useState<MedicalData>(DEFAULT_MEDICAL);
   const [confirmDel, setConfirmDel] = useState<{ kind: 'med' | 'appt' | 'hist'; id: string } | null>(null);
 
-  // medication draft
   const [medName, setMedName] = useState('');
   const [medDose, setMedDose] = useState('');
   const [medTime, setMedTime] = useState('');
@@ -22,12 +21,10 @@ export default function MedicalView({ onUpdate }: Props) {
   const [medTimes, setMedTimes] = useState<string[]>([]);
   const [timeErr, setTimeErr] = useState(false);
 
-  // appointment draft
   const [apptTitle, setApptTitle] = useState('');
   const [apptWhen, setApptWhen] = useState('');
   const [apptRemind, setApptRemind] = useState(0);
 
-  // history draft
   const [histTitle, setHistTitle] = useState('');
   const [histWhen, setHistWhen] = useState('');
 
@@ -86,7 +83,6 @@ export default function MedicalView({ onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto' }}>
-      {/* Medications */}
       <div style={card}>
         <h3 style={sectionHead('')}>{t('medical.medications')}</h3>
         {data.medications.length === 0 && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('medical.noMedications')}</p>}
@@ -125,7 +121,6 @@ export default function MedicalView({ onUpdate }: Props) {
         {timeErr && <p style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4 }}>{t('medical.invalidTime')}</p>}
       </div>
 
-      {/* Appointments */}
       <div style={card}>
         <h3 style={sectionHead('')}>{t('medical.appointments')}</h3>
         {data.appointments.length === 0 && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('medical.noAppointments')}</p>}
@@ -144,15 +139,14 @@ export default function MedicalView({ onUpdate }: Props) {
           <select className="field__input" value={apptRemind} onChange={e => setApptRemind(Number(e.target.value))} title={t('medical.remindBefore')} style={{ width: 130 }}>
             <option value={0}>{t('medical.atTime')}</option>
             <option value={15}>15m</option>
-            <option value={30}>30m</option>
-            <option value={60}>1h</option>
-            <option value={1440}>1d</option>
+            <option value={30}>{t('medical.remind30m')}</option>
+            <option value={60}>{t('medical.remind1h')}</option>
+            <option value={1440}>{t('medical.remind1d')}</option>
           </select>
           <Btn variant="solid" onClick={addAppointment}>{t('medical.addAppointment')}</Btn>
         </div>
       </div>
 
-      {/* History */}
       <div style={card}>
         <h3 style={sectionHead('')}>{t('medical.history')}</h3>
         {data.history.length === 0 && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('medical.noHistory')}</p>}
@@ -172,7 +166,6 @@ export default function MedicalView({ onUpdate }: Props) {
         </div>
       </div>
 
-      {/* Emergency */}
       <div style={card}>
         <h3 style={sectionHead('')}>{t('medical.emergency')}</h3>
         <label className="field__label">{t('medical.conditions')}</label>

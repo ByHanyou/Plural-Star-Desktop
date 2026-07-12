@@ -1,22 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Member, ChatChannel, ChatMessage, DEFAULT_CHANNELS,
+  ChatChannel, ChatMessage, DEFAULT_CHANNELS,
   uid, getInitials, fmtTime,
 } from '../utils';
 import { store, KEYS, chatMsgKey } from '../storage';
 import { Btn, Field, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  members: Member[];
-  channels: ChatChannel[];
   onUpdate: () => void;
 }
 
 const EMOJI_QUICK = ['👍', '❤️', '😂', '😢', '😮', '🎉', '✨', '🔥'];
 
-export default function ChatView({ members, channels, onUpdate }: Props) {
+export default function ChatView({ onUpdate }: Props) {
   const { t } = useTranslation();
+  const members = useAppStore(s => s.state.members);
+  const channels = useAppStore(s => s.state.channels);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(channels.find(c => !c.archived)?.id || null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');

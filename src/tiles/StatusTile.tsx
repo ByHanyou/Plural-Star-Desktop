@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, FrontState, isFrontEmpty, fmtDur, translateMood } from '../utils';
+import { Member, isFrontEmpty, fmtDur, translateMood } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { front: FrontState | null; members: Member[]; selfId?: string; onClick: () => void; onUpdateStatus: () => void; }
+interface Props { selfId?: string; onClick: () => void; onUpdateStatus: () => void; }
 
-export default function StatusTile({ front, members, selfId, onClick, onUpdateStatus }: Props) {
+export default function StatusTile({ selfId, onClick, onUpdateStatus }: Props) {
+  const front = useAppStore(s => s.state.front);
+  const members = useAppStore(s => s.state.members);
   const { t } = useTranslation();
   const [, setTick] = useState(0);
   useEffect(() => { if (!front) return; const id = setInterval(() => setTick(x => x + 1), 60000); return () => clearInterval(id); }, [front]);

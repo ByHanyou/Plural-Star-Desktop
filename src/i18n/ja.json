@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "白",
+    "black": "黒",
+    "red": "赤",
+    "orange": "オレンジ",
+    "yellow": "黄",
+    "green": "緑",
+    "blue": "青",
+    "indigo": "インディゴ",
+    "brown": "ブラウン",
+    "gray": "グレー",
+    "slate": "スレート",
+    "goldenrod": "ゴールデンロッド",
+    "periwinkle": "ペリウィンクル",
+    "pink": "ピンク",
+    "mint": "ミント",
+    "lavender": "ラベンダー",
+    "peach": "ピーチ",
+    "seaGreen": "シーグリーン",
+    "coral": "コーラル",
+    "skyBlue": "スカイブルー",
+    "orchid": "オーキッド",
+    "lime": "ライム",
+    "sand": "サンド"
+  },
   "mailbox": {
     "title": "メールボックス",
     "compose": "作成",
@@ -155,6 +180,9 @@
     "apptPlaceholder": "例: 歯科…",
     "remindBefore": "事前通知",
     "atTime": "時刻どおり",
+    "remind30m": "30分",
+    "remind1h": "1時間",
+    "remind1d": "1日",
     "noAppointments": "まだ予約がありません。",
     "history": "既往歴",
     "addHistory": "+ 記録を追加",
@@ -300,7 +328,9 @@
     "searchHint": "名前を入力するかタグを選択してメンバーを検索",
     "active": "アクティブ",
     "archived": "アーカイブ済み",
-    "noArchived": "アーカイブされたメンバーはいません。"
+    "noArchived": "アーカイブされたメンバーはいません。",
+    "clone": "複製",
+    "cloneFields": "どのフィールドをコピーしますか？"
   },
   "history": {
     "title": "履歴",
@@ -515,6 +545,7 @@
     "endBeforeStart": "終了時刻は開始時刻より後である必要があります。",
     "overlapDetected": "重複を検出",
     "overlapMsg": "このエントリは既存のエントリと重複しています：",
+    "overlapMore": "+{{count}} 件",
     "keepBoth": "両方保持",
     "replace": "置換",
     "activeFrontExists": "アクティブなフロントが存在します",
@@ -534,6 +565,7 @@
     "archive": "アーカイブ"
   },
   "modal": {
+    "read": "読む",
     "updateFront": "フロントを更新",
     "addMembersFirst": "先にメンバーを追加してください。",
     "mood": "気分",

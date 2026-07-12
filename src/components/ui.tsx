@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import './ui.css';
+import { colorName } from '../utils';
 
-// Spread onto a non-<button> element that acts as a button, so keyboard users can
-// operate it (Enter/Space) and screen readers announce it as a button (WCAG 2.1.1 / 4.1.2).
 export const clickable = (onClick?: () => void, label?: string) => ({
   role: 'button' as const,
   tabIndex: 0,
@@ -14,7 +13,6 @@ export const clickable = (onClick?: () => void, label?: string) => ({
   },
 });
 
-// Close a modal/dialog on Escape while it's open.
 export function useEscapeKey(active: boolean, onEscape: () => void) {
   useEffect(() => {
     if (!active) return;
@@ -184,6 +182,7 @@ function hsvToHex(h: number, s: number, v: number): string {
 export function ColorPicker({ value, onChange, palette }: {
   value: string; onChange: (v: string) => void; palette: string[];
 }) {
+  const { t } = useTranslation();
   const [hex, setHex] = useState(value);
   const [error, setError] = useState(false);
   const [hsv, setHsv] = useState(() => hexToHsv(value));
@@ -192,11 +191,8 @@ export function ColorPicker({ value, onChange, palette }: {
   const dragRef = useRef<'sv' | 'hue' | null>(null);
   const hsvRef = useRef(hsv);
   hsvRef.current = hsv;
-  // the exact hex we last emitted, so we ignore the parent echoing it back
   const lastHexRef = useRef(value.toUpperCase());
 
-  // adopt an external/typed hex, preserving hue (and saturation for black) that an
-  // achromatic hex can't represent — stops the hue snapping to red on gray/white/black
   const adopt = (n: string) => {
     const nh = hexToHsv(n);
     const prev = hsvRef.current;
@@ -213,7 +209,7 @@ export function ColorPicker({ value, onChange, palette }: {
   useEffect(() => {
     if (!/^#[0-9A-Fa-f]{6}$/.test(value)) return;
     setHex(value);
-    if (value.toUpperCase() === lastHexRef.current) return; // our own echo — ignore
+    if (value.toUpperCase() === lastHexRef.current) return;
     adopt(value);
   }, [value]);
 
@@ -303,6 +299,7 @@ export function ColorPicker({ value, onChange, palette }: {
       <div className="color-picker__swatches">
         {palette.map(c => (
           <button key={c} className={`color-picker__swatch ${c === value ? 'color-picker__swatch--active' : ''}`}
+            aria-label={colorName(c, t)} title={colorName(c, t)}
             style={{ background: c }} onClick={() => { adopt(c); setHex(c); onChange(c); setError(false); }} />
         ))}
       </div>

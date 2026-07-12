@@ -1,5 +1,6 @@
 import i18n from './i18n/i18n';
 import type {SupportedLanguage} from './i18n/i18n';
+import { logError } from './log';
 
 export interface SystemInfo {
   name: string;
@@ -120,8 +121,6 @@ export interface Member {
   tags?: string[];
   groupIds?: string[];
   archived?: boolean;
-  // Soft-delete tombstone: hidden from every member list but kept so front history &
-  // stats resolve the member's name/color instead of the raw ID.
   deleted?: boolean;
   avatar?: string;
   banner?: string;
@@ -295,7 +294,6 @@ export const DEFAULT_MEDICAL: MedicalData = {
 export const isValidTimeHHMM = (v: string): boolean =>
   /^([01]?\d|2[0-3]):[0-5]\d$/.test(v.trim());
 
-// Convert a 12-hour entry ("9", "9:30") + meridiem to canonical 24h "HH:MM". Returns null if invalid.
 export const time12to24 = (raw: string, ampm: 'AM' | 'PM'): string | null => {
   const m = /^(\d{1,2})(?::(\d{2}))?$/.exec((raw || '').trim());
   if (!m) return null;
@@ -306,7 +304,6 @@ export const time12to24 = (raw: string, ampm: 'AM' | 'PM'): string | null => {
   return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 };
 
-// Format a canonical 24h "HH:MM" for display as 12-hour with meridiem, e.g. "9:00 PM".
 export const formatTime12 = (hhmm24: string): string => {
   const m = /^(\d{1,2}):(\d{2})$/.exec((hhmm24 || '').trim());
   if (!m) return hhmm24;
@@ -337,6 +334,38 @@ export interface Relationship {
 
 export const DEFAULT_REL_COLOR = '#8A94A6';
 export const RELATIONSHIP_COLOR_CHOICES = ['#E05B5B', '#5BBF7A', '#D9B84A', '#E87BA8'];
+
+export const COLOR_NAMES: Record<string, string> = {
+  '#FFFFFF': 'white',
+  '#111111': 'black',
+  '#E05B5B': 'red',
+  '#E8933A': 'orange',
+  '#D9B84A': 'yellow',
+  '#5BBF7A': 'green',
+  '#4AA8D9': 'blue',
+  '#7B6BE8': 'indigo',
+  '#8B5A2B': 'brown',
+  '#9AA5B1': 'gray',
+  '#8A94A6': 'slate',
+  '#DAA520': 'goldenrod',
+  '#7B9FE8': 'periwinkle',
+  '#E87BA8': 'pink',
+  '#7BE8C4': 'mint',
+  '#A87BE8': 'lavender',
+  '#E8A87B': 'peach',
+  '#6EC9A9': 'seaGreen',
+  '#E87B7B': 'coral',
+  '#85B4E8': 'skyBlue',
+  '#C97BE8': 'orchid',
+  '#B4E885': 'lime',
+  '#E8C97B': 'sand',
+};
+
+export const colorName = (hex: string, t: (k: string) => string): string => {
+  if (!hex || typeof hex !== 'string') return '';
+  const key = COLOR_NAMES[hex.toUpperCase()];
+  return key ? t(`colors.${key}`) : hex;
+};
 
 export const PRESET_RELATIONSHIP_TYPES: RelationshipTypeDef[] = [
   { id: 'love', name: 'Love', directional: false, color: '#E87BA8', preset: true },
@@ -655,7 +684,7 @@ export const parallelMap = async <T, U>(
       try { results[i] = await worker(items[i], i); }
       catch { results[i] = undefined as any; }
       completed++;
-      if (onProgress) { try { onProgress(completed, total); } catch {} }
+      if (onProgress) { try { onProgress(completed, total); } catch (e) { logError('utils', e); } }
     }
   };
   const lanes = Math.max(1, Math.min(concurrency, total));

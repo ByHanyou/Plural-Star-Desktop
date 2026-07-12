@@ -1,10 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, JournalEntry, fmtDate } from '../utils';
+import { fmtDate } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { journal: JournalEntry[]; members: Member[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function JournalTile({ journal, members, onClick }: Props) {
+export default function JournalTile({ onClick }: Props) {
+  const journal = useAppStore(s => s.state.journal);
+  const members = useAppStore(s => s.state.members);
   const { t } = useTranslation();
   const recent = [...journal].sort((a, b) => b.timestamp - a.timestamp).slice(0, 3);
   const getMember = (id: string) => members.find(m => m.id === id);

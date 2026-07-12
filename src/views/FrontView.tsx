@@ -8,13 +8,10 @@ import {
 } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
+import { logError } from '../log';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  front: FrontState | null;
-  members: Member[];
-  groups: MemberGroup[];
-  history: HistoryEntry[];
-  settings: AppSettings;
   onUpdate: () => void;
   autoOpenEditor?: boolean;
   onAutoOpenConsumed?: () => void;
@@ -48,7 +45,12 @@ export async function applyFrontUpdate(current: FrontState | null, primary: any,
   return newFront;
 }
 
-export default function FrontView({ front, members, groups, history, settings, onUpdate, autoOpenEditor, onAutoOpenConsumed }: Props) {
+export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed }: Props) {
+  const front = useAppStore(s => s.state.front);
+  const members = useAppStore(s => s.state.members);
+  const groups = useAppStore(s => s.state.groups);
+  const history = useAppStore(s => s.state.history);
+  const settings = useAppStore(s => s.state.settings);
   const { t } = useTranslation();
   const [tick, setTick] = useState(0);
   const [showSetFront, setShowSetFront] = useState(false);
@@ -83,7 +85,7 @@ export default function FrontView({ front, members, groups, history, settings, o
           setNoteboardAlert(names);
           setTimeout(() => setNoteboardAlert(null), 6000);
         }
-      } catch {}
+      } catch (e) { logError('front', e); }
     }
     onUpdate();
   };
@@ -524,9 +526,6 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             <Btn variant="solid" onClick={handleSave}>{t('common.save')}</Btn>
           </div>
         }>
-        {/* Call as a function (not <TierPicker/>) so the inputs are part of this modal's
-            own render tree — defining a component inside render gave it a new identity on
-            every keystroke, remounting the input and dropping focus after one character. */}
         {TierPicker({ tierKey: 'primary', selectedIds: primaryIds, mood: primaryMood, setMood: setPrimaryMood, note: primaryNote, setNote: setPrimaryNote, color: 'var(--accent)', energy: primaryEnergy, setEnergy: setPrimaryEnergy })}
         {TierPicker({ tierKey: 'coFront', selectedIds: coFrontIds, mood: coFrontMood, setMood: setCoFrontMood, note: coFrontNote, setNote: setCoFrontNote, color: 'var(--info)', energy: coFrontEnergy, setEnergy: setCoFrontEnergy })}
         {TierPicker({ tierKey: 'coConscious', selectedIds: coConsciousIds, mood: coConMood, setMood: setCoConMood, note: coConNote, setNote: setCoConNote, color: 'var(--success)', energy: coConEnergy, setEnergy: setCoConEnergy })}

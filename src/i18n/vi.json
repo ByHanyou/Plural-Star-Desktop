@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "Trắng",
+    "black": "Đen",
+    "red": "Đỏ",
+    "orange": "Cam",
+    "yellow": "Vàng",
+    "green": "Xanh lá",
+    "blue": "Xanh dương",
+    "indigo": "Chàm",
+    "brown": "Nâu",
+    "gray": "Xám",
+    "slate": "Xám đá",
+    "goldenrod": "Vàng nghệ",
+    "periwinkle": "Xanh tím",
+    "pink": "Hồng",
+    "mint": "Xanh bạc hà",
+    "lavender": "Oải hương",
+    "peach": "Đào",
+    "seaGreen": "Xanh lục biển",
+    "coral": "San hô",
+    "skyBlue": "Xanh da trời",
+    "orchid": "Tím phong lan",
+    "lime": "Xanh chanh",
+    "sand": "Cát"
+  },
   "mailbox": {
     "title": "Hộp thư",
     "compose": "Soạn thư",
@@ -214,6 +239,8 @@
     "clearFrontTitle": "Xóa Front?"
   },
   "members": {
+    "clone": "Nhân bản",
+    "cloneFields": "Sao chép những trường nào?",
     "frontingLockTitle": "Đang front",
     "frontingLockMsg": "Không thể lưu trữ hoặc xóa thành viên khi họ đang front. Hãy gỡ họ khỏi front trước.",
     "addCustomFront": "Thêm Front Tùy chỉnh",
@@ -510,6 +537,7 @@
     "spMergeDesc": "Gộp dữ liệu sao lưu Simply Plural vào hệ thống hiện tại của bạn."
   },
   "hub": {
+    "overlapMore": "+{{count}} nữa",
     "front": "Front",
     "title": "Trung tâm",
     "shareExport": "Chia sẻ và Xuất",
@@ -545,6 +573,7 @@
     "supportPS": "Ủng hộ PS"
   },
   "modal": {
+    "read": "Xem",
     "linkPfp": "Liên kết ảnh",
     "appFont": "Phông chữ Ứng dụng",
     "appFontDesc": "Phông chữ dùng cho văn bản trong toàn ứng dụng.",
@@ -976,7 +1005,10 @@
     "emergencyDesc": "Thông tin quan trọng cho nhân viên cấp cứu. Khi bật, thông tin được thêm vào thông báo cố định và hiển thị từ màn hình khóa.",
     "deleteItemMsg": "Gỡ mục này?",
     "medReminderTitle": "Nhắc uống thuốc",
-    "apptReminderTitle": "Nhắc lịch hẹn"
+    "apptReminderTitle": "Nhắc lịch hẹn",
+    "remind30m": "30 phút",
+    "remind1h": "1 giờ",
+    "remind1d": "1 ngày"
   },
   "polls": {
     "removeOption": "Gỡ lựa chọn",

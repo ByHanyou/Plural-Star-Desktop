@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "Hvit",
+    "black": "Svart",
+    "red": "Rød",
+    "orange": "Oransje",
+    "yellow": "Gul",
+    "green": "Grønn",
+    "blue": "Blå",
+    "indigo": "Indigo",
+    "brown": "Brun",
+    "gray": "Grå",
+    "slate": "Skifer",
+    "goldenrod": "Gullris",
+    "periwinkle": "Blåfiol",
+    "pink": "Rosa",
+    "mint": "Mynte",
+    "lavender": "Lavendel",
+    "peach": "Fersken",
+    "seaGreen": "Sjøgrønn",
+    "coral": "Korall",
+    "skyBlue": "Himmelblå",
+    "orchid": "Orkidé",
+    "lime": "Limegrønn",
+    "sand": "Sand"
+  },
   "mailbox": {
     "title": "Postkasse",
     "compose": "Skriv",
@@ -140,6 +165,9 @@
     "rival": "Rival"
   },
   "medical": {
+    "remind30m": "30 min",
+    "remind1h": "1 t",
+    "remind1d": "1 d",
     "title": "Medisinsk",
     "medications": "Medisiner",
     "addMedication": "+ Legg til medisin",
@@ -272,6 +300,8 @@
     "clearFrontTitle": "Tømme front?"
   },
   "members": {
+    "clone": "Klon",
+    "cloneFields": "Kopier hvilke felt?",
     "displayFields": "Vis felter",
     "fieldPronouns": "Pronomen",
     "fieldRoles": "Roller",
@@ -501,6 +531,7 @@
     "banners": "Medlemsbannere"
   },
   "hub": {
+    "overlapMore": "+{{count}} til",
     "title": "Hub",
     "shareExport": "Del & Eksporter",
     "shareExportDesc": "Eksporter data, importer fra andre apper, del systemprofil.",
@@ -539,6 +570,7 @@
     "systemNamePlaceholder": "Systemnavn",
     "addMember": "Legg til Medlem",
     "editMember": "Rediger Medlem",
+    "read": "Les",
     "name": "Navn",
     "pronouns": "Pronomen",
     "pronounsPlaceholder": "f.eks. han/ham",

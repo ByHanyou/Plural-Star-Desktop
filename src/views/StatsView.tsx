@@ -1,14 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, ChatMessage, fmtDur, getInitials, translateMood, buildEffectiveEnd, SINGLET_HIDDEN_STATUS_NAMES } from '../utils';
+import { HistoryEntry, ChatMessage, fmtDur, getInitials, translateMood, buildEffectiveEnd, SINGLET_HIDDEN_STATUS_NAMES } from '../utils';
 import { Section } from '../components/ui';
 import { store, chatMsgKey, KEYS } from '../storage';
-import type { ChatChannel } from '../utils';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  history: HistoryEntry[];
-  members: Member[];
-  channels: ChatChannel[];
   singlet?: boolean;
   selfId?: string;
 }
@@ -18,8 +15,11 @@ type TimeRange = 'all' | '7d' | '30d';
 const MAX_BOARD = 25;
 const nextBoardLimit = (cur: number) => (cur < 10 ? 10 : MAX_BOARD);
 
-export default function StatsView({ history, members, channels, singlet = false, selfId }: Props) {
+export default function StatsView({ singlet = false, selfId }: Props) {
   const { t } = useTranslation();
+  const history = useAppStore(s => s.state.history);
+  const members = useAppStore(s => s.state.members);
+  const channels = useAppStore(s => s.state.channels);
   const [range, setRange] = useState<TimeRange>('all');
   const [chatCounts, setChatCounts] = useState<Record<string, number>>({});
 

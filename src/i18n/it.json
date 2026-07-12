@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "Bianco",
+    "black": "Nero",
+    "red": "Rosso",
+    "orange": "Arancione",
+    "yellow": "Giallo",
+    "green": "Verde",
+    "blue": "Blu",
+    "indigo": "Indaco",
+    "brown": "Marrone",
+    "gray": "Grigio",
+    "slate": "Ardesia",
+    "goldenrod": "Giallo dorato",
+    "periwinkle": "Pervinca",
+    "pink": "Rosa",
+    "mint": "Menta",
+    "lavender": "Lavanda",
+    "peach": "Pesca",
+    "seaGreen": "Verde mare",
+    "coral": "Corallo",
+    "skyBlue": "Azzurro cielo",
+    "orchid": "Orchidea",
+    "lime": "Verde lime",
+    "sand": "Sabbia"
+  },
   "mailbox": {
     "title": "Posta",
     "compose": "Scrivi",
@@ -214,6 +239,8 @@
     "clearFrontTitle": "Svuotare il Front?"
   },
   "members": {
+    "clone": "Clona",
+    "cloneFields": "Quali campi copiare?",
     "frontingLockTitle": "Attualmente al front",
     "frontingLockMsg": "Non puoi archiviare o eliminare un membro mentre è al front. Prima rimuovilo dal front.",
     "addCustomFront": "Aggiungi Front Personalizzato",
@@ -510,6 +537,7 @@
     "spMergeDesc": "Unisci i dati di backup di Simply Plural al tuo sistema attuale."
   },
   "hub": {
+    "overlapMore": "+{{count}} altri",
     "front": "Front",
     "title": "Hub",
     "shareExport": "Condividi ed Esporta",
@@ -565,6 +593,7 @@
     "note": "Nota",
     "addMember": "Aggiungi Membro",
     "editMember": "Modifica Membro",
+    "read": "Leggi",
     "profile": "Profilo",
     "member": "Membro",
     "name": "Nome *",
@@ -944,6 +973,9 @@
     "rival": "Rivale"
   },
   "medical": {
+    "remind30m": "30 min",
+    "remind1h": "1 h",
+    "remind1d": "1 g",
     "title": "Medico",
     "medications": "Farmaci",
     "addMedication": "+ Aggiungi farmaco",

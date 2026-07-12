@@ -1,11 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { members: Member[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function ArchiveTile({ members, onClick }: Props) {
+export default function ArchiveTile({ onClick }: Props) {
   const { t } = useTranslation();
+  const members = useAppStore(s => s.state.members);
   const archived = members.filter(m => m.archived && !m.isCustomFront);
   return (
     <div className="tile tile--center" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>

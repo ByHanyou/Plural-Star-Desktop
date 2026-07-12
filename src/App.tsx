@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n/i18n';
 import { store, KEYS } from './storage';
-import { deriveTheme, applyThemeToDOM, applyTextScale, applyFontChoice, DARK_PALETTE, BUILTIN_PALETTES, CustomPalette, ThemeColors } from './theme';
+import { deriveTheme, applyThemeToDOM, applyTextScale, applyFontChoice, DARK_PALETTE, BUILTIN_PALETTES, CustomPalette } from './theme';
 import {
   Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   AppSettings, SystemInfo, MemberGroup, migrateFrontState, isFrontEmpty,
@@ -58,35 +58,13 @@ import MailboxView from './views/MailboxView';
 import WhiteboardView from './views/WhiteboardView';
 import { NetworkManager } from './network/NetworkManager';
 import { Modal, Btn } from './components/ui';
+import { useAppStore, DEFAULT_SETTINGS } from './store/appStore';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import SortableTile from './components/SortableTile';
+import { loadTileOrder, saveTileOrder } from './dashboard/tileOrder';
 
 type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard';
-
-interface AppState {
-  system: SystemInfo;
-  members: Member[];
-  groups: MemberGroup[];
-  front: FrontState | null;
-  history: HistoryEntry[];
-  journal: JournalEntry[];
-  channels: ChatChannel[];
-  settings: AppSettings;
-  palettes: CustomPalette[];
-  theme: ThemeColors;
-  loaded: boolean;
-}
-
-const DEFAULT_SETTINGS: AppSettings = {
-  locations: [],
-  customMoods: [],
-  lightMode: false,
-  gpsEnabled: false,
-  filesEnabled: true,
-  language: 'en',
-  notificationsEnabled: true,
-  activePaletteId: '__dark__',
-  textScale: 1.0,
-  useDyslexicFont: false,
-};
 
 class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -126,19 +104,8 @@ function AppInner() {
   const [memberFocus, setMemberFocus] = useState<string | null>(null);
   const [mapFocus, setMapFocus] = useState<string | null>(null);
   const [showQuickFront, setShowQuickFront] = useState(false);
-  const [state, setState] = useState<AppState>({
-    system: { name: '', description: '' },
-    members: [],
-    groups: [],
-    front: null,
-    history: [],
-    journal: [],
-    channels: [],
-    settings: DEFAULT_SETTINGS,
-    palettes: [],
-    theme: deriveTheme(DARK_PALETTE.bg, DARK_PALETTE.accent, DARK_PALETTE.text, DARK_PALETTE.mid),
-    loaded: false,
-  });
+  const state = useAppStore(s => s.state);
+  const setState = useAppStore(s => s.setState);
 
   const loadData = useCallback(async () => {
     const [system, members, groups, frontRaw, history, journal, channels, settings, palettes] = await Promise.all([
@@ -199,15 +166,11 @@ function AppInner() {
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => startMedicalReminders(), []);
 
-  // ---- Network (Friends & device Sync) ----
   const [syncConflict, setSyncConflict] = useState<{peerId: string; deviceName: string} | null>(null);
   const [roleMismatch, setRoleMismatch] = useState<{deviceName: string} | null>(null);
   useEffect(() => { NetworkManager.init().catch(e => console.error('[NETWORK] init failed:', e)); }, []);
-  // Share the current front with accepted friends whenever it changes.
   useEffect(() => { if (state.loaded) NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.loaded, state.front, state.members]);
-  // Poke the sync engine when any synced data changes (it debounces + rate-limits).
   useEffect(() => { NetworkManager.notifyDataChanged(); }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.settings, state.palettes]);
-  // Apply incoming device-sync writes by reloading app state.
   useEffect(() => NetworkManager.onSyncApplied(() => { loadData(); }), [loadData]);
   useEffect(() => NetworkManager.onSyncConflict(c => setSyncConflict({peerId: c.peerId, deviceName: c.deviceName})), []);
   useEffect(() => NetworkManager.onSyncRoleMismatch(c => setRoleMismatch({deviceName: c.deviceName})), []);
@@ -220,6 +183,24 @@ function AppInner() {
       || state.members.find(m => !m.isCustomFront && !m.archived))
     : undefined;
   const statuses = singletStatuses(state.members);
+
+  const [tileOrder, setTileOrder] = useState<string[]>(() => loadTileOrder());
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const handleTileDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setTileOrder(prev => {
+      const from = prev.indexOf(String(active.id));
+      const to = prev.indexOf(String(over.id));
+      if (from < 0 || to < 0) return prev;
+      const next = arrayMove(prev, from, to);
+      saveTileOrder(next);
+      return next;
+    });
+  };
 
   const ensureSelfMember = async (): Promise<Member> => {
     if (selfMember) {
@@ -258,6 +239,46 @@ function AppInner() {
     await saveQuickFront(strip(f.primary), strip(f.coFront), strip(f.coConscious));
   };
 
+  const tileNodes: Record<string, React.ReactNode> = {
+    'front': isSinglet ? (
+      <StatusTile
+        selfId={selfMember?.id}
+        onClick={() => setView('front')}
+        onUpdateStatus={async () => { await ensureSelfMember(); setShowQuickFront(true); }}
+      />
+    ) : (
+      <FrontTile
+        onClick={() => setView('front')}
+        onUpdateFront={() => setShowQuickFront(true)}
+      />
+    ),
+    'system-manager': !isSinglet ? <SystemManagerTile onClick={() => setView('system-manager')} /> : null,
+    'system-map': !isSinglet ? <SystemMapTile onClick={() => { setMapFocus(null); setView('system-map'); }} /> : null,
+    'medical': <MedicalTile onClick={() => setView('medical')} />,
+    'network': <NetworkTile onClick={() => setView('network')} />,
+    'members': isSinglet ? (
+      <ProfileTile member={selfMember} statuses={statuses} onClick={() => setView('members')} />
+    ) : (
+      <MembersTile onClick={() => setView('members')} />
+    ),
+    'history': <HistoryTile onClick={() => setView('history')} />,
+    'retro-history': <RetroHistoryTile onClick={() => setView('retro-history')} />,
+    'journal': <JournalTile onClick={() => setView('journal')} />,
+    'chat': !isSinglet ? <ChatTile onClick={() => setView('chat')} /> : null,
+    'mailbox': !isSinglet ? <MailboxTile onClick={() => setView('mailbox')} /> : null,
+    'whiteboard': <WhiteboardTile onClick={() => setView('whiteboard')} />,
+    'stats': <StatsTile onClick={() => setView('stats')} />,
+    'import-export': <ImportExportTile onClick={() => setView('import-export')} />,
+    'custom-fields': !isSinglet ? <CustomFieldsTile onClick={() => setView('custom-fields')} /> : null,
+    'polls': !isSinglet ? <PollsTile onClick={() => setView('polls')} /> : null,
+    'archive': !isSinglet ? <ArchiveTile onClick={() => setView('archive')} /> : null,
+    'credits': <CreditsTile onClick={() => setView('credits')} />,
+    'discord': <DiscordTile onClick={() => window.open('https://discord.gg/FFQw33cu8m', '_blank')} />,
+    'support': <SupportTile onClick={() => window.open('https://www.buymeacoffee.com/PluralStar', '_blank')} />,
+    'settings': <SettingsTile onClick={() => setView('settings')} />,
+  };
+  const visibleTileIds = tileOrder.filter(id => tileNodes[id] != null);
+
   if (!state.loaded) {
     return (
       <div className="app-shell">
@@ -285,113 +306,15 @@ function AppInner() {
 
       {view === 'dashboard' ? (
         <div className="dashboard">
-          <div className="tile-grid">
-            {isSinglet ? (
-              <StatusTile
-                front={state.front}
-                members={state.members}
-                selfId={selfMember?.id}
-                onClick={() => setView('front')}
-                onUpdateStatus={async () => { await ensureSelfMember(); setShowQuickFront(true); }}
-              />
-            ) : (
-              <FrontTile
-                front={state.front}
-                members={state.members}
-                onClick={() => setView('front')}
-                onUpdateFront={() => setShowQuickFront(true)}
-              />
-            )}
-            {!isSinglet && (
-              <SystemManagerTile
-                groups={state.groups}
-                onClick={() => setView('system-manager')}
-              />
-            )}
-            {!isSinglet && (
-              <SystemMapTile
-                onClick={() => { setMapFocus(null); setView('system-map'); }}
-              />
-            )}
-            <MedicalTile onClick={() => setView('medical')} />
-            <NetworkTile onClick={() => setView('network')} />
-            {isSinglet ? (
-              <ProfileTile
-                member={selfMember}
-                statuses={statuses}
-                onClick={() => setView('members')}
-              />
-            ) : (
-              <MembersTile
-                members={state.members}
-                onClick={() => setView('members')}
-              />
-            )}
-            <HistoryTile
-              history={state.history}
-              members={state.members}
-              onClick={() => setView('history')}
-            />
-            <RetroHistoryTile
-              onClick={() => setView('retro-history')}
-            />
-            <JournalTile
-              journal={state.journal}
-              members={state.members}
-              onClick={() => setView('journal')}
-            />
-            {!isSinglet && (
-              <ChatTile
-                channels={state.channels}
-                members={state.members}
-                onClick={() => setView('chat')}
-              />
-            )}
-            {!isSinglet && (
-              <MailboxTile
-                members={state.members}
-                onClick={() => setView('mailbox')}
-              />
-            )}
-            <WhiteboardTile onClick={() => setView('whiteboard')} />
-            <StatsTile
-              history={state.history}
-              members={state.members}
-              onClick={() => setView('stats')}
-            />
-            <ImportExportTile
-              onClick={() => setView('import-export')}
-            />
-            {!isSinglet && (
-              <CustomFieldsTile
-                onClick={() => setView('custom-fields')}
-              />
-            )}
-            {!isSinglet && (
-              <PollsTile
-                onClick={() => setView('polls')}
-              />
-            )}
-            {!isSinglet && (
-              <ArchiveTile
-                members={state.members}
-                onClick={() => setView('archive')}
-              />
-            )}
-            <CreditsTile
-              onClick={() => setView('credits')}
-            />
-            <DiscordTile
-              onClick={() => window.open('https://discord.gg/FFQw33cu8m', '_blank')}
-            />
-            <SupportTile
-              onClick={() => window.open('https://www.buymeacoffee.com/PluralStar', '_blank')}
-            />
-            <SettingsTile
-              settings={state.settings}
-              onClick={() => setView('settings')}
-            />
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTileDragEnd}>
+            <SortableContext items={visibleTileIds} strategy={rectSortingStrategy}>
+              <div className="tile-grid">
+                {visibleTileIds.map(id => (
+                  <SortableTile key={id} id={id}>{tileNodes[id]}</SortableTile>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
       ) : (
         <div className="full-view">
@@ -424,78 +347,74 @@ function AppInner() {
           </div>
           <div className="full-view__content">
             {view === 'settings' && (
-              <SettingsView system={state.system} settings={state.settings} palettes={state.palettes} onUpdate={loadData} />
+              <SettingsView onUpdate={loadData} />
             )}
             {view === 'members' && (isSinglet ? (
-              <ProfileView member={selfMember} statuses={statuses} front={state.front}
-                members={state.members} onUpdate={loadData} onEnsureSelf={ensureSelfMember} />
+              <ProfileView member={selfMember} statuses={statuses}
+                onUpdate={loadData} onEnsureSelf={ensureSelfMember} />
             ) : (
-              <MembersView members={state.members} groups={state.groups} settings={state.settings} onUpdate={loadData}
+              <MembersView onUpdate={loadData}
                 focusMemberId={memberFocus} onFocusHandled={() => setMemberFocus(null)}
                 onShowOnMap={(id) => { setMapFocus(id); setView('system-map'); }}
-                front={state.front} onQuickFront={quickAddToFront} onRemoveFromFront={removeFromFront} />
+                onQuickFront={quickAddToFront} onRemoveFromFront={removeFromFront} />
             ))}
             {view === 'archive' && (
-              <MembersView members={state.members} groups={state.groups} settings={state.settings} onUpdate={loadData} archiveOnly />
+              <MembersView onUpdate={loadData} archiveOnly />
             )}
             {view === 'retro-history' && (
-              <RetroHistoryView members={state.members} history={state.history} front={state.front}
+              <RetroHistoryView
                 onUpdate={loadData} onDone={() => setView('dashboard')}
                 singlet={isSinglet} selfId={selfMember?.id} />
             )}
             {view === 'import-export' && (
-              <ImportExportView system={state.system} members={state.members} history={state.history}
-                journal={state.journal} settings={state.settings} channels={state.channels}
-                palettes={state.palettes} onUpdate={loadData} />
+              <ImportExportView onUpdate={loadData} />
             )}
             {view === 'stats' && (
-              <StatsView history={state.history} members={state.members} channels={state.channels}
-                singlet={isSinglet} selfId={selfMember?.id} />
+              <StatsView singlet={isSinglet} selfId={selfMember?.id} />
             )}
             {view === 'journal' && (
-              <JournalView journal={state.journal} members={state.members} onUpdate={loadData} />
+              <JournalView onUpdate={loadData} />
             )}
             {view === 'history' && (
-              <HistoryView history={state.history} members={state.members} onUpdate={loadData}
+              <HistoryView onUpdate={loadData}
                 singlet={isSinglet} selfId={selfMember?.id} />
             )}
             {view === 'front' && (isSinglet ? (
-              <StatusView front={state.front} members={state.members} statuses={statuses}
-                selfId={selfMember?.id} settings={state.settings} onSaveStatus={saveQuickFront}
+              <StatusView statuses={statuses}
+                selfId={selfMember?.id} onSaveStatus={saveQuickFront}
                 onEnsureSelf={ensureSelfMember} />
             ) : (
-              <FrontView front={state.front} members={state.members} groups={state.groups}
-                history={state.history} settings={state.settings} onUpdate={loadData} />
+              <FrontView onUpdate={loadData} />
             ))}
             {view === 'system-manager' && (
-              <SystemManagerView members={state.members} groups={state.groups}
+              <SystemManagerView
                 onViewMember={(id) => { setMemberFocus(id); setView('members'); }} onUpdate={loadData}
-                front={state.front} onQuickFront={quickAddToFront} onRemoveFromFront={removeFromFront} />
+                onQuickFront={quickAddToFront} onRemoveFromFront={removeFromFront} />
             )}
             {view === 'system-map' && (
-              <SystemMapView members={state.members} focusMemberId={mapFocus}
+              <SystemMapView focusMemberId={mapFocus}
                 onViewMember={(id) => { setMemberFocus(id); setView('members'); }} />
             )}
             {view === 'medical' && (
               <MedicalView onUpdate={loadData} />
             )}
             {view === 'chat' && (
-              <ChatView members={state.members} channels={state.channels} onUpdate={loadData} />
+              <ChatView onUpdate={loadData} />
             )}
             {view === 'custom-fields' && (
               <CustomFieldsView onUpdate={loadData} />
             )}
             {view === 'polls' && (
-              <PollsView members={state.members} onUpdate={loadData} />
+              <PollsView onUpdate={loadData} />
             )}
             {view === 'credits' && (
               <CreditsView />
             )}
             {view === 'network' && (
-              <NetworkView members={state.members} groups={state.groups} journal={state.journal} />
+              <NetworkView />
             )}
             {view === 'mailbox' && (
-              <MailboxView members={state.members} onUpdate={loadData} />
+              <MailboxView onUpdate={loadData} />
             )}
             {view === 'whiteboard' && (
               <WhiteboardView />
@@ -527,8 +446,6 @@ function AppInner() {
         />
       )}
 
-      {/* Device-sync conflict: which device's data wins. Global — a conflict can
-          arrive while any view is open. */}
       <Modal
         open={!!syncConflict}
         title={t('network.syncConflictTitle')}
@@ -548,7 +465,6 @@ function AppInner() {
         </p>
       </Modal>
 
-      {/* Both devices picked the same clone direction — the initial copy was skipped. */}
       <Modal
         open={!!roleMismatch}
         title={t('network.syncRoleMismatchTitle')}

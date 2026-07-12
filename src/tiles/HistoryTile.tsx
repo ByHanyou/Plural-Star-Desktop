@@ -1,10 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, fmtTime, fmtDur, getInitials } from '../utils';
+import { fmtTime, fmtDur, getInitials } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { history: HistoryEntry[]; members: Member[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function HistoryTile({ history, members, onClick }: Props) {
+export default function HistoryTile({ onClick }: Props) {
+  const history = useAppStore(s => s.state.history);
+  const members = useAppStore(s => s.state.members);
   const { t } = useTranslation();
   const recent = history.filter(h => !h.changeType || h.changeType === 'front').slice(0, 4);
   const getMember = (id: string) => members.find(m => m.id === id);

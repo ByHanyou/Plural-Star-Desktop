@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppSettings } from '../utils';
 import { BUILTIN_PALETTES } from '../theme';
+import { useAppStore } from '../store/appStore';
 
-interface Props { settings: AppSettings; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function SettingsTile({ settings, onClick }: Props) {
+export default function SettingsTile({ onClick }: Props) {
   const { t } = useTranslation();
+  const settings = useAppStore(s => s.state.settings);
   const palette = BUILTIN_PALETTES.find(p => p.id === settings.activePaletteId);
   const paletteName = palette?.name || 'Custom';
   return (

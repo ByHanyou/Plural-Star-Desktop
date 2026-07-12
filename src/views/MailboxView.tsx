@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Btn, Dropdown, Modal, ConfirmDialog } from '../components/ui';
-import { NoteboardEntry, Member, uid, fmtTime, getInitials } from '../utils';
+import { NoteboardEntry, uid, fmtTime, getInitials } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
+import { useAppStore } from '../store/appStore';
 
-interface Props { members: Member[]; onUpdate?: () => void; }
+interface Props { onUpdate?: () => void; }
 
-export default function MailboxView({ members, onUpdate }: Props) {
+export default function MailboxView({ onUpdate }: Props) {
   const { t } = useTranslation();
+  const members = useAppStore(s => s.state.members);
   const [notes, setNotes] = useState<NoteboardEntry[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());

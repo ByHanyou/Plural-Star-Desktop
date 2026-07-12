@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials, translateMood, buildEffectiveEnd } from '../utils';
+import { HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials, translateMood, buildEffectiveEnd } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, ConfirmDialog } from '../components/ui';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  history: HistoryEntry[];
-  members: Member[];
   onUpdate: () => void;
   singlet?: boolean;
   selfId?: string;
@@ -14,8 +13,10 @@ interface Props {
 
 type TimeRange = 'all' | '7d' | '30d' | '90d';
 
-export default function HistoryView({ history, members, onUpdate, singlet = false, selfId }: Props) {
+export default function HistoryView({ onUpdate, singlet = false, selfId }: Props) {
   const { t } = useTranslation();
+  const history = useAppStore(s => s.state.history);
+  const members = useAppStore(s => s.state.members);
   const [search, setSearch] = useState('');
   const [range, setRange] = useState<TimeRange>('all');
   const [memberFilter, setMemberFilter] = useState('');

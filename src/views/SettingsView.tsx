@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn, clickable } from '../components/ui';
-import { SystemInfo, AppSettings, TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex, resizeBannerDataUrl } from '../utils';
+import { TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex, resizeBannerDataUrl } from '../utils';
 import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice } from '../theme';
 import { store, KEYS } from '../storage';
+import { useAppStore } from '../store/appStore';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
 import type { SupportedLanguage } from '../i18n/i18n';
 
 interface Props {
-  system: SystemInfo;
-  settings: AppSettings;
-  palettes: CustomPalette[];
   onUpdate: () => void;
 }
 
@@ -38,7 +36,10 @@ const LANG_NAMES: Record<string, string> = {
   zh: '中文', ja: '日本語', ru: 'Русский', uk: 'Українська',
 };
 
-export default function SettingsView({ system, settings, palettes, onUpdate }: Props) {
+export default function SettingsView({ onUpdate }: Props) {
+  const system = useAppStore(s => s.state.system);
+  const settings = useAppStore(s => s.state.settings);
+  const palettes = useAppStore(s => s.state.palettes);
   const { t } = useTranslation();
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [singletMode, setSingletMode] = useState(settings.accountMode === 'singlet');

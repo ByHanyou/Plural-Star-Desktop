@@ -9,17 +9,19 @@ import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Modal, ConfirmDialog, ColorPicker, Dropdown, clickable } from '../components/ui';
 import { PALETTE } from '../theme';
+import { logError } from '../log';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  members: Member[];
   onViewMember?: (id: string) => void;
   focusMemberId?: string | null;
 }
 
 type TypeDraft = { id: string; name: string; inverseName: string; directional: boolean; color: string; preset: boolean };
 
-export default function SystemMapView({ members, onViewMember, focusMemberId }: Props) {
+export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const { t } = useTranslation();
+  const members = useAppStore(s => s.state.members);
   const memberById = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
 
   const [relationships, setRelationships] = useState<Relationship[]>([]);
@@ -85,7 +87,6 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
 
   const typeLabel = (td: RelationshipTypeDef): string => (td.preset && !td.overridden) ? t(`relType.${td.id}`, { defaultValue: td.name }) : td.name;
 
-  // BFS distances from selected member over the map's relationship graph
   const dist = useMemo(() => {
     if (!selectedId) return null;
     const adj = new Map<string, string[]>();
@@ -107,7 +108,6 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
     return d;
   }, [selectedId, mapRels]);
 
-  // ----- layout -----
   const W = 900, H = 560;
   const HALF_WORLD = 2000;
   const n = mapMembers.length;
@@ -132,7 +132,7 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
   }, [pos, radius]);
 
   const persistPositions = (next: Record<string, { x: number; y: number }>) => {
-    store.set(KEYS.systemMapPositions, next).then(() => NetworkManager.notifyDataChanged()).catch(() => {});
+    store.set(KEYS.systemMapPositions, next).then(() => NetworkManager.notifyDataChanged()).catch(e => logError('systemmap', e));
   };
   const worldPerPixel = (): number => {
     const el = svgRef.current;
@@ -286,7 +286,6 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
         </div>
       )}
 
-      {/* Add member to map */}
       <Modal open={showAddMember} title={t('systemMap.addMember')} onClose={() => setShowAddMember(false)}>
         {off.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('systemMap.allOnMap')}</p> :
           off.map(m => (
@@ -298,7 +297,6 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
           ))}
       </Modal>
 
-      {/* Relationship editor */}
       <Modal open={!!relEditor} title={t('systemMap.addRelationship')} onClose={() => setRelEditor(null)}
         footer={<Btn variant="solid" onClick={addRelationship}>{t('common.save')}</Btn>}>
         {relEditor && (
@@ -319,7 +317,6 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
         )}
       </Modal>
 
-      {/* Manage types */}
       <Modal open={showTypes} title={t('systemMap.manageTypes')} onClose={() => setShowTypes(false)}
         footer={<Btn variant="ghost" onClick={() => setTypeDraft({ id: uid(), name: '', inverseName: '', directional: false, color: RELATIONSHIP_COLOR_CHOICES[0], preset: false })}>{t('systemMap.newType')}</Btn>}>
         {types.map(ty => (
@@ -333,7 +330,6 @@ export default function SystemMapView({ members, onViewMember, focusMemberId }: 
         ))}
       </Modal>
 
-      {/* Type draft editor */}
       <Modal open={!!typeDraft} title={typeDraft?.preset ? t('systemMap.editType') : t('systemMap.newType')} onClose={() => setTypeDraft(null)}
         footer={<Btn variant="solid" onClick={saveTypeDraft}>{t('common.save')}</Btn>}>
         {typeDraft && (

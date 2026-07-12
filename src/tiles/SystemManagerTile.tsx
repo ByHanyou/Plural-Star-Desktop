@@ -1,10 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { MemberGroup, groupKind } from '../utils';
+import { groupKind } from '../utils';
+import { useAppStore } from '../store/appStore';
 
-interface Props { groups: MemberGroup[]; onClick: () => void; }
+interface Props { onClick: () => void; }
 
-export default function SystemManagerTile({ groups, onClick }: Props) {
+export default function SystemManagerTile({ onClick }: Props) {
+  const groups = useAppStore(s => s.state.groups);
   const { t } = useTranslation();
   const groupCount = groups.filter(g => groupKind(g) === 'group').length;
   const subCount = groups.filter(g => groupKind(g) === 'subsystem').length;

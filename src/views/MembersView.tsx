@@ -4,22 +4,23 @@ import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, 
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { useAppStore } from '../store/appStore';
 
 interface Props {
-  members: Member[];
-  groups: MemberGroup[];
-  settings: AppSettings;
   onUpdate: () => void;
   archiveOnly?: boolean;
   focusMemberId?: string | null;
   onFocusHandled?: () => void;
   onShowOnMap?: (id: string) => void;
-  front?: FrontState | null;
   onQuickFront?: (memberId: string, tier: 'primary' | 'coFront' | 'coConscious') => void;
   onRemoveFromFront?: (memberId: string) => void;
 }
 
-export default function MembersView({ members, groups, settings, onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, front, onQuickFront, onRemoveFromFront }: Props) {
+export default function MembersView({ onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, onQuickFront, onRemoveFromFront }: Props) {
+  const members = useAppStore(s => s.state.members);
+  const groups = useAppStore(s => s.state.groups);
+  const settings = useAppStore(s => s.state.settings);
+  const front = useAppStore(s => s.state.front);
   const { t } = useTranslation();
   const listFields = settings.memberListFields ?? { pronouns: true, roles: true, groups: false, descriptions: false };
   const [showFields, setShowFields] = useState(false);
@@ -44,6 +45,9 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
   const quickFrontEnabled = !!onQuickFront && !!onRemoveFromFront && !archiveOnly;
 
   const [f, setF] = useState<Member>({ id: '', name: '', pronouns: '', role: '', color: PALETTE[0], description: '' });
+  const [showClone, setShowClone] = useState(false);
+  const [cloneSel, setCloneSel] = useState({ name: true, pronouns: true, role: true, color: true, description: true });
+  const [readMode, setReadMode] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [fieldDefs, setFieldDefs] = useState<CustomFieldDef[]>([]);
 
@@ -107,7 +111,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
 
   const openEdit = (m: Member) => {
     setF({ ...m, tags: m.tags || [], groupIds: m.groupIds || [] });
-    setIsNew(false); setEditing(m); setTagInput(''); setMemberTab('main'); setNoteText('');
+    setIsNew(false); setEditing(m); setTagInput(''); setMemberTab('main'); setNoteText(''); setReadMode(false);
     setNoteAuthorId(members.find(mm => !mm.archived)?.id || null);
   };
 
@@ -150,9 +154,26 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
     onUpdate();
   };
 
+  const doClone = async () => {
+    const rnd = String(Math.floor(10000 + Math.random() * 90000));
+    const clone: Member = {
+      id: uid(),
+      name: cloneSel.name && (f.name || '').trim() ? f.name : rnd,
+      pronouns: cloneSel.pronouns ? (f.pronouns || '') : '',
+      role: cloneSel.role ? (f.role || '') : '',
+      color: cloneSel.color ? f.color : PALETTE[0],
+      description: cloneSel.description ? (f.description || '') : '',
+      tags: [],
+      groupIds: [],
+      createdAt: Date.now(),
+    };
+    setShowClone(false);
+    await store.set(KEYS.members, [...members, clone]);
+    setEditing(null);
+    onUpdate();
+  };
+
   const deleteMember = async (id: string) => {
-    // Soft-delete: keep a hidden tombstone (archived + deleted) so front history & stats
-    // still resolve the member's name instead of showing the raw ID ("scary symbols").
     await store.set(KEYS.members, members.map(m => m.id === id ? { ...m, archived: true, deleted: true } : m));
     setConfirmDelete(null);
     setEditing(null);
@@ -240,7 +261,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
                     aria-label={`${t('members.removeFromFront')} — ${m.name}`}
                     title={t('members.removeFromFront')}
                     onClick={e => { e.stopPropagation(); setConfirmRemoveFront(m); }}
-                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, cursor: 'pointer', background: 'var(--danger-bg, transparent)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 15, lineHeight: 1 }}>
+                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--danger-bg, transparent)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 15, lineHeight: 1 }}>
                     −
                   </button>
                 ) : (
@@ -248,7 +269,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
                     aria-label={`${t('members.addToFront')} — ${m.name}`}
                     title={t('members.addToFront')}
                     onClick={e => { e.stopPropagation(); setQuickFrontFor(m); }}
-                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 15, lineHeight: 1 }}>
+                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 15, lineHeight: 1 }}>
                     ＋
                   </button>
                 )
@@ -294,17 +315,25 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
       <Modal open={!!editing} title={isNew ? t('modal.addMember') : t('modal.editMember')} onClose={() => setEditing(null)}
         footer={
           <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
-            <div>
-              {!isNew && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {!isNew && !readMode && (
                 <Btn variant="danger" onClick={() => setConfirmDelete(f.id)}>{t('common.delete')}</Btn>
+              )}
+              {!isNew && !readMode && (
+                <Btn variant="ghost" onClick={() => setShowClone(true)}>{t('members.clone')}</Btn>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Btn variant="ghost" onClick={() => setEditing(null)}>{t('common.cancel')}</Btn>
-              <Btn variant="solid" onClick={saveMember}>{t('common.save')}</Btn>
+              <Btn variant="ghost" onClick={() => setEditing(null)}>{readMode ? t('common.close') : t('common.cancel')}</Btn>
+              {!readMode && <Btn variant="solid" onClick={saveMember}>{t('common.save')}</Btn>}
             </div>
           </div>
         }>
+        {!isNew && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+            <Btn variant="ghost" onClick={() => setReadMode(m => !m)}>{readMode ? t('common.edit') : t('modal.read')}</Btn>
+          </div>
+        )}
         {!isNew && (
           <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
             {(['main', 'fields', 'connections', 'noteboard'] as MemberTab[]).map(tab => (
@@ -322,13 +351,14 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
           </div>
         )}
 
+        <fieldset disabled={readMode} style={{ border: 'none', margin: 0, padding: 0, minInlineSize: 'auto' }}>
         {(memberTab === 'main' || isNew) && (<>
           <div style={{ textAlign: 'center', marginBottom: 16 }}>
             <div className="tile__avatar" style={{
               width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
               border: `2px solid ${f.color}`, overflow: 'hidden',
               ...(!f.avatar ? { backgroundColor: f.color } : {}),
-            }} {...clickable(pickAvatar, 'Change profile picture')}>
+            }} {...(readMode ? {} : clickable(pickAvatar, 'Change profile picture'))}>
               {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
             </div>
             <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
@@ -346,7 +376,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
               backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
               backgroundColor: f.banner ? undefined : 'var(--surface)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,
-            }} {...clickable(pickBanner, 'Change banner')}>
+            }} {...(readMode ? {} : clickable(pickBanner, 'Change banner'))}>
               {!f.banner && t('memberProfile.changeBanner')}
             </div>
             {f.banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
@@ -590,6 +620,7 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
             </div>
           </div>
         )}
+        </fieldset>
       </Modal>
 
       <ConfirmDialog open={!!confirmDelete}
@@ -598,6 +629,21 @@ export default function MembersView({ members, groups, settings, onUpdate, archi
         danger
         onConfirm={() => confirmDelete && deleteMember(confirmDelete)}
         onCancel={() => setConfirmDelete(null)} />
+
+      <Modal open={showClone} title={t('members.clone')} onClose={() => setShowClone(false)}
+        footer={
+          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
+            <Btn variant="ghost" onClick={() => setShowClone(false)}>{t('common.cancel')}</Btn>
+            <Btn variant="solid" onClick={doClone}>{t('members.clone')}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--dim)', marginTop: 0, marginBottom: 8 }}>{t('members.cloneFields')}</p>
+        <Toggle value={cloneSel.name} onChange={v => setCloneSel(s => ({ ...s, name: v }))} label={t('modal.name')} />
+        <Toggle value={cloneSel.pronouns} onChange={v => setCloneSel(s => ({ ...s, pronouns: v }))} label={t('modal.pronouns')} />
+        <Toggle value={cloneSel.role} onChange={v => setCloneSel(s => ({ ...s, role: v }))} label={t('modal.role')} />
+        <Toggle value={cloneSel.color} onChange={v => setCloneSel(s => ({ ...s, color: v }))} label={t('modal.color')} />
+        <Toggle value={cloneSel.description} onChange={v => setCloneSel(s => ({ ...s, description: v }))} label={t('modal.descriptionBio')} />
+      </Modal>
 
       <Modal open={!!quickFrontFor} title={quickFrontFor ? `${t('members.addToFront')} — ${quickFrontFor.name}` : t('members.addToFront')} onClose={() => setQuickFrontFor(null)}>
         {quickFrontFor && (['primary', 'coFront', 'coConscious'] as const)

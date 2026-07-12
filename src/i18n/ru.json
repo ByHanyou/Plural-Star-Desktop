@@ -1,4 +1,29 @@
 {
+  "colors": {
+    "white": "Белый",
+    "black": "Чёрный",
+    "red": "Красный",
+    "orange": "Оранжевый",
+    "yellow": "Жёлтый",
+    "green": "Зелёный",
+    "blue": "Синий",
+    "indigo": "Индиго",
+    "brown": "Коричневый",
+    "gray": "Серый",
+    "slate": "Сланцевый",
+    "goldenrod": "Золотарник",
+    "periwinkle": "Барвинок",
+    "pink": "Розовый",
+    "mint": "Мятный",
+    "lavender": "Лавандовый",
+    "peach": "Персиковый",
+    "seaGreen": "Морская волна",
+    "coral": "Коралловый",
+    "skyBlue": "Небесно-голубой",
+    "orchid": "Орхидея",
+    "lime": "Лаймовый",
+    "sand": "Песочный"
+  },
   "mailbox": {
     "title": "Почта",
     "compose": "Написать",
@@ -155,6 +180,9 @@
     "apptPlaceholder": "напр. Стоматолог…",
     "remindBefore": "Напомнить за",
     "atTime": "В момент",
+    "remind30m": "30 мин",
+    "remind1h": "1 ч",
+    "remind1d": "1 д",
     "noAppointments": "Приёмов пока нет.",
     "history": "История",
     "addHistory": "+ Добавить запись",
@@ -300,7 +328,9 @@
     "searchHint": "Введите имя или выберите тег",
     "active": "Активные",
     "archived": "В архиве",
-    "noArchived": "Архив пуст."
+    "noArchived": "Архив пуст.",
+    "clone": "Клонировать",
+    "cloneFields": "Какие поля скопировать?"
   },
   "history": {
     "title": "История",
@@ -515,6 +545,7 @@
     "endBeforeStart": "Окончание должно быть позже начала.",
     "overlapDetected": "Обнаружено пересечение",
     "overlapMsg": "Эта запись пересекается с существующими:",
+    "overlapMore": "+{{count}} ещё",
     "keepBoth": "Оставить обе",
     "replace": "Заменить",
     "activeFrontExists": "Есть активный фронт",
@@ -534,6 +565,7 @@
     "archive": "Архив"
   },
   "modal": {
+    "read": "Читать",
     "updateFront": "Обновить фронт",
     "addMembersFirst": "Сначала добавьте участников.",
     "mood": "Настроение",
