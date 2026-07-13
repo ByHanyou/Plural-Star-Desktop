@@ -72,6 +72,13 @@
     "deleteBucket": "Удалить круг",
     "deleteBucketMsg": "Удалить «{{name}}»?",
     "cloneBucket": "Дублировать круг",
+    "viewShared": "Смотреть общее",
+    "mirrorNothing": "Они пока не поделились этим с вами.",
+    "mirrorOffline": "Друг не в сети — показана последняя полученная копия.",
+    "mirrorEmptyOffline": "Друг не в сети. Пока ничего не получено.",
+    "mirrorUpdated": "Обновлено {{time}}",
+    "mirrorLoading": "Запрос…",
+    "mirrorRefresh": "Обновить",
     "yourCode": "Ваш код друга",
     "addFriend": "Добавить друга",
     "add": "Добавить",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "Напоминание о приёме"
   },
   "common": {
+    "dragReorder": "Перетащите, чтобы изменить порядок",
+    "reorderLock": "Перетаскивание для сортировки",
     "save": "Сохранить",
     "cancel": "Отмена",
     "delete": "Удалить",

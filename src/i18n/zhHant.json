@@ -72,6 +72,13 @@
     "deleteBucket": "刪除圈子",
     "deleteBucketMsg": "刪除「{{name}}」？",
     "cloneBucket": "複製圈子",
+    "viewShared": "查看共享",
+    "mirrorNothing": "對方尚未與你共享此內容。",
+    "mirrorOffline": "好友離線 — 顯示最後收到的副本。",
+    "mirrorEmptyOffline": "好友離線。尚未收到任何內容。",
+    "mirrorUpdated": "更新於 {{time}}",
+    "mirrorLoading": "請求中…",
+    "mirrorRefresh": "重新整理",
     "yourCode": "你的好友碼",
     "addFriend": "新增好友",
     "add": "新增",
@@ -118,6 +125,8 @@
     "publishFailed": "無法發布你的好友碼——請檢查網路連線後再試一次。"
   },
   "common": {
+    "dragReorder": "拖曳以重新排序",
+    "reorderLock": "拖曳排序",
     "movedToTop": "已移到首位",
     "movedToBottom": "已移到末位",
     "movedAbove": "已移到 {{name}} 上方",

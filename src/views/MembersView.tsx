@@ -5,6 +5,9 @@ import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
 import { useAppStore } from '../store/appStore';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import SortableCard from '../components/SortableCard';
 
 interface Props {
   onUpdate: () => void;
@@ -34,6 +37,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [listView, setListView] = useState<'active' | 'archived' | 'customFronts'>(archiveOnly ? 'archived' : 'active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
+  const [reorderLocked, setReorderLocked] = useState(true);
   const [quickFrontFor, setQuickFrontFor] = useState<Member | null>(null);
   const [confirmRemoveFront, setConfirmRemoveFront] = useState<Member | null>(null);
 
@@ -102,6 +106,31 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const filtered = sorted.filter(m =>
     !search || m.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Drag-reorder is only meaningful in manual mode on an unfiltered list — otherwise the
+  // visible order isn't the stored order and a drop would write nonsense.
+  const canReorder = sortMode === 'manual' && !search && (listView === 'active' || listView === 'customFronts');
+  const reorderActive = canReorder && !reorderLocked;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = async (e: DragEndEvent) => {
+    const { active: dragged, over } = e;
+    if (!over || dragged.id === over.id) return;
+    const from = filtered.findIndex(m => m.id === dragged.id);
+    const to = filtered.findIndex(m => m.id === over.id);
+    if (from < 0 || to < 0) return;
+    // Reorder within the visible subset ONLY (active vs customFronts are separate lists);
+    // writing sortOrder across the whole roster makes swaps look like they did nothing.
+    const reordered = arrayMove(filtered, from, to);
+    const orderById = new Map(reordered.map((m, i) => [m.id, i]));
+    const updated = members.map(m => (orderById.has(m.id) ? { ...m, sortOrder: orderById.get(m.id) } : m));
+    await store.set(KEYS.members, updated);
+    onUpdate();
+  };
 
   const openNew = () => {
     const m: Member = { id: uid(), name: '', pronouns: '', role: '', color: PALETTE[Math.floor(Math.random() * PALETTE.length)], description: '', tags: [], groupIds: [], createdAt: Date.now(), isCustomFront: listView === 'customFronts' };
@@ -213,6 +242,18 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           onChange={setSortMode}
           renderOption={v => t(`memberSort.${v}`)}
         />
+        {canReorder && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!reorderLocked}
+            aria-label={t('common.reorderLock', { defaultValue: 'Drag reordering' })}
+            title={t('common.reorderLock', { defaultValue: 'Drag reordering' })}
+            onClick={() => setReorderLocked(v => !v)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, fontSize: 16, lineHeight: 1, opacity: reorderLocked ? 0.35 : 1 }}>
+            🤏
+          </button>
+        )}
         {!archiveOnly && (<>
           <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
             {t('members.active')} ({active.length})
@@ -236,9 +277,12 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         </div>
       </div>
 
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={filtered.map(m => m.id)} strategy={rectSortingStrategy}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {filtered.map(m => (
-          <div key={m.id} className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer' }}
+          <SortableCard key={m.id} id={m.id} label={m.name} disabled={!reorderActive}>
+          <div className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer' }}
             {...clickable(() => openEdit(m), m.name)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="tile__avatar" style={{
@@ -303,8 +347,11 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               </div>
             )}
           </div>
+          </SortableCard>
         ))}
       </div>
+      </SortableContext>
+      </DndContext>
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>

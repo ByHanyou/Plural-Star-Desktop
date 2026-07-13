@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Btn, Field, Toggle, Section, Modal, ConfirmDialog } from '../components/ui';
 import { useNetwork } from '../network/useNetwork';
 import { NetworkManager } from '../network/NetworkManager';
-import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY } from '../network/types';
-import { fmtDur, fmtTime, uid } from '../utils';
-import { store } from '../storage';
+import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY, MirrorFeature } from '../network/types';
+import { MirrorView } from './MirrorView';
+import { fmtDur, fmtTime, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES } from '../utils';
+import { store, KEYS } from '../storage';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
 
@@ -36,6 +37,7 @@ const normalizeBucket = (b: PrivacyBucket): PrivacyBucket => ({
   customFields: b.customFields || emptyScope(),
   medical: b.medical || emptyScope(),
   connections: b.connections || emptyScope(),
+  friendPeerIds: b.friendPeerIds || [],
 });
 
 export default function NetworkView() {
@@ -55,21 +57,49 @@ export default function NetworkView() {
   const [pickerFeature, setPickerFeature] = useState<BucketFeature | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
   const [deleteBucketTarget, setDeleteBucketTarget] = useState<PrivacyBucket | null>(null);
+  const [mirrorMenuFor, setMirrorMenuFor] = useState<Friend | null>(null);
+  const [mirror, setMirror] = useState<{ peerId: string; name: string; feature: MirrorFeature } | null>(null);
+  const [fieldDefs, setFieldDefs] = useState<CustomFieldDef[]>([]);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [relTypes, setRelTypes] = useState<RelationshipTypeDef[]>([]);
 
   useEffect(() => {
     store.get<PrivacyBucket[]>(PRIVACY_BUCKETS_KEY, []).then(saved => {
       if (saved && Array.isArray(saved)) setBuckets(saved.map(normalizeBucket));
     }).catch(e => logError('network', e));
+    store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(d => setFieldDefs(d || [])).catch(e => logError('network', e));
+    store.get<Relationship[]>(KEYS.relationships, []).then(r => setRelationships(r || [])).catch(e => logError('network', e));
+    store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(rt => setRelTypes(rt || [])).catch(e => logError('network', e));
   }, []);
+
+  // What this friend can ACTUALLY see: buckets are additive, so a friend sitting in two
+  // buckets gets the union — a second "All" bucket silently widens a careful "Select".
+  const effectiveShare = (peerId: string, f: BucketFeature): PrivacyScope => {
+    const mine = buckets.filter(b => (b.friendPeerIds || []).includes(peerId));
+    const ids = new Set<string>();
+    let all = false;
+    for (const b of mine) {
+      const s = b[f];
+      if (!s || s.mode === 'none') continue;
+      if (s.mode === 'all') { all = true; continue; }
+      (s.ids || []).forEach(id => ids.add(id));
+    }
+    if (all) return { mode: 'all', ids: [] };
+    if (ids.size === 0) return { mode: 'none', ids: [] };
+    return { mode: 'select', ids: [...ids] };
+  };
 
   const saveBuckets = async (next: PrivacyBucket[]) => {
     setBuckets(next);
     await store.set(PRIVACY_BUCKETS_KEY, next);
     NetworkManager.notifyDataChanged();
+    // Push the new scopes over any copy friends already hold — tightening a bucket has to
+    // reach them, or they keep showing the wider snapshot they were sent earlier.
+    NetworkManager.refreshAllMirrors();
   };
 
   const featureLabel = (f: BucketFeature): string =>
-    f === 'members' ? t('tabs.members') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'medical' ? t('medical.title', { defaultValue: 'Medical' }) : t('systemMap.title', { defaultValue: 'Connections' });
+    f === 'members' ? t('tabs.members') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : t('systemMap.title', { defaultValue: 'Connections' });
   const scopeSummary = (s: PrivacyScope): string =>
     s.mode === 'all' ? t('network.scopeAll') : s.mode === 'none' ? t('network.scopeNone') : `${s.ids.length}`;
   const setScopeMode = (f: BucketFeature, mode: PrivacyScopeMode) => {
@@ -108,6 +138,12 @@ export default function NetworkView() {
     });
   };
   const pickableMembers = members.filter(m => !m.deleted && !m.isCustomFront);
+  const memberName = (id: string) => members.find(m => m.id === id)?.name || '?';
+  const relLabel = (r: Relationship): string => {
+    const rt = relTypes.find(x => x.id === r.typeId) || PRESET_RELATIONSHIP_TYPES.find(x => x.id === r.typeId);
+    const arrow = rt?.directional ? '→' : '↔';
+    return `${memberName(r.fromId)} ${arrow} ${memberName(r.toId)}${rt ? `  ·  ${rt.name}` : ''}`;
+  };
   const [error, setError] = useState<string | null>(null);
   const [copiedKind, setCopiedKind] = useState<Kind | null>(null);
   const [directionFor, setDirectionFor] = useState<string | null>(null);
@@ -236,6 +272,13 @@ export default function NetworkView() {
             <div key={i} style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{line}</div>
           ))}
         </div>
+        {f.kind !== 'device' && f.status === 'accepted' && (
+          <button
+            className="icon-btn"
+            aria-label={`${t('network.viewShared')}, ${f.displayName}`}
+            onClick={() => setMirrorMenuFor(f)}
+            style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>⋯</button>
+        )}
         <button className="icon-btn" aria-label={`${t('network.remove')}, ${f.displayName}`} onClick={() => setRemoveTarget(f)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
       </div>
     );
@@ -338,10 +381,10 @@ export default function NetworkView() {
               <div role="button" tabIndex={0} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                 onClick={() => setEditBucket({ ...b })}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditBucket({ ...b }); } }}
-                aria-label={`${b.name}. ${(['members', 'groups', 'journal', 'history', 'customFields', 'medical', 'connections'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
+                aria-label={`${b.name}. ${(['members', 'groups', 'journal', 'history', 'customFields', 'connections'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  {(['members', 'groups', 'journal', 'history', 'customFields', 'medical', 'connections'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
+                  {(['members', 'groups', 'journal', 'history', 'customFields', 'connections'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
                 </div>
               </div>
               <Btn variant="ghost" aria-label={`${t('network.cloneBucket')} — ${b.name}`} onClick={() => cloneBucket(b)}>⧉</Btn>
@@ -362,10 +405,10 @@ export default function NetworkView() {
           </div>
         }>
         <Field label={t('network.bucketName')} value={editBucket?.name || ''} onChange={v => editBucket && setEditBucket({ ...editBucket, name: v })} placeholder={t('network.bucketName')} />
-        {editBucket && (['members', 'groups', 'journal', 'history', 'customFields', 'medical', 'connections'] as BucketFeature[]).map(f => (
+        {editBucket && (['members', 'groups', 'journal', 'history', 'customFields', 'connections'] as BucketFeature[]).map(f => (
           <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
             <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{featureLabel(f)}</span>
-            {(['all', 'select', 'none'] as PrivacyScopeMode[]).map(mode => {
+            {((f === 'history' ? ['all', 'none'] : ['all', 'select', 'none']) as PrivacyScopeMode[]).map(mode => {
               const sel = editBucket[f].mode === mode;
               const label = mode === 'all' ? t('network.scopeAll') : mode === 'select' ? t('network.scopeSelect') : t('network.scopeNone');
               return (
@@ -409,6 +452,15 @@ export default function NetworkView() {
             ? journal
                 .filter(e => !pickerSearch.trim() || (e.title || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
                 .map(e => ({ id: e.id, name: `${e.password ? '🔒 ' : ''}${e.title || fmtTime(e.timestamp)}` }))
+            : pickerFeature === 'customFields'
+            ? [...fieldDefs]
+                .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+                .map(d => ({ id: d.id, name: d.name }))
+                .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+            : pickerFeature === 'connections'
+            ? relationships
+                .map(r => ({ id: r.id, name: relLabel(r) }))
+                .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
             : pickableMembers
                 .filter(m => !pickerSearch.trim() || m.name.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
                 .map(m => ({ id: m.id, name: m.name }))
@@ -464,6 +516,46 @@ export default function NetworkView() {
         onConfirm={() => { const f = removeTarget!; setRemoveTarget(null); guard(() => NetworkManager.removeFriend(f.peerId)); }}
         onCancel={() => setRemoveTarget(null)}
       />
+
+      <Modal
+        open={!!mirrorMenuFor}
+        title={`${mirrorMenuFor?.displayName || ''} — ${t('network.viewShared')}`}
+        onClose={() => setMirrorMenuFor(null)}>
+        {mirrorMenuFor && (
+          <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 0 }}>
+            {(['members', 'groups', 'journal', 'history', 'customFields', 'connections'] as BucketFeature[])
+              .map(f => `${featureLabel(f)}: ${scopeSummary(effectiveShare(mirrorMenuFor.peerId, f))}`)
+              .join('  ·  ')}
+          </p>
+        )}
+        {([
+          { feature: 'members' as MirrorFeature, label: t('tabs.members') },
+          { feature: 'groups' as MirrorFeature, label: t('memberGroups.title') },
+          { feature: 'journal' as MirrorFeature, label: t('tabs.journal') },
+        ]).map(opt => (
+          <button
+            key={opt.feature}
+            onClick={() => {
+              const f = mirrorMenuFor;
+              setMirrorMenuFor(null);
+              if (f) setMirror({ peerId: f.peerId, name: f.displayName, feature: opt.feature });
+            }}
+            style={{ display: 'block', width: '100%', background: 'none', border: 'none', borderTop: '1px solid var(--border)', padding: '12px 0', cursor: 'pointer', textAlign: 'left', fontSize: 14, color: 'var(--text)' }}>
+            {opt.label}
+          </button>
+        ))}
+      </Modal>
+
+      {mirror && (
+        <MirrorView
+          open
+          peerId={mirror.peerId}
+          displayName={mirror.name}
+          feature={mirror.feature}
+          online={net.onlinePeers.includes(mirror.peerId)}
+          onClose={() => setMirror(null)}
+        />
+      )}
     </div>
   );
 }

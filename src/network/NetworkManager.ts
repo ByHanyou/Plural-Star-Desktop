@@ -4,16 +4,17 @@ import {
   FriendIdentity,
   loadOrCreateIdentity,
 } from './identity';
+import nacl from 'tweetnacl';
 import { NodeClient, PacketReceived } from './NodeClient';
 import { sealMessage, openMessage } from './crypto';
-import { resolveNetwork } from './defaultNetwork';
+import { resolveNetwork, DEFAULT_GATEWAY_URL } from './defaultNetwork';
 import {
   rendezvousNamespace,
   makeRendezvousRecord,
   openRendezvousRecord,
 } from './rendezvous';
-import { decodeBase64, encodeBase64 } from './bytes';
-import { Member } from '../utils';
+import { decodeBase64, encodeBase64, decodeUTF8 } from './bytes';
+import { Member, mirrorThumbDataUrl } from '../utils';
 import { buildFrontShare } from './frontShare';
 import {
   Friend,
@@ -27,6 +28,14 @@ import {
   SYNC_EXCLUDE_KEYS,
   SYNC_STATE_KEY,
   MAX_NOTIF_FRIENDS,
+  MirrorFeature,
+  MirrorMember,
+  MirrorCacheEntry,
+  MIRROR_CACHE_PREFIX,
+  MIRROR_SERVED_KEY,
+  PrivacyBucket,
+  PrivacyScope,
+  PRIVACY_BUCKETS_KEY,
 } from './types';
 
 const SYNC_DEBOUNCE_MS = 8000;
@@ -35,6 +44,9 @@ const SYNC_MSG_BUDGET = 64 * 1024;
 const SYNC_CHUNK_SIZE = 48 * 1024;
 const SYNC_PACE_MS = 300;
 const SYNC_MAX_PARTS = 4096;
+// The relay caps a /send body at 1 MiB (http.MaxBytesReader, 1<<20). mirror_media is sent
+// whole (not chunked) and sealing + base64 inflates ~1.35x — stay well under it.
+const MIRROR_MEDIA_MAX = 600 * 1024;
 
 const SYNC_EXCLUDE = new Set(SYNC_EXCLUDE_KEYS);
 
@@ -225,6 +237,7 @@ class NetworkManagerImpl {
     };
     this.friends = (await store.get<Friend[]>(FRIENDS_STORAGE_KEY, null)) || [];
     this.expireStaleClones();
+    await this.loadMirrorServed();
     this.lastHashes = (await store.get<Record<string, string>>(SYNC_STATE_KEY, null)) || {};
     this.identity = await loadOrCreateIdentity();
     try {
@@ -498,10 +511,14 @@ class NetworkManagerImpl {
         }
         this.persistFriends();
         this.notify();
+        // They're back — push CURRENT scopes over whatever copy they still hold, so a
+        // bucket narrowed while they were offline actually reaches them.
+        if (msg.kind !== 'device') this.refreshMirrorsFor(sender.peerId).catch(e => console.warn('[NETWORK] mirror refresh failed:', e));
         break;
       }
       case 'disconnect': {
         this.friends = this.friends.filter(f => f.peerId !== sender.peerId);
+        this.clearMirrorCaches(sender.peerId);
         this.persistFriends();
         this.notify();
         break;
@@ -544,6 +561,20 @@ class NetworkManagerImpl {
           f => f.peerId === sender.peerId && f.kind === 'device' && (f.status === 'accepted' || f.status === 'entered_theirs'),
         );
         if (dev) this.handleSyncChunk(sender, msg);
+        break;
+      }
+      case 'mirror_req': {
+        this.handleMirrorReq(sender.peerId, msg.feature).catch(e => console.warn('[NETWORK] mirror_req failed:', e));
+        break;
+      }
+      case 'mirror': {
+        const fr = this.friends.find(f => f.peerId === sender.peerId && f.kind !== 'device' && f.status === 'accepted');
+        if (fr) this.handleMirror(sender, msg).catch(e => console.warn('[NETWORK] mirror failed:', e));
+        break;
+      }
+      case 'mirror_media': {
+        const fr = this.friends.find(f => f.peerId === sender.peerId && f.kind !== 'device' && f.status === 'accepted');
+        if (fr) this.handleMirrorMedia(sender, msg);
         break;
       }
       case 'ping':
@@ -601,6 +632,7 @@ class NetworkManagerImpl {
     } catch {
     }
     this.friends = this.friends.filter(f => f.peerId !== peerId);
+    this.clearMirrorCaches(peerId);
     await this.persistFriends();
     this.notify();
   }
@@ -621,9 +653,46 @@ class NetworkManagerImpl {
     this.notify();
   }
 
+  private gatewayFetch(path: string, body: Record<string, unknown>): Promise<unknown> {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('gateway timeout')), 10000),
+    );
+    return Promise.race([
+      window.electronAPI.net.fetch(`${DEFAULT_GATEWAY_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      timeout,
+    ]);
+  }
+
+  private async announceFrontToGateway(): Promise<void> {
+    const self = this.identity;
+    if (!self || !this.settings.enabled) return;
+    const fronters = (this.myFront?.fronters || '').slice(0, 120);
+    const startTime = this.myFront?.startTime || 0;
+    const name = (this.systemName || '').slice(0, 64);
+    const ts = Date.now();
+    const signed = `psgw-front|${self.peerId}|${ts}|${fronters}|${startTime}|${name}`;
+    const sig = nacl.sign.detached(decodeUTF8(signed), self.edSecretKey);
+    try {
+      await this.gatewayFetch('/gw/front', {
+        peer_id: self.peerId,
+        ed_pub: encodeBase64(self.edPublicKey),
+        sig: encodeBase64(sig),
+        ts,
+        fronters,
+        start_time: startTime,
+        name,
+      });
+    } catch {}
+  }
+
   async updateMyFront(front: any, members: Member[]): Promise<void> {
     this.myFront = buildFrontShare(front, members);
     this.myFrontKnown = true;
+    this.announceFrontToGateway().catch(() => {});
     for (const f of this.friends) {
       if (f.status !== 'accepted' || f.kind === 'device') continue;
       try {
@@ -644,6 +713,354 @@ class NetworkManagerImpl {
       if (f.kind === 'device' || f.status !== 'accepted') continue;
       this.sendMyFrontTo(f.peerId);
     }
+  }
+
+  private mirrorBuffers: Map<string, {parts: string[]; total: number; seqs: Set<number>}> = new Map();
+  private mirrorListeners: Set<(peerId: string, feature: MirrorFeature) => void> = new Set();
+  private mirrorMediaTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private mirrorMediaPending: Map<string, Record<string, string>> = new Map();
+  // What we've served to whom. Revocation has to chase the copy we already handed out:
+  // narrowing a bucket is meaningless if the friend keeps the old wider snapshot.
+  private mirrorServed: Map<string, Set<MirrorFeature>> = new Map();
+
+  private async loadMirrorServed(): Promise<void> {
+    try {
+      const raw = await getRaw(MIRROR_SERVED_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed === 'object') {
+        this.mirrorServed = new Map(
+          Object.entries(parsed as Record<string, MirrorFeature[]>).map(([p, f]) => [p, new Set(f)]),
+        );
+      }
+    } catch (e) {
+      console.warn('[NETWORK] mirror served load failed:', e);
+    }
+  }
+
+  private async persistMirrorServed(): Promise<void> {
+    try {
+      const obj: Record<string, MirrorFeature[]> = {};
+      this.mirrorServed.forEach((feats, peer) => {
+        obj[peer] = [...feats];
+      });
+      await setRaw(MIRROR_SERVED_KEY, JSON.stringify(obj));
+    } catch (e) {
+      console.warn('[NETWORK] mirror served persist failed:', e);
+    }
+  }
+
+  private markMirrorServed(peerId: string, feature: MirrorFeature): void {
+    const set = this.mirrorServed.get(peerId) || new Set<MirrorFeature>();
+    if (set.has(feature)) return;
+    set.add(feature);
+    this.mirrorServed.set(peerId, set);
+    this.persistMirrorServed().catch(() => {});
+  }
+
+  // Re-serve every feature this friend already holds a copy of, using the CURRENT buckets.
+  // A tightened scope sends a smaller payload; a removed scope sends none:true.
+  async refreshMirrorsFor(peerId: string): Promise<void> {
+    const feats = this.mirrorServed.get(peerId);
+    if (!feats || feats.size === 0) return;
+    for (const feat of [...feats]) {
+      await this.handleMirrorReq(peerId, feat).catch(e => console.warn('[NETWORK] mirror refresh failed:', e));
+    }
+  }
+
+  // Called after the privacy buckets are edited; offline friends get it on next connect.
+  refreshAllMirrors(): void {
+    for (const f of this.friends) {
+      if (f.kind === 'device' || f.status !== 'accepted') continue;
+      this.refreshMirrorsFor(f.peerId).catch(e => console.warn('[NETWORK] mirror refresh failed:', e));
+    }
+  }
+
+  onMirrorUpdated(fn: (peerId: string, feature: MirrorFeature) => void): () => void {
+    this.mirrorListeners.add(fn);
+    return () => this.mirrorListeners.delete(fn);
+  }
+
+  private notifyMirror(peerId: string, feature: MirrorFeature): void {
+    this.mirrorListeners.forEach(fn => {
+      try {
+        fn(peerId, feature);
+      } catch {}
+    });
+  }
+
+  private mirrorCacheKey(peerId: string, feature: MirrorFeature): string {
+    return `${MIRROR_CACHE_PREFIX}${feature}:${peerId}`;
+  }
+
+  async loadMirror(peerId: string, feature: MirrorFeature): Promise<MirrorCacheEntry | null> {
+    try {
+      const raw = await getRaw(this.mirrorCacheKey(peerId, feature));
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async requestMirror(peerId: string, feature: MirrorFeature): Promise<void> {
+    await this.sendTo(peerId, { t: 'mirror_req', feature });
+  }
+
+  private clearMirrorCaches(peerId: string): void {
+    for (const feat of ['members', 'groups', 'journal'] as MirrorFeature[]) {
+      window.electronAPI.store.remove(this.mirrorCacheKey(peerId, feat)).catch(() => {});
+    }
+    if (this.mirrorServed.delete(peerId)) this.persistMirrorServed().catch(() => {});
+  }
+
+  private effectiveScope(
+    buckets: PrivacyBucket[],
+    peerId: string,
+    feature: MirrorFeature | 'customFields',
+  ): {mode: 'all' | 'select' | 'none'; ids: Set<string>} {
+    const mine = buckets.filter(b => b && Array.isArray(b.friendPeerIds) && b.friendPeerIds.includes(peerId));
+    const ids = new Set<string>();
+    let all = false;
+    let any = false;
+    for (const b of mine) {
+      const scope = (b as any)[feature] as PrivacyScope | undefined;
+      if (!scope || scope.mode === 'none') continue;
+      if (scope.mode === 'all') {
+        all = true;
+        any = true;
+        continue;
+      }
+      if (scope.mode === 'select') {
+        for (const id of scope.ids || []) ids.add(id);
+        if ((scope.ids || []).length > 0) any = true;
+      }
+    }
+    if (all) return {mode: 'all', ids: new Set()};
+    if (!any) return {mode: 'none', ids: new Set()};
+    return {mode: 'select', ids};
+  }
+
+  private async handleMirrorReq(peerId: string, feature: MirrorFeature): Promise<void> {
+    if (feature !== 'members' && feature !== 'groups' && feature !== 'journal') return;
+    const fr = this.friends.find(x => x.peerId === peerId && x.kind !== 'device' && x.status === 'accepted');
+    if (!fr) return;
+    let buckets: PrivacyBucket[] = [];
+    try {
+      const raw = await getRaw(PRIVACY_BUCKETS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) buckets = parsed;
+    } catch {}
+    const scope = this.effectiveScope(buckets, peerId, feature);
+    if (scope.mode === 'none') {
+      try {
+        await this.sendTo(peerId, { t: 'mirror', feature, seq: 0, total: 1, data: '', none: true });
+      } catch (e) {
+        console.warn('[NETWORK] mirror none send failed:', e);
+      }
+      // Record the "nothing" answer too — they're caching it, so this is exactly the peer
+      // that needs a push when a bucket is later GRANTED.
+      this.markMirrorServed(peerId, feature);
+      return;
+    }
+    let payload = '';
+    let mediaMembers: {id: string; avatar: string}[] = [];
+    try {
+      if (feature === 'members') {
+        const raw = await getRaw(KEYS.members);
+        const list: any[] = raw ? JSON.parse(raw) : [];
+        const shared = (Array.isArray(list) ? list : []).filter(
+          m => m && !m.deleted && !m.isCustomFront && (scope.mode === 'all' || scope.ids.has(m.id)),
+        );
+        const cfScope = this.effectiveScope(buckets, peerId, 'customFields');
+        let grantedDefs: any[] = [];
+        if (cfScope.mode !== 'none') {
+          const rawDefs = await getRaw(KEYS.customFieldDefs);
+          let defs: any[] = [];
+          try {
+            defs = rawDefs ? JSON.parse(rawDefs) : [];
+          } catch {}
+          grantedDefs = (Array.isArray(defs) ? defs : [])
+            .filter(d => d && (cfScope.mode === 'all' || cfScope.ids.has(d.id)))
+            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        }
+        const slim: MirrorMember[] = shared.map(m => {
+          const cfs = grantedDefs
+            .map(d => {
+              const v = (m.customFields || []).find((x: any) => x && x.fieldId === d.id);
+              if (!v || v.value === null || v.value === '') return null;
+              return {name: d.name, value: v.value, type: d.type, markdown: d.markdown || undefined};
+            })
+            .filter(Boolean) as MirrorMember['customFields'];
+          return {
+            id: m.id,
+            name: m.name || '',
+            pronouns: m.pronouns || undefined,
+            role: m.role || undefined,
+            color: m.color || undefined,
+            description: m.description || undefined,
+            archived: m.archived || undefined,
+            customFields: cfs && cfs.length > 0 ? cfs : undefined,
+          };
+        });
+        payload = JSON.stringify(slim);
+        mediaMembers = shared
+          .filter(m => typeof m.avatar === 'string' && m.avatar.startsWith('data:'))
+          .map(m => ({id: m.id, avatar: m.avatar}));
+      } else if (feature === 'groups') {
+        const rawG = await getRaw(KEYS.groups);
+        const rawM = await getRaw(KEYS.members);
+        let allGroups: any[] = [];
+        let allMembers: any[] = [];
+        try {
+          allGroups = rawG ? JSON.parse(rawG) : [];
+        } catch {}
+        try {
+          allMembers = rawM ? JSON.parse(rawM) : [];
+        } catch {}
+        const sharedGroups = (Array.isArray(allGroups) ? allGroups : []).filter(
+          g => g && (scope.mode === 'all' || scope.ids.has(g.id)),
+        );
+        const sharedGroupIds = new Set(sharedGroups.map(g => g.id));
+        const mScope = this.effectiveScope(buckets, peerId, 'members');
+        const sharedMembers = (Array.isArray(allMembers) ? allMembers : []).filter(
+          m => m && !m.deleted && !m.isCustomFront && (mScope.mode === 'all' || mScope.ids.has(m.id)),
+        );
+        const membership: Record<string, {id: string; name: string}[]> = {};
+        for (const m of sharedMembers) {
+          const gids = (m.groupIds || []).filter((gid: string) => sharedGroupIds.has(gid));
+          if (gids.length === 0) {
+            (membership[''] = membership[''] || []).push({id: m.id, name: m.name || ''});
+          } else {
+            for (const gid of gids) {
+              (membership[gid] = membership[gid] || []).push({id: m.id, name: m.name || ''});
+            }
+          }
+        }
+        const slimGroups = sharedGroups.map(g => ({
+          id: g.id,
+          name: g.name || '',
+          color: g.color || undefined,
+          kind: g.kind || undefined,
+          parentId: g.parentId || undefined,
+          sortOrder: g.sortOrder ?? undefined,
+        }));
+        payload = JSON.stringify({groups: slimGroups, membership});
+      } else {
+        const raw = await getRaw(KEYS.journal);
+        const list: any[] = raw ? JSON.parse(raw) : [];
+        const shared = (Array.isArray(list) ? list : []).filter(
+          e => e && (scope.mode === 'all' || scope.ids.has(e.id)),
+        );
+        payload = JSON.stringify(shared);
+      }
+    } catch (e) {
+      console.warn('[NETWORK] mirror build failed:', e);
+      return;
+    }
+    const total = Math.max(1, Math.ceil(payload.length / SYNC_CHUNK_SIZE));
+    if (total > SYNC_MAX_PARTS) return;
+    for (let seq = 0; seq < total; seq++) {
+      const data = payload.slice(seq * SYNC_CHUNK_SIZE, (seq + 1) * SYNC_CHUNK_SIZE);
+      try {
+        await this.sendTo(peerId, { t: 'mirror', feature, seq, total, data });
+      } catch {
+        return;
+      }
+      if (total > 1) await sleep(SYNC_PACE_MS);
+    }
+    this.markMirrorServed(peerId, feature);
+    for (const m of mediaMembers) {
+      const thumb = await mirrorThumbDataUrl(m.avatar);
+      // The relay rejects /send bodies over 1 MiB and sealing + base64 inflates ~1.35x —
+      // anything past this is silently dropped on the wire, so don't bother sending it.
+      const uri = thumb && thumb.length <= MIRROR_MEDIA_MAX ? thumb : null;
+      if (!uri) continue;
+      try {
+        await this.sendTo(peerId, { t: 'mirror_media', feature, memberId: m.id, data: uri });
+      } catch (e) {
+        console.warn('[NETWORK] mirror media send failed:', e);
+        continue;
+      }
+      await sleep(SYNC_PACE_MS);
+    }
+  }
+
+  private async handleMirror(
+    sender: FriendIdentity,
+    m: {feature: MirrorFeature; seq: number; total: number; data: string; none?: boolean},
+  ): Promise<void> {
+    if (!m || typeof m.seq !== 'number' || typeof m.total !== 'number' || m.total < 1 || m.total > SYNC_MAX_PARTS) return;
+    const id = `${sender.peerId}|${m.feature}`;
+    let buf = this.mirrorBuffers.get(id);
+    if (!buf || buf.total !== m.total) {
+      buf = {parts: new Array(m.total).fill(''), total: m.total, seqs: new Set()};
+      this.mirrorBuffers.set(id, buf);
+    }
+    if (m.seq < 0 || m.seq >= buf.total || buf.seqs.has(m.seq)) return;
+    buf.parts[m.seq] = m.data || '';
+    buf.seqs.add(m.seq);
+    if (buf.seqs.size !== buf.total) return;
+    this.mirrorBuffers.delete(id);
+    const joined = buf.parts.join('');
+    let data: any = null;
+    if (!m.none && joined) {
+      try {
+        data = JSON.parse(joined);
+      } catch {
+        return;
+      }
+    }
+    const prev = await this.loadMirror(sender.peerId, m.feature);
+    const media: Record<string, string> = {};
+    // Carry over avatars ONLY for members still in the payload — a narrowed bucket must not
+    // leave the revoked member's face cached on this device.
+    if (m.feature === 'members' && prev?.media && !m.none && Array.isArray(data)) {
+      for (const mm of data) {
+        if (mm?.id && prev.media[mm.id]) media[mm.id] = prev.media[mm.id];
+      }
+    }
+    const entry: MirrorCacheEntry = {feature: m.feature, fetchedAt: Date.now(), none: !!m.none, data, media};
+    try {
+      await setRaw(this.mirrorCacheKey(sender.peerId, m.feature), JSON.stringify(entry));
+    } catch {}
+    this.notifyMirror(sender.peerId, m.feature);
+  }
+
+  private handleMirrorMedia(sender: FriendIdentity, m: {feature: MirrorFeature; memberId: string; data: string}): void {
+    if (!m?.memberId || typeof m.data !== 'string' || !m.data.startsWith('data:')) return;
+    const id = `${sender.peerId}|${m.feature}`;
+    const pend = this.mirrorMediaPending.get(id) || {};
+    pend[m.memberId] = m.data;
+    this.mirrorMediaPending.set(id, pend);
+    const old = this.mirrorMediaTimers.get(id);
+    if (old) clearTimeout(old);
+    this.mirrorMediaTimers.set(id, setTimeout(() => {
+      this.mirrorMediaTimers.delete(id);
+      const batch = this.mirrorMediaPending.get(id);
+      this.mirrorMediaPending.delete(id);
+      if (batch) this.flushMirrorMedia(sender.peerId, m.feature, batch).catch(e => console.warn('[NETWORK] mirror media failed:', e));
+    }, 400));
+  }
+
+  private async flushMirrorMedia(peerId: string, feature: MirrorFeature, batch: Record<string, string>): Promise<void> {
+    const prev = await this.loadMirror(peerId, feature);
+    if (!prev || prev.none) return;
+    const media = {...(prev.media || {})};
+    let changed = false;
+    if (Array.isArray(prev.data)) {
+      const idsPresent = new Set(prev.data.map((x: any) => x?.id));
+      for (const mid in batch) {
+        if (idsPresent.has(mid)) {
+          media[mid] = batch[mid];
+          changed = true;
+        }
+      }
+    }
+    if (!changed) return;
+    const entry: MirrorCacheEntry = {...prev, media};
+    try {
+      await setRaw(this.mirrorCacheKey(peerId, feature), JSON.stringify(entry));
+    } catch {}
+    this.notifyMirror(peerId, feature);
   }
 
   private onDeviceLinkAccepted(f: Friend): void {
@@ -726,37 +1143,62 @@ class NetworkManagerImpl {
   }
 
   private async snapshot(): Promise<Record<string, string>> {
-    const keys = (await allPsKeys()).filter(k => !SYNC_EXCLUDE.has(k));
+    const keys = (await allPsKeys()).filter(k => !SYNC_EXCLUDE.has(k) && !k.startsWith(MIRROR_CACHE_PREFIX));
     const out: Record<string, string> = {};
     for (const k of keys) {
       const raw = await getRaw(k);
       if (raw != null) out[k] = raw;
     }
-    Object.assign(out, this.mediaEntries(out[KEYS.members]));
+    Object.assign(out, this.mediaEntries(out[KEYS.members], out[KEYS.system]));
     return out;
   }
 
-  private mediaEntries(membersRaw: string | undefined): Record<string, string> {
+  private mediaEntries(membersRaw: string | undefined, systemRaw?: string): Record<string, string> {
     const out: Record<string, string> = {};
-    if (!membersRaw) return out;
-    let list: any[];
-    try {
-      list = JSON.parse(membersRaw);
-    } catch {
-      return out;
-    }
-    if (!Array.isArray(list)) return out;
-    for (const m of list) {
-      if (!m || m.deleted) continue;
-      for (const [field, kind] of [['avatar', 'av'], ['banner', 'bn']] as const) {
-        const val = m[field];
-        if (typeof val === 'string' && val.startsWith('data:')) out[`ps:media:${kind}:${m.id}`] = val;
+    if (membersRaw) {
+      let list: any[] = [];
+      try {
+        list = JSON.parse(membersRaw);
+      } catch {}
+      if (Array.isArray(list)) {
+        for (const m of list) {
+          if (!m || m.deleted) continue;
+          for (const [field, kind] of [['avatar', 'av'], ['banner', 'bn']] as const) {
+            const val = m[field];
+            if (typeof val === 'string' && val.startsWith('data:')) out[`ps:media:${kind}:${m.id}`] = val;
+          }
+        }
       }
+    }
+    if (systemRaw) {
+      try {
+        const sys = JSON.parse(systemRaw);
+        if (sys && typeof sys === 'object' && !Array.isArray(sys)) {
+          for (const [field, key] of [['avatar', 'ps:media:sysav'], ['banner', 'ps:media:sysbn']] as const) {
+            const val = sys[field];
+            if (typeof val === 'string' && val.startsWith('data:')) out[key] = val;
+          }
+        }
+      } catch {}
     }
     return out;
   }
 
   private async applyMedia(key: string, dataUri: string): Promise<void> {
+    if (key === 'ps:media:sysav' || key === 'ps:media:sysbn') {
+      const isAv = key === 'ps:media:sysav';
+      const rawSys = await getRaw(KEYS.system);
+      if (!rawSys) return;
+      try {
+        const sys = JSON.parse(rawSys);
+        if (!sys || typeof sys !== 'object' || Array.isArray(sys)) return;
+        sys[isAv ? 'avatar' : 'banner'] = dataUri;
+        const v = JSON.stringify(sys);
+        await setRaw(KEYS.system, v);
+        this.lastHashes[KEYS.system] = syncHash(v);
+      } catch {}
+      return;
+    }
     const m = key.match(/^ps:media:(av|bn):(.+)$/);
     if (!m) return;
     const kind = m[1];
@@ -773,6 +1215,32 @@ class NetworkManagerImpl {
       await setRaw(KEYS.members, v);
       this.lastHashes[KEYS.members] = syncHash(v);
     } catch {}
+  }
+
+  private frontStartTime(raw: string | null | undefined): number | null {
+    if (!raw) return null;
+    try {
+      const f = JSON.parse(raw);
+      return f && typeof f.startTime === 'number' ? f.startTime : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private preserveLocalSystemMedia(incomingRaw: string, localRaw: string | null): string {
+    try {
+      const inc = JSON.parse(incomingRaw);
+      if (!inc || typeof inc !== 'object' || Array.isArray(inc)) return incomingRaw;
+      let loc: any = null;
+      try {
+        loc = localRaw ? JSON.parse(localRaw) : null;
+      } catch {}
+      inc.avatar = loc && typeof loc === 'object' ? loc.avatar : undefined;
+      inc.banner = loc && typeof loc === 'object' ? loc.banner : undefined;
+      return JSON.stringify(inc);
+    } catch {
+      return incomingRaw;
+    }
   }
 
   private preserveLocalMedia(incomingRaw: string, localRaw: string | null): string {
@@ -1064,6 +1532,11 @@ class NetworkManagerImpl {
         continue;
       }
       const localRaw = await getRaw(k);
+      if (k === KEYS.front && !cloning) {
+        const incT = this.frontStartTime(incoming.v);
+        const locT = this.frontStartTime(localRaw);
+        if (incT != null && locT != null && incT < locT) continue;
+      }
       const localHash = localRaw != null ? syncHash(localRaw) : '__absent__';
       const base = this.lastHashes[k];
       if (localHash === incoming.h) {
@@ -1077,6 +1550,10 @@ class NetworkManagerImpl {
       const writeValue = async () => {
         if (k === KEYS.members) {
           const v = this.preserveLocalMedia(incoming.v, localRaw);
+          await setRaw(k, v);
+          this.lastHashes[k] = syncHash(v);
+        } else if (k === KEYS.system) {
+          const v = this.preserveLocalSystemMedia(incoming.v, localRaw);
           await setRaw(k, v);
           this.lastHashes[k] = syncHash(v);
         } else {
@@ -1128,6 +1605,11 @@ class NetworkManagerImpl {
         if (c.key === KEYS.members) {
           const localRaw = await getRaw(c.key);
           const v = this.preserveLocalMedia(c.remoteValue, localRaw);
+          await setRaw(c.key, v);
+          this.lastHashes[c.key] = syncHash(v);
+        } else if (c.key === KEYS.system) {
+          const localRaw = await getRaw(c.key);
+          const v = this.preserveLocalSystemMedia(c.remoteValue, localRaw);
           await setRaw(c.key, v);
           this.lastHashes[c.key] = syncHash(v);
         } else {

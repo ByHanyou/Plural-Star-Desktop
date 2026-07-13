@@ -72,6 +72,13 @@
     "deleteBucket": "Xóa vòng",
     "deleteBucketMsg": "Xóa “{{name}}”?",
     "cloneBucket": "Nhân bản vòng",
+    "viewShared": "Xem nội dung chia sẻ",
+    "mirrorNothing": "Họ chưa chia sẻ mục này với bạn.",
+    "mirrorOffline": "Bạn bè ngoại tuyến — hiển thị bản sao nhận được gần nhất.",
+    "mirrorEmptyOffline": "Bạn bè ngoại tuyến. Chưa nhận được gì.",
+    "mirrorUpdated": "Đã cập nhật {{time}}",
+    "mirrorLoading": "Đang yêu cầu…",
+    "mirrorRefresh": "Làm mới",
     "yourCode": "Mã kết bạn của bạn",
     "addFriend": "Thêm bạn",
     "add": "Thêm",
@@ -118,6 +125,8 @@
     "publishFailed": "Không thể công bố mã của bạn — kiểm tra kết nối và thử lại."
   },
   "common": {
+    "dragReorder": "Kéo để sắp xếp lại",
+    "reorderLock": "Sắp xếp bằng cách kéo",
     "movedToTop": "Bây giờ ở vị trí đầu tiên",
     "movedToBottom": "Bây giờ ở vị trí cuối cùng",
     "movedAbove": "Đã chuyển lên trên {{name}}",

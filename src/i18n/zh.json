@@ -72,6 +72,13 @@
     "deleteBucket": "删除圈子",
     "deleteBucketMsg": "删除“{{name}}”？",
     "cloneBucket": "复制圈子",
+    "viewShared": "查看共享",
+    "mirrorNothing": "对方尚未与你共享此内容。",
+    "mirrorOffline": "好友离线 — 显示最后收到的副本。",
+    "mirrorEmptyOffline": "好友离线。尚未收到任何内容。",
+    "mirrorUpdated": "更新于 {{time}}",
+    "mirrorLoading": "请求中…",
+    "mirrorRefresh": "刷新",
     "yourCode": "你的好友码",
     "addFriend": "添加好友",
     "add": "添加",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "预约提醒"
   },
   "common": {
+    "dragReorder": "拖动以重新排序",
+    "reorderLock": "拖动排序",
     "save": "保存",
     "cancel": "取消",
     "delete": "删除",

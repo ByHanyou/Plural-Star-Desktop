@@ -72,6 +72,13 @@
     "deleteBucket": "ลบวง",
     "deleteBucketMsg": "ลบ “{{name}}”?",
     "cloneBucket": "ทำสำเนาวง",
+    "viewShared": "ดูที่แชร์",
+    "mirrorNothing": "พวกเขายังไม่ได้แชร์สิ่งนี้กับคุณ",
+    "mirrorOffline": "เพื่อนออฟไลน์ — แสดงสำเนาล่าสุดที่ได้รับ",
+    "mirrorEmptyOffline": "เพื่อนออฟไลน์ ยังไม่ได้รับข้อมูล",
+    "mirrorUpdated": "อัปเดต {{time}}",
+    "mirrorLoading": "กำลังขอ…",
+    "mirrorRefresh": "รีเฟรช",
     "yourCode": "รหัสเพื่อนของคุณ",
     "addFriend": "เพิ่มเพื่อน",
     "add": "เพิ่ม",
@@ -118,6 +125,8 @@
     "publishFailed": "ไม่สามารถเผยแพร่รหัสของคุณได้ — ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง"
   },
   "common": {
+    "dragReorder": "ลากเพื่อจัดลำดับใหม่",
+    "reorderLock": "ลากเพื่อจัดลำดับ",
     "movedToTop": "ตอนนี้อยู่ลำดับแรก",
     "movedToBottom": "ตอนนี้อยู่ลำดับสุดท้าย",
     "movedAbove": "ย้ายไปอยู่เหนือ {{name}} แล้ว",

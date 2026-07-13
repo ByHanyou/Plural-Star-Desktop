@@ -72,6 +72,13 @@
     "deleteBucket": "Видалити коло",
     "deleteBucketMsg": "Видалити «{{name}}»?",
     "cloneBucket": "Дублювати коло",
+    "viewShared": "Переглянути надане",
+    "mirrorNothing": "Вони ще не поділилися цим з вами.",
+    "mirrorOffline": "Друг офлайн — показано останню отриману копію.",
+    "mirrorEmptyOffline": "Друг офлайн. Ще нічого не отримано.",
+    "mirrorUpdated": "Оновлено {{time}}",
+    "mirrorLoading": "Запит…",
+    "mirrorRefresh": "Оновити",
     "yourCode": "Ваш код друга",
     "addFriend": "Додати друга",
     "add": "Додати",
@@ -201,6 +208,8 @@
     "remind1d": "1 дн"
   },
   "common": {
+    "dragReorder": "Перетягніть, щоб змінити порядок",
+    "reorderLock": "Перетягування для сортування",
     "save": "Зберегти",
     "cancel": "Скасувати",
     "delete": "Видалити",

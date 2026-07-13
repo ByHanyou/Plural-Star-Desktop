@@ -72,6 +72,13 @@
     "deleteBucket": "Supprimer le cercle",
     "deleteBucketMsg": "Supprimer « {{name}} » ?",
     "cloneBucket": "Dupliquer le cercle",
+    "viewShared": "Voir le partage",
+    "mirrorNothing": "Ils n'ont pas encore partagé cela avec toi.",
+    "mirrorOffline": "Ami·e hors ligne — affichage de la dernière copie reçue.",
+    "mirrorEmptyOffline": "Ami·e hors ligne. Rien reçu pour l'instant.",
+    "mirrorUpdated": "Mis à jour {{time}}",
+    "mirrorLoading": "Demande en cours…",
+    "mirrorRefresh": "Actualiser",
     "yourCode": "Ton code d'ami·e",
     "addFriend": "Ajouter un·e ami·e",
     "add": "Ajouter",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "Rappel de rendez-vous"
   },
   "common": {
+    "dragReorder": "Glisser pour réorganiser",
+    "reorderLock": "Réorganisation par glissement",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",

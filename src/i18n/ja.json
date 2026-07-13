@@ -72,6 +72,13 @@
     "deleteBucket": "サークルを削除",
     "deleteBucketMsg": "「{{name}}」を削除しますか？",
     "cloneBucket": "サークルを複製",
+    "viewShared": "共有を見る",
+    "mirrorNothing": "まだ共有されていません。",
+    "mirrorOffline": "フレンドはオフラインです — 最後に受信したコピーを表示中。",
+    "mirrorEmptyOffline": "フレンドはオフラインです。まだ何も受信していません。",
+    "mirrorUpdated": "更新 {{time}}",
+    "mirrorLoading": "リクエスト中…",
+    "mirrorRefresh": "更新",
     "yourCode": "あなたのフレンドコード",
     "addFriend": "フレンドを追加",
     "add": "追加",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "予約リマインダー"
   },
   "common": {
+    "dragReorder": "ドラッグして並べ替え",
+    "reorderLock": "ドラッグ並べ替え",
     "save": "保存",
     "cancel": "キャンセル",
     "delete": "削除",

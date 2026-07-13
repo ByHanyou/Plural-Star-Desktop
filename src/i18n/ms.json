@@ -72,6 +72,13 @@
     "deleteBucket": "Padam bulatan",
     "deleteBucketMsg": "Padam “{{name}}”?",
     "cloneBucket": "Salin bulatan",
+    "viewShared": "Lihat perkongsian",
+    "mirrorNothing": "Mereka belum berkongsi ini dengan anda.",
+    "mirrorOffline": "Rakan di luar talian — memaparkan salinan terakhir diterima.",
+    "mirrorEmptyOffline": "Rakan di luar talian. Belum ada yang diterima.",
+    "mirrorUpdated": "Dikemas kini {{time}}",
+    "mirrorLoading": "Meminta…",
+    "mirrorRefresh": "Muat semula",
     "yourCode": "Kod rakan anda",
     "addFriend": "Tambah rakan",
     "add": "Tambah",
@@ -118,6 +125,8 @@
     "publishFailed": "Kod anda tidak dapat diterbitkan — semak sambungan anda dan cuba lagi."
   },
   "common": {
+    "dragReorder": "Seret untuk menyusun semula",
+    "reorderLock": "Susun semula dengan seretan",
     "movedToTop": "Kini pertama",
     "movedToBottom": "Kini terakhir",
     "movedAbove": "Dialihkan di atas {{name}}",

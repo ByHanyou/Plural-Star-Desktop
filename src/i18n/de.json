@@ -72,6 +72,13 @@
     "deleteBucket": "Kreis löschen",
     "deleteBucketMsg": "„{{name}}“ löschen?",
     "cloneBucket": "Kreis duplizieren",
+    "viewShared": "Geteiltes ansehen",
+    "mirrorNothing": "Sie haben noch nichts davon mit dir geteilt.",
+    "mirrorOffline": "Freund ist offline — letzte empfangene Kopie wird angezeigt.",
+    "mirrorEmptyOffline": "Freund ist offline. Noch nichts empfangen.",
+    "mirrorUpdated": "Aktualisiert {{time}}",
+    "mirrorLoading": "Wird angefordert…",
+    "mirrorRefresh": "Aktualisieren",
     "yourCode": "Dein Freundschaftscode",
     "addFriend": "Freund*in hinzufügen",
     "add": "Hinzufügen",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "Termin-Erinnerung"
   },
   "common": {
+    "dragReorder": "Zum Umsortieren ziehen",
+    "reorderLock": "Ziehen zum Umsortieren",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",

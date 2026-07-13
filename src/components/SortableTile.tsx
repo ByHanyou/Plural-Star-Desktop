@@ -21,7 +21,7 @@ export default function SortableTile({ id, children }: Props) {
     opacity: isDragging ? 0.85 : undefined,
   };
 
-  const label = t('dashboard.reorder', { defaultValue: 'Reorder tile' });
+  const label = t('common.dragReorder', { defaultValue: 'Drag to reorder' });
 
   return (
     <div ref={setNodeRef} style={style} className="tile-sortable">

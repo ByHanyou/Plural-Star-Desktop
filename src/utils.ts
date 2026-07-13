@@ -53,9 +53,14 @@ export const sortGroupsForDisplay = (list: MemberGroup[], all: MemberGroup[]): M
 
 export const descendantsOf = (nodes: MemberGroup[], id: string): MemberGroup[] => {
   const out: MemberGroup[] = [];
+  const seen = new Set<string>([id]);
   const walk = (pid: string) => {
     for (const n of nodes) {
-      if (groupParent(n) === pid) { out.push(n); walk(n.id); }
+      if (groupParent(n) === pid && !seen.has(n.id)) {
+        seen.add(n.id);
+        out.push(n);
+        walk(n.id);
+      }
     }
   };
   walk(id);
@@ -631,6 +636,37 @@ export const TEXT_SCALE_OPTIONS: {label: string; value: TextScale}[] = [
 
 export const BANNER_WIDTH = 900;
 export const BANNER_HEIGHT = 300;
+
+// Avatar thumbnail for friend mirrors. A mirror row renders a ~36px circle, and the relay
+// rejects /send bodies over 1 MiB (sealing + base64 inflates ~1.35x), so full-size avatars
+// were being dropped on the wire and the icon never arrived. JPEG @128px is tens of KB.
+export const MIRROR_THUMB_MAX = 128;
+
+export const mirrorThumbDataUrl = (dataUrl: string): Promise<string | null> =>
+  new Promise(resolve => {
+    if (!dataUrl || !dataUrl.startsWith('data:')) { resolve(null); return; }
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, MIRROR_THUMB_MAX / Math.max(img.width || 1, img.height || 1));
+        const w = Math.max(1, Math.round((img.width || MIRROR_THUMB_MAX) * scale));
+        const h = Math.max(1, Math.round((img.height || MIRROR_THUMB_MAX) * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(null); return; }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
 
 export const resizeBannerDataUrl = (dataUrl: string): Promise<string> =>
   new Promise((resolve, reject) => {

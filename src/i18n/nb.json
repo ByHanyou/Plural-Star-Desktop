@@ -72,6 +72,13 @@
     "deleteBucket": "Slett sirkel",
     "deleteBucketMsg": "Slette «{{name}}»?",
     "cloneBucket": "Dupliser sirkel",
+    "viewShared": "Se delt innhold",
+    "mirrorNothing": "De har ikke delt dette med deg ennå.",
+    "mirrorOffline": "Vennen er frakoblet — viser siste mottatte kopi.",
+    "mirrorEmptyOffline": "Vennen er frakoblet. Ingenting mottatt ennå.",
+    "mirrorUpdated": "Oppdatert {{time}}",
+    "mirrorLoading": "Ber om…",
+    "mirrorRefresh": "Oppdater",
     "yourCode": "Din vennekode",
     "addFriend": "Legg til en venn",
     "add": "Legg til",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "Avtalepåminnelse"
   },
   "common": {
+    "dragReorder": "Dra for å endre rekkefølge",
+    "reorderLock": "Dra-omorganisering",
     "save": "Lagre",
     "cancel": "Avbryt",
     "delete": "Slett",

@@ -25,6 +25,8 @@
     "sand": "Sand"
   },
   "common": {
+    "dragReorder": "Drag to reorder",
+    "reorderLock": "Drag reordering",
     "save": "Save",
     "cancel": "Cancel",
     "back": "Back",
@@ -605,6 +607,13 @@
     "deleteBucket": "Delete bucket",
     "deleteBucketMsg": "Delete “{{name}}”?",
     "cloneBucket": "Clone bucket",
+    "viewShared": "View shared",
+    "mirrorNothing": "They haven't shared this with you yet.",
+    "mirrorOffline": "Friend is offline — showing the last received copy.",
+    "mirrorEmptyOffline": "Friend is offline. Nothing received yet.",
+    "mirrorUpdated": "Updated {{time}}",
+    "mirrorLoading": "Requesting…",
+    "mirrorRefresh": "Refresh",
     "yourCode": "Your friend code",
     "addFriend": "Add a friend",
     "add": "Add",

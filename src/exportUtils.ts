@@ -19,22 +19,36 @@ export const pkShortId = (i: number): string => {
   for (let k = 0; k < 5; k++) { s = String.fromCharCode(97 + (n % 26)) + s; n = Math.floor(n / 26); }
   return s;
 };
+export const pkUuid = (): string =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 export const buildPluralKitExport = (system: any, members: Member[], history: any[]): Record<string, any> => {
   const realMembers = members.filter(m => !(m as any).isCustomFront && !(m as any).deleted);
   const idMap: Record<string, string> = {};
   realMembers.forEach((m, i) => { idMap[m.id] = pkShortId(i); });
   const pkMembers = realMembers.map(m => ({
     id: idMap[m.id],
+    uuid: pkUuid(),
     name: (m.name || 'Member').slice(0, 100),
     display_name: null,
     color: pkHexColor(m.color),
     birthday: null,
     pronouns: m.pronouns ? m.pronouns.slice(0, 100) : null,
     avatar_url: pkPublicUrl(m.avatar),
+    webhook_avatar_url: null,
     banner: pkPublicUrl(m.banner),
     description: m.description ? m.description.slice(0, 1000) : null,
-    proxy_tags: [],
+    created: new Date((m as any).createdAt || Date.now()).toISOString(),
     keep_proxy: false,
+    tts: false,
+    autoproxy_enabled: false,
+    message_count: 0,
+    last_message_timestamp: null,
+    proxy_tags: [],
+    privacy: null,
   }));
   const pkSwitches = (history || [])
     .map((h: any) => ({

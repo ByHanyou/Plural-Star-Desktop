@@ -72,6 +72,13 @@
     "deleteBucket": "Poista piiri",
     "deleteBucketMsg": "Poistetaanko ”{{name}}”?",
     "cloneBucket": "Monista piiri",
+    "viewShared": "Näytä jaettu",
+    "mirrorNothing": "He eivät ole vielä jakaneet tätä kanssasi.",
+    "mirrorOffline": "Ystävä on offline-tilassa — näytetään viimeksi vastaanotettu kopio.",
+    "mirrorEmptyOffline": "Ystävä on offline-tilassa. Mitään ei ole vielä vastaanotettu.",
+    "mirrorUpdated": "Päivitetty {{time}}",
+    "mirrorLoading": "Pyydetään…",
+    "mirrorRefresh": "Päivitä",
     "yourCode": "Ystäväkoodisi",
     "addFriend": "Lisää ystävä",
     "add": "Lisää",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "Ajanvarausmuistutus"
   },
   "common": {
+    "dragReorder": "Järjestä vetämällä",
+    "reorderLock": "Vetojärjestely",
     "save": "Tallenna",
     "cancel": "Peruuta",
     "delete": "Poista",

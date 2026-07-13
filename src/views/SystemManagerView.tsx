@@ -122,7 +122,9 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
   const confirmTarget = confirmDeleteId ? groups.find(g => g.id === confirmDeleteId) : null;
   const confirmKids = confirmDeleteId ? descendantsOf(groups, confirmDeleteId) : [];
 
-  const renderNode = (g: MemberGroup, depth: number): React.ReactNode => {
+  const renderNode = (g: MemberGroup, depth: number, seen: Set<string> = new Set()): React.ReactNode => {
+    if (seen.has(g.id)) return null;
+    seen.add(g.id);
     const isEditing = editId === g.id;
     const isSub = groupKind(g) === 'subsystem';
     const memberCount = members.filter(m => (m.groupIds || []).includes(g.id)).length;
@@ -179,7 +181,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
             <ColorPicker value={editColor} onChange={setEditColor} palette={PALETTE} />
           </div>
         )}
-        {childrenOf(groups, g.id).map(c => renderNode(c, depth + 1))}
+        {childrenOf(groups, g.id).map(c => renderNode(c, depth + 1, seen))}
       </div>
     );
   };

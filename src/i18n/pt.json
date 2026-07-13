@@ -72,6 +72,13 @@
     "deleteBucket": "Excluir círculo",
     "deleteBucketMsg": "Excluir “{{name}}”?",
     "cloneBucket": "Duplicar círculo",
+    "viewShared": "Ver compartilhado",
+    "mirrorNothing": "Eles ainda não compartilharam isso com você.",
+    "mirrorOffline": "Amizade offline — mostrando a última cópia recebida.",
+    "mirrorEmptyOffline": "Amizade offline. Nada recebido ainda.",
+    "mirrorUpdated": "Atualizado {{time}}",
+    "mirrorLoading": "Solicitando…",
+    "mirrorRefresh": "Atualizar",
     "yourCode": "Seu código de amizade",
     "addFriend": "Adicionar amizade",
     "add": "Adicionar",
@@ -201,6 +208,8 @@
     "apptReminderTitle": "Lembrete de consulta"
   },
   "common": {
+    "dragReorder": "Arraste para reordenar",
+    "reorderLock": "Reordenar arrastando",
     "save": "Salvar",
     "cancel": "Cancelar",
     "delete": "Excluir",

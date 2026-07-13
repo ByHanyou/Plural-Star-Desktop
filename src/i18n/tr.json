@@ -72,6 +72,13 @@
     "deleteBucket": "Çemberi sil",
     "deleteBucketMsg": "“{{name}}” silinsin mi?",
     "cloneBucket": "Çemberi çoğalt",
+    "viewShared": "Paylaşılanları gör",
+    "mirrorNothing": "Bunu henüz seninle paylaşmadılar.",
+    "mirrorOffline": "Arkadaş çevrimdışı — alınan son kopya gösteriliyor.",
+    "mirrorEmptyOffline": "Arkadaş çevrimdışı. Henüz bir şey alınmadı.",
+    "mirrorUpdated": "Güncellendi {{time}}",
+    "mirrorLoading": "İsteniyor…",
+    "mirrorRefresh": "Yenile",
     "yourCode": "Arkadaş kodun",
     "addFriend": "Arkadaş ekle",
     "add": "Ekle",
@@ -118,6 +125,8 @@
     "publishFailed": "Kodun yayınlanamadı — bağlantını kontrol edip yeniden dene."
   },
   "common": {
+    "dragReorder": "Yeniden sıralamak için sürükle",
+    "reorderLock": "Sürükleyerek sıralama",
     "movedToTop": "Artık ilk sırada",
     "movedToBottom": "Artık son sırada",
     "movedAbove": "{{name}} üstüne taşındı",

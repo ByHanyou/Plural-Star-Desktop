@@ -40,6 +40,7 @@ import MembersView from './views/MembersView';
 import SystemMapView from './views/SystemMapView';
 import MedicalView from './views/MedicalView';
 import { startMedicalReminders } from './services/medicalReminders';
+import { startFriendAlerts } from './services/friendAlerts';
 import ImportExportView from './views/ImportExportView';
 import StatsView from './views/StatsView';
 import JournalView from './views/JournalView';
@@ -165,6 +166,7 @@ function AppInner() {
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => startMedicalReminders(), []);
+  useEffect(() => startFriendAlerts(), []);
 
   const [syncConflict, setSyncConflict] = useState<{peerId: string; deviceName: string} | null>(null);
   const [roleMismatch, setRoleMismatch] = useState<{deviceName: string} | null>(null);
