@@ -2,7 +2,7 @@ import i18n from '../i18n/i18n';
 import { store, KEYS } from '../storage';
 import { AppSettings } from '../utils';
 import { NetworkManager } from '../network/NetworkManager';
-import { Friend } from '../network/types';
+import { Friend, friendNotifyLevel } from '../network/types';
 import { logError } from '../log';
 
 const notify = (title: string, body: string) => {
@@ -25,8 +25,6 @@ const statusBody = (f: Friend): string => {
   return lines.join('\n');
 };
 
-// Content signature — deliberately NOT statusUpdatedAt: reconnect re-broadcasts bump the
-// timestamp with identical content, which would spam an alert on every reconnect.
 const signature = (f: Friend): string => JSON.stringify(f.lastStatus ?? null);
 
 export const startFriendAlerts = (): (() => void) => {
@@ -44,7 +42,6 @@ export const startFriendAlerts = (): (() => void) => {
   return NetworkManager.subscribe(state => {
     const friends = state.friends.filter(f => f.kind !== 'device' && f.status === 'accepted');
 
-    // subscribe() fires synchronously on mount — prime the map, never alert on that first pass.
     if (!primed) {
       for (const f of friends) seen.set(f.peerId, signature(f));
       primed = true;
@@ -57,6 +54,7 @@ export const startFriendAlerts = (): (() => void) => {
       seen.set(f.peerId, sig);
       if (prev === undefined || prev === sig) continue;
       if (!enabled || !state.enabled) continue;
+      if (friendNotifyLevel(f) === 'off') continue;
       if (!f.lastStatus || !f.lastStatus.fronters) continue;
       const body = statusBody(f);
       if (body) notify(f.displayName, body);

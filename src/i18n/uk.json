@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Кольори",
+    "rowDefault": "Стандартні",
+    "rowDarker": "Темний тон",
+    "rowPastel": "Пастель",
+    "rowNeon": "Неон",
+    "setDarker": "Темний {{name}}",
+    "setPastel": "Пастельний {{name}}",
+    "setNeon": "Неоновий {{name}}",
+    "custom": "Власні",
+    "customSlot": "Власний колір {{n}}",
+    "emptySlot": "Порожня комірка {{n}}",
+    "clearSlot": "Прибрати колір",
+    "clearSlotMsg": "Прибрати цей власний колір?",
     "white": "Білий",
     "black": "Чорний",
     "red": "Червоний",
@@ -68,6 +81,11 @@
     "bucketName": "Назва кола",
     "scopeAll": "Усе",
     "scopeSelect": "Вибір",
+    "selectAll": "Вибрати всі",
+    "deselectAll": "Зняти вибір з усіх",
+    "notifFull": "Закріплено + сповіщення",
+    "notifAlerts": "Лише сповіщення",
+    "notifOff": "Без звуку",
     "scopeNone": "Нічого",
     "deleteBucket": "Видалити коло",
     "deleteBucketMsg": "Видалити «{{name}}»?",
@@ -134,6 +152,7 @@
     "clearTitle": "Очистити дошку?",
     "clearMsg": "Це назавжди видалить усе з дошки.",
     "brushSize": "Розмір пензля",
+    "bucket": "Заливка",
     "penColor": "Колір пера"
   },
   "systemMap": {

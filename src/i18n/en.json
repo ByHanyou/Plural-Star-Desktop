@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Colors",
+    "rowDefault": "Default",
+    "rowDarker": "Darker Tone",
+    "rowPastel": "Pastel",
+    "rowNeon": "Neon",
+    "setDarker": "Dark {{name}}",
+    "setPastel": "Pastel {{name}}",
+    "setNeon": "Neon {{name}}",
+    "custom": "Custom",
+    "customSlot": "Custom {{n}}",
+    "emptySlot": "Empty slot {{n}}",
+    "clearSlot": "Clear color",
+    "clearSlotMsg": "Remove this custom color?",
     "white": "White",
     "black": "Black",
     "red": "Red",
@@ -25,6 +38,9 @@
     "sand": "Sand"
   },
   "common": {
+    "change": "Change",
+    "search": "Search…",
+    "unlock": "Unlock",
     "dragReorder": "Drag to reorder",
     "reorderLock": "Drag reordering",
     "save": "Save",
@@ -198,6 +214,8 @@
     "entryCountOne": "1 entry"
   },
   "journal": {
+    "passwordPrompt": "This entry is password protected.",
+    "wrongPassword": "Incorrect password.",
     "title": "Journal",
     "new": "+ New",
     "locked": "Journal Locked",
@@ -235,6 +253,9 @@
     "templateBody": "Entry Body (preset)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "PluralKit export saved",
+    "pkExportHint": "Exports members and front history as a PluralKit-format file for pk;import (PluralKit) or tul!import (Tupperbox). Avatars only carry over if they're image links — PluralKit can't read locally saved pictures — and proxy tags are left blank to set up in the bot.",
     "importOtherApps": "Import from another app",
     "importOtherAppsDesc": "Import members and fronting history from Ourcana, HiveMind, or Octocon (.json), or Ampersand (.ampar).",
     "importFromOtherApp": "Pick file (.json / .ampar)",
@@ -398,7 +419,11 @@
     "creditsBlurb": "Community contributors",
     "archive": "Archive"
   },
+  "markdown": {
+    "imageUnavailable": "[image unavailable]"
+  },
   "modal": {
+    "appFont": "App Font",
     "updateFront": "Update Front",
     "addMembersFirst": "Add members first.",
     "mood": "Mood",
@@ -603,6 +628,11 @@
     "bucketName": "Bucket name",
     "scopeAll": "All",
     "scopeSelect": "Select",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "notifFull": "Pinned + alerts",
+    "notifAlerts": "Alerts only",
+    "notifOff": "Muted",
     "scopeNone": "None",
     "deleteBucket": "Delete bucket",
     "deleteBucketMsg": "Delete “{{name}}”?",
@@ -660,6 +690,10 @@
     "publishFailed": "Couldn't publish your code — check your connection and try again."
   },
   "whiteboard": {
+    "clearConfirm2Title": "Are you sure?",
+    "clearConfirm2Msg": "The whole board will be erased. This can't be undone.",
+    "clearConfirm3Title": "Last chance",
+    "clearConfirm3Msg": "Really erase everything on the whiteboard?",
     "title": "Whiteboard",
     "draw": "Draw",
     "move": "Move",
@@ -669,9 +703,12 @@
     "clearTitle": "Clear whiteboard?",
     "clearMsg": "This erases everything on the board for good.",
     "brushSize": "Brush size",
+    "bucket": "Fill bucket",
     "penColor": "Pen color"
   },
   "systemMap": {
+    "showColors": "Colors",
+    "noRelationships": "No relationships yet. Tap + Add Relationship to start building your map.",
     "title": "System Map",
     "connections": "Connections",
     "showOnMap": "Show on Map",

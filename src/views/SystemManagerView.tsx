@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Member, MemberGroup, GroupNodeKind, uid, childrenOf, descendantsOf, isDescendant, groupKind } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Modal, ConfirmDialog, ColorPicker, useEscapeKey } from '../components/ui';
+import { Btn, Modal, ConfirmDialog, useEscapeKey } from '../components/ui';
+import { ColorCarousel } from '../components/ColorCarousel';
 import { NetworkManager } from '../network/NetworkManager';
 import { PALETTE } from '../theme';
 
@@ -22,10 +23,12 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
 
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PALETTE[0]);
+  const [newDesc, setNewDesc] = useState('');
   const [newKind, setNewKind] = useState<GroupNodeKind>('group');
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState<string>(PALETTE[0]);
+  const [editDesc, setEditDesc] = useState('');
   const [movingId, setMovingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   useEscapeKey(!!confirmDeleteId, () => setConfirmDeleteId(null));
@@ -82,8 +85,9 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
     const name = newName.trim();
     if (!name) return;
     const siblings = childrenOf(groups, null);
-    saveGroups([...groups, { id: uid(), name, color: newColor, kind: newKind, parentId: null, sortOrder: siblings.length }]);
+    saveGroups([...groups, { id: uid(), name, color: newColor, kind: newKind, parentId: null, sortOrder: siblings.length, description: newDesc.trim() || undefined }]);
     setNewName('');
+    setNewDesc('');
   };
 
   const moveNode = (id: string, newParentId: string | null) => {
@@ -96,7 +100,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
   const renameNode = (id: string) => {
     const name = editName.trim();
     if (!name) return;
-    saveGroups(groups.map(g => g.id === id ? { ...g, name, color: editColor } : g));
+    saveGroups(groups.map(g => g.id === id ? { ...g, name, color: editColor, description: editDesc.trim() || undefined } : g));
     setEditId(null); setEditName('');
   };
 
@@ -135,18 +139,18 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingLeft: depth * 18 }}>
           {depth > 0 && <span style={{ color: 'var(--muted)', fontSize: 12 }}>└</span>}
           {isEditing ? (
-            <button title={t('memberGroups.changeColor')} onClick={() => setShowEditColor(v => !v)}
+            <button title={t('memberGroups.changeColor')} aria-label={t('memberGroups.changeColor')} onClick={() => setShowEditColor(v => !v)}
               style={{ width: 18, height: 18, borderRadius: isSub ? 4 : 9, backgroundColor: editColor, border: '2px solid rgba(255,255,255,0.15)', cursor: 'pointer', flexShrink: 0 }} />
           ) : (
             <span style={{ width: 12, height: 12, borderRadius: isSub ? 3 : 6, backgroundColor: g.color || 'var(--accent)', flexShrink: 0 }} />
           )}
           {isEditing ? (
             <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input className="field__input" aria-label="Group name" value={editName} autoFocus onChange={e => setEditName(e.target.value)}
+              <input className="field__input" aria-label={t('memberGroups.groupName', {defaultValue: 'Group name'})} value={editName} autoFocus onChange={e => setEditName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') renameNode(g.id); if (e.key === 'Escape') setEditId(null); }}
                 style={{ flex: 1, fontSize: 13 }} />
-              <button onClick={() => renameNode(g.id)} title={t('common.save')} style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}>✓</button>
-              <button onClick={() => setEditId(null)} title={t('common.cancel')} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => renameNode(g.id)} title={t('common.save')} aria-label={t('common.save')} style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}>✓</button>
+              <button onClick={() => setEditId(null)} title={t('common.cancel')} aria-label={t('common.cancel')} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer' }}>✕</button>
             </div>
           ) : (
             <>
@@ -163,13 +167,13 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
               ) : (
                 <>
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>{memberCount}</span>
-                  <button onClick={() => setMovingId(g.id)} title={`${t('memberGroups.move')} ${g.name}`}
+                  <button onClick={() => setMovingId(g.id)} title={`${t('memberGroups.move')} ${g.name}`} aria-label={`${t('memberGroups.move')} ${g.name}`}
                     style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 15, cursor: 'pointer', padding: 2 }}>⇄</button>
-                  <button onClick={() => { setEditId(g.id); setEditName(g.name); setEditColor(g.color || PALETTE[0]); setShowEditColor(false); }}
+                  <button onClick={() => { setEditId(g.id); setEditName(g.name); setEditColor(g.color || PALETTE[0]); setEditDesc(g.description || ''); setShowEditColor(false); }}
                     style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--accent-bg)', color: 'var(--accent)', cursor: 'pointer' }}>
                     {t('common.edit')}
                   </button>
-                  <button onClick={() => setConfirmDeleteId(g.id)} title={`${t('common.delete')} ${g.name}`}
+                  <button onClick={() => setConfirmDeleteId(g.id)} title={`${t('common.delete')} ${g.name}`} aria-label={`${t('common.delete')} ${g.name}`}
                     style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 4 }}>✕</button>
                 </>
               )}
@@ -178,7 +182,13 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
         </div>
         {isEditing && showEditColor && (
           <div style={{ paddingLeft: depth * 18 + 26, marginBottom: 10 }}>
-            <ColorPicker value={editColor} onChange={setEditColor} palette={PALETTE} />
+            <ColorCarousel value={editColor} onChange={setEditColor} />
+          </div>
+        )}
+        {isEditing && (
+          <div style={{ paddingLeft: depth * 18 + 26, marginBottom: 10 }}>
+            <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder={t('modal.descriptionBio')} aria-label={t('modal.descriptionBio')} rows={2}
+              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'vertical' }} />
           </div>
         )}
         {childrenOf(groups, g.id).map(c => renderNode(c, depth + 1, seen))}
@@ -345,7 +355,9 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
       </div>
       {showNewColor && (
         <div style={{ marginTop: 10 }}>
-          <ColorPicker value={newColor} onChange={setNewColor} palette={PALETTE} />
+          <ColorCarousel value={newColor} onChange={setNewColor} />
+          <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder={t('modal.descriptionBio')} aria-label={t('modal.descriptionBio')} rows={2}
+            style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'vertical' }} />
         </div>
       )}
       </>)}

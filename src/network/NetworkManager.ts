@@ -28,6 +28,8 @@ import {
   SYNC_EXCLUDE_KEYS,
   SYNC_STATE_KEY,
   MAX_NOTIF_FRIENDS,
+  FriendNotifyLevel,
+  friendNotifyLevel,
   MirrorFeature,
   MirrorMember,
   MirrorCacheEntry,
@@ -44,8 +46,6 @@ const SYNC_MSG_BUDGET = 64 * 1024;
 const SYNC_CHUNK_SIZE = 48 * 1024;
 const SYNC_PACE_MS = 300;
 const SYNC_MAX_PARTS = 4096;
-// The relay caps a /send body at 1 MiB (http.MaxBytesReader, 1<<20). mirror_media is sent
-// whole (not chunked) and sealing + base64 inflates ~1.35x — stay well under it.
 const MIRROR_MEDIA_MAX = 600 * 1024;
 
 const SYNC_EXCLUDE = new Set(SYNC_EXCLUDE_KEYS);
@@ -511,8 +511,6 @@ class NetworkManagerImpl {
         }
         this.persistFriends();
         this.notify();
-        // They're back — push CURRENT scopes over whatever copy they still hold, so a
-        // bucket narrowed while they were offline actually reaches them.
         if (msg.kind !== 'device') this.refreshMirrorsFor(sender.peerId).catch(e => console.warn('[NETWORK] mirror refresh failed:', e));
         break;
       }
@@ -641,6 +639,18 @@ class NetworkManagerImpl {
     await this.sendTo(peerId, { t: 'dm', body, ts: Date.now() });
   }
 
+  async setFriendNotifyLevel(peerId: string, level: FriendNotifyLevel): Promise<void> {
+    const f = this.friends.find(x => x.peerId === peerId);
+    if (!f) return;
+    if (level === 'full') {
+      const pinned = this.friends.filter(x => friendNotifyLevel(x) === 'full' && x.peerId !== peerId).length;
+      if (pinned >= MAX_NOTIF_FRIENDS) return;
+    }
+    this.upsertFriend({ ...f, notifyLevel: level, showInNotification: level === 'full' });
+    await this.persistFriends();
+    this.notify();
+  }
+
   async setFriendShowInNotification(peerId: string, show: boolean): Promise<void> {
     const f = this.friends.find(x => x.peerId === peerId);
     if (!f) return;
@@ -719,8 +729,6 @@ class NetworkManagerImpl {
   private mirrorListeners: Set<(peerId: string, feature: MirrorFeature) => void> = new Set();
   private mirrorMediaTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private mirrorMediaPending: Map<string, Record<string, string>> = new Map();
-  // What we've served to whom. Revocation has to chase the copy we already handed out:
-  // narrowing a bucket is meaningless if the friend keeps the old wider snapshot.
   private mirrorServed: Map<string, Set<MirrorFeature>> = new Map();
 
   private async loadMirrorServed(): Promise<void> {
@@ -757,17 +765,14 @@ class NetworkManagerImpl {
     this.persistMirrorServed().catch(() => {});
   }
 
-  // Re-serve every feature this friend already holds a copy of, using the CURRENT buckets.
-  // A tightened scope sends a smaller payload; a removed scope sends none:true.
   async refreshMirrorsFor(peerId: string): Promise<void> {
     const feats = this.mirrorServed.get(peerId);
     if (!feats || feats.size === 0) return;
     for (const feat of [...feats]) {
-      await this.handleMirrorReq(peerId, feat).catch(e => console.warn('[NETWORK] mirror refresh failed:', e));
+      await this.handleMirrorReq(peerId, feat, true).catch(e => console.warn('[NETWORK] mirror refresh failed:', e));
     }
   }
 
-  // Called after the privacy buckets are edited; offline friends get it on next connect.
   refreshAllMirrors(): void {
     for (const f of this.friends) {
       if (f.kind === 'device' || f.status !== 'accepted') continue;
@@ -808,6 +813,7 @@ class NetworkManagerImpl {
   private clearMirrorCaches(peerId: string): void {
     for (const feat of ['members', 'groups', 'journal'] as MirrorFeature[]) {
       window.electronAPI.store.remove(this.mirrorCacheKey(peerId, feat)).catch(() => {});
+      this.mirrorSentHash.delete(`${peerId}|${feat}`);
     }
     if (this.mirrorServed.delete(peerId)) this.persistMirrorServed().catch(() => {});
   }
@@ -839,10 +845,13 @@ class NetworkManagerImpl {
     return {mode: 'select', ids};
   }
 
-  private async handleMirrorReq(peerId: string, feature: MirrorFeature): Promise<void> {
+  private mirrorSentHash: Map<string, string> = new Map();
+
+  private async handleMirrorReq(peerId: string, feature: MirrorFeature, skipIfUnchanged?: boolean): Promise<void> {
     if (feature !== 'members' && feature !== 'groups' && feature !== 'journal') return;
     const fr = this.friends.find(x => x.peerId === peerId && x.kind !== 'device' && x.status === 'accepted');
     if (!fr) return;
+    const gateKey = `${peerId}|${feature}`;
     let buckets: PrivacyBucket[] = [];
     try {
       const raw = await getRaw(PRIVACY_BUCKETS_KEY);
@@ -851,25 +860,27 @@ class NetworkManagerImpl {
     } catch {}
     const scope = this.effectiveScope(buckets, peerId, feature);
     if (scope.mode === 'none') {
+      if (skipIfUnchanged && this.mirrorSentHash.get(gateKey) === 'none') return;
       try {
         await this.sendTo(peerId, { t: 'mirror', feature, seq: 0, total: 1, data: '', none: true });
       } catch (e) {
         console.warn('[NETWORK] mirror none send failed:', e);
+        return;
       }
-      // Record the "nothing" answer too — they're caching it, so this is exactly the peer
-      // that needs a push when a bucket is later GRANTED.
+      this.mirrorSentHash.set(gateKey, 'none');
       this.markMirrorServed(peerId, feature);
       return;
     }
     let payload = '';
     let mediaMembers: {id: string; avatar: string}[] = [];
+    let cfImages: {memberId: string; fieldId: string; src: string}[] = [];
     try {
       if (feature === 'members') {
         const raw = await getRaw(KEYS.members);
         const list: any[] = raw ? JSON.parse(raw) : [];
-        const shared = (Array.isArray(list) ? list : []).filter(
-          m => m && !m.deleted && !m.isCustomFront && (scope.mode === 'all' || scope.ids.has(m.id)),
-        );
+        const shared = (Array.isArray(list) ? list : [])
+          .filter(m => m && !m.deleted && !m.isCustomFront && (scope.mode === 'all' || scope.ids.has(m.id)))
+          .sort((a, b) => ((a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER)) || String(a.name || '').localeCompare(String(b.name || '')));
         const cfScope = this.effectiveScope(buckets, peerId, 'customFields');
         let grantedDefs: any[] = [];
         if (cfScope.mode !== 'none') {
@@ -887,7 +898,12 @@ class NetworkManagerImpl {
             .map(d => {
               const v = (m.customFields || []).find((x: any) => x && x.fieldId === d.id);
               if (!v || v.value === null || v.value === '') return null;
-              return {name: d.name, value: v.value, type: d.type, markdown: d.markdown || undefined};
+              if (d.type === 'image') {
+                if (typeof v.value !== 'string' || !v.value) return null;
+                cfImages.push({memberId: m.id, fieldId: d.id, src: v.value});
+                return {name: d.name, value: '🖼', type: d.type, fieldId: d.id};
+              }
+              return {name: d.name, value: v.value, type: d.type, markdown: d.markdown || undefined, fieldId: d.id};
             })
             .filter(Boolean) as MirrorMember['customFields'];
           return {
@@ -956,6 +972,8 @@ class NetworkManagerImpl {
       console.warn('[NETWORK] mirror build failed:', e);
       return;
     }
+    const pHash = syncHash(payload);
+    if (skipIfUnchanged && this.mirrorSentHash.get(gateKey) === pHash) return;
     const total = Math.max(1, Math.ceil(payload.length / SYNC_CHUNK_SIZE));
     if (total > SYNC_MAX_PARTS) return;
     for (let seq = 0; seq < total; seq++) {
@@ -967,15 +985,26 @@ class NetworkManagerImpl {
       }
       if (total > 1) await sleep(SYNC_PACE_MS);
     }
+    this.mirrorSentHash.set(gateKey, pHash);
     this.markMirrorServed(peerId, feature);
     for (const m of mediaMembers) {
       const thumb = await mirrorThumbDataUrl(m.avatar);
-      // The relay rejects /send bodies over 1 MiB and sealing + base64 inflates ~1.35x —
-      // anything past this is silently dropped on the wire, so don't bother sending it.
       const uri = thumb && thumb.length <= MIRROR_MEDIA_MAX ? thumb : null;
       if (!uri) continue;
       try {
         await this.sendTo(peerId, { t: 'mirror_media', feature, memberId: m.id, data: uri });
+      } catch (e) {
+        console.warn('[NETWORK] mirror media send failed:', e);
+        continue;
+      }
+      await sleep(SYNC_PACE_MS);
+    }
+    for (const ci of cfImages) {
+      const thumb = await mirrorThumbDataUrl(ci.src, 512);
+      const uri = thumb && thumb.length <= MIRROR_MEDIA_MAX ? thumb : null;
+      if (!uri) continue;
+      try {
+        await this.sendTo(peerId, { t: 'mirror_media', feature, memberId: `${ci.memberId}#cf:${ci.fieldId}`, data: uri });
       } catch (e) {
         console.warn('[NETWORK] mirror media send failed:', e);
         continue;
@@ -1011,11 +1040,16 @@ class NetworkManagerImpl {
     }
     const prev = await this.loadMirror(sender.peerId, m.feature);
     const media: Record<string, string> = {};
-    // Carry over avatars ONLY for members still in the payload — a narrowed bucket must not
-    // leave the revoked member's face cached on this device.
     if (m.feature === 'members' && prev?.media && !m.none && Array.isArray(data)) {
       for (const mm of data) {
-        if (mm?.id && prev.media[mm.id]) media[mm.id] = prev.media[mm.id];
+        if (!mm?.id) continue;
+        if (prev.media[mm.id]) media[mm.id] = prev.media[mm.id];
+        for (const cf of (mm.customFields || []) as {type?: string; fieldId?: string}[]) {
+          if (cf && cf.type === 'image' && cf.fieldId) {
+            const k = `${mm.id}#cf:${cf.fieldId}`;
+            if (prev.media[k]) media[k] = prev.media[k];
+          }
+        }
       }
     }
     const entry: MirrorCacheEntry = {feature: m.feature, fetchedAt: Date.now(), none: !!m.none, data, media};
@@ -1049,7 +1083,8 @@ class NetworkManagerImpl {
     if (Array.isArray(prev.data)) {
       const idsPresent = new Set(prev.data.map((x: any) => x?.id));
       for (const mid in batch) {
-        if (idsPresent.has(mid)) {
+        const baseId = mid.includes('#cf:') ? mid.slice(0, mid.indexOf('#cf:')) : mid;
+        if (idsPresent.has(baseId)) {
           media[mid] = batch[mid];
           changed = true;
         }
@@ -1547,6 +1582,16 @@ class NetworkManagerImpl {
         this.lastHashes[k] = localHash;
         continue;
       }
+      if (k === KEYS.customFieldDefs && !cloning && localRaw != null) {
+        const res = this.mergeCustomFieldDefs(localRaw, incoming.v);
+        if (res) {
+          await setRaw(k, res.merged);
+          this.lastHashes[k] = syncHash(res.merged);
+          applied.push(k);
+          await this.remapMemberFieldIds(res.remap);
+          continue;
+        }
+      }
       const writeValue = async () => {
         if (k === KEYS.members) {
           const v = this.preserveLocalMedia(incoming.v, localRaw);
@@ -1594,6 +1639,82 @@ class NetworkManagerImpl {
           fn({peerId: sender.peerId, deviceName: dev!.displayName, keys: conflicts.map(c => c.key)});
         } catch {}
       });
+    }
+  }
+
+  private mergeCustomFieldDefs(localRaw: string | null, incomingRaw: string): {merged: string; remap: Record<string, string>} | null {
+    try {
+      const localList: any[] = localRaw ? JSON.parse(localRaw) : [];
+      const incomingList: any[] = JSON.parse(incomingRaw);
+      if (!Array.isArray(localList) || !Array.isArray(incomingList)) return null;
+      const nameKey = (d: any) => String(d?.name || '').trim().toLowerCase();
+      const remap: Record<string, string> = {};
+      const merged = localList.filter(d => d && d.id);
+      const byName = new Map<string, any>();
+      for (const d of merged) { if (nameKey(d)) byName.set(nameKey(d), d); }
+      for (const d of incomingList) {
+        if (!d || !d.id || !nameKey(d)) continue;
+        const ex = byName.get(nameKey(d));
+        if (!ex) {
+          byName.set(nameKey(d), d);
+          merged.push(d);
+          continue;
+        }
+        if (ex.id === d.id) continue;
+        if (String(d.id) < String(ex.id)) {
+          remap[ex.id] = d.id;
+          const idx = merged.findIndex(x => x.id === ex.id);
+          if (idx >= 0) merged[idx] = d;
+          byName.set(nameKey(d), d);
+        } else {
+          remap[d.id] = ex.id;
+        }
+      }
+      const cmp = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
+      merged.sort((a, b) =>
+        ((a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER)) ||
+        cmp(String(a.name || ''), String(b.name || '')) ||
+        cmp(String(a.id), String(b.id)));
+      return {merged: JSON.stringify(merged), remap};
+    } catch {
+      return null;
+    }
+  }
+
+  private async remapMemberFieldIds(remap: Record<string, string>): Promise<void> {
+    if (Object.keys(remap).length === 0) return;
+    try {
+      const raw = await getRaw(KEYS.members);
+      if (!raw) return;
+      const list: any[] = JSON.parse(raw);
+      if (!Array.isArray(list)) return;
+      let changed = false;
+      for (const m of list) {
+        if (!m || !Array.isArray(m.customFields) || m.customFields.length === 0) continue;
+        const kept = new Set(m.customFields.filter((c: any) => c && !remap[c.fieldId]).map((c: any) => c.fieldId));
+        const next: any[] = [];
+        let mChanged = false;
+        for (const c of m.customFields) {
+          if (!c) continue;
+          const target = remap[c.fieldId];
+          if (!target) { next.push(c); continue; }
+          mChanged = true;
+          if (kept.has(target)) continue;
+          next.push({...c, fieldId: target});
+          kept.add(target);
+        }
+        if (mChanged) {
+          m.customFields = next;
+          changed = true;
+        }
+      }
+      if (changed) {
+        const out = JSON.stringify(list);
+        await setRaw(KEYS.members, out);
+        this.lastHashes[KEYS.members] = syncHash(out);
+      }
+    } catch (e) {
+      console.warn('[NETWORK] field-id remap failed:', e);
     }
   }
 

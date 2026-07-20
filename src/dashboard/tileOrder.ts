@@ -2,7 +2,6 @@ import { logError } from '../log';
 
 const ORDER_KEY = 'ps.dashboardOrder';
 
-// The canonical dashboard order. Every tile id the app knows about must appear here.
 export const DEFAULT_TILE_ORDER: string[] = [
   'front',
   'system-manager',
@@ -16,6 +15,7 @@ export const DEFAULT_TILE_ORDER: string[] = [
   'chat',
   'mailbox',
   'whiteboard',
+  'colors',
   'stats',
   'import-export',
   'custom-fields',
@@ -27,9 +27,6 @@ export const DEFAULT_TILE_ORDER: string[] = [
   'settings',
 ];
 
-// Keep the user's saved order, drop ids we no longer ship, and APPEND any tile that
-// did not exist when their order was saved — otherwise a newly added tile would be
-// invisible to every existing user.
 export const mergeTileOrder = (saved: string[]): string[] => {
   const known = new Set(DEFAULT_TILE_ORDER);
   const kept = saved.filter(id => known.has(id));

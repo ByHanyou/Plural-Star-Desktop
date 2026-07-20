@@ -5,9 +5,6 @@ export const extFromDataUri = (u: string): string => { const m = /^data:image\/(
 export const dataUriToBytes = (u: string): Uint8Array => { const bin = atob(u.slice(u.indexOf(',') + 1)); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
 export const u8ToBase64 = (bytes: Uint8Array): string => { let bin = ''; const chunk = 0x8000; for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk) as unknown as number[]); return btoa(bin); };
 export const bytesToDataUri = (bytes: Uint8Array, pathOrExt: string): string => { const ext = (pathOrExt.split('.').pop() || 'png').toLowerCase(); return `data:${MIME_BY_EXT[ext] || 'image/png'};base64,${u8ToBase64(bytes)}`; };
-// PluralKit-format export (pk;import / Tupperbox tul!import). Field names mirror the mobile app +
-// PluralKit's Member/System/Switch models. No groups (PK doesn't import them); avatars/banners only
-// if they're public URLs (PK can't read local images); proxy tags left blank to set up in-bot.
 export const pkHexColor = (c?: string): string | null => {
   const h = String(c || '').replace(/^#/, '').trim().toLowerCase();
   return /^[0-9a-f]{6}$/.test(h) ? h : null;
@@ -37,17 +34,17 @@ export const buildPluralKitExport = (system: any, members: Member[], history: an
     color: pkHexColor(m.color),
     birthday: null,
     pronouns: m.pronouns ? m.pronouns.slice(0, 100) : null,
-    avatar_url: pkPublicUrl(m.avatar),
+    avatar_url: pkPublicUrl(m.avatar) || m.pkAvatarUrl || null,
     webhook_avatar_url: null,
-    banner: pkPublicUrl(m.banner),
+    banner: pkPublicUrl(m.banner) || m.pkBannerUrl || null,
     description: m.description ? m.description.slice(0, 1000) : null,
     created: new Date((m as any).createdAt || Date.now()).toISOString(),
-    keep_proxy: false,
+    keep_proxy: m.pkKeepProxy ?? false,
     tts: false,
     autoproxy_enabled: false,
     message_count: 0,
     last_message_timestamp: null,
-    proxy_tags: [],
+    proxy_tags: Array.isArray(m.pkProxyTags) ? m.pkProxyTags : [],
     privacy: null,
   }));
   const pkSwitches = (history || [])

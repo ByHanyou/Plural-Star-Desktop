@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl, sortGroupsForDisplay } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Toggle, Section, ChipList, AddRow, ColorPicker, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { ColorCarousel } from '../components/ColorCarousel';
 import { useAppStore } from '../store/appStore';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -107,8 +108,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     !search || m.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Drag-reorder is only meaningful in manual mode on an unfiltered list — otherwise the
-  // visible order isn't the stored order and a drop would write nonsense.
   const canReorder = sortMode === 'manual' && !search && (listView === 'active' || listView === 'customFronts');
   const reorderActive = canReorder && !reorderLocked;
 
@@ -123,8 +122,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     const from = filtered.findIndex(m => m.id === dragged.id);
     const to = filtered.findIndex(m => m.id === over.id);
     if (from < 0 || to < 0) return;
-    // Reorder within the visible subset ONLY (active vs customFronts are separate lists);
-    // writing sortOrder across the whole roster makes swaps look like they did nothing.
     const reordered = arrayMove(filtered, from, to);
     const orderById = new Map(reordered.map((m, i) => [m.id, i]));
     const updated = members.map(m => (orderById.has(m.id) ? { ...m, sortOrder: orderById.get(m.id) } : m));
@@ -328,7 +325,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             {listFields.groups && (m.groupIds || []).length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
                 {sortGroupsForDisplay(groups.filter(g => (m.groupIds || []).includes(g.id)), groups).slice(0, 6).map(g => (
-                  <span key={g!.id} style={{ fontSize: 10, color: 'var(--text)', background: 'var(--surface)', border: `1px solid ${g!.color || 'var(--border)'}`, padding: '1px 6px', borderRadius: 999 }}>
+                  <span key={g!.id} title={g!.description || undefined} style={{ fontSize: 10, color: 'var(--text)', background: 'var(--surface)', border: `1px solid ${g!.color || 'var(--border)'}`, padding: '1px 6px', borderRadius: 999 }}>
                     {g!.name}
                   </span>
                 ))}
@@ -409,7 +406,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
             </div>
             <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
-              <button style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+              <button aria-label={t('modal.changePfp', {defaultValue: 'Change profile picture'})} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={pickAvatar}>📷</button>
               {f.avatar && (
                 <button style={{ fontSize: 11, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -435,7 +432,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <Field label={t('modal.role')} value={f.role} onChange={v => set('role', v)} placeholder={t('modal.rolePlaceholder')} />
 
           <Section label={t('modal.color')} />
-          <ColorPicker value={f.color} onChange={v => set('color', v)} palette={PALETTE} />
+          <ColorCarousel value={f.color} onChange={v => set('color', v)} />
 
           {groups.length > 0 && (
             <>
@@ -445,6 +442,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   const active = (f.groupIds || []).includes(g.id);
                   return (
                     <button key={g.id} className={`chip ${active ? '' : ''}`}
+                      title={g.description || undefined}
                       style={{
                         borderColor: active ? `${g.color || 'var(--accent)'}50` : 'var(--border)',
                         background: active ? `${g.color || 'var(--accent)'}20` : 'var(--surface)',

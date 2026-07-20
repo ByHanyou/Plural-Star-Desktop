@@ -24,11 +24,11 @@ export function useEscapeKey(active: boolean, onEscape: () => void) {
 
 type BtnVariant = 'primary' | 'ghost' | 'danger' | 'solid' | 'info';
 
-export function Btn({ children, onClick, variant = 'primary', disabled = false, className = '' }: {
+export function Btn({ children, onClick, variant = 'primary', disabled = false, className = '', ...rest }: {
   children: React.ReactNode; onClick: () => void; variant?: BtnVariant; disabled?: boolean; className?: string;
-}) {
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button className={`btn btn--${variant} ${disabled ? 'btn--disabled' : ''} ${className}`} onClick={onClick} disabled={disabled}>
+    <button className={`btn btn--${variant} ${disabled ? 'btn--disabled' : ''} ${className}`} onClick={onClick} disabled={disabled} {...rest}>
       {children}
     </button>
   );
@@ -64,7 +64,7 @@ export function Toggle({ value, onChange, label, description }: {
         <span className="toggle-row__label">{label}</span>
         {description && <span className="toggle-row__desc">{description}</span>}
       </div>
-      <button className={`toggle ${value ? 'toggle--on' : ''}`} onClick={() => onChange(!value)}>
+      <button className={`toggle ${value ? 'toggle--on' : ''}`} role="switch" aria-checked={value} aria-label={label} onClick={() => onChange(!value)}>
         <span className="toggle__knob" />
       </button>
     </div>
@@ -311,6 +311,7 @@ export function ColorPicker({ value, onChange, palette }: {
 export function Modal({ open, title, onClose, footer, children }: {
   open: boolean; title: string; onClose: () => void; footer?: React.ReactNode; children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   useEscapeKey(open, onClose);
   if (!open) return null;
   return (
@@ -318,7 +319,7 @@ export function Modal({ open, title, onClose, footer, children }: {
       <div className="modal" role="presentation" onClick={e => e.stopPropagation()}>
         <div className="modal__header">
           <span className="modal__title">{title}</span>
-          <button className="modal__close" onClick={onClose}>✕</button>
+          <button className="modal__close" aria-label={t('common.close')} onClick={onClose}>✕</button>
         </div>
         <div className="modal__body">{children}</div>
         {footer && <div className="modal__footer">{footer}</div>}

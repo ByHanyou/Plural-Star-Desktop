@@ -66,9 +66,6 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
         .then(e => setEntry(e))
         .catch(e => logError('mirror', e));
     });
-    // Ask again the moment they come online — a cached "not shared" (or an unanswered
-    // request) would otherwise sit there until the view is reopened, which is exactly what
-    // a freshly-granted bucket looks like from the other side.
     const unsubNet = NetworkManager.subscribe(s => {
       const isOnline = s.onlinePeers.includes(peerId);
       const was = onlineRef.current;
@@ -123,12 +120,27 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                   {m.description && (
                     <p style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', margin: '4px 0' }}>{m.description}</p>
                   )}
-                  {(m.customFields || []).map((cf, i) => (
-                    <p key={i} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
-                      <span style={dim}>{cf.name}: </span>
-                      {typeof cf.value === 'boolean' ? (cf.value ? '✓' : '✕') : String(cf.value ?? '')}
-                    </p>
-                  ))}
+                  {(m.customFields || []).map((cf, i) => {
+                    if (cf.type === 'image') {
+                      const img = entry?.media?.[`${m.id}#cf:${cf.fieldId || ''}`];
+                      return (
+                        <div key={i} style={{ margin: '2px 0' }}>
+                          <span style={dim}>{cf.name}: </span>
+                          {img ? (
+                            <img src={img} alt={cf.name} style={{ display: 'block', maxWidth: '100%', maxHeight: 220, borderRadius: 8, marginTop: 4, objectFit: 'cover' }} />
+                          ) : (
+                            <span style={{ ...dim, fontStyle: 'italic' }}>{t('markdown.imageUnavailable', {defaultValue: '[image unavailable]'})}</span>
+                          )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <p key={i} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
+                        <span style={dim}>{cf.name}: </span>
+                        {typeof cf.value === 'boolean' ? (cf.value ? '✓' : '✕') : String(cf.value ?? '')}
+                      </p>
+                    );
+                  })}
                   {!m.description && (m.customFields || []).length === 0 && <p style={dim}>{t('network.mirrorNothing')}</p>}
                 </div>
               )}

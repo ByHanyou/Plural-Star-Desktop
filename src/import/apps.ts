@@ -411,6 +411,10 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
             color: isPK ? (m.color ? `#${m.color}` : '#DAA520') : (m.content?.color || '#DAA520'),
             description: isPK ? (m.description || '') : (m.content?.desc || ''),
             avatar: extSel.avatars ? (isPK ? (m.avatar_url || undefined) : (spAvatarUrl(m.content, spUid) || undefined)) : undefined,
+            pkProxyTags: isPK && Array.isArray(m.proxy_tags) ? m.proxy_tags : undefined,
+            pkAvatarUrl: isPK && typeof m.avatar_url === 'string' && m.avatar_url ? m.avatar_url : undefined,
+            pkBannerUrl: isPK && typeof m.banner === 'string' && m.banner ? m.banner : undefined,
+            pkKeepProxy: isPK && typeof m.keep_proxy === 'boolean' ? m.keep_proxy : undefined,
             tags: [] as string[], groupIds: [] as string[],
           }))
         : [];

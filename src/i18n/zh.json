@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "颜色",
+    "rowDefault": "默认",
+    "rowDarker": "深色调",
+    "rowPastel": "粉彩",
+    "rowNeon": "霓虹",
+    "setDarker": "深{{name}}",
+    "setPastel": "粉彩{{name}}",
+    "setNeon": "霓虹{{name}}",
+    "custom": "自定义",
+    "customSlot": "自定义颜色{{n}}",
+    "emptySlot": "空位{{n}}",
+    "clearSlot": "移除颜色",
+    "clearSlotMsg": "移除这个自定义颜色？",
     "white": "白色",
     "black": "黑色",
     "red": "红色",
@@ -68,6 +81,11 @@
     "bucketName": "圈子名称",
     "scopeAll": "全部",
     "scopeSelect": "选择",
+    "selectAll": "全选",
+    "deselectAll": "取消全选",
+    "notifFull": "置顶+提醒",
+    "notifAlerts": "仅提醒",
+    "notifOff": "静音",
     "scopeNone": "无",
     "deleteBucket": "删除圈子",
     "deleteBucketMsg": "删除“{{name}}”？",
@@ -134,6 +152,7 @@
     "clearTitle": "清空白板？",
     "clearMsg": "这将永久删除白板上的所有内容。",
     "brushSize": "画笔大小",
+    "bucket": "油漆桶",
     "penColor": "画笔颜色"
   },
   "systemMap": {

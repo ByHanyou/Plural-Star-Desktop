@@ -7,7 +7,7 @@ import {
   Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   AppSettings, SystemInfo, MemberGroup, migrateFrontState, isFrontEmpty,
   fmtDur, getInitials, DEFAULT_CHANNELS, DEFAULT_MOODS, makeDefaultCustomFronts,
-  uid, singletStatuses,
+  uid, singletStatuses, readableAccent,
 } from './utils';
 import { changeLanguage } from './i18n/i18n';
 
@@ -34,6 +34,7 @@ import ProfileTile from './tiles/ProfileTile';
 import NetworkTile from './tiles/NetworkTile';
 import MailboxTile from './tiles/MailboxTile';
 import WhiteboardTile from './tiles/WhiteboardTile';
+import ColorsTile from './tiles/ColorsTile';
 
 import SettingsView from './views/SettingsView';
 import MembersView from './views/MembersView';
@@ -57,6 +58,7 @@ import ProfileView from './views/ProfileView';
 import NetworkView from './views/NetworkView';
 import MailboxView from './views/MailboxView';
 import WhiteboardView from './views/WhiteboardView';
+import ColorsView from './views/ColorsView';
 import { NetworkManager } from './network/NetworkManager';
 import { Modal, Btn } from './components/ui';
 import { useAppStore, DEFAULT_SETTINGS } from './store/appStore';
@@ -65,7 +67,7 @@ import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arra
 import SortableTile from './components/SortableTile';
 import { loadTileOrder, saveTileOrder } from './dashboard/tileOrder';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard' | 'colors';
 
 class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -178,6 +180,8 @@ function AppInner() {
   useEffect(() => NetworkManager.onSyncRoleMismatch(c => setRoleMismatch({deviceName: c.deviceName})), []);
 
   const systemName = state.system.name || 'Plural Star';
+  const titlePalette = [...BUILTIN_PALETTES, ...(state.palettes || [])].find(p => p.id === state.settings.activePaletteId) || DARK_PALETTE;
+  const titleColor = readableAccent(titlePalette.accent, titlePalette.bg, titlePalette.text);
 
   const isSinglet = state.settings.accountMode === 'singlet';
   const selfMember = isSinglet
@@ -269,6 +273,7 @@ function AppInner() {
     'chat': !isSinglet ? <ChatTile onClick={() => setView('chat')} /> : null,
     'mailbox': !isSinglet ? <MailboxTile onClick={() => setView('mailbox')} /> : null,
     'whiteboard': <WhiteboardTile onClick={() => setView('whiteboard')} />,
+    'colors': <ColorsTile onClick={() => setView('colors')} />,
     'stats': <StatsTile onClick={() => setView('stats')} />,
     'import-export': <ImportExportTile onClick={() => setView('import-export')} />,
     'custom-fields': !isSinglet ? <CustomFieldsTile onClick={() => setView('custom-fields')} /> : null,
@@ -296,13 +301,13 @@ function AppInner() {
   return (
     <div className="app-shell">
       <div className="titlebar">
-        <span className="titlebar__title">
+        <span className="titlebar__title" style={{ color: titleColor }}>
           {view === 'dashboard' ? systemName : `${systemName} — ${view.charAt(0).toUpperCase() + view.slice(1).replace('-', '/')}`}
         </span>
         <div className="titlebar__controls">
-          <button className="titlebar__btn titlebar__btn--minimize" onClick={() => window.electronAPI.window.minimize()} />
-          <button className="titlebar__btn titlebar__btn--maximize" onClick={() => window.electronAPI.window.maximize()} />
-          <button className="titlebar__btn titlebar__btn--close" onClick={() => window.electronAPI.window.close()} />
+          <button className="titlebar__btn titlebar__btn--minimize" aria-label={t('common.minimize', {defaultValue: 'Minimize'})} onClick={() => window.electronAPI.window.minimize()} />
+          <button className="titlebar__btn titlebar__btn--maximize" aria-label={t('common.maximize', {defaultValue: 'Maximize'})} onClick={() => window.electronAPI.window.maximize()} />
+          <button className="titlebar__btn titlebar__btn--close" aria-label={t('common.close')} onClick={() => window.electronAPI.window.close()} />
         </div>
       </div>
 
@@ -344,6 +349,7 @@ function AppInner() {
                 : view === 'network' ? t('network.title')
                 : view === 'mailbox' ? t('mailbox.title')
                 : view === 'whiteboard' ? t('whiteboard.title')
+                : view === 'colors' ? t('colors.title', {defaultValue: 'Colors'})
                 : view}
             </span>
           </div>
@@ -420,6 +426,9 @@ function AppInner() {
             )}
             {view === 'whiteboard' && (
               <WhiteboardView />
+            )}
+            {view === 'colors' && (
+              <ColorsView />
             )}
           </div>
         </div>

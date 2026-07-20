@@ -4,7 +4,8 @@ import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl } from
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Section, ColorPicker, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { ColorCarousel } from '../components/ColorCarousel';
 
 type SubTab = 'profile' | 'statuses';
 
@@ -203,7 +204,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
             {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
           </div>
           <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
-            <button style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+            <button aria-label={t('modal.changePfp', {defaultValue: 'Change profile picture'})} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
               onClick={pickAvatar}>📷</button>
             {f.avatar && (
               <button style={{ fontSize: 11, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -227,7 +228,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} placeholder={t('modal.headmateName')} />
         <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
         <Section label={t('profile.favoriteColor')} />
-        <ColorPicker value={f.color} onChange={v => set('color', v)} palette={PALETTE} />
+        <ColorCarousel value={f.color} onChange={v => set('color', v)} />
         <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} multiline />
       </Modal>
 
@@ -247,7 +248,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         }>
         <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} />
         <Section label={t('modal.color')} />
-        <ColorPicker value={f.color} onChange={v => set('color', v)} palette={PALETTE} />
+        <ColorCarousel value={f.color} onChange={v => set('color', v)} />
         <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} multiline />
       </Modal>
 

@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Cores",
+    "rowDefault": "Padrão",
+    "rowDarker": "Tom escuro",
+    "rowPastel": "Pastel",
+    "rowNeon": "Néon",
+    "setDarker": "{{name}} escuro",
+    "setPastel": "{{name}} pastel",
+    "setNeon": "{{name}} néon",
+    "custom": "Personalizadas",
+    "customSlot": "Cor personalizada {{n}}",
+    "emptySlot": "Espaço vazio {{n}}",
+    "clearSlot": "Remover cor",
+    "clearSlotMsg": "Remover esta cor personalizada?",
     "white": "Branco",
     "black": "Preto",
     "red": "Vermelho",
@@ -68,6 +81,11 @@
     "bucketName": "Nome do círculo",
     "scopeAll": "Tudo",
     "scopeSelect": "Seleção",
+    "selectAll": "Selecionar tudo",
+    "deselectAll": "Desmarcar tudo",
+    "notifFull": "Fixado + alertas",
+    "notifAlerts": "Somente alertas",
+    "notifOff": "Silenciado",
     "scopeNone": "Nada",
     "deleteBucket": "Excluir círculo",
     "deleteBucketMsg": "Excluir “{{name}}”?",
@@ -134,6 +152,7 @@
     "clearTitle": "Limpar o quadro branco?",
     "clearMsg": "Isto apaga tudo no quadro permanentemente.",
     "brushSize": "Tamanho do pincel",
+    "bucket": "Balde de tinta",
     "penColor": "Cor da caneta"
   },
   "systemMap": {

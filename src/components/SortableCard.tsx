@@ -9,10 +9,6 @@ interface Props {
   children: React.ReactNode;
 }
 
-// Wraps a list card so it can be reordered. Same contract as SortableTile: the card
-// itself stays clickable, dragging and keyboard-sorting live on the grip only, so the
-// two never fight over Space or the tab order. The grip is a real focusable button —
-// screen-reader users reorder with it, we never hide it.
 export default function SortableCard({ id, label, disabled = false, children }: Props) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });

@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "สี",
+    "rowDefault": "ค่าเริ่มต้น",
+    "rowDarker": "โทนเข้ม",
+    "rowPastel": "พาสเทล",
+    "rowNeon": "นีออน",
+    "setDarker": "{{name}}เข้ม",
+    "setPastel": "{{name}}พาสเทล",
+    "setNeon": "{{name}}นีออน",
+    "custom": "กำหนดเอง",
+    "customSlot": "สีกำหนดเอง {{n}}",
+    "emptySlot": "ช่องว่าง {{n}}",
+    "clearSlot": "ลบสี",
+    "clearSlotMsg": "ลบสีกำหนดเองนี้หรือไม่?",
     "white": "ขาว",
     "black": "ดำ",
     "red": "แดง",
@@ -68,6 +81,11 @@
     "bucketName": "ชื่อวง",
     "scopeAll": "ทั้งหมด",
     "scopeSelect": "เลือก",
+    "selectAll": "เลือกทั้งหมด",
+    "deselectAll": "ยกเลิกการเลือกทั้งหมด",
+    "notifFull": "ปักหมุด + แจ้งเตือน",
+    "notifAlerts": "แจ้งเตือนเท่านั้น",
+    "notifOff": "ปิดเสียง",
     "scopeNone": "ไม่มี",
     "deleteBucket": "ลบวง",
     "deleteBucketMsg": "ลบ “{{name}}”?",
@@ -926,6 +944,7 @@
     "clearTitle": "ล้างไวท์บอร์ด?",
     "clearMsg": "การดำเนินการนี้จะลบทุกอย่างบนกระดานอย่างถาวร",
     "brushSize": "ขนาดพู่กัน",
+    "bucket": "ถังสี",
     "penColor": "สีปากกา"
   },
   "systemMap": {

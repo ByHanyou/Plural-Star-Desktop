@@ -7,8 +7,8 @@ import {
 } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Modal, ConfirmDialog, ColorPicker, Dropdown, clickable } from '../components/ui';
-import { PALETTE } from '../theme';
+import { Btn, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { ColorCarousel } from '../components/ColorCarousel';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
 
@@ -35,6 +35,8 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
 
   const [showAddMember, setShowAddMember] = useState(false);
   const [showTypes, setShowTypes] = useState(false);
+  const [showArchived, setShowArchived] = useState(() => localStorage.getItem('ps.mapShowArchived') === '1');
+  const [colorAll, setColorAll] = useState(() => localStorage.getItem('ps.mapColorThreads') === '1');
   const [relEditor, setRelEditor] = useState<{ from: string; to: string; typeId: string; note: string } | null>(null);
   const [typeDraft, setTypeDraft] = useState<TypeDraft | null>(null);
   const [confirmDelRel, setConfirmDelRel] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const saveCustomTypes = async (next: RelationshipTypeDef[]) => { setCustomTypes(next); await store.set(KEYS.relationshipTypes, next); };
   const saveMapIds = async (next: string[]) => { setMapIds(next); await store.set(KEYS.systemMapMembers, next); };
 
-  const mapMembers = useMemo(() => mapIds.map(id => memberById.get(id)).filter(Boolean) as Member[], [mapIds, memberById]);
+  const mapMembers = useMemo(() => (mapIds.map(id => memberById.get(id)).filter(Boolean) as Member[]).filter(m => showArchived || !m.archived), [mapIds, memberById, showArchived]);
   const mapIdSet = useMemo(() => new Set(mapIds), [mapIds]);
   const mapRels = useMemo(() => relationships.filter(r => mapIdSet.has(r.fromId) && mapIdSet.has(r.toId)), [relationships, mapIdSet]);
 
@@ -197,7 +199,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     if (relationships.some(r => r.typeId === id)) saveRelationships(relationships.filter(r => r.typeId !== id));
   };
 
-  const off = members.filter(m => !mapIdSet.has(m.id) && !m.archived);
+  const off = members.filter(m => !mapIdSet.has(m.id) && (showArchived || !m.archived));
   const selected = selectedId ? memberById.get(selectedId) : null;
   const selRels = selectedId ? mapRels.filter(r => r.fromId === selectedId || r.toId === selectedId) : [];
 
@@ -210,6 +212,18 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         <Btn variant="solid" onClick={() => setShowAddMember(true)}>{t('systemMap.addMember')}</Btn>
         <Btn variant="ghost" onClick={() => setRelEditor({ from: selectedId || mapIds[0] || '', to: '', typeId: types[0]?.id || 'friend', note: '' })}>{t('systemMap.addRelationship')}</Btn>
         <Btn variant="ghost" onClick={() => setShowTypes(true)}>{t('systemMap.manageTypes')}</Btn>
+        <button
+          className={showArchived ? 'btn btn--solid' : 'btn btn--ghost'}
+          aria-pressed={showArchived}
+          onClick={() => { const v = !showArchived; setShowArchived(v); localStorage.setItem('ps.mapShowArchived', v ? '1' : '0'); }}>
+          {t('members.archived')}
+        </button>
+        <button
+          className={colorAll ? 'btn btn--solid' : 'btn btn--ghost'}
+          aria-pressed={colorAll}
+          onClick={() => { const v = !colorAll; setColorAll(v); localStorage.setItem('ps.mapColorThreads', v ? '1' : '0'); }}>
+          {t('systemMap.showColors', {defaultValue: 'Colors'})}
+        </button>
       </div>
 
       {n === 0 ? (
@@ -224,7 +238,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               if (!a || !b) return null;
               const active = dist ? (dist.has(r.fromId) && dist.has(r.toId)) : false;
               const ty = typeById.get(r.typeId);
-              const color = (!selectedId || active) && selectedId ? (ty?.color || DEFAULT_REL_COLOR) : DEFAULT_REL_COLOR;
+              const color = (selectedId ? active : false) || colorAll ? (ty?.color || DEFAULT_REL_COLOR) : DEFAULT_REL_COLOR;
               const opacity = !selectedId ? 0.5 : active ? 0.95 : 0.12;
               return <line key={r.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} strokeWidth={active ? 3 : 2} opacity={opacity} />;
             })}
@@ -234,7 +248,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               const dim = selectedId && d === undefined && mem.id !== selectedId;
               const isSel = mem.id === selectedId;
               return (
-                <g key={mem.id} style={{ cursor: 'pointer' }} opacity={dim ? 0.3 : 1}
+                <g key={mem.id} style={{ cursor: 'pointer' }} opacity={dim ? 0.3 : mem.archived ? 0.55 : 1}
                   role="button" tabIndex={0} aria-label={mem.name} aria-pressed={isSel}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(isSel ? null : mem.id); } }}
                   onPointerDown={onNodePointerDown(mem.id, p)}
@@ -338,7 +352,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               <label className="field__label">{t('systemMap.typeName')}</label>
               <input className="field__input" aria-label={t('systemMap.typeName')} value={typeDraft.name} onChange={e => setTypeDraft({ ...typeDraft, name: e.target.value })} />
             </div>
-            <ColorPicker value={typeDraft.color} onChange={v => setTypeDraft({ ...typeDraft, color: v })} palette={[...RELATIONSHIP_COLOR_CHOICES, ...PALETTE]} />
+            <ColorCarousel value={typeDraft.color} onChange={v => setTypeDraft({ ...typeDraft, color: v })} />
             {typeDraft.preset && <p style={{ fontSize: 11, color: 'var(--muted)' }}>{t('systemMap.presetEditNote')}</p>}
           </div>
         )}

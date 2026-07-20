@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Colori",
+    "rowDefault": "Predefinito",
+    "rowDarker": "Tono scuro",
+    "rowPastel": "Pastello",
+    "rowNeon": "Neon",
+    "setDarker": "{{name}} scuro",
+    "setPastel": "{{name}} pastello",
+    "setNeon": "{{name}} neon",
+    "custom": "Personalizzati",
+    "customSlot": "Colore personalizzato {{n}}",
+    "emptySlot": "Spazio vuoto {{n}}",
+    "clearSlot": "Rimuovi colore",
+    "clearSlotMsg": "Rimuovere questo colore personalizzato?",
     "white": "Bianco",
     "black": "Nero",
     "red": "Rosso",
@@ -68,6 +81,11 @@
     "bucketName": "Nome della cerchia",
     "scopeAll": "Tutto",
     "scopeSelect": "Selezione",
+    "selectAll": "Seleziona tutto",
+    "deselectAll": "Deseleziona tutto",
+    "notifFull": "Fissato + avvisi",
+    "notifAlerts": "Solo avvisi",
+    "notifOff": "Silenziato",
     "scopeNone": "Niente",
     "deleteBucket": "Elimina cerchia",
     "deleteBucketMsg": "Eliminare “{{name}}”?",
@@ -926,6 +944,7 @@
     "clearTitle": "Svuotare la lavagna?",
     "clearMsg": "Questo cancella per sempre tutto il contenuto della lavagna.",
     "brushSize": "Dimensione pennello",
+    "bucket": "Secchiello",
     "penColor": "Colore penna"
   },
   "systemMap": {

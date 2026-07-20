@@ -157,8 +157,8 @@ export default function ChatView({ onUpdate }: Props) {
       }}>
         <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--dim)', fontWeight: 600 }}>Channels</span>
-            <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16 }}
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--dim)', fontWeight: 600 }}>{t('chat.channels', {defaultValue: 'Channels'})}</span>
+            <button aria-label={t('common.add')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16 }}
               onClick={() => setShowNewChannel(true)}>+</button>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function ChatView({ onUpdate }: Props) {
           {showMemberPicker && (
             <div style={{ marginTop: 4, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 200, overflowY: 'auto' }}>
               <input className="field__input" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
-                placeholder="Search..." style={{ fontSize: 11, padding: '6px 8px', borderRadius: 0, border: 'none', borderBottom: '1px solid var(--border)' }} />
+                placeholder={t('common.search', {defaultValue: 'Search…'})} style={{ fontSize: 11, padding: '6px 8px', borderRadius: 0, border: 'none', borderBottom: '1px solid var(--border)' }} />
               {members.filter(m => !m.archived && (!memberSearch || m.name.toLowerCase().includes(memberSearch.toLowerCase()))).map(m => (
                 <button key={m.id} style={{
                   display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '6px 8px',
@@ -322,8 +322,8 @@ export default function ChatView({ onUpdate }: Props) {
                       onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
                       onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}>
                       <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
-                        onClick={() => setReplyTo(msg)}>↩ Reply</button>
-                      <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
+                        onClick={() => setReplyTo(msg)}>↩ {t('chat.reply', {defaultValue: 'Reply'})}</button>
+                      <button aria-label={t('chat.addReaction', {defaultValue: 'Add reaction'})} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
                         onClick={() => setShowEmojiFor(showEmojiFor === msg.id ? null : msg.id)}>😊</button>
                     </div>
 
@@ -347,8 +347,8 @@ export default function ChatView({ onUpdate }: Props) {
           <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
             {replyTo && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11, color: 'var(--muted)' }}>
-                <span>Replying to <strong style={{ color: getMember(replyTo.authorId)?.color }}>{getMember(replyTo.authorId)?.name}</strong></span>
-                <button style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
+                <span>{t('chat.replyingTo', {defaultValue: 'Replying to'})} <strong style={{ color: getMember(replyTo.authorId)?.color }}>{getMember(replyTo.authorId)?.name}</strong></span>
+                <button aria-label={t('common.cancel')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
                   onClick={() => setReplyTo(null)}>✕</button>
               </div>
             )}
@@ -366,16 +366,33 @@ export default function ChatView({ onUpdate }: Props) {
                   }} onClick={() => insertFormat(b, a)}>{labels[i]}</button>
                 );
               })}
-              <button style={{ marginLeft: 'auto', padding: '2px 8px', fontSize: 12, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--dim)', cursor: 'pointer' }}
+              <button aria-label={t('chat.attachFile', {defaultValue: 'Attach file'})} style={{ marginLeft: 'auto', padding: '2px 8px', fontSize: 12, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--dim)', cursor: 'pointer' }}
                 onClick={sendImage}>📷</button>
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
               <textarea className="field__input" value={input} onChange={e => setInput(e.target.value)}
-                placeholder={`Message #${activeChannel?.name || ''}...`}
+                placeholder={t('chat.messagePlaceholder', {name: activeChannel?.name || '', defaultValue: 'Message #{{name}}...'})}
                 style={{ flex: 1, minHeight: 36, maxHeight: 120, resize: 'vertical', fontSize: 13 }}
+                onPaste={e => {
+                  if (!activeChannelId || !activeMemberId) return;
+                  const item = Array.from(e.clipboardData?.items || []).find(x => x.type.startsWith('image/'));
+                  if (!item) return;
+                  const file = item.getAsFile();
+                  if (!file) return;
+                  e.preventDefault();
+                  const reader = new FileReader();
+                  reader.onload = async () => {
+                    const msg: ChatMessage = {
+                      id: uid(), channelId: activeChannelId, authorId: activeMemberId,
+                      type: 'image', content: reader.result as string, timestamp: Date.now(),
+                    };
+                    await saveMessages(activeChannelId, [...messages, msg]);
+                  };
+                  reader.readAsDataURL(file);
+                }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} />
-              <Btn variant="solid" onClick={sendMessage}>Send</Btn>
+              <Btn variant="solid" onClick={sendMessage}>{t('chat.send', {defaultValue: 'Send'})}</Btn>
             </div>
           </div>
         )}

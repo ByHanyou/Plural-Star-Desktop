@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Colores",
+    "rowDefault": "Predeterminado",
+    "rowDarker": "Tono oscuro",
+    "rowPastel": "Pastel",
+    "rowNeon": "Neón",
+    "setDarker": "{{name}} oscuro",
+    "setPastel": "{{name}} pastel",
+    "setNeon": "{{name}} neón",
+    "custom": "Personalizados",
+    "customSlot": "Color personalizado {{n}}",
+    "emptySlot": "Espacio vacío {{n}}",
+    "clearSlot": "Quitar color",
+    "clearSlotMsg": "¿Quitar este color personalizado?",
     "white": "Blanco",
     "black": "Negro",
     "red": "Rojo",
@@ -68,6 +81,11 @@
     "bucketName": "Nombre del círculo",
     "scopeAll": "Todo",
     "scopeSelect": "Selección",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo",
+    "notifFull": "Fijado + alertas",
+    "notifAlerts": "Solo alertas",
+    "notifOff": "Silenciado",
     "scopeNone": "Nada",
     "deleteBucket": "Eliminar círculo",
     "deleteBucketMsg": "¿Eliminar “{{name}}”?",
@@ -134,6 +152,7 @@
     "clearTitle": "¿Vaciar la pizarra?",
     "clearMsg": "Esto borra todo el contenido de la pizarra para siempre.",
     "brushSize": "Tamaño del pincel",
+    "bucket": "Bote de pintura",
     "penColor": "Color del lápiz"
   },
   "systemMap": {

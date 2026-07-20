@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
-  fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, uid, translateMood,
+  fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
   parseMoodList, toggleMoodInList, serializeMoodList,
 } from '../utils';
 import { store, KEYS } from '../storage';
@@ -31,16 +31,17 @@ export async function applyFrontUpdate(current: FrontState | null, primary: any,
     const h = await store.get<HistoryEntry[]>(KEYS.history, []) || [];
     await store.set(KEYS.history, [entry, ...h]);
   }
-  const newFront: FrontState = {
+  const built: FrontState = {
     primary: { memberIds: primary.memberIds || [], mood: primary.mood, note: primary.note || '', location: primary.location, energyLevel: primary.energyLevel },
     coFront: { memberIds: coFront.memberIds || [], mood: coFront.mood, note: coFront.note || '', energyLevel: coFront.energyLevel },
     coConscious: { memberIds: coConscious.memberIds || [], mood: coConscious.mood, note: coConscious.note || '', energyLevel: coConscious.energyLevel },
     startTime: Date.now(),
   };
-  if (isFrontEmpty(newFront)) {
+  if (isFrontEmpty(built)) {
     await store.set(KEYS.front, null);
     return null;
   }
+  const newFront = withMemberSince(built, current, Date.now()) as FrontState;
   await store.set(KEYS.front, newFront);
   return newFront;
 }
@@ -153,6 +154,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
                     {m.pronouns && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{m.pronouns}</div>}
                     {m.role && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: m.color, marginTop: 1 }}>{m.role.toUpperCase()}</div>}
                   </div>
+                  <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>
                 </div>
               );
             })}
@@ -160,8 +162,8 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
 
           {isPrimary && (
             <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0', marginBottom: 8, fontSize: 11, color: 'var(--muted)' }}>
-              Fronting for <span style={{ color: 'var(--accent)' }}>{fmtDur(front.startTime)}</span>
-              {' · Since '}{fmtTime(front.startTime)}
+              {t('front.frontingFor')} <span style={{ color: 'var(--accent)' }}>{fmtDur(front.startTime)}</span>
+              {' · '}{t('front.since')} {fmtTime(front.startTime)}
             </div>
           )}
 
@@ -184,24 +186,24 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.energyLevel}/10</div>
               </div>
             )}
-            <button style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
+            <button aria-label={t('common.edit')} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
               onClick={() => setEditDetailTier(tierKey)}>✎</button>
           </div>
           {!tier.mood && !tier.location && (
             <button style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer', padding: '4px 0' }}
               onClick={() => setEditDetailTier(tierKey)}>
-              {isPrimary ? '+ Add mood / location' : '+ Add mood'}
+              {t('front.addMood')}
             </button>
           )}
 
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>Front Note</span>
+              <span style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>{t('front.frontNote')}</span>
               {!isEditingNote ? (
-                <button style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
+                <button aria-label={t('common.edit')} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
                   onClick={() => { setEditingNote(tierKey); setNoteText(tier.note || ''); }}>✎</button>
               ) : (
-                <button style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}
+                <button aria-label={t('common.save')} style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}
                   onClick={() => { setEditingNote(null); updateNote(tierKey, noteText); }}>✓</button>
               )}
             </div>
@@ -239,7 +241,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
           <span style={{ fontSize: 13, color: 'var(--accent)' }}>
             📋 {t('noteboard.hasNotes', { names: noteboardAlert.join(', ') })}
           </span>
-          <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14 }}
+          <button aria-label={t('common.close')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14 }}
             onClick={() => setNoteboardAlert(null)}>✕</button>
         </div>
       )}

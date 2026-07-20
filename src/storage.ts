@@ -57,6 +57,7 @@ export const KEYS = {
   systemMapMembers: 'ps:systemMapMembers',
   systemMapPositions: 'ps:systemMapPositions',
   whiteboard:   'ps:whiteboard',
+  customColors: 'ps:customColors',
   medical:      'ps:medical',
 };
 

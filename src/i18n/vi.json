@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Màu sắc",
+    "rowDefault": "Mặc định",
+    "rowDarker": "Tông tối",
+    "rowPastel": "Pastel",
+    "rowNeon": "Neon",
+    "setDarker": "{{name}} tối",
+    "setPastel": "{{name}} pastel",
+    "setNeon": "{{name}} neon",
+    "custom": "Tùy chỉnh",
+    "customSlot": "Màu tùy chỉnh {{n}}",
+    "emptySlot": "Ô trống {{n}}",
+    "clearSlot": "Xóa màu",
+    "clearSlotMsg": "Xóa màu tùy chỉnh này?",
     "white": "Trắng",
     "black": "Đen",
     "red": "Đỏ",
@@ -68,6 +81,11 @@
     "bucketName": "Tên vòng",
     "scopeAll": "Tất cả",
     "scopeSelect": "Chọn",
+    "selectAll": "Chọn tất cả",
+    "deselectAll": "Bỏ chọn tất cả",
+    "notifFull": "Đã ghim + thông báo",
+    "notifAlerts": "Chỉ thông báo",
+    "notifOff": "Đã tắt tiếng",
     "scopeNone": "Không",
     "deleteBucket": "Xóa vòng",
     "deleteBucketMsg": "Xóa “{{name}}”?",
@@ -926,6 +944,7 @@
     "clearTitle": "Xóa bảng trắng?",
     "clearMsg": "Thao tác này xóa vĩnh viễn mọi thứ trên bảng.",
     "brushSize": "Cỡ cọ",
+    "bucket": "Thùng sơn",
     "penColor": "Màu bút"
   },
   "systemMap": {

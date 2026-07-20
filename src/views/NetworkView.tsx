@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Btn, Field, Toggle, Section, Modal, ConfirmDialog } from '../components/ui';
 import { useNetwork } from '../network/useNetwork';
 import { NetworkManager } from '../network/NetworkManager';
-import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY, MirrorFeature } from '../network/types';
+import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY, MirrorFeature, MAX_NOTIF_FRIENDS, friendNotifyLevel } from '../network/types';
 import { MirrorView } from './MirrorView';
 import { fmtDur, fmtTime, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES } from '../utils';
 import { store, KEYS } from '../storage';
@@ -72,8 +72,6 @@ export default function NetworkView() {
     store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(rt => setRelTypes(rt || [])).catch(e => logError('network', e));
   }, []);
 
-  // What this friend can ACTUALLY see: buckets are additive, so a friend sitting in two
-  // buckets gets the union — a second "All" bucket silently widens a careful "Select".
   const effectiveShare = (peerId: string, f: BucketFeature): PrivacyScope => {
     const mine = buckets.filter(b => (b.friendPeerIds || []).includes(peerId));
     const ids = new Set<string>();
@@ -93,8 +91,6 @@ export default function NetworkView() {
     setBuckets(next);
     await store.set(PRIVACY_BUCKETS_KEY, next);
     NetworkManager.notifyDataChanged();
-    // Push the new scopes over any copy friends already hold — tightening a bucket has to
-    // reach them, or they keep showing the wider snapshot they were sent earlier.
     NetworkManager.refreshAllMirrors();
   };
 
@@ -143,6 +139,33 @@ export default function NetworkView() {
     const rt = relTypes.find(x => x.id === r.typeId) || PRESET_RELATIONSHIP_TYPES.find(x => x.id === r.typeId);
     const arrow = rt?.directional ? '→' : '↔';
     return `${memberName(r.fromId)} ${arrow} ${memberName(r.toId)}${rt ? `  ·  ${rt.name}` : ''}`;
+  };
+  const pickerItems: { id: string; name: string }[] = !pickerFeature ? [] : (pickerFeature === 'groups'
+    ? groups.map(g => ({ id: g.id, name: g.name }))
+    : pickerFeature === 'journal'
+    ? journal
+        .filter(e => !pickerSearch.trim() || (e.title || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+        .map(e => ({ id: e.id, name: `${e.password ? '🔒 ' : ''}${e.title || fmtTime(e.timestamp)}` }))
+    : pickerFeature === 'customFields'
+    ? [...fieldDefs]
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        .map(d => ({ id: d.id, name: d.name }))
+        .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+    : pickerFeature === 'connections'
+    ? relationships
+        .map(r => ({ id: r.id, name: relLabel(r) }))
+        .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+    : pickableMembers
+        .filter(m => !pickerSearch.trim() || m.name.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+        .map(m => ({ id: m.id, name: m.name }))
+  );
+  const allPickedChecked = !!editBucket && !!pickerFeature && pickerItems.length > 0 && pickerItems.every(i => editBucket[pickerFeature].ids.includes(i.id));
+  const toggleSelectAllPicked = () => {
+    if (!editBucket || !pickerFeature) return;
+    const sc = editBucket[pickerFeature];
+    const listed = new Set(pickerItems.map(i => i.id));
+    const ids = allPickedChecked ? sc.ids.filter(x => !listed.has(x)) : [...new Set([...sc.ids, ...pickerItems.map(i => i.id)])];
+    setEditBucket({ ...editBucket, [pickerFeature]: { ...sc, ids } });
   };
   const [error, setError] = useState<string | null>(null);
   const [copiedKind, setCopiedKind] = useState<Kind | null>(null);
@@ -279,6 +302,20 @@ export default function NetworkView() {
             onClick={() => setMirrorMenuFor(f)}
             style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>⋯</button>
         )}
+        {f.kind !== 'device' && f.status === 'accepted' && (() => {
+          const level = friendNotifyLevel(f);
+          const atCap = level !== 'full' && net.friends.filter(x => friendNotifyLevel(x) === 'full').length >= MAX_NOTIF_FRIENDS;
+          const nextLevel = level === 'full' ? 'alerts' : level === 'alerts' ? 'off' : atCap ? 'alerts' : 'full';
+          const levelLabel = level === 'full' ? t('network.notifFull') : level === 'alerts' ? t('network.notifAlerts') : t('network.notifOff');
+          return (
+            <button
+              className="icon-btn"
+              aria-label={`${levelLabel}, ${f.displayName}`}
+              title={levelLabel}
+              onClick={() => NetworkManager.setFriendNotifyLevel(f.peerId, nextLevel)}
+              style={{ background: 'none', border: 'none', color: level === 'full' ? 'var(--accent)' : 'var(--muted)', opacity: level === 'off' ? 0.45 : 1, fontSize: 15, cursor: 'pointer', padding: 8 }}>{level === 'off' ? '🔕' : '🔔'}</button>
+          );
+        })()}
         <button className="icon-btn" aria-label={`${t('network.remove')}, ${f.displayName}`} onClick={() => setRemoveTarget(f)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
       </div>
     );
@@ -445,26 +482,21 @@ export default function NetworkView() {
         {pickerFeature !== 'groups' && (
           <Field label={t('common.search')} value={pickerSearch} onChange={setPickerSearch} placeholder={t('common.search')} />
         )}
+        {pickerItems.length > 0 && (
+          <div role="checkbox" aria-checked={allPickedChecked} tabIndex={0}
+            onClick={toggleSelectAllPicked}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelectAllPicked(); } }}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderTop: '1px solid var(--border)', cursor: 'pointer' }}>
+            <span aria-hidden style={{ width: 18, height: 18, borderRadius: 5, border: '2px solid var(--accent)', background: allPickedChecked ? 'var(--accent)' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--bg)', fontWeight: 700 }}>
+              {allPickedChecked ? '✓' : ''}
+            </span>
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
+              {allPickedChecked ? t('network.deselectAll') : t('network.selectAll')}
+            </span>
+          </div>
+        )}
         <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-          {(pickerFeature === 'groups'
-            ? groups.map(g => ({ id: g.id, name: g.name }))
-            : pickerFeature === 'journal'
-            ? journal
-                .filter(e => !pickerSearch.trim() || (e.title || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
-                .map(e => ({ id: e.id, name: `${e.password ? '🔒 ' : ''}${e.title || fmtTime(e.timestamp)}` }))
-            : pickerFeature === 'customFields'
-            ? [...fieldDefs]
-                .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-                .map(d => ({ id: d.id, name: d.name }))
-                .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
-            : pickerFeature === 'connections'
-            ? relationships
-                .map(r => ({ id: r.id, name: relLabel(r) }))
-                .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
-            : pickableMembers
-                .filter(m => !pickerSearch.trim() || m.name.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
-                .map(m => ({ id: m.id, name: m.name }))
-          ).map(item => {
+          {pickerItems.map(item => {
             const checked = !!(editBucket && pickerFeature && editBucket[pickerFeature].ids.includes(item.id));
             return (
               <div key={item.id} role="checkbox" aria-checked={checked} tabIndex={0}

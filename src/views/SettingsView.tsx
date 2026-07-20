@@ -237,8 +237,8 @@ export default function SettingsView({ onUpdate }: Props) {
               {isActive && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
               {!isBuiltin && (
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn btn--ghost" style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); startEditPalette(p); }}>✎</button>
-                  <button className="btn btn--danger" style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); deletePalette(p.id); }}>✕</button>
+                  <button className="btn btn--ghost" aria-label={`${t('common.edit')} ${p.name}`} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); startEditPalette(p); }}>✎</button>
+                  <button className="btn btn--danger" aria-label={`${t('common.delete')} ${p.name}`} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); deletePalette(p.id); }}>✕</button>
                 </div>
               )}
             </div>

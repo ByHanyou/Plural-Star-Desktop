@@ -83,15 +83,15 @@ export default function CustomFieldsView({ onUpdate }: Props) {
               <div style={{ flex: 1 }}>
                 {editId === fd.id ? (
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <input className="field__input" aria-label="Field name" value={editName} onChange={e => setEditName(e.target.value)}
+                    <input className="field__input" aria-label={t('customFields.fieldName')} value={editName} onChange={e => setEditName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') renameField(fd.id); }}
                       autoFocus style={{ flex: 1, fontSize: 13 }} />
-                    <Btn onClick={() => renameField(fd.id)}>✓</Btn>
+                    <Btn aria-label={t('common.save')} onClick={() => renameField(fd.id)}>✓</Btn>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{fd.name}</span>
-                    <button style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer' }}
+                    <button aria-label={`${t('common.edit')} ${fd.name}`} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer' }}
                       onClick={() => { setEditId(fd.id); setEditName(fd.name); }}>✎</button>
                   </div>
                 )}
@@ -111,7 +111,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 aria-label={i === fields.length - 1 ? `${t('members.moveDown')}, ${fd.name}` : `${t('members.moveDown')}, ${fd.name}, ${t('members.moveBelow', { name: fields[i + 1].name })}`}
                 style={{ background: 'none', border: 'none', color: i === fields.length - 1 ? 'var(--muted)' : 'var(--dim)', fontSize: 13, cursor: i === fields.length - 1 ? 'default' : 'pointer', padding: '2px 4px' }}>▼</button>
 
-              <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: '4px' }}
+              <button aria-label={`${t('common.delete')} ${fd.name}`} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: '4px' }}
                 onClick={() => setConfirmDelete(fd.id)}>🗑</button>
             </div>
           ))}

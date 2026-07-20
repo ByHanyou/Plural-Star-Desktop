@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Couleurs",
+    "rowDefault": "Par défaut",
+    "rowDarker": "Ton foncé",
+    "rowPastel": "Pastel",
+    "rowNeon": "Néon",
+    "setDarker": "{{name}} foncé",
+    "setPastel": "{{name}} pastel",
+    "setNeon": "{{name}} néon",
+    "custom": "Personnalisées",
+    "customSlot": "Couleur perso {{n}}",
+    "emptySlot": "Emplacement vide {{n}}",
+    "clearSlot": "Retirer la couleur",
+    "clearSlotMsg": "Retirer cette couleur personnalisée ?",
     "white": "Blanc",
     "black": "Noir",
     "red": "Rouge",
@@ -68,6 +81,11 @@
     "bucketName": "Nom du cercle",
     "scopeAll": "Tout",
     "scopeSelect": "Sélection",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "notifFull": "Épinglé + alertes",
+    "notifAlerts": "Alertes seulement",
+    "notifOff": "Muet",
     "scopeNone": "Rien",
     "deleteBucket": "Supprimer le cercle",
     "deleteBucketMsg": "Supprimer « {{name}} » ?",
@@ -134,6 +152,7 @@
     "clearTitle": "Vider le tableau blanc ?",
     "clearMsg": "Cela efface définitivement tout le contenu du tableau.",
     "brushSize": "Taille du pinceau",
+    "bucket": "Pot de peinture",
     "penColor": "Couleur du stylo"
   },
   "systemMap": {

@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Renkler",
+    "rowDefault": "Varsayılan",
+    "rowDarker": "Koyu ton",
+    "rowPastel": "Pastel",
+    "rowNeon": "Neon",
+    "setDarker": "Koyu {{name}}",
+    "setPastel": "Pastel {{name}}",
+    "setNeon": "Neon {{name}}",
+    "custom": "Özel",
+    "customSlot": "Özel renk {{n}}",
+    "emptySlot": "Boş yuva {{n}}",
+    "clearSlot": "Rengi kaldır",
+    "clearSlotMsg": "Bu özel renk kaldırılsın mı?",
     "white": "Beyaz",
     "black": "Siyah",
     "red": "Kırmızı",
@@ -68,6 +81,11 @@
     "bucketName": "Çember adı",
     "scopeAll": "Tümü",
     "scopeSelect": "Seçim",
+    "selectAll": "Tümünü seç",
+    "deselectAll": "Tümünün seçimini kaldır",
+    "notifFull": "Sabit + uyarılar",
+    "notifAlerts": "Yalnızca uyarılar",
+    "notifOff": "Sessiz",
     "scopeNone": "Hiçbiri",
     "deleteBucket": "Çemberi sil",
     "deleteBucketMsg": "“{{name}}” silinsin mi?",
@@ -926,6 +944,7 @@
     "clearTitle": "Beyaz tahta temizlensin mi?",
     "clearMsg": "Bu, tahtadaki her şeyi kalıcı olarak siler.",
     "brushSize": "Fırça boyutu",
+    "bucket": "Boya kovası",
     "penColor": "Kalem rengi"
   },
   "systemMap": {

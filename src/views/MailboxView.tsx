@@ -181,9 +181,9 @@ export default function MailboxView({ onUpdate }: Props) {
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Btn variant="ghost" onClick={() => setOpenId(null)}>←</Btn>
+            <Btn variant="ghost" aria-label={t('common.back')} onClick={() => setOpenId(null)}>←</Btn>
             <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text)', flex: 1 }}>{t('mailbox.inboxOf', { name: nameOf(openId) })}</h3>
-            <Btn variant="ghost" aria-label={t('mailbox.lockTitle')} onClick={() => { setLockInput(''); setLockManage(true); }}>
+            <Btn variant="ghost" aria-label={t('mailbox.lockTitle')} aria-pressed={!!members.find(x => x.id === openId)?.mailboxPassword} onClick={() => { setLockInput(''); setLockManage(true); }}>
               {members.find(x => x.id === openId)?.mailboxPassword ? '🔒' : '🔓'}
             </Btn>
           </div>

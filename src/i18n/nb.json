@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Farger",
+    "rowDefault": "Standard",
+    "rowDarker": "Mørkere tone",
+    "rowPastel": "Pastell",
+    "rowNeon": "Neon",
+    "setDarker": "Mørk {{name}}",
+    "setPastel": "Pastell {{name}}",
+    "setNeon": "Neon {{name}}",
+    "custom": "Egendefinerte",
+    "customSlot": "Egendefinert farge {{n}}",
+    "emptySlot": "Tom plass {{n}}",
+    "clearSlot": "Fjern farge",
+    "clearSlotMsg": "Fjerne denne egendefinerte fargen?",
     "white": "Hvit",
     "black": "Svart",
     "red": "Rød",
@@ -68,6 +81,11 @@
     "bucketName": "Sirkelnavn",
     "scopeAll": "Alt",
     "scopeSelect": "Utvalg",
+    "selectAll": "Velg alle",
+    "deselectAll": "Velg bort alle",
+    "notifFull": "Festet + varsler",
+    "notifAlerts": "Kun varsler",
+    "notifOff": "Dempet",
     "scopeNone": "Ingenting",
     "deleteBucket": "Slett sirkel",
     "deleteBucketMsg": "Slette «{{name}}»?",
@@ -134,6 +152,7 @@
     "clearTitle": "Tømme tavlen?",
     "clearMsg": "Dette sletter alt på tavlen permanent.",
     "brushSize": "Penselstørrelse",
+    "bucket": "Malingsspann",
     "penColor": "Pennefarge"
   },
   "systemMap": {

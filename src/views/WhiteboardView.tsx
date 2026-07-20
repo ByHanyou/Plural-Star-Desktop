@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../components/ui';
+import { ColorCarousel } from '../components/ColorCarousel';
 import { uid } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
@@ -18,9 +19,19 @@ interface Stroke {
   pts: number[];
 }
 
-type Tool = 'draw' | 'move' | 'erase';
+type Tool = 'draw' | 'move' | 'erase' | 'bucket';
 
-const COLORS = ['#FFFFFF', '#111111', '#E05B5B', '#E8933A', '#D9B84A', '#5BBF7A', '#4AA8D9', '#7B6BE8', '#E87BA8', '#8B5A2B', '#9AA5B1', '#DAA520'];
+const pointInPoly = (x: number, y: number, pts: number[]): boolean => {
+  let inside = false;
+  const n = pts.length / 2;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = pts[i * 2], yi = pts[i * 2 + 1];
+    const xj = pts[j * 2], yj = pts[j * 2 + 1];
+    if (((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+};
+
 const WIDTHS = [1, 3, 6, 12, 15];
 
 const strokePath = (pts: number[]): string => {
@@ -35,11 +46,11 @@ export default function WhiteboardView() {
   const { t } = useTranslation();
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [current, setCurrent] = useState<Stroke | null>(null);
-  const [color, setColor] = useState(COLORS[0]);
+  const [color, setColor] = useState('#FFFFFF');
   const [width, setWidth] = useState(WIDTHS[2]);
   const [tool, setTool] = useState<Tool>('draw');
   const [view, setView] = useState({ tx: 0, ty: 0, scale: 0.5 });
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(0);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const strokesRef = useRef(strokes);
@@ -81,8 +92,9 @@ export default function WhiteboardView() {
   const eraseAt = (wx: number, wy: number) => {
     const radius = widthRef.current;
     const survivors = strokesRef.current.filter(s => {
+      if (s.w === -1) return true;
       for (let i = 0; i < s.pts.length; i += 2) {
-        if (Math.hypot(s.pts[i] - wx, s.pts[i + 1] - wy) < radius + s.w / 2) return false;
+        if (Math.hypot(s.pts[i] - wx, s.pts[i + 1] - wy) < radius + Math.max(s.w, 0) / 2) return false;
       }
       return true;
     });
@@ -102,6 +114,16 @@ export default function WhiteboardView() {
       eraseAt(wx, wy);
       panStartRef.current = null;
       currentRef.current = { id: '__erasing__', c: '', w: 0, pts: [] };
+      return;
+    }
+    if (toolRef.current === 'bucket') {
+      const target = [...strokesRef.current].reverse().find(s => s.w > 0 && s.pts.length >= 6 && pointInPoly(wx, wy, s.pts));
+      const fill: Stroke = target
+        ? { id: uid(), c: colorRef.current, w: -2, pts: [...target.pts] }
+        : { id: uid(), c: colorRef.current, w: -1, pts: [0, 0, 0, 0] };
+      const next = [...strokesRef.current, fill];
+      setStrokes(next);
+      persist(next);
       return;
     }
     currentRef.current = { id: uid(), c: colorRef.current, w: widthRef.current, pts: [clampWorld(wx), clampWorld(wy)] };
@@ -188,24 +210,26 @@ export default function WhiteboardView() {
         {toolBtn('move', '✥', t('whiteboard.move'))}
         {toolBtn('erase', '⌫', t('whiteboard.erase'))}
         <span style={{ width: 1, height: 22, background: 'var(--border)' }} aria-hidden />
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', alignItems: 'center', flexShrink: 1 }}>
         {WIDTHS.map(wd => (
           <button key={wd} className="chip" aria-pressed={width === wd} aria-label={`${t('whiteboard.brushSize')} ${wd}`} title={`${t('whiteboard.brushSize')} ${wd}`}
-            style={{ borderColor: width === wd ? 'var(--accent)' : 'var(--border)', background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 15, padding: 0 }}
+            style={{ borderColor: width === wd ? 'var(--accent)' : 'var(--border)', background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, minWidth: 30, borderRadius: 15, padding: 0 }}
             onClick={() => setWidth(wd)}>
             <span aria-hidden style={{ width: wd + 4, height: wd + 4, borderRadius: '50%', background: color, display: 'inline-block' }} />
           </button>
         ))}
+        <button className="chip" aria-pressed={tool === 'bucket'} aria-label={t('whiteboard.bucket', {defaultValue: 'Fill bucket'})} title={t('whiteboard.bucket', {defaultValue: 'Fill bucket'})}
+          style={{ borderColor: tool === 'bucket' ? 'var(--accent)' : 'var(--border)', background: tool === 'bucket' ? 'var(--accent-bg)' : 'var(--surface)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, minWidth: 30, borderRadius: 15, padding: 0 }}
+          onClick={() => setTool('bucket')}>🪣</button>
+        </div>
         <span style={{ width: 1, height: 22, background: 'var(--border)' }} aria-hidden />
-        {COLORS.map(c => (
-          <button key={c} className="chip" aria-pressed={color === c} aria-label={`${t('whiteboard.penColor')} ${c}`} title={c}
-            style={{ width: 22, height: 22, borderRadius: 11, padding: 0, background: c, borderWidth: color === c ? 3 : 1, borderStyle: 'solid', borderColor: color === c ? 'var(--accent)' : 'var(--border)' }}
-            onClick={() => setColor(c)} />
-        ))}
-        <span style={{ flex: 1 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <ColorCarousel value={color} onChange={setColor} size={22} />
+        </div>
         <button className="btn btn--ghost" aria-label={t('whiteboard.undo')} title={t('whiteboard.undo')} onClick={undo} disabled={strokes.length === 0}>↩</button>
         <button className="btn btn--ghost" aria-label={t('systemMap.zoomIn')} title={t('systemMap.zoomIn')} onClick={() => setView(v => ({ ...v, scale: Math.min(MAX_SCALE, v.scale * 1.25) }))}>＋</button>
         <button className="btn btn--ghost" aria-label={t('systemMap.zoomOut')} title={t('systemMap.zoomOut')} onClick={() => setView(v => ({ ...v, scale: Math.max(MIN_SCALE, v.scale * 0.8) }))}>－</button>
-        <button className="btn btn--danger" aria-label={t('whiteboard.clear')} onClick={() => setConfirmClear(true)}>🗑</button>
+        <button className="btn btn--danger" aria-label={t('whiteboard.clear')} onClick={() => setConfirmClear(1)}>🗑</button>
       </div>
 
       <div
@@ -220,10 +244,14 @@ export default function WhiteboardView() {
         style={{ flex: 1, overflow: 'hidden', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, cursor: tool === 'move' ? 'grab' : tool === 'erase' ? 'cell' : 'crosshair', touchAction: 'none' }}>
         <svg width="100%" height="100%">
           <g transform={`translate(${(wrapRef.current?.clientWidth || 0) / 2 + view.tx}, ${(wrapRef.current?.clientHeight || 0) / 2 + view.ty}) scale(${view.scale})`}>
-            <path d={`M ${-HALF} ${-HALF} H ${HALF} V ${HALF} H ${-HALF} Z`} fill="none" stroke="var(--border)" strokeWidth={2 / view.scale} />
-            {paths.map(p => (
+            {paths.map(p => p.w === -1 ? (
+              <path key={p.id} d={`M ${-HALF} ${-HALF} H ${HALF} V ${HALF} H ${-HALF} Z`} fill={p.c} stroke="none" />
+            ) : p.w === -2 ? (
+              <path key={p.id} d={`${p.d} Z`} fill={p.c} stroke="none" />
+            ) : (
               <path key={p.id} d={p.d} stroke={p.c} strokeWidth={p.w} strokeLinecap="round" strokeLinejoin="round" fill="none" />
             ))}
+            <path d={`M ${-HALF} ${-HALF} H ${HALF} V ${HALF} H ${-HALF} Z`} fill="none" stroke="var(--border)" strokeWidth={2 / view.scale} />
             {currentPath ? (
               <path d={currentPath} stroke={current!.c} strokeWidth={current!.w} strokeLinecap="round" strokeLinejoin="round" fill="none" />
             ) : null}
@@ -232,12 +260,17 @@ export default function WhiteboardView() {
       </div>
 
       <ConfirmDialog
-        open={confirmClear}
-        title={t('whiteboard.clearTitle')}
-        message={t('whiteboard.clearMsg')}
+        open={confirmClear > 0}
+        title={confirmClear >= 3 ? t('whiteboard.clearConfirm3Title', {defaultValue: 'Last chance'}) : confirmClear === 2 ? t('whiteboard.clearConfirm2Title', {defaultValue: 'Are you sure?'}) : t('whiteboard.clearTitle')}
+        message={confirmClear >= 3 ? t('whiteboard.clearConfirm3Msg', {defaultValue: 'Really erase everything on the whiteboard?'}) : confirmClear === 2 ? t('whiteboard.clearConfirm2Msg', {defaultValue: "The whole board will be erased. This can't be undone."}) : t('whiteboard.clearMsg')}
         danger
-        onConfirm={() => { setConfirmClear(false); setStrokes([]); persist([]); }}
-        onCancel={() => setConfirmClear(false)}
+        onConfirm={() => {
+          if (confirmClear < 3) { setConfirmClear(confirmClear + 1); return; }
+          setConfirmClear(0);
+          setStrokes([]);
+          persist([]);
+        }}
+        onCancel={() => setConfirmClear(0)}
       />
     </div>
   );

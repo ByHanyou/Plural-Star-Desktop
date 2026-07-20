@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Farben",
+    "rowDefault": "Standard",
+    "rowDarker": "Dunklerer Ton",
+    "rowPastel": "Pastell",
+    "rowNeon": "Neon",
+    "setDarker": "Dunkles {{name}}",
+    "setPastel": "Pastell-{{name}}",
+    "setNeon": "Neon-{{name}}",
+    "custom": "Eigene",
+    "customSlot": "Eigene Farbe {{n}}",
+    "emptySlot": "Leerer Platz {{n}}",
+    "clearSlot": "Farbe entfernen",
+    "clearSlotMsg": "Diese eigene Farbe entfernen?",
     "white": "Weiß",
     "black": "Schwarz",
     "red": "Rot",
@@ -68,6 +81,11 @@
     "bucketName": "Name des Kreises",
     "scopeAll": "Alle",
     "scopeSelect": "Auswahl",
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Alle abwählen",
+    "notifFull": "Angeheftet + Benachrichtigungen",
+    "notifAlerts": "Nur Benachrichtigungen",
+    "notifOff": "Stumm",
     "scopeNone": "Nichts",
     "deleteBucket": "Kreis löschen",
     "deleteBucketMsg": "„{{name}}“ löschen?",
@@ -134,6 +152,7 @@
     "clearTitle": "Whiteboard leeren?",
     "clearMsg": "Das löscht alles auf der Tafel unwiderruflich.",
     "brushSize": "Pinselgröße",
+    "bucket": "Farbeimer",
     "penColor": "Stiftfarbe"
   },
   "systemMap": {

@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Цвета",
+    "rowDefault": "Стандартные",
+    "rowDarker": "Тёмный тон",
+    "rowPastel": "Пастель",
+    "rowNeon": "Неон",
+    "setDarker": "Тёмный {{name}}",
+    "setPastel": "Пастельный {{name}}",
+    "setNeon": "Неоновый {{name}}",
+    "custom": "Свои",
+    "customSlot": "Свой цвет {{n}}",
+    "emptySlot": "Пустая ячейка {{n}}",
+    "clearSlot": "Убрать цвет",
+    "clearSlotMsg": "Убрать этот свой цвет?",
     "white": "Белый",
     "black": "Чёрный",
     "red": "Красный",
@@ -68,6 +81,11 @@
     "bucketName": "Название круга",
     "scopeAll": "Всё",
     "scopeSelect": "Выбор",
+    "selectAll": "Выбрать все",
+    "deselectAll": "Снять выбор со всех",
+    "notifFull": "Закреплено + уведомления",
+    "notifAlerts": "Только уведомления",
+    "notifOff": "Без звука",
     "scopeNone": "Ничего",
     "deleteBucket": "Удалить круг",
     "deleteBucketMsg": "Удалить «{{name}}»?",
@@ -134,6 +152,7 @@
     "clearTitle": "Очистить доску?",
     "clearMsg": "Это навсегда удалит всё содержимое доски.",
     "brushSize": "Размер кисти",
+    "bucket": "Заливка",
     "penColor": "Цвет пера"
   },
   "systemMap": {

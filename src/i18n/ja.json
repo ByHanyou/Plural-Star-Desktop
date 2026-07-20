@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "カラー",
+    "rowDefault": "デフォルト",
+    "rowDarker": "ダークトーン",
+    "rowPastel": "パステル",
+    "rowNeon": "ネオン",
+    "setDarker": "ダーク{{name}}",
+    "setPastel": "パステル{{name}}",
+    "setNeon": "ネオン{{name}}",
+    "custom": "カスタム",
+    "customSlot": "カスタムカラー{{n}}",
+    "emptySlot": "空きスロット{{n}}",
+    "clearSlot": "カラーを削除",
+    "clearSlotMsg": "このカスタムカラーを削除しますか？",
     "white": "白",
     "black": "黒",
     "red": "赤",
@@ -68,6 +81,11 @@
     "bucketName": "サークル名",
     "scopeAll": "すべて",
     "scopeSelect": "選択",
+    "selectAll": "すべて選択",
+    "deselectAll": "すべて選択解除",
+    "notifFull": "固定＋通知",
+    "notifAlerts": "通知のみ",
+    "notifOff": "ミュート",
     "scopeNone": "なし",
     "deleteBucket": "サークルを削除",
     "deleteBucketMsg": "「{{name}}」を削除しますか？",
@@ -134,6 +152,7 @@
     "clearTitle": "ホワイトボードをクリアしますか？",
     "clearMsg": "ボード上のすべてが完全に消去されます。",
     "brushSize": "ブラシサイズ",
+    "bucket": "塗りつぶし",
     "penColor": "ペンの色"
   },
   "systemMap": {

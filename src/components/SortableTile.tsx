@@ -7,9 +7,6 @@ interface Props {
   children: React.ReactNode;
 }
 
-// Wraps a dashboard tile so it can be reordered. The tile itself stays clickable
-// (role=button / Enter / Space navigates); dragging and keyboard-sorting happen on
-// the grip only, so the two never fight over Space or the tab order.
 export default function SortableTile({ id, children }: Props) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });

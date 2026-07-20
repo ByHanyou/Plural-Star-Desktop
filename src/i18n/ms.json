@@ -1,5 +1,18 @@
 {
   "colors": {
+    "title": "Warna",
+    "rowDefault": "Lalai",
+    "rowDarker": "Ton lebih gelap",
+    "rowPastel": "Pastel",
+    "rowNeon": "Neon",
+    "setDarker": "{{name}} gelap",
+    "setPastel": "{{name}} pastel",
+    "setNeon": "{{name}} neon",
+    "custom": "Tersuai",
+    "customSlot": "Warna tersuai {{n}}",
+    "emptySlot": "Slot kosong {{n}}",
+    "clearSlot": "Buang warna",
+    "clearSlotMsg": "Buang warna tersuai ini?",
     "white": "Putih",
     "black": "Hitam",
     "red": "Merah",
@@ -68,6 +81,11 @@
     "bucketName": "Nama bulatan",
     "scopeAll": "Semua",
     "scopeSelect": "Pilihan",
+    "selectAll": "Pilih semua",
+    "deselectAll": "Nyahpilih semua",
+    "notifFull": "Disemat + makluman",
+    "notifAlerts": "Makluman sahaja",
+    "notifOff": "Disenyapkan",
     "scopeNone": "Tiada",
     "deleteBucket": "Padam bulatan",
     "deleteBucketMsg": "Padam “{{name}}”?",
@@ -926,6 +944,7 @@
     "clearTitle": "Kosongkan papan putih?",
     "clearMsg": "Ini memadam segala-galanya di papan secara kekal.",
     "brushSize": "Saiz berus",
+    "bucket": "Baldi cat",
     "penColor": "Warna pen"
   },
   "systemMap": {
