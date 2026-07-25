@@ -35,7 +35,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
-  const [listView, setListView] = useState<'active' | 'archived' | 'customFronts'>(archiveOnly ? 'archived' : 'active');
+  const [listView, setListView] = useState<'active' | 'archived' | 'customFronts' | 'facets'>(archiveOnly ? 'archived' : 'active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
   const [reorderLocked, setReorderLocked] = useState(true);
@@ -100,15 +100,21 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const deleteNote = (id: string) => saveNotes(allNotes.filter(n => n.id !== id));
   const togglePin = (id: string) => saveNotes(allNotes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
 
-  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.deleted);
-  const archived = members.filter(m => m.archived && !m.isCustomFront && !m.deleted);
+  // Facets live in their own list and are never members: the active/archived
+  // lists must exclude them the same way they exclude custom fronts.
+  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
+  const archived = members.filter(m => m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
   const customFronts = members.filter(m => m.isCustomFront && !m.deleted);
-  const sorted = sortMembers(listView === 'customFronts' ? customFronts : listView === 'archived' ? archived : active, sortMode);
+  const facets = members.filter(m => m.isFacet && !m.deleted);
+  const sorted = sortMembers(
+    listView === 'customFronts' ? customFronts : listView === 'facets' ? facets : listView === 'archived' ? archived : active,
+    sortMode,
+  );
   const filtered = sorted.filter(m =>
     !search || m.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const canReorder = sortMode === 'manual' && !search && (listView === 'active' || listView === 'customFronts');
+  const canReorder = sortMode === 'manual' && !search && (listView === 'active' || listView === 'customFronts' || listView === 'facets');
   const reorderActive = canReorder && !reorderLocked;
 
   const sensors = useSensors(
@@ -130,7 +136,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   };
 
   const openNew = () => {
-    const m: Member = { id: uid(), name: '', pronouns: '', role: '', color: PALETTE[Math.floor(Math.random() * PALETTE.length)], description: '', tags: [], groupIds: [], createdAt: Date.now(), isCustomFront: listView === 'customFronts' };
+    const m: Member = { id: uid(), name: '', pronouns: '', role: '', color: PALETTE[Math.floor(Math.random() * PALETTE.length)], description: '', tags: [], groupIds: [], createdAt: Date.now(), isCustomFront: listView === 'customFronts', isFacet: listView === 'facets' };
     setF(m); setIsNew(true); setEditing(m); setTagInput(''); setMemberTab('main'); setNoteText('');
     setNoteAuthorId(members.find(mm => !mm.archived)?.id || null);
   };
@@ -255,10 +261,13 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
             {t('members.active')} ({active.length})
           </Btn>
+          <Btn variant={listView === 'facets' ? 'info' : 'ghost'} onClick={() => setListView('facets')}>
+            {t('members.facets')} ({facets.length})
+          </Btn>
           <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => setListView('customFronts')}>
             {t('members.customFronts')} ({customFronts.length})
           </Btn>
-          <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : t('members.add')}</Btn>
+          <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : listView === 'facets' ? t('members.addFacet') : t('members.add')}</Btn>
         </>)}
         <div style={{ position: 'relative' }}>
           <Btn variant="ghost" onClick={() => setShowFields(v => !v)}>{t('members.displayFields')}</Btn>
@@ -352,7 +361,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-          {search ? t('members.noMembers') : listView === 'archived' ? t('members.noArchived') : listView === 'customFronts' ? t('members.noCustomFronts') : t('members.noMembers')}
+          {search ? t('members.noMembers') : listView === 'archived' ? t('members.noArchived') : listView === 'customFronts' ? t('members.noCustomFronts') : listView === 'facets' ? t('members.noFacets') : t('members.noMembers')}
         </div>
       )}
 

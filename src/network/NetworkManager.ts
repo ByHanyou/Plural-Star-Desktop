@@ -3,6 +3,9 @@ import {
   Identity,
   FriendIdentity,
   loadOrCreateIdentity,
+  getDeviceSubId,
+  resetIdentityCache,
+  IDENTITY_STORAGE_KEY,
 } from './identity';
 import nacl from 'tweetnacl';
 import { NodeClient, PacketReceived } from './NodeClient';
@@ -14,7 +17,7 @@ import {
   openRendezvousRecord,
 } from './rendezvous';
 import { decodeBase64, encodeBase64, decodeUTF8 } from './bytes';
-import { Member, mirrorThumbDataUrl } from '../utils';
+import { Member, mirrorThumbDataUrl, PRESET_RELATIONSHIP_TYPES } from '../utils';
 import { buildFrontShare } from './frontShare';
 import {
   Friend,
@@ -27,6 +30,7 @@ import {
   NETWORK_SETTINGS_KEY,
   SYNC_EXCLUDE_KEYS,
   SYNC_STATE_KEY,
+  PROTO_VERSION,
   MAX_NOTIF_FRIENDS,
   FriendNotifyLevel,
   friendNotifyLevel,
@@ -71,7 +75,7 @@ const syncHash = (s: string): string => contentHash(canonicalForSync(s));
 const realMemberCount = (raw: string): number => {
   try {
     const list = JSON.parse(raw);
-    return Array.isArray(list) ? list.filter((m: any) => m && !m.isCustomFront && !m.deleted).length : 0;
+    return Array.isArray(list) ? list.filter((m: any) => m && !m.isCustomFront && !m.isFacet && !m.deleted).length : 0;
   } catch {
     return 0;
   }
@@ -160,6 +164,8 @@ class NetworkManagerImpl {
   private settings: NetworkSettings = { enabled: false };
   private friends: Friend[] = [];
   private online: Set<string> = new Set();
+  /** Distinguishes this device from siblings that share the system identity. */
+  private subId: string | null = null;
   private status: ConnStatus = 'disabled';
   private active: { friend: ActiveCode | null; device: ActiveCode | null } = { friend: null, device: null };
   private codeTimers: { friend: ReturnType<typeof setTimeout> | null; device: ReturnType<typeof setTimeout> | null } = { friend: null, device: null };
@@ -221,8 +227,84 @@ class NetworkManagerImpl {
     });
   }
 
+  private applyingSiblingFriends = false;
+
   private async persistFriends(): Promise<void> {
     await store.set(FRIENDS_STORAGE_KEY, this.friends);
+    // Echo guard: a merge from a sibling persists too, and pushing that straight
+    // back would bounce the list between the two devices forever.
+    if (!this.applyingSiblingFriends) this.pushFriendsToSiblings();
+  }
+
+  /**
+   * Our own address counts as reachable: linked devices share one identity, so
+   * "send to self" is how siblings reach each other. Deliberately NOT done by
+   * adding self to `online` — that set is rebuilt from the node's peer list,
+   * which excludes us, so the entry would vanish moments later.
+   */
+  private isReachable(peerId: string): boolean {
+    return peerId === this.identity?.peerId || this.online.has(peerId);
+  }
+
+  /** Devices that share our identity — after linking, we are literally the same peer. */
+  private siblingDevices(): Friend[] {
+    const self = this.identity;
+    if (!self) return [];
+    return this.friends.filter(
+      f => f.kind === 'device' && f.status === 'accepted' && !f.initPending && f.peerId === self.peerId,
+    );
+  }
+
+  private pushFriendsToSiblings(): void {
+    const sibs = this.siblingDevices();
+    if (sibs.length === 0) return;
+    const payload = this.friends.filter(f => f.kind !== 'device');
+    for (const s of sibs) {
+      this.sendTo(s.peerId, {t: 'friends_push', friends: payload}).catch(() => {});
+    }
+  }
+
+  private async mergeSiblingFriends(incoming: Friend[]): Promise<void> {
+    if (!Array.isArray(incoming)) return;
+    const byId = new Map(this.friends.map(f => [f.peerId, f]));
+    let changed = false;
+    for (const inc of incoming) {
+      if (!inc || typeof inc.peerId !== 'string' || !inc.peerId) continue;
+      if (inc.kind === 'device') continue;
+      // Our own system address is us, never a friend.
+      if (this.identity && inc.peerId === this.identity.peerId) continue;
+      const mine = byId.get(inc.peerId);
+      if (!mine) {
+        this.friends.push(inc);
+        byId.set(inc.peerId, inc);
+        changed = true;
+        continue;
+      }
+      // Device records are this device's own business; never let a sibling's
+      // copy overwrite one that happens to share a peer id.
+      if (mine.kind === 'device') continue;
+      const mineAt = mine.statusUpdatedAt ?? mine.addedAt ?? 0;
+      const incAt = inc.statusUpdatedAt ?? inc.addedAt ?? 0;
+      if (incAt <= mineAt) continue;
+      const merged: Friend = {
+        ...mine,
+        ...inc,
+        // Notification prefs are per-device on purpose: which friends show on
+        // THIS device is a local choice.
+        showInNotification: mine.showInNotification,
+        notifyLevel: mine.notifyLevel,
+      };
+      this.upsertFriend(merged);
+      changed = true;
+    }
+    if (!changed) return;
+    this.applyingSiblingFriends = true;
+    try {
+      await this.persistFriends();
+    } finally {
+      this.applyingSiblingFriends = false;
+    }
+    this.notify();
   }
 
   private async persistSettings(): Promise<void> {
@@ -240,6 +322,7 @@ class NetworkManagerImpl {
     await this.loadMirrorServed();
     this.lastHashes = (await store.get<Record<string, string>>(SYNC_STATE_KEY, null)) || {};
     this.identity = await loadOrCreateIdentity();
+    this.subId = await getDeviceSubId();
     try {
       const sys = await store.get<{ name?: string }>(KEYS.system, null);
       if (sys && sys.name) this.systemName = sys.name;
@@ -452,6 +535,10 @@ class NetworkManagerImpl {
     if (!self || !p?.sender_peer_id || !p?.payload) return;
     const opened = openMessage(self, p.sender_peer_id, p.payload);
     if (!opened) return;
+    // Own echo: linked devices share an identity, so the relay fans a packet out
+    // to every device on the address INCLUDING the sender. Sub-id is the only
+    // thing that can tell them apart — peer id is identical across them.
+    if (opened.dev && this.subId && opened.dev === this.subId) return;
     this.routeMessage(opened.sender, opened.message);
   }
 
@@ -492,13 +579,14 @@ class NetworkManagerImpl {
             status: 'accepted',
             displayName: msg.name || existing.displayName,
             peerRole: msg.role ?? existing.peerRole,
+            peerV: msg.v ?? existing.peerV,
           };
           this.upsertFriend(accepted);
           if (!msg.ack) this.sendConnectTo(sender.peerId, existing.kind, true).catch(() => {});
           if (existing.kind === 'device') this.onDeviceLinkAccepted(accepted);
           else this.sendMyFrontTo(sender.peerId);
         } else if (existing && existing.status === 'accepted') {
-          this.upsertFriend({ ...existing, displayName: msg.name || existing.displayName, peerRole: msg.role ?? existing.peerRole });
+          this.upsertFriend({ ...existing, displayName: msg.name || existing.displayName, peerRole: msg.role ?? existing.peerRole, peerV: msg.v ?? existing.peerV });
           if (!msg.ack) this.sendConnectTo(sender.peerId, existing.kind, true).catch(() => {});
         } else if (msg.ack) {
           break;
@@ -507,6 +595,7 @@ class NetworkManagerImpl {
           this.upsertFriend({
             ...this.friendFrom(sender, msg.name || (kind === 'device' ? 'Device' : 'Friend'), 'entered_mine', kind),
             peerRole: msg.role,
+            peerV: msg.v,
           });
         }
         this.persistFriends();
@@ -519,6 +608,28 @@ class NetworkManagerImpl {
         this.clearMirrorCaches(sender.peerId);
         this.persistFriends();
         this.notify();
+        break;
+      }
+      case 'device_adopt': {
+        const dev = this.friends.find(
+          f => f.peerId === sender.peerId && f.kind === 'device' && f.status === 'accepted' && f.initRole === 'target',
+        );
+        if (!dev) break;
+        this.adoptSystemIdentity(msg.identity, msg.friends).catch(e => console.warn('[NETWORK] adopt failed:', e));
+        break;
+      }
+      case 'front_req': {
+        const asker = this.friends.find(
+          f => f.peerId === sender.peerId && f.kind !== 'device' && f.status === 'accepted',
+        );
+        if (asker && this.myFrontKnown) this.sendMyFrontTo(sender.peerId);
+        break;
+      }
+      case 'friends_push': {
+        // Only a device that shares our identity can hand us friend records:
+        // its pairings are literally ours, because we are the same peer.
+        if (!this.identity || sender.peerId !== this.identity.peerId) break;
+        this.mergeSiblingFriends(msg.friends).catch(e => console.warn('[NETWORK] friend merge failed:', e));
         break;
       }
       case 'dm': {
@@ -586,7 +697,7 @@ class NetworkManagerImpl {
     if (!self || !client) throw new Error('network not connected');
     const friend = this.friends.find(f => f.peerId === recipientPeerId) || null;
     if (!friend) throw new Error('no public key for recipient');
-    const payload = sealMessage(self, decodeBase64(friend.boxPublicKey), msg);
+    const payload = sealMessage(self, decodeBase64(friend.boxPublicKey), msg, this.subId ?? undefined);
     await client.send(recipientPeerId, payload);
   }
 
@@ -597,6 +708,7 @@ class NetworkManagerImpl {
       t: 'connect',
       name,
       kind,
+      v: PROTO_VERSION,
       ...(ack ? { ack: true } : {}),
       ...(role ? { role } : {}),
     };
@@ -811,7 +923,7 @@ class NetworkManagerImpl {
   }
 
   private clearMirrorCaches(peerId: string): void {
-    for (const feat of ['members', 'groups', 'journal'] as MirrorFeature[]) {
+    for (const feat of ['members', 'groups', 'journal', 'history'] as MirrorFeature[]) {
       window.electronAPI.store.remove(this.mirrorCacheKey(peerId, feat)).catch(() => {});
       this.mirrorSentHash.delete(`${peerId}|${feat}`);
     }
@@ -821,7 +933,7 @@ class NetworkManagerImpl {
   private effectiveScope(
     buckets: PrivacyBucket[],
     peerId: string,
-    feature: MirrorFeature | 'customFields',
+    feature: MirrorFeature | 'customFields' | 'connections',
   ): {mode: 'all' | 'select' | 'none'; ids: Set<string>} {
     const mine = buckets.filter(b => b && Array.isArray(b.friendPeerIds) && b.friendPeerIds.includes(peerId));
     const ids = new Set<string>();
@@ -848,7 +960,9 @@ class NetworkManagerImpl {
   private mirrorSentHash: Map<string, string> = new Map();
 
   private async handleMirrorReq(peerId: string, feature: MirrorFeature, skipIfUnchanged?: boolean): Promise<void> {
-    if (feature !== 'members' && feature !== 'groups' && feature !== 'journal') return;
+    // 'medical' is deliberately absent and must stay that way: Medical is
+    // local-only on both platforms and never leaves the device.
+    if (feature !== 'members' && feature !== 'groups' && feature !== 'journal' && feature !== 'history') return;
     const fr = this.friends.find(x => x.peerId === peerId && x.kind !== 'device' && x.status === 'accepted');
     if (!fr) return;
     const gateKey = `${peerId}|${feature}`;
@@ -879,7 +993,7 @@ class NetworkManagerImpl {
         const raw = await getRaw(KEYS.members);
         const list: any[] = raw ? JSON.parse(raw) : [];
         const shared = (Array.isArray(list) ? list : [])
-          .filter(m => m && !m.deleted && !m.isCustomFront && (scope.mode === 'all' || scope.ids.has(m.id)))
+          .filter(m => m && !m.deleted && !m.isCustomFront && !m.isFacet && (scope.mode === 'all' || scope.ids.has(m.id)))
           .sort((a, b) => ((a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER)) || String(a.name || '').localeCompare(String(b.name || '')));
         const cfScope = this.effectiveScope(buckets, peerId, 'customFields');
         let grantedDefs: any[] = [];
@@ -893,6 +1007,58 @@ class NetworkManagerImpl {
             .filter(d => d && (cfScope.mode === 'all' || cfScope.ids.has(d.id)))
             .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
         }
+        // Connections travel with the member mirror, scoped by their own privacy
+        // bucket, and only between two members the viewer can already see.
+        const sharedIdSet = new Set(shared.map(m => m.id));
+        const nameById = new Map(shared.map(m => [m.id, String(m.name || '')]));
+        const connScope = this.effectiveScope(buckets, peerId, 'connections');
+        let sharedRels: any[] = [];
+        const relTypeById = new Map<string, any>();
+        if (connScope.mode !== 'none') {
+          let rels: any[] = [];
+          let types: any[] = [];
+          try {
+            const rawRel = await getRaw(KEYS.relationships);
+            rels = rawRel ? JSON.parse(rawRel) : [];
+          } catch {}
+          try {
+            const rawTypes = await getRaw(KEYS.relationshipTypes);
+            types = rawTypes ? JSON.parse(rawTypes) : [];
+          } catch {}
+          for (const td of [...PRESET_RELATIONSHIP_TYPES, ...(Array.isArray(types) ? types : [])]) {
+            if (td && (td as any).id) relTypeById.set((td as any).id, {...(relTypeById.get((td as any).id) || {}), ...(td as any)});
+          }
+          sharedRels = (Array.isArray(rels) ? rels : []).filter(
+            r => r && sharedIdSet.has(r.fromId) && sharedIdSet.has(r.toId) && (connScope.mode === 'all' || connScope.ids.has(r.id)),
+          );
+        }
+        const connectionsOf = (memberId: string): MirrorMember['connections'] => {
+          const rows = sharedRels
+            .filter(r => r.fromId === memberId || r.toId === memberId)
+            .map(r => {
+              const td = relTypeById.get(r.typeId);
+              if (!td) return null;
+              const otherId = r.fromId === memberId ? r.toId : r.fromId;
+              const inverseSide = r.fromId === memberId;
+              const plain = !!td.preset && !td.overridden;
+              const useInverse = inverseSide && !!td.directional;
+              // Preset labels ship as a key so the viewer renders them in ITS
+              // language; only renamed types send literal text.
+              const labelKey = plain ? `relType.${td.id}${useInverse ? 'Inverse' : ''}` : undefined;
+              const label = plain ? '' : (useInverse ? (td.inverseName || td.name || '') : (td.name || ''));
+              return {
+                id: r.id,
+                otherId,
+                otherName: nameById.get(otherId) || '',
+                label,
+                labelKey,
+                color: td.color || undefined,
+                note: r.note || undefined,
+              };
+            })
+            .filter(Boolean) as MirrorMember['connections'];
+          return rows && rows.length > 0 ? rows : undefined;
+        };
         const slim: MirrorMember[] = shared.map(m => {
           const cfs = grantedDefs
             .map(d => {
@@ -915,6 +1081,7 @@ class NetworkManagerImpl {
             description: m.description || undefined,
             archived: m.archived || undefined,
             customFields: cfs && cfs.length > 0 ? cfs : undefined,
+            connections: connectionsOf(m.id),
           };
         });
         payload = JSON.stringify(slim);
@@ -938,7 +1105,7 @@ class NetworkManagerImpl {
         const sharedGroupIds = new Set(sharedGroups.map(g => g.id));
         const mScope = this.effectiveScope(buckets, peerId, 'members');
         const sharedMembers = (Array.isArray(allMembers) ? allMembers : []).filter(
-          m => m && !m.deleted && !m.isCustomFront && (mScope.mode === 'all' || mScope.ids.has(m.id)),
+          m => m && !m.deleted && !m.isCustomFront && !m.isFacet && (mScope.mode === 'all' || mScope.ids.has(m.id)),
         );
         const membership: Record<string, {id: string; name: string}[]> = {};
         for (const m of sharedMembers) {
@@ -960,6 +1127,43 @@ class NetworkManagerImpl {
           sortOrder: g.sortOrder ?? undefined,
         }));
         payload = JSON.stringify({groups: slimGroups, membership});
+      } else if (feature === 'history') {
+        // A read-only mirror of the History tab. Entries are filtered down to the
+        // members this viewer is allowed to see, and an entry that ends up with
+        // nobody visible in any tier is dropped entirely rather than shown empty.
+        const rawH = await getRaw(KEYS.history);
+        const rawM = await getRaw(KEYS.members);
+        let list: any[] = [];
+        let allMembers: any[] = [];
+        try {
+          list = rawH ? JSON.parse(rawH) : [];
+        } catch {}
+        try {
+          allMembers = rawM ? JSON.parse(rawM) : [];
+        } catch {}
+        const mScope = this.effectiveScope(buckets, peerId, 'members');
+        const visibleIds = new Set(
+          (Array.isArray(allMembers) ? allMembers : [])
+            .filter(m => m && !m.deleted && (mScope.mode === 'all' || mScope.ids.has(m.id)))
+            .map(m => m.id),
+        );
+        const keep = (ids?: string[]) => (ids || []).filter(id => visibleIds.has(id));
+        const events = (Array.isArray(list) ? list : [])
+          .map(ev => {
+            if (!ev) return null;
+            const memberIds = keep(ev.memberIds);
+            const coFrontIds = keep(ev.coFrontIds);
+            const coConsciousIds = keep(ev.coConsciousIds);
+            if (memberIds.length === 0 && coFrontIds.length === 0 && coConsciousIds.length === 0) return null;
+            return {
+              ...ev,
+              memberIds,
+              coFrontIds: coFrontIds.length > 0 ? coFrontIds : undefined,
+              coConsciousIds: coConsciousIds.length > 0 ? coConsciousIds : undefined,
+            };
+          })
+          .filter(Boolean);
+        payload = JSON.stringify(events);
       } else {
         const raw = await getRaw(KEYS.journal);
         const list: any[] = raw ? JSON.parse(raw) : [];
@@ -1457,7 +1661,7 @@ class NetworkManagerImpl {
   private async doInitClonePush(peerId: string): Promise<void> {
     const dev = this.friends.find(f => f.peerId === peerId && f.kind === 'device' && f.status === 'accepted');
     if (!dev || dev.initRole !== 'source' || !dev.initPending) return;
-    if (!this.online.has(peerId)) return;
+    if (!this.isReachable(peerId)) return;
     if (this.syncing) {
       setTimeout(() => this.doInitClonePush(peerId).catch(() => {}), SYNC_MIN_INTERVAL_MS);
       return;
@@ -1506,6 +1710,47 @@ class NetworkManagerImpl {
       }
       await flush();
       await sendOne({t: 'sync', keys: {}, init: true, initDone: true});
+      // Hand over the system identity LAST: the target replaces its own keys and
+      // reconnects on ours, so anything sent to its old address after this point
+      // would be lost. From here on both devices are the same network peer.
+      const stored = await store.get<{v: number; edSecretKey: string; boxSecretKey: string}>(IDENTITY_STORAGE_KEY, null);
+      // Only hand it to a build that knows what to do with it. An older target
+      // would ignore device_adopt while we moved our record to the shared
+      // address — killing sync between the pair.
+      const adoptCapable = (dev.peerV ?? 0) >= PROTO_VERSION;
+      if (adoptCapable && stored?.edSecretKey && stored?.boxSecretKey) {
+        await sendOne({
+          t: 'device_adopt',
+          identity: stored,
+          friends: this.friends.filter(f => f.kind !== 'device'),
+        });
+        // The target now answers on OUR address, so our record for it must move
+        // there too — otherwise this side would reject its syncs as coming from
+        // an unknown peer.
+        const selfNow = this.identity;
+        if (selfNow) {
+          this.friends = this.friends.filter(f => f.peerId !== peerId);
+          if (!this.friends.some(f => f.peerId === selfNow.peerId && f.kind === 'device')) {
+            this.friends.push({
+              ...dev,
+              peerId: selfNow.peerId,
+              edPublicKey: encodeBase64(selfNow.edPublicKey),
+              boxPublicKey: encodeBase64(selfNow.boxPublicKey),
+              status: 'accepted',
+              initPending: false,
+              initRole: undefined,
+              peerRole: undefined,
+            });
+          }
+          // Same baseline write the normal path does below — without it the next
+          // round re-sends every key and treats each as a conflict.
+          await store.set(SYNC_STATE_KEY, this.lastHashes);
+          await this.persistFriends();
+          this.notify();
+          this.emitSyncCloneDone(peerId);
+          return;
+        }
+      }
       await store.set(SYNC_STATE_KEY, this.lastHashes);
       this.upsertFriend({ ...dev, initPending: false });
       await this.persistFriends();
@@ -1514,6 +1759,40 @@ class NetworkManagerImpl {
     } finally {
       this.syncing = false;
     }
+  }
+
+  private async adoptSystemIdentity(
+    identity: {v: number; edSecretKey: string; boxSecretKey: string},
+    friends: Friend[],
+  ): Promise<void> {
+    if (!identity?.edSecretKey || !identity?.boxSecretKey) return;
+    const previousPeerId = this.identity?.peerId;
+    await store.set(IDENTITY_STORAGE_KEY, identity);
+    resetIdentityCache();
+    const adopted = await loadOrCreateIdentity();
+    this.identity = adopted;
+
+    // Keep our own device links, take on the master's friends. A device record
+    // that now points at our own address is the master itself — that is how
+    // sibling sync works from here (send to the shared address, fan-out
+    // delivers to the others, each drops its own echo by sub-id).
+    const ownDeviceLinks = this.friends.filter(f => f.kind === 'device');
+    const incoming = (Array.isArray(friends) ? friends : []).filter(f => f && f.kind !== 'device');
+    const merged = [...incoming];
+    for (const d of ownDeviceLinks) {
+      if (!merged.some(f => f.peerId === d.peerId)) merged.push(d);
+    }
+    this.friends = merged;
+    await this.persistFriends();
+
+    // Sync state is keyed to the old pairing; drop it so the next round
+    // re-hashes rather than trusting bases from a different identity.
+    this.lastHashes = {};
+    await store.set(SYNC_STATE_KEY, this.lastHashes);
+
+    if (previousPeerId) this.online.delete(previousPeerId);
+    this.notify();
+    if (this.settings.enabled) await this.connect();
   }
 
   private handleSyncChunk(sender: FriendIdentity, m: {key: string; h: string; seq: number; total: number; data: string; init?: boolean}): void {
@@ -1758,7 +2037,7 @@ class NetworkManagerImpl {
   }
 
   isFriendOnline(peerId: string): boolean {
-    return this.online.has(peerId);
+    return this.isReachable(peerId);
   }
 }
 

@@ -15,6 +15,26 @@ interface Props {
   onClose: () => void;
 }
 
+interface MirrorHistoryEntry {
+  memberIds?: string[];
+  startTime?: number;
+  endTime?: number | null;
+  note?: string;
+  mood?: string;
+  location?: string;
+  energyLevel?: number;
+  coFrontIds?: string[];
+  coFrontMood?: string;
+  coFrontNote?: string;
+  coFrontEnergy?: number;
+  coFrontLocation?: string;
+  coConsciousIds?: string[];
+  coConsciousMood?: string;
+  coConsciousNote?: string;
+  coConsciousEnergy?: number;
+  coConsciousLocation?: string;
+}
+
 interface MirrorJournalEntry {
   id: string;
   title?: string;
@@ -82,6 +102,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
   const featureLabel =
     feature === 'members' ? t('tabs.members')
     : feature === 'groups' ? t('memberGroups.title')
+    : feature === 'history' ? t('tabs.history')
     : t('tabs.journal');
 
   const dim: React.CSSProperties = { fontSize: 12, color: 'var(--muted)' };
@@ -141,7 +162,24 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                       </p>
                     );
                   })}
-                  {!m.description && (m.customFields || []).length === 0 && <p style={dim}>{t('network.mirrorNothing')}</p>}
+                  {/* Connections are a member subtab in the real member view, so
+                      the mirror shows them the same way instead of omitting them. */}
+                  {(m.connections || []).length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 4 }}>
+                        {t('systemMap.connections', { defaultValue: 'Connections' })}
+                      </div>
+                      {(m.connections || []).map(c => (
+                        <p key={c.id} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
+                          <span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: c.color || 'var(--border)', marginRight: 6 }} />
+                          <span style={dim}>{c.labelKey ? t(c.labelKey, { defaultValue: c.label }) : c.label}: </span>
+                          {c.otherName}
+                          {c.note ? <span style={{ ...dim, fontStyle: 'italic' }}>{'  ·  ' + c.note}</span> : null}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {!m.description && (m.customFields || []).length === 0 && (m.connections || []).length === 0 && <p style={dim}>{t('network.mirrorNothing')}</p>}
                 </div>
               )}
             </div>
@@ -184,6 +222,65 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     );
   };
 
+  // Read-only mirror of the History tab: same row shape, same per-tier detail
+  // lines, no editing and no delete.
+  const renderHistory = () => {
+    const list: MirrorHistoryEntry[] = Array.isArray(entry?.data) ? (entry!.data as MirrorHistoryEntry[]) : [];
+    if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+    const nameOf = (id: string): string => memberCache.find(m => m.id === id)?.name || '—';
+    const chips = (ids?: string[]) => (ids || []).map(id => {
+      const m = memberCache.find(x => x.id === id);
+      return (
+        <span key={id} className="chip" style={{ borderColor: `${m?.color || 'var(--border)'}50`, background: `${m?.color || 'transparent'}20` }}>
+          <span style={{ color: m?.color || 'var(--text)' }}>{nameOf(id)}</span>
+        </span>
+      );
+    });
+    const tierLine = (mood?: string, location?: string, energy?: number, note?: string) =>
+      (mood || location || energy || note) ? (
+        <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
+          {mood && <span>😊 {mood}</span>}
+          {location && <span>📍 {location}</span>}
+          {energy ? <span>⚡ {energy}/10</span> : null}
+          {note && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{note}</span>}
+        </div>
+      ) : null;
+    const sorted = [...list].sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+    return (
+      <div>
+        {sorted.map((e, i) => (
+          <div key={`${e.startTime}-${i}`} style={{ borderTop: '1px solid var(--border)', padding: '10px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {chips(e.memberIds)}
+              <span style={{ marginLeft: 'auto', ...dim, fontVariantNumeric: 'tabular-nums' }}>
+                {fmtTime(e.startTime || 0)}{e.endTime ? ` — ${fmtTime(e.endTime)}` : ''}
+              </span>
+            </div>
+            {tierLine(e.mood, e.location, e.energyLevel, e.note)}
+            {(e.coFrontIds || []).length > 0 && (
+              <div style={{ marginTop: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coFront')}:</span>
+                  {chips(e.coFrontIds)}
+                </div>
+                {tierLine(e.coFrontMood, e.coFrontLocation, e.coFrontEnergy, e.coFrontNote)}
+              </div>
+            )}
+            {(e.coConsciousIds || []).length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coConShort')}:</span>
+                  {chips(e.coConsciousIds)}
+                </div>
+                {tierLine(e.coConsciousMood, e.coConsciousLocation, e.coConsciousEnergy, e.coConsciousNote)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderJournal = () => {
     const list: MirrorJournalEntry[] = Array.isArray(entry?.data) ? (entry!.data as MirrorJournalEntry[]) : [];
     if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
@@ -218,6 +315,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     if (entry.none) return <p style={dim}>{t('network.mirrorNothing')}</p>;
     if (feature === 'members') return renderMembers();
     if (feature === 'groups') return renderGroups();
+    if (feature === 'history') return renderHistory();
     return renderJournal();
   };
 

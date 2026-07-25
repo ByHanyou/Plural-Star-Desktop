@@ -244,7 +244,11 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
           });
           merged[di] = {
             ...dup, name: fixed.name, pronouns: fixed.pronouns, role: fixed.role, color: fixed.color,
-            description: fixed.description, archived: fixed.archived, isCustomFront: fixed.isCustomFront,
+            description: fixed.description, archived: fixed.archived,
+            // Category stays local on a name match. An outside app has no idea
+            // this record is a facet or a custom front here, and letting it
+            // decide would quietly turn one into a counted member.
+            isCustomFront: dup.isCustomFront, isFacet: dup.isFacet,
             sourceId: nm.sourceId, customFields: mergedCF,
             groupIds: [...new Set([...(dup.groupIds || []), ...(fixed.groupIds || [])])],
             ...(dup.deleted ? { deleted: false } : {}),

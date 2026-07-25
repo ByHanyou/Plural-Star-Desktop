@@ -8,7 +8,7 @@ interface Props { onClick: () => void; }
 export default function MembersTile({ onClick }: Props) {
   const members = useAppStore(s => s.state.members);
   const { t } = useTranslation();
-  const active = members.filter(m => !m.archived && !m.isCustomFront);
+  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.isFacet);
   const preview = active.slice(0, 5);
   return (
     <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>

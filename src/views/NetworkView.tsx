@@ -133,7 +133,7 @@ export default function NetworkView() {
       createdAt: Date.now(),
     });
   };
-  const pickableMembers = members.filter(m => !m.deleted && !m.isCustomFront);
+  const pickableMembers = members.filter(m => !m.deleted && !m.isCustomFront && !m.isFacet);
   const memberName = (id: string) => members.find(m => m.id === id)?.name || '?';
   const relLabel = (r: Relationship): string => {
     const rt = relTypes.find(x => x.id === r.typeId) || PRESET_RELATIONSHIP_TYPES.find(x => x.id === r.typeId);
@@ -313,7 +313,7 @@ export default function NetworkView() {
               aria-label={`${levelLabel}, ${f.displayName}`}
               title={levelLabel}
               onClick={() => NetworkManager.setFriendNotifyLevel(f.peerId, nextLevel)}
-              style={{ background: 'none', border: 'none', color: level === 'full' ? 'var(--accent)' : 'var(--muted)', opacity: level === 'off' ? 0.45 : 1, fontSize: 15, cursor: 'pointer', padding: 8 }}>{level === 'off' ? '🔕' : '🔔'}</button>
+              style={{ background: 'none', border: 'none', color: level === 'full' ? 'var(--accent)' : 'var(--muted)', opacity: level === 'off' ? 0.45 : 1, fontSize: 15, cursor: 'pointer', padding: 8 }}>{/* Three states need three glyphs: 'full' and 'alerts' were both a bell, so one tap off 'full' looked muted and still alerted. */}{level === 'full' ? '🔔' : level === 'alerts' ? '📳' : '🔕'}</button>
           );
         })()}
         <button className="icon-btn" aria-label={`${t('network.remove')}, ${f.displayName}`} onClick={() => setRemoveTarget(f)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
@@ -563,6 +563,7 @@ export default function NetworkView() {
         {([
           { feature: 'members' as MirrorFeature, label: t('tabs.members') },
           { feature: 'groups' as MirrorFeature, label: t('memberGroups.title') },
+          { feature: 'history' as MirrorFeature, label: t('tabs.history') },
           { feature: 'journal' as MirrorFeature, label: t('tabs.journal') },
         ]).map(opt => (
           <button

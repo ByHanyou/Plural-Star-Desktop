@@ -178,15 +178,37 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
                 </div>
 
                 {!singlet && (entry.coFrontIds || []).length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                    <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coFront')}:</span>
-                    {(entry.coFrontIds || []).map(id => <MemberChip key={id} id={id} />)}
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coFront')}:</span>
+                      {(entry.coFrontIds || []).map(id => <MemberChip key={id} id={id} />)}
+                    </div>
+                    {/* Co-tiers record Mood, Energy, Location and Note too — history
+                        used to show only who was there. */}
+                    {(entry.coFrontMood || entry.coFrontLocation || entry.coFrontEnergy || entry.coFrontNote) && (
+                      <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
+                        {entry.coFrontMood && <span>😊 {translateMood(entry.coFrontMood, t)}</span>}
+                        {entry.coFrontLocation && <span>📍 {entry.coFrontLocation}</span>}
+                        {entry.coFrontEnergy && <span>⚡ {entry.coFrontEnergy}/10</span>}
+                        {entry.coFrontNote && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{entry.coFrontNote}</span>}
+                      </div>
+                    )}
                   </div>
                 )}
                 {!singlet && (entry.coConsciousIds || []).length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coConShort')}:</span>
-                    {(entry.coConsciousIds || []).map(id => <MemberChip key={id} id={id} />)}
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coConShort')}:</span>
+                      {(entry.coConsciousIds || []).map(id => <MemberChip key={id} id={id} />)}
+                    </div>
+                    {(entry.coConsciousMood || entry.coConsciousLocation || entry.coConsciousEnergy || entry.coConsciousNote) && (
+                      <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
+                        {entry.coConsciousMood && <span>😊 {translateMood(entry.coConsciousMood, t)}</span>}
+                        {entry.coConsciousLocation && <span>📍 {entry.coConsciousLocation}</span>}
+                        {entry.coConsciousEnergy && <span>⚡ {entry.coConsciousEnergy}/10</span>}
+                        {entry.coConsciousNote && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{entry.coConsciousNote}</span>}
+                      </div>
+                    )}
                   </div>
                 )}
 

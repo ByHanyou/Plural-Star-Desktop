@@ -64,6 +64,11 @@ export const handleExport = async (ctx: ImportCtx) => {
       relationshipTypes: cat.groups ? (await store.get(KEYS.relationshipTypes) || []) : [],
       systemMapMembers: cat.groups ? (await store.get(KEYS.systemMapMembers) || []) : [],
       medical: (await store.get(KEYS.medical)) || undefined,
+      // Map layout rides with the map; the rest are system-wide settings.
+      systemMapPositions: cat.groups ? ((await store.get(KEYS.systemMapPositions)) || undefined) : undefined,
+      whiteboard: cat.settings ? ((await store.get(KEYS.whiteboard)) || undefined) : undefined,
+      customColors: cat.settings ? ((await store.get(KEYS.customColors)) || undefined) : undefined,
+      shareSettings: cat.settings ? ((await store.get(KEYS.share)) || undefined) : undefined,
     };
     const mediaFiles: Record<string, Uint8Array> = {};
     payload.members = (payload.members as any[]).map((m: any) => {
@@ -229,7 +234,11 @@ export const handleRestore = async (ctx: ImportCtx) => {
       if (restoreSel.groups && restoreData.relationships) batch[KEYS.relationships] = restoreData.relationships;
       if (restoreSel.groups && restoreData.relationshipTypes) batch[KEYS.relationshipTypes] = restoreData.relationshipTypes;
       if (restoreSel.groups && restoreData.systemMapMembers) batch[KEYS.systemMapMembers] = restoreData.systemMapMembers;
+      if (restoreSel.groups && restoreData.systemMapPositions) batch[KEYS.systemMapPositions] = restoreData.systemMapPositions;
       if (restoreData.medical) batch[KEYS.medical] = restoreData.medical;
+      if (restoreSel.settings && restoreData.whiteboard) batch[KEYS.whiteboard] = restoreData.whiteboard;
+      if (restoreSel.settings && restoreData.customColors) batch[KEYS.customColors] = restoreData.customColors;
+      if (restoreSel.settings && restoreData.shareSettings) batch[KEYS.share] = restoreData.shareSettings;
 
       if (restoreSel.chat) {
         if (restoreData.chatChannels) batch[KEYS.chatChannels] = restoreData.chatChannels;

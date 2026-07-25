@@ -134,6 +134,11 @@ export interface Member {
   sortOrder?: number;
   createdAt?: number;
   isCustomFront?: boolean;
+  /**
+   * A facet of the system rather than a member of it. Same profile depth as a
+   * member, but never counted as one. Mutually exclusive with isCustomFront.
+   */
+  isFacet?: boolean;
   sourceId?: string;
   mailboxPassword?: string;
   pkProxyTags?: {prefix?: string | null; suffix?: string | null}[];
@@ -173,10 +178,12 @@ export interface HistoryEntry {
   coFrontMood?: string;
   coFrontNote?: string;
   coFrontEnergy?: number;
+  coFrontLocation?: string;
   coConsciousIds?: string[];
   coConsciousMood?: string;
   coConsciousNote?: string;
   coConsciousEnergy?: number;
+  coConsciousLocation?: string;
   changeType?: HistoryChangeType;
   changeTime?: number;
   changeTier?: FrontTierKey;
@@ -227,6 +234,16 @@ export interface ShareSettings {
 export type TextScale = 1.0 | 1.25 | 1.5;
 
 export type AccountMode = 'system' | 'singlet';
+
+/**
+ * A member of the system for COUNTING purposes. Custom fronts and facets are
+ * neither: they get member-shaped profiles but must never inflate a member
+ * count, in the app or in any export.
+ */
+export const isRosterMember = (m: Member): boolean =>
+  !m.isCustomFront && !m.isFacet && !m.deleted;
+
+export const rosterMembers = (members: Member[]): Member[] => members.filter(isRosterMember);
 
 export const SINGLET_HIDDEN_STATUS_NAMES = ['Blurry', 'Blendy', 'Rapid Switching', 'Dissociated'];
 export const singletStatuses = (members: Member[]): Member[] =>
@@ -542,6 +559,15 @@ export interface ExportPayload {
   relationshipTypes?: RelationshipTypeDef[];
   systemMapMembers?: string[];
   medical?: MedicalData;
+  /**
+   * These four were being silently left out of every backup: map layout, the
+   * whiteboard, custom colour slots and share settings. A "full export" that
+   * loses them is not a full export.
+   */
+  systemMapPositions?: Record<string, {x: number; y: number}>;
+  whiteboard?: any;
+  customColors?: string[];
+  shareSettings?: any;
 }
 
 export type ChatMessageType = 'text' | 'image' | 'file' | 'reply' | 'reaction';
@@ -641,16 +667,21 @@ export const historyEntryToFrontState = (entry: HistoryEntry): FrontState => ({
     mood: entry.mood,
     note: entry.note || '',
     location: entry.location,
+    energyLevel: entry.energyLevel,
   },
   coFront: {
     memberIds: entry.coFrontIds || [],
     mood: entry.coFrontMood,
     note: entry.coFrontNote || '',
+    location: entry.coFrontLocation,
+    energyLevel: entry.coFrontEnergy,
   },
   coConscious: {
     memberIds: entry.coConsciousIds || [],
     mood: entry.coConsciousMood,
     note: entry.coConsciousNote || '',
+    location: entry.coConsciousLocation,
+    energyLevel: entry.coConsciousEnergy,
   },
   startTime: entry.startTime,
 });
@@ -694,10 +725,12 @@ export const frontToHistoryEntry = (f: FrontState, endTime: number | null, chang
   coFrontMood: f.coFront.mood,
   coFrontNote: f.coFront.note || undefined,
   coFrontEnergy: f.coFront.energyLevel,
+  coFrontLocation: f.coFront.location || undefined,
   coConsciousIds: f.coConscious.memberIds.length > 0 ? f.coConscious.memberIds : undefined,
   coConsciousMood: f.coConscious.mood,
   coConsciousNote: f.coConscious.note || undefined,
   coConsciousEnergy: f.coConscious.energyLevel,
+  coConsciousLocation: f.coConscious.location || undefined,
   changeType,
   changeTime: changeType !== 'front' ? Date.now() : undefined,
   changeTier,

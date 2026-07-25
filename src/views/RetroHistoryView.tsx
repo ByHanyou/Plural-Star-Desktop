@@ -34,7 +34,10 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const history = useAppStore(s => s.state.history);
   const front = useAppStore(s => s.state.front);
   const { t } = useTranslation();
-  const regularMembers = members.filter(m => !m.isCustomFront && !m.archived);
+  // Facets can front, so they belong in the retro picker — as their own pool,
+  // never folded into the member list.
+  const regularMembers = members.filter(m => !m.isCustomFront && !m.isFacet && !m.archived);
+  const facetMembers = members.filter(m => m.isFacet && !m.isCustomFront && !m.archived);
   const customFronts = members.filter(m => m.isCustomFront && !m.archived);
   const statusPool = singletStatuses(members);
 
@@ -265,14 +268,17 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         <TierMemberPicker tierKey="primary" poolKey="primary" label={t('status.statuses')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={statusPool} />
       ) : (<>
         <TierMemberPicker tierKey="primary" poolKey="primary" label={TIER_LABELS.primary} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={regularMembers} />
+        <TierMemberPicker tierKey="primary" poolKey="primaryFacet" label={t('members.facets')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={facetMembers} />
         {customFronts.length > 0 && (
           <TierMemberPicker tierKey="primary" poolKey="primaryCf" label={t('members.customFronts')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={customFronts} />
         )}
         <TierMemberPicker tierKey="coFront" poolKey="coFront" label={TIER_LABELS.coFront} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={regularMembers} />
+        <TierMemberPicker tierKey="coFront" poolKey="coFrontFacet" label={t('members.facets')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={facetMembers} />
         {customFronts.length > 0 && (
           <TierMemberPicker tierKey="coFront" poolKey="coFrontCf" label={t('members.customFronts')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={customFronts} />
         )}
         <TierMemberPicker tierKey="coConscious" poolKey="coConscious" label={TIER_LABELS.coConscious} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={regularMembers} />
+        <TierMemberPicker tierKey="coConscious" poolKey="coConsciousFacet" label={t('members.facets')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={facetMembers} />
       </>)}
 
       <Field label={t('modal.mood')} value={mood} onChange={setMood} placeholder={t('modal.enterMood')} />

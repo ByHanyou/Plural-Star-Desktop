@@ -27,7 +27,7 @@ export default function MailboxView({ onUpdate }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<NoteboardEntry | null>(null);
 
   const activeMembers = useMemo(
-    () => members.filter(m => !m.isCustomFront && !m.deleted).sort((a, b) => a.name.localeCompare(b.name)),
+    () => members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted).sort((a, b) => a.name.localeCompare(b.name)),
     [members],
   );
   const nameOf = (id: string) => members.find(m => m.id === id)?.name || '?';

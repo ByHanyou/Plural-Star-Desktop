@@ -22,7 +22,16 @@ export interface Friend {
   statusUpdatedAt?: number;
   showInNotification?: boolean;
   notifyLevel?: FriendNotifyLevel;
+  /** Protocol version this peer advertised on connect. Absent = pre-versioning build. */
+  peerV?: number;
 }
+
+/**
+ * 2 = understands device_adopt / friends_push (shared system identity).
+ * A peer that does not advertise at least this stays on the older behaviour:
+ * separate identities per device, friends not shared. Never assume support.
+ */
+export const PROTO_VERSION = 2;
 
 export type FriendNotifyLevel = 'full' | 'alerts' | 'off';
 
@@ -56,13 +65,21 @@ export interface NetworkSettings {
   token?: string;
 }
 
-export type MirrorFeature = 'members' | 'groups' | 'medical' | 'journal';
+export type MirrorFeature = 'members' | 'groups' | 'medical' | 'journal' | 'history';
 
 export type NetMessage =
-  | { t: 'connect'; name: string; kind: 'friend' | 'device'; ack?: boolean; role?: 'source' | 'target' }
+  | { t: 'connect'; name: string; kind: 'friend' | 'device'; ack?: boolean; role?: 'source' | 'target'; v?: number }
   | { t: 'disconnect' }
   | { t: 'ping' }
   | { t: 'front'; status: FrontShare | null }
+  | { t: 'front_req' }
+  | { t: 'device_adopt'; identity: {v: number; edSecretKey: string; boxSecretKey: string}; friends: Friend[] }
+  // Friend records only (never device records, never the identity). Sent to
+  // linked devices on change. Deliberately NOT part of the key sync: the friends
+  // store also holds each device's own link records and live front status, so
+  // hash-comparing it whole would churn forever between devices and re-push on
+  // every incoming friend front update.
+  | { t: 'friends_push'; friends: Friend[] }
   | { t: 'sync'; keys: Record<string, {v: string; h: string}>; init?: boolean; initDone?: boolean }
   | { t: 'sync_chunk'; key: string; h: string; seq: number; total: number; data: string; init?: boolean }
   | { t: 'sync_req'; hashes: Record<string, string> }
@@ -80,6 +97,7 @@ export interface MirrorMember {
   description?: string;
   archived?: boolean;
   customFields?: {name: string; value: string | number | boolean | null; type?: string; markdown?: boolean; fieldId?: string}[];
+  connections?: {id: string; otherId: string; otherName: string; label: string; labelKey?: string; color?: string; note?: string}[];
 }
 
 export interface MirrorGroup {
@@ -113,6 +131,15 @@ export const SYNC_EXCLUDE_KEYS = [
 ];
 
 export const SYNC_STATE_KEY = 'ps:networkSyncState';
+
+/**
+ * Device-local keys. The DOT is load-bearing: every sweep here filters
+ * `startsWith('ps:')` with a COLON, so `ps.` keys can never sync or be swept.
+ * (electron-store nests dotted keys under a `ps` object — harmless, since
+ * nothing reads that object and export uses explicit key names, not a sweep.)
+ */
+export const DEVICE_SUB_ID_KEY = 'ps.deviceSubId';
+export const PENDING_FRONTS_KEY = 'ps.pendingFronts';
 
 export const RENDEZVOUS_TTL_SECONDS = 30 * 60;
 

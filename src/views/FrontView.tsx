@@ -105,7 +105,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
       [tier]: {
         ...front[tier],
         mood: mood ?? front[tier].mood,
-        location: tier === 'primary' ? (location ?? front[tier].location) : front[tier].location,
+        location: location ?? front[tier].location,
         note: note ?? front[tier].note,
       },
     };
@@ -174,7 +174,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{translateMood(tier.mood, t)}</div>
               </div>
             )}
-            {isPrimary && tier.location && (
+            {tier.location && (
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('modal.location')}</div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.location}</div>
@@ -300,13 +300,16 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
   const [primaryNote, setPrimaryNote] = useState('');
   const [coFrontMood, setCoFrontMood] = useState('');
   const [coFrontNote, setCoFrontNote] = useState('');
+  const [coFrontLocation, setCoFrontLocation] = useState('');
   const [coConMood, setCoConMood] = useState('');
   const [coConNote, setCoConNote] = useState('');
+  const [coConLocation, setCoConLocation] = useState('');
   const [primaryEnergy, setPrimaryEnergy] = useState<number | undefined>(undefined);
   const [coFrontEnergy, setCoFrontEnergy] = useState<number | undefined>(undefined);
   const [coConEnergy, setCoConEnergy] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
   const [searchCf, setSearchCf] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
+  const [searchFacet, setSearchFacet] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
   const [customMood, setCustomMood] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
   const [showCustomMood, setShowCustomMood] = useState<Record<FrontTierKey, boolean>>({ primary: false, coFront: false, coConscious: false });
   const [confirmClear, setConfirmClear] = useState(false);
@@ -323,19 +326,23 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         setPrimaryNote(current.primary.note || '');
         setCoFrontMood(current.coFront.mood || '');
         setCoFrontNote(current.coFront.note || '');
+        setCoFrontLocation(current.coFront.location || '');
         setCoConMood(current.coConscious.mood || '');
         setCoConNote(current.coConscious.note || '');
+        setCoConLocation(current.coConscious.location || '');
         setPrimaryEnergy(current.primary.energyLevel);
         setCoFrontEnergy(current.coFront.energyLevel);
         setCoConEnergy(current.coConscious.energyLevel);
       } else {
         setPrimaryIds(new Set()); setCoFrontIds(new Set()); setCoConsciousIds(new Set());
         setPrimaryMood(''); setPrimaryLocation(''); setPrimaryNote('');
-        setCoFrontMood(''); setCoFrontNote(''); setCoConMood(''); setCoConNote('');
+        setCoFrontMood(''); setCoFrontNote(''); setCoFrontLocation('');
+        setCoConMood(''); setCoConNote(''); setCoConLocation('');
         setPrimaryEnergy(undefined); setCoFrontEnergy(undefined); setCoConEnergy(undefined);
       }
       setSearch({ primary: '', coFront: '', coConscious: '' });
       setSearchCf({ primary: '', coFront: '', coConscious: '' });
+      setSearchFacet({ primary: '', coFront: '', coConscious: '' });
       setCustomMood({ primary: '', coFront: '', coConscious: '' });
       setShowCustomMood({ primary: false, coFront: false, coConscious: false });
     }
@@ -380,8 +387,8 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
   const handleSave = () => {
     onSave(
       { memberIds: [...primaryIds], mood: resolveMood('primary', primaryMood), note: primaryNote, location: primaryLocation || undefined, energyLevel: primaryEnergy },
-      { memberIds: [...coFrontIds], mood: resolveMood('coFront', coFrontMood), note: coFrontNote, energyLevel: coFrontEnergy },
-      { memberIds: [...coConsciousIds], mood: resolveMood('coConscious', coConMood), note: coConNote, energyLevel: coConEnergy },
+      { memberIds: [...coFrontIds], mood: resolveMood('coFront', coFrontMood), note: coFrontNote, location: coFrontLocation || undefined, energyLevel: coFrontEnergy },
+      { memberIds: [...coConsciousIds], mood: resolveMood('coConscious', coConMood), note: coConNote, location: coConLocation || undefined, energyLevel: coConEnergy },
     );
     onClose();
   };
@@ -393,12 +400,13 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
     onClose();
   };
 
-  const TierPicker = ({ tierKey, selectedIds, mood, setMood, note, setNote, color, energy, setEnergy }: {
+  const TierPicker = ({ tierKey, selectedIds, mood, setMood, note, setNote, color, energy, setEnergy, location, setLocation }: {
     tierKey: FrontTierKey; selectedIds: Set<string>;
     mood: string; setMood: (v: string) => void;
     note: string; setNote: (v: string) => void;
     color: string;
     energy?: number; setEnergy: (v: number | undefined) => void;
+    location: string; setLocation: (v: string) => void;
   }) => {
     const renderPool = (pool: Member[], q: string, setQ: (v: string) => void, showHint: boolean) => {
       const ql = q.toLowerCase();
@@ -446,7 +454,8 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
       );
     };
 
-    const regularPool = members.filter(m => !m.isCustomFront && !m.deleted);
+    const regularPool = members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted);
+    const facetPool = members.filter(m => m.isFacet && !m.isCustomFront && !m.deleted);
     const customPool = members.filter(m => m.isCustomFront && !m.deleted);
 
     return (
@@ -458,6 +467,11 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         </div>
 
         {renderPool(regularPool, search[tierKey], v => setSearch({ ...search, [tierKey]: v }), true)}
+
+        {/* Never gate this on facetPool.length: an empty section is how you add
+            your first facet to a front. Hiding it looks like the feature is missing. */}
+        <label className="field__label">{t('members.facets')}</label>
+        {renderPool(facetPool, searchFacet[tierKey], v => setSearchFacet({ ...searchFacet, [tierKey]: v }), false)}
 
         {customPool.length > 0 && (
           <>
@@ -488,20 +502,18 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
         )}
 
-        {tierKey === 'primary' && (
-          <>
-            <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
-              {(settings.locations || []).map(l => (
-                <button key={l} className={`btn ${primaryLocation === l ? 'btn--primary' : 'btn--ghost'}`}
-                  style={{ padding: '4px 10px', fontSize: 11 }}
-                  onClick={() => setPrimaryLocation(primaryLocation === l ? '' : l)}>{l}</button>
-              ))}
-            </div>
-            <input className="field__input" value={primaryLocation} onChange={e => setPrimaryLocation(e.target.value)}
-              placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
-          </>
-        )}
+        {/* Every tier gets Mood, Energy, Location and Note — they were inconsistent,
+            with Location on the primary tier only. */}
+        <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
+          {(settings.locations || []).map(l => (
+            <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
+              style={{ padding: '4px 10px', fontSize: 11 }}
+              onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
+          ))}
+        </div>
+        <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
+          placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
 
         <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -528,9 +540,9 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             <Btn variant="solid" onClick={handleSave}>{t('common.save')}</Btn>
           </div>
         }>
-        {TierPicker({ tierKey: 'primary', selectedIds: primaryIds, mood: primaryMood, setMood: setPrimaryMood, note: primaryNote, setNote: setPrimaryNote, color: 'var(--accent)', energy: primaryEnergy, setEnergy: setPrimaryEnergy })}
-        {TierPicker({ tierKey: 'coFront', selectedIds: coFrontIds, mood: coFrontMood, setMood: setCoFrontMood, note: coFrontNote, setNote: setCoFrontNote, color: 'var(--info)', energy: coFrontEnergy, setEnergy: setCoFrontEnergy })}
-        {TierPicker({ tierKey: 'coConscious', selectedIds: coConsciousIds, mood: coConMood, setMood: setCoConMood, note: coConNote, setNote: setCoConNote, color: 'var(--success)', energy: coConEnergy, setEnergy: setCoConEnergy })}
+        {TierPicker({ tierKey: 'primary', selectedIds: primaryIds, mood: primaryMood, setMood: setPrimaryMood, note: primaryNote, setNote: setPrimaryNote, color: 'var(--accent)', energy: primaryEnergy, setEnergy: setPrimaryEnergy, location: primaryLocation, setLocation: setPrimaryLocation })}
+        {TierPicker({ tierKey: 'coFront', selectedIds: coFrontIds, mood: coFrontMood, setMood: setCoFrontMood, note: coFrontNote, setNote: setCoFrontNote, color: 'var(--info)', energy: coFrontEnergy, setEnergy: setCoFrontEnergy, location: coFrontLocation, setLocation: setCoFrontLocation })}
+        {TierPicker({ tierKey: 'coConscious', selectedIds: coConsciousIds, mood: coConMood, setMood: setCoConMood, note: coConNote, setNote: setCoConNote, color: 'var(--success)', energy: coConEnergy, setEnergy: setCoConEnergy, location: coConLocation, setLocation: setCoConLocation })}
       </Modal>
       <ConfirmDialog
         open={confirmClear}
@@ -563,7 +575,7 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
 
   return (
     <Modal open={open} title={t('tier.editTier', { tier: TIER_LABELS[tier] })} onClose={onClose}
-      footer={<Btn variant="solid" onClick={() => onSave(mood || undefined, isPrimary ? location || undefined : undefined, note || undefined)}>{t('common.save')}</Btn>}>
+      footer={<Btn variant="solid" onClick={() => onSave(mood || undefined, location || undefined, note || undefined)}>{t('common.save')}</Btn>}>
       <label className="field__label">{t('modal.mood')}</label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
         {allMoods.map(m => (
@@ -572,20 +584,16 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
             onClick={() => setMood(mood === m ? "" : m)}>{translateMood(m, t)}</button>
         ))}
       </div>
-      {isPrimary && (
-        <>
-          <label className="field__label">{t('modal.location')}</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
-            {allLocations.map(l => (
-              <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 11 }}
-                onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
-            ))}
-          </div>
-          <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-            placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 10 }} />
-        </>
-      )}
+      <label className="field__label">{t('modal.location')}</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
+        {allLocations.map(l => (
+          <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
+            style={{ padding: '4px 10px', fontSize: 11 }}
+            onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
+        ))}
+      </div>
+      <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
+        placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 10 }} />
       <Field label={t('modal.note')} value={note} onChange={setNote} placeholder={t('modal.whatHappening')} multiline />
     </Modal>
   );
