@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Btn, Section } from '../components/ui';
+import { ImportWaitOverlay } from '../components/ImportWaitOverlay';
+import { ImportControl, ImportProgress } from '../import/progress';
 import { store, KEYS, chatMsgKey } from '../storage';
 import {
   Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ChatMessage,
@@ -8,7 +10,7 @@ import {
   parallelMap,
 } from '../utils';
 import { CustomPalette } from '../theme';
-import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, convertAmpar, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
+import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 
 import { extFromDataUri, dataUriToBytes, u8ToBase64, bytesToDataUri, buildPluralKitExport, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
@@ -37,6 +39,24 @@ export default function ImportExportView({ onUpdate }: Props) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  // Progress for the wait overlay. Importers announce phases through
+  // ctx.setProgress; the controller counts them and carries the stop request.
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
+  const importControlRef = useRef<ImportControl | null>(null);
+  const beginImport = (phases: number) => {
+    const control = new ImportControl(setImportProgress);
+    control.plan(Math.max(3, phases));
+    importControlRef.current = control;
+    setImportProgress({ label: '', phase: 0, phases: Math.max(3, phases) });
+    return control;
+  };
+  useEffect(() => {
+    // Never leave a blocking overlay behind if a run ends any which way.
+    if (!importing) {
+      importControlRef.current = null;
+      setImportProgress(null);
+    }
+  }, [importing]);
   const [restoreData, setRestoreData] = useState<ExportPayload | null>(null);
   const [restoreFile, setRestoreFile] = useState<string | null>(null);
   const [restoreSel, setRestoreSel] = useState({
@@ -89,6 +109,11 @@ export default function ImportExportView({ onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
+      <ImportWaitOverlay
+        visible={importing}
+        progress={importProgress}
+        onCancel={importControlRef.current ? () => importControlRef.current?.requestStop() : undefined}
+      />
       {status && (
         <div style={{
           padding: '10px 16px', marginBottom: 16, borderRadius: 8,
@@ -206,7 +231,7 @@ export default function ImportExportView({ onUpdate }: Props) {
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => { setRestoreData(null); setRestoreFile(null); }}>{t('common.cancel')}</Btn>
-              <Btn variant="danger" onClick={() => handleRestore({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={importing}>
+              <Btn variant="danger" onClick={() => handleRestore({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(Object.values(restoreSel).filter(Boolean).length) })} disabled={importing}>
                 {importing ? t('share.importing') : t('share.restoreSelectedData')}
               </Btn>
             </div>
@@ -219,7 +244,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.spMergeDesc')}
         </p>
-        <Btn onClick={() => handleImportSP({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={importing}>
+        <Btn onClick={() => handleImportSP({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(5) })} disabled={importing}>
           {importing ? t('share.importing') : t('share.importFromSP')}
         </Btn>
       </div>
@@ -227,10 +252,10 @@ export default function ImportExportView({ onUpdate }: Props) {
       <Section label={t('share.importOtherApps', { defaultValue: 'Import from another app' })} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
-          {t('share.importOtherAppsDesc', { defaultValue: 'Import members and fronting history from Ourcana, HiveMind, or Octocon (.json), or Ampersand (.ampar).' })}
+          {t('share.importOtherAppsDesc', { defaultValue: 'Import members and fronting history from Ourcana (.our or .json), HiveMind or Octocon (.json), or Ampersand\'s JSON export. Ampersand\'s binary backup is not supported — its format changes between releases, which is why their developer recommends JSON.' })}
         </p>
-        <Btn onClick={() => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={importing}>
-          {importing ? t('share.importing') : t('share.importFromOtherApp', { defaultValue: 'Pick file (.json / .ampar)' })}
+        <Btn onClick={() => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(4) })} disabled={importing}>
+          {importing ? t('share.importing') : t('share.importFromOtherApp', { defaultValue: 'Pick file (.our / .json)' })}
         </Btn>
       </div>
 
@@ -291,7 +316,7 @@ export default function ImportExportView({ onUpdate }: Props) {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => { setExtPreview(null); setExtToken(''); }}>{t('common.cancel')}</Btn>
-              <Btn variant="solid" onClick={() => handleTokenImport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={importing}>
+              <Btn variant="solid" onClick={() => handleTokenImport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(Object.values(extSel).filter(Boolean).length) })} disabled={importing}>
                 {importing ? t('share.importing') : t('share.importSelected')}
               </Btn>
             </div>

@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import { Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ExportPayload } from '../utils';
 import { CustomPalette } from '../theme';
+import { ImportControl } from './progress';
 
 export type ImportCtx = {
   system: SystemInfo;
@@ -28,5 +29,8 @@ export type ImportCtx = {
   extPreview: { members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[] } | null;
   setExtPreview: any;
   extSel: Record<string, boolean>;
+  /** Drives the wait overlay and carries the stop request. Optional so existing
+   *  call sites keep compiling; absent means no progress is reported. */
+  control?: ImportControl;
   spGet: (url: string, headers: Record<string, string>) => Promise<any | null>;
 };

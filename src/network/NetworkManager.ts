@@ -1504,7 +1504,11 @@ class NetworkManagerImpl {
     const CLONE_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
     let changed = false;
     this.friends = this.friends.map(f => {
-      if (f.kind === 'device' && f.initRole === 'target' && f.initPending) {
+      // Was 'target' only. A SOURCE whose initial clone never completed stayed
+      // initPending forever, and acceptedDevices() excludes initPending — so the
+      // device showed as linked and never synced again. Expiring it is safe:
+      // normal key sync converges the data anyway.
+      if (f.kind === 'device' && f.initPending) {
         if (!f.initStartedAt || Date.now() - f.initStartedAt > CLONE_IDLE_TIMEOUT_MS) {
           changed = true;
           return { ...f, initPending: false };
@@ -1515,6 +1519,26 @@ class NetworkManagerImpl {
     if (changed) {
       this.persistFriends();
       this.notify();
+    }
+    this.retryPendingLinks();
+  }
+
+  /**
+   * A device link only completes when each side RECEIVES the other's `connect`.
+   * Miss that one packet — app not focused, relay hiccup, peer not yet online —
+   * and the record sits at 'entered_theirs' forever: never 'accepted', so
+   * excluded from acceptedDevices() and never synced, while the UI still says
+   * it is waiting for the other side. Nothing retried it.
+   *
+   * `connect` is idempotent (the handler upserts by peer id and acks), so
+   * resending on the same cadence as the stale-clone sweep is safe and is
+   * exactly when a missed handshake deserves another chance.
+   */
+  private retryPendingLinks(): void {
+    for (const f of this.friends) {
+      if (f.kind !== 'device' || f.status === 'accepted') continue;
+      if (!this.isReachable(f.peerId)) continue;
+      this.sendConnectTo(f.peerId, 'device', false).catch(() => {});
     }
   }
 

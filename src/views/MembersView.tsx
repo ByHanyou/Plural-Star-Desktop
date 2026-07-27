@@ -405,6 +405,32 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         )}
 
         <fieldset disabled={readMode} style={{ border: 'none', margin: 0, padding: 0, minInlineSize: 'auto' }}>
+        {/*
+          Facets shipped after people had already been using ordinary members as
+          them, so the category has to be changeable in place. Nothing else about
+          the record moves — fields, groups, connections and avatar all stay.
+          isFacet and isCustomFront are mutually exclusive, so setting one clears
+          the other. Not offered for the system's own member: self is a roster
+          member by definition.
+        */}
+        {!isNew && !readMode && settings?.selfMemberId !== f.id && memberTab === 'main' && (
+          <button
+            onClick={() => {
+              const toFacet = !f.isFacet;
+              setF({ ...f, isFacet: toFacet, isCustomFront: toFacet ? false : f.isCustomFront });
+            }}
+            title={t('members.moveCategoryHint', { defaultValue: 'Keeps everything else about this profile. Facets are not counted as members.' })}
+            style={{
+              alignSelf: 'flex-start', marginBottom: 14, padding: '6px 12px', borderRadius: 999,
+              border: '1px solid var(--border)', background: 'var(--surface)',
+              color: 'var(--muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            }}>
+            {f.isFacet
+              ? `↩ ${t('members.makeMember', { defaultValue: 'Move to Members' })}`
+              : `◈ ${t('members.makeFacet', { defaultValue: 'Move to Facets' })}`}
+          </button>
+        )}
+
         {(memberTab === 'main' || isNew) && (<>
           <div style={{ textAlign: 'center', marginBottom: 16 }}>
             <div className="tile__avatar" style={{

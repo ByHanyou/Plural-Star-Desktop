@@ -4,6 +4,7 @@ import { detectPluralSpace } from '../importers';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { extFromDataUri, dataUriToBytes, u8ToBase64, bytesToDataUri, buildPluralKitExport } from '../exportUtils';
 import { ImportCtx } from './ctx';
+import { isImportStopped } from './progress';
 
 export const handleExport = async (ctx: ImportCtx) => {
   const { showExportOptions, exportSel, channels, members, system, history, journal, settings, palettes, showStatus } = ctx;
@@ -163,7 +164,7 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
 };
 
 export const handleRestore = async (ctx: ImportCtx) => {
-  const { restoreData, setImporting, restoreSel, mergeLogs, showStatus, setRestoreData, setRestoreFile, onUpdate } = ctx;
+  const { restoreData, setImporting, restoreSel, mergeLogs, showStatus, setRestoreData, setRestoreFile, onUpdate, t } = ctx;
     if (!restoreData) return;
     setImporting(true);
     try {
@@ -171,6 +172,10 @@ export const handleRestore = async (ctx: ImportCtx) => {
 
       if (restoreSel.system && restoreData.system) batch[KEYS.system] = restoreData.system;
 
+      // Phase boundaries: the overlay advances here and a stop request is
+      // honoured here. Desktop buffers everything into `batch` and applies it at
+      // the end, so stopping before the apply leaves the data untouched.
+      ctx.control?.begin(t('share.progressSavingMembers', { defaultValue: 'Restoring members…' }));
       if (restoreSel.members && restoreData.members) {
         const avatarMap: Record<string, string> = { ...(restoreData.avatars || {}) };
         const bannerMap: Record<string, string> = { ...(restoreData.banners || {}) };
@@ -210,6 +215,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
         }
       }
 
+      ctx.control?.begin(t('share.progressJournal', { defaultValue: 'Restoring journal…' }));
       if (restoreSel.journal && restoreData.journal) {
         if (mergeLogs) {
           const existing = await store.getStrict<any[]>(KEYS.journal, []) || [];
@@ -218,6 +224,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
         } else batch[KEYS.journal] = restoreData.journal;
       }
 
+      ctx.control?.begin(t('share.progressHistory', { defaultValue: 'Restoring front history…' }));
       if (restoreSel.frontHistory && restoreData.frontHistory) {
         if (mergeLogs) {
           const existing = await store.getStrict<any[]>(KEYS.history, []) || [];
@@ -290,7 +297,17 @@ export const handleRestore = async (ctx: ImportCtx) => {
       setRestoreFile(null);
       onUpdate();
     } catch (e: any) {
-      showStatus(`Restore error (no changes saved): ${e.message}`);
+      // A user-requested stop is not an error. Desktop buffers every write into
+      // `batch` and applies it in one go at the end, so stopping before that
+      // point genuinely leaves the existing data untouched — say so plainly.
+      if (isImportStopped(e)) {
+        showStatus(t('share.importStopped', {
+          defaultValue: 'Import stopped. Nothing was changed.',
+          count: ctx.control?.completed.length ?? 0,
+        }));
+      } else {
+        showStatus(`Restore error (no changes saved): ${e.message}`);
+      }
     } finally {
       setImporting(false);
     }

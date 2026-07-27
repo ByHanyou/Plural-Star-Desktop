@@ -3,15 +3,19 @@ import {
   Member, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, uid,
 } from '../utils';
-import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, convertAmpar, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
+import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
+import { isImportStopped } from './progress';
 import { unzipSync, strFromU8 } from 'fflate';
 import { bytesToDataUri, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
 import { ImportCtx } from './ctx';
 
 export const handleImportSP = async (ctx: ImportCtx) => {
-  const { setImporting, extSel, showStatus, onUpdate } = ctx;
+  const { setImporting, extSel, showStatus, onUpdate, t } = ctx;
     setImporting(true);
     try {
+      // Announce a phase so the wait overlay has something to count and Cancel
+      // has a boundary to land on; without this the bar and button are inert.
+      ctx.control?.begin(t('share.importing'));
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.json,.txt';
@@ -85,25 +89,45 @@ export const handleImportSP = async (ctx: ImportCtx) => {
 };
 
 export const handleImportForeign = async (ctx: ImportCtx) => {
-  const { setImporting, showStatus, history, onUpdate } = ctx;
+  const { setImporting, showStatus, history, onUpdate, t } = ctx;
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,.ampar';
+    input.accept = '.json,.our';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
       setImporting(true);
       try {
+        ctx.control?.begin(t('share.importing'));
         let conv: ConvertedImport | null = null;
-        if (file.name.toLowerCase().endsWith('.ampar')) {
-          const bytes = new Uint8Array(await file.arrayBuffer());
-          conv = convertAmpar(bytes);
-        } else {
-          const text = await file.text();
+        {
+          // The binary .ampar/.ampdb path is GONE: Ampersand's developer reshapes
+          // that format every few releases, so we take their JSON export only.
+          // An Ourcana .our is a plain zip holding a single ourcana.json. Sniff
+          // the PK zip magic instead of trusting the extension, since users
+          // rename these.
+          const buf = new Uint8Array(await file.arrayBuffer());
+          const isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b && (buf[2] === 3 || buf[2] === 5 || buf[2] === 7);
+          let text: string;
+          if (isZip) {
+            const files = unzipSync(buf);
+            const name = Object.keys(files).find(n => n.toLowerCase().endsWith('.json'));
+            if (!name) { showStatus('Error: That archive has no .json inside it'); setImporting(false); return; }
+            text = strFromU8(files[name]);
+          } else {
+            text = strFromU8(buf);
+          }
           const fmt = detectForeignFormat(text);
-          if (!fmt) { showStatus('Error: Unrecognized file. Use an Ourcana, HiveMind, Octocon (.json) or Ampersand (.ampar) export.'); setImporting(false); return; }
-          const d = JSON.parse(text);
-          conv = fmt === 'ourcana' ? convertOurcana(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
+          const parsedJson = (() => { try { return JSON.parse(text); } catch { return null; } })();
+          // Ampersand's JSON export is the format their dev recommends over the
+          // binary one, so check it before the generic sniffers.
+          if (parsedJson && detectAmpersandJson(parsedJson)) {
+            conv = convertAmpersandJson(parsedJson);
+          } else {
+            if (!fmt) { showStatus('Error: Unrecognized file. Use an Ourcana (.our/.json), HiveMind, Octocon, or Ampersand JSON export.'); setImporting(false); return; }
+            const d = parsedJson ?? JSON.parse(text);
+            conv = fmt === 'ourcana' ? convertOurcana(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
+          }
         }
         if (!conv || (conv.members.length === 0 && conv.history.length === 0)) { showStatus('Error: Nothing to import from that file'); setImporting(false); return; }
 
@@ -382,20 +406,47 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
         if (failedCats.length > 0) showStatus(`Error: ${t('share.spFetchPartial', {categories: failedCats.join(', ')})}`);
       } else {
         const headers = {Authorization: extToken.trim(), 'Content-Type': 'application/json'};
-        const [sData, mData, swData] = await Promise.all([
+        const [sData, mData] = await Promise.all([
           netFetch('https://api.pluralkit.me/v2/systems/@me', headers),
           netFetch('https://api.pluralkit.me/v2/systems/@me/members', headers),
-          netFetch('https://api.pluralkit.me/v2/systems/@me/switches?limit=500', headers),
         ]);
-        setExtPreview({system: sData, members: Array.isArray(mData) ? mData : [], switches: Array.isArray(swData) ? swData : []});
+        // PluralKit caps this endpoint at 100 rows regardless of `limit` and
+        // expects you to page backwards with `before`. Asking for 500 once threw
+        // away every switch older than the newest 100.
+        const PK_PAGE = 100;
+        const PK_MAX_PAGES = 200; // 20k switches — stops a broken cursor looping
+        const swData: any[] = [];
+        const seenSwitch = new Set<string>();
+        let before: string | undefined;
+        for (let page = 0; page < PK_MAX_PAGES; page++) {
+          const url = `https://api.pluralkit.me/v2/systems/@me/switches?limit=${PK_PAGE}${before ? `&before=${encodeURIComponent(before)}` : ''}`;
+          const batch = await netFetch(url, headers);
+          if (!Array.isArray(batch) || batch.length === 0) break;
+          let added = 0;
+          for (const sw of batch) {
+            const id = String(sw?.id || sw?.timestamp || '');
+            if (id && seenSwitch.has(id)) continue;
+            if (id) seenSwitch.add(id);
+            swData.push(sw);
+            added++;
+          }
+          const oldest = batch[batch.length - 1]?.timestamp;
+          if (!oldest || oldest === before || added === 0 || batch.length < PK_PAGE) break;
+          before = String(oldest);
+        }
+        setExtPreview({system: sData, members: Array.isArray(mData) ? mData : [], switches: swData});
       }
-    } catch (e: any) { showStatus(`${t('share.importFailed')}: ${e.message}`); }
+    } catch (e: any) {
+      if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
+      else showStatus(`${t('share.importFailed')}: ${e.message}`);
+    }
     finally { setExtLoading(false); }
 };
 
 export const handleTokenImport = async (ctx: ImportCtx) => {
-  const { extPreview, extSource, setImporting, system, extSel, members, history, showStatus, setExtPreview, setExtToken, onUpdate } = ctx;
+  const { extPreview, extSource, setImporting, system, extSel, members, history, showStatus, setExtPreview, setExtToken, onUpdate, t } = ctx;
     if (!extPreview) return;
+    ctx.control?.begin(t('share.importing'));
     const isPK = extSource === 'pk';
     setImporting(true);
     try {
@@ -565,6 +616,11 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       showStatus(`Imported: ${newM.length} members, ${extPreview.switches.length} switches`);
       setExtPreview(null); setExtToken('');
       onUpdate();
-    } catch (e: any) { showStatus(`Import error (no changes saved): ${e.message}`); }
+    } catch (e: any) {
+      // A user stop is not a failure. This path buffers into `batch` and writes
+      // once at the end, so stopping before that leaves the data untouched.
+      if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
+      else showStatus(`Import error (no changes saved): ${e.message}`);
+    }
     finally { setImporting(false); }
 };
