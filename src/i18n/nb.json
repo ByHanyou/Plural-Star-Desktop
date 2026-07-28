@@ -143,6 +143,10 @@
     "publishFailed": "Kunne ikke publisere koden din — sjekk tilkoblingen og prøv igjen."
   },
   "whiteboard": {
+    "clearConfirm2Title": "Er du sikker?",
+    "clearConfirm2Msg": "Hele tavlen blir slettet. Dette kan ikke angres.",
+    "clearConfirm3Title": "Siste sjanse",
+    "clearConfirm3Msg": "Vil du virkelig slette alt på tavlen?",
     "title": "Tavle",
     "draw": "Tegn",
     "move": "Flytt",
@@ -156,6 +160,7 @@
     "penColor": "Pennefarge"
   },
   "systemMap": {
+    "showColors": "Farger",
     "manageTypes": "Administrer typer",
     "connectionsCount": "{{count}} forbindelser",
     "allOnMap": "Alle medlemmer er allerede på kartet.",
@@ -227,6 +232,15 @@
     "apptReminderTitle": "Avtalepåminnelse"
   },
   "common": {
+    "on": "På",
+    "off": "Av",
+    "settingsSaved": "Innstillinger lagret",
+    "minimize": "Minimer",
+    "maximize": "Maksimer",
+    "change": "Endre",
+    "search": "Søk…",
+    "unlock": "Lås opp",
+    "back": "Tilbake",
     "dragReorder": "Dra for å endre rekkefølge",
     "reorderLock": "Dra-omorganisering",
     "save": "Lagre",
@@ -406,6 +420,8 @@
     "searchPlaceholder": "Søk i historikk..."
   },
   "journal": {
+    "passwordPrompt": "Denne oppføringen er passordbeskyttet.",
+    "wrongPassword": "Feil passord.",
     "title": "Dagbok",
     "new": "+ Ny",
     "noEntries": "Ingen innlegg ennå.",
@@ -443,6 +459,13 @@
     "templateBody": "Oppføringsinnhold (forhåndsinnstilt)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "PluralKit-eksport lagret",
+    "pkExportHint": "Eksporterer medlemmer og fronthistorikk som en fil i PluralKit-format for pk;import (PluralKit) eller tul!import (Tupperbox). Avatarer følger bare med hvis de er bildelenker — PluralKit kan ikke lese lokalt lagrede bilder — og proxy-tagger står tomme for oppsett i boten.",
+    "importOtherApps": "Importer fra en annen app",
+    "importOtherAppsDesc": "Importer medlemmer og fronthistorikk fra Ourcana (.our eller .json), HiveMind eller Octocon (.json), en Tupperbox-eksport (tul!export) eller Ampersands JSON-eksport. Ampersands binære sikkerhetskopi støttes ikke — formatet endres mellom utgivelser, og derfor anbefaler utvikleren JSON.",
+    "importFromOtherApp": "Velg fil (.our / .json)",
+    "usePkDisplayNames": "Bruk visningsnavn",
     "mergeLogs": "Slå sammen logger (behold eksisterende historikk, journal, chat og avstemninger; legg bare til nye). Medlemmer erstattes likevel.",
     "title": "Del & Eksporter",
     "export": "Eksporter",
@@ -572,6 +595,9 @@
     "banners": "Medlemsbannere"
   },
   "hub": {
+    "discordBlurb": "Fellesskapschat og støtte",
+    "supportPS": "Støtt Plural Star",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} til",
     "title": "Hub",
     "shareExport": "Del & Eksporter",
@@ -605,7 +631,12 @@
     "creditsBlurb": "Fellesskapets bidragsytere",
     "archive": "Arkiv"
   },
+  "markdown": {
+    "imageUnavailable": "[bilde utilgjengelig]"
+  },
   "modal": {
+    "appFont": "App-skrifttype",
+    "changePfp": "Bytt profilbilde",
     "systemSettings": "Systeminnstillinger",
     "systemName": "Systemnavn",
     "systemNamePlaceholder": "Systemnavn",
@@ -738,6 +769,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "Gruppenavn",
     "title": "Grupper",
     "manage": "Grupper",
     "allGroups": "Alle Grupper",
@@ -767,6 +799,8 @@
     "subsystemsCount": "{{count}} undersystemer"
   },
   "stats": {
+    "showMore": "Vis mer",
+    "energyByHour": "Energi per time",
     "allTime": "Alle",
     "last7": "7 dager",
     "last30": "30 dager",
@@ -800,6 +834,12 @@
     "uniqueFronters": "Unike frontere"
   },
   "chat": {
+    "addReaction": "Legg til reaksjon",
+    "attachFile": "Legg ved fil",
+    "messagePlaceholder": "Melding til #{{name}}...",
+    "reply": "Svar",
+    "replyingTo": "Svarer",
+    "send": "Send",
     "channels": "Kanaler",
     "newChannel": "Ny kanal",
     "channelName": "Kanalnavn…",
@@ -870,6 +910,7 @@
     "startDate": "Start"
   },
   "polls": {
+    "removeOption": "Fjern alternativ",
     "title": "Avstemninger",
     "createPoll": "Opprett avstemning",
     "noPolls": "Ingen avstemninger.",

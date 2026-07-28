@@ -143,6 +143,10 @@
     "publishFailed": "无法发布你的好友码——请检查网络连接后重试。"
   },
   "whiteboard": {
+    "clearConfirm2Title": "确定吗？",
+    "clearConfirm2Msg": "整个画板将被清除。此操作无法撤销。",
+    "clearConfirm3Title": "最后确认",
+    "clearConfirm3Msg": "真的要清除白板上的所有内容吗？",
     "title": "白板",
     "draw": "绘画",
     "move": "移动",
@@ -156,6 +160,7 @@
     "penColor": "画笔颜色"
   },
   "systemMap": {
+    "showColors": "颜色",
     "manageTypes": "管理类型",
     "connectionsCount": "{{count}} 条连接",
     "allOnMap": "所有成员都已在地图上。",
@@ -227,6 +232,15 @@
     "apptReminderTitle": "预约提醒"
   },
   "common": {
+    "on": "开",
+    "off": "关",
+    "settingsSaved": "设置已保存",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "change": "更改",
+    "search": "搜索…",
+    "unlock": "解锁",
+    "back": "返回",
     "dragReorder": "拖动以重新排序",
     "reorderLock": "拖动排序",
     "save": "保存",
@@ -406,6 +420,8 @@
     "entryCountOne": "1 条记录"
   },
   "journal": {
+    "passwordPrompt": "此条目受密码保护。",
+    "wrongPassword": "密码错误。",
     "title": "日记",
     "new": "+ 新建",
     "locked": "日记已锁定",
@@ -443,6 +459,13 @@
     "templateBody": "条目内容（预设）"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "PluralKit 导出已保存",
+    "pkExportHint": "将成员和前台历史导出为 PluralKit 格式文件，可用于 pk;import（PluralKit）或 tul!import（Tupperbox）。头像只有是图片链接时才会保留 — PluralKit 无法读取本地保存的图片 — 代理标签留空，需在机器人中设置。",
+    "importOtherApps": "从其他应用导入",
+    "importOtherAppsDesc": "从 Ourcana（.our 或 .json）、HiveMind 或 Octocon（.json）、Tupperbox 导出（tul!export）或 Ampersand 的 JSON 导出中导入成员和前台历史。不支持 Ampersand 的二进制备份 — 其格式在版本之间会变化，因此其开发者推荐使用 JSON。",
+    "importFromOtherApp": "选择文件 (.our / .json)",
+    "usePkDisplayNames": "使用显示名称",
     "mergeLogs": "合并记录（保留现有的历史、日记、聊天和投票；只添加新的）。成员仍会被替换。",
     "title": "分享与导出",
     "export": "导出",
@@ -572,6 +595,9 @@
     "banners": "成员横幅"
   },
   "hub": {
+    "discordBlurb": "社区聊天与支持",
+    "supportPS": "支持 Plural Star",
+    "supportPSBlurb": "Buy Me a Coffee",
     "title": "中心",
     "shareExport": "分享与导出",
     "shareExportDesc": "导出数据，从其他应用导入，分享系统资料。",
@@ -605,7 +631,12 @@
     "creditsBlurb": "社区贡献者",
     "archive": "归档"
   },
+  "markdown": {
+    "imageUnavailable": "[图片不可用]"
+  },
   "modal": {
+    "appFont": "应用字体",
+    "changePfp": "更换头像",
     "read": "阅读",
     "updateFront": "更新前台",
     "addMembersFirst": "请先添加成员。",
@@ -738,6 +769,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "分组名称",
     "title": "组",
     "manage": "组",
     "allGroups": "所有组",
@@ -767,6 +799,8 @@
     "subsystemsCount": "{{count}} 个子系统"
   },
   "stats": {
+    "showMore": "显示更多",
+    "energyByHour": "按小时的能量",
     "allTime": "全部时间",
     "last7": "7 天",
     "last30": "30 天",
@@ -800,6 +834,12 @@
     "sessionsSuffix": "次会话"
   },
   "chat": {
+    "addReaction": "添加回应",
+    "attachFile": "附加文件",
+    "messagePlaceholder": "发消息到 #{{name}}...",
+    "reply": "回复",
+    "replyingTo": "回复给",
+    "send": "发送",
     "channels": "频道",
     "newChannel": "新频道",
     "channelName": "频道名称…",
@@ -870,6 +910,7 @@
     "hasNotes": "{{names}} 的留言板上有留言"
   },
   "polls": {
+    "removeOption": "移除选项",
     "title": "投票",
     "createPoll": "+ 创建投票",
     "question": "问题",

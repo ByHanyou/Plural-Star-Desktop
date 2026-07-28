@@ -143,6 +143,10 @@
     "publishFailed": "Не вдалося опублікувати код — перевірте з'єднання та спробуйте ще раз."
   },
   "whiteboard": {
+    "clearConfirm2Title": "Ви впевнені?",
+    "clearConfirm2Msg": "Усю дошку буде стерто. Це неможливо скасувати.",
+    "clearConfirm3Title": "Останній шанс",
+    "clearConfirm3Msg": "Справді стерти все на дошці?",
     "title": "Дошка",
     "draw": "Малювати",
     "move": "Переміщати",
@@ -156,6 +160,7 @@
     "penColor": "Колір пера"
   },
   "systemMap": {
+    "showColors": "Кольори",
     "manageTypes": "Керування типами",
     "connectionsCount": "{{count}} зв'язків",
     "allOnMap": "Усі учасники вже на карті.",
@@ -227,6 +232,15 @@
     "remind1d": "1 дн"
   },
   "common": {
+    "on": "Увімк",
+    "off": "Вимк",
+    "settingsSaved": "Налаштування збережено",
+    "minimize": "Згорнути",
+    "maximize": "Розгорнути",
+    "change": "Змінити",
+    "search": "Пошук…",
+    "unlock": "Розблокувати",
+    "back": "Назад",
     "dragReorder": "Перетягніть, щоб змінити порядок",
     "reorderLock": "Перетягування для сортування",
     "save": "Зберегти",
@@ -406,6 +420,8 @@
     "entryCountOne": "1 запис"
   },
   "journal": {
+    "passwordPrompt": "Цей запис захищено паролем.",
+    "wrongPassword": "Неправильний пароль.",
     "title": "Щоденник",
     "new": "+ Новий",
     "locked": "Щоденник заблоковано",
@@ -443,6 +459,13 @@
     "templateBody": "Текст Запису (попередньо встановлений)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "Експорт PluralKit збережено",
+    "pkExportHint": "Експортує учасників та історію фронту у файл формату PluralKit для pk;import (PluralKit) або tul!import (Tupperbox). Аватари переносяться лише якщо це посилання на зображення — PluralKit не може читати локально збережені картинки — а проксі-теги лишаються порожніми для налаштування в боті.",
+    "importOtherApps": "Імпорт з іншого застосунку",
+    "importOtherAppsDesc": "Імпортуйте учасників та історію фронту з Ourcana (.our або .json), HiveMind чи Octocon (.json), експорту Tupperbox (tul!export) або JSON-експорту Ampersand. Бінарна резервна копія Ampersand не підтримується — її формат змінюється між випусками, тому розробник радить JSON.",
+    "importFromOtherApp": "Вибрати файл (.our / .json)",
+    "usePkDisplayNames": "Використовувати відображувані імена",
     "mergeLogs": "Об'єднати записи (зберегти наявну історію, щоденник, чат і опитування; додати лише нове). Учасники все одно замінюються.",
     "title": "Поділитися та експорт",
     "export": "Експорт",
@@ -572,6 +595,9 @@
     "banners": "Банери учасників"
   },
   "hub": {
+    "discordBlurb": "Чат спільноти та підтримка",
+    "supportPS": "Підтримати Plural Star",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} ще",
     "title": "Хаб",
     "shareExport": "Поділитися та експорт",
@@ -605,7 +631,12 @@
     "creditsBlurb": "Учасники спільноти",
     "archive": "Архів"
   },
+  "markdown": {
+    "imageUnavailable": "[зображення недоступне]"
+  },
   "modal": {
+    "appFont": "Шрифт застосунку",
+    "changePfp": "Змінити фото профілю",
     "read": "Перегляд",
     "updateFront": "Оновити фронт",
     "addMembersFirst": "Спочатку додайте учасників.",
@@ -738,6 +769,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "Назва групи",
     "title": "Групи",
     "manage": "Групи",
     "allGroups": "Усі групи",
@@ -767,6 +799,8 @@
     "subsystemsCount": "Підсистем: {{count}}"
   },
   "stats": {
+    "showMore": "Показати більше",
+    "energyByHour": "Енергія за годинами",
     "allTime": "Увесь час",
     "last7": "7 днів",
     "last30": "30 днів",
@@ -800,6 +834,12 @@
     "uniqueFronters": "Унікальних фронтерів"
   },
   "chat": {
+    "addReaction": "Додати реакцію",
+    "attachFile": "Прикріпити файл",
+    "messagePlaceholder": "Повідомлення в #{{name}}...",
+    "reply": "Відповісти",
+    "replyingTo": "У відповідь",
+    "send": "Надіслати",
     "channels": "Канали",
     "newChannel": "Новий канал",
     "channelName": "Назва каналу…",
@@ -870,6 +910,7 @@
     "hasNotes": "У {{names}} є нотатки на дошці"
   },
   "polls": {
+    "removeOption": "Прибрати варіант",
     "title": "Опитування",
     "createPoll": "+ Створити опитування",
     "question": "Питання",

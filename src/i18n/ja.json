@@ -143,6 +143,10 @@
     "publishFailed": "コードを公開できませんでした。接続を確認してもう一度お試しください。"
   },
   "whiteboard": {
+    "clearConfirm2Title": "本当によろしいですか？",
+    "clearConfirm2Msg": "ボード全体が消去されます。元に戻せません。",
+    "clearConfirm3Title": "最終確認",
+    "clearConfirm3Msg": "ホワイトボードのすべてを本当に消去しますか？",
     "title": "ホワイトボード",
     "draw": "描く",
     "move": "移動",
@@ -156,6 +160,7 @@
     "penColor": "ペンの色"
   },
   "systemMap": {
+    "showColors": "カラー",
     "manageTypes": "種類を管理",
     "connectionsCount": "{{count}} 件のつながり",
     "allOnMap": "すべてのメンバーはすでにマップ上にあります。",
@@ -227,6 +232,15 @@
     "apptReminderTitle": "予約リマインダー"
   },
   "common": {
+    "on": "オン",
+    "off": "オフ",
+    "settingsSaved": "設定を保存しました",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "change": "変更",
+    "search": "検索…",
+    "unlock": "ロック解除",
+    "back": "戻る",
     "dragReorder": "ドラッグして並べ替え",
     "reorderLock": "ドラッグ並べ替え",
     "save": "保存",
@@ -406,6 +420,8 @@
     "entryCountOne": "1 件"
   },
   "journal": {
+    "passwordPrompt": "このエントリはパスワードで保護されています。",
+    "wrongPassword": "パスワードが違います。",
     "title": "ジャーナル",
     "new": "+ 新規",
     "locked": "ジャーナルがロックされています",
@@ -443,6 +459,13 @@
     "templateBody": "エントリーの本文（プリセット）"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "PluralKit エクスポートを保存しました",
+    "pkExportHint": "メンバーとフロント履歴を PluralKit 形式のファイルとして書き出し、pk;import（PluralKit）や tul!import（Tupperbox）で読み込めます。アバターは画像リンクの場合のみ引き継がれます — PluralKit はローカル保存の画像を読めません。プロキシタグは空のままなので、ボット側で設定してください。",
+    "importOtherApps": "他のアプリからインポート",
+    "importOtherAppsDesc": "Ourcana（.our または .json）、HiveMind や Octocon（.json）、Tupperbox のエクスポート（tul!export）、Ampersand の JSON エクスポートからメンバーとフロント履歴を取り込みます。Ampersand のバイナリバックアップは非対応です — リリースごとに形式が変わるため、開発者も JSON を推奨しています。",
+    "importFromOtherApp": "ファイルを選択 (.our / .json)",
+    "usePkDisplayNames": "表示名を使う",
     "mergeLogs": "ログを統合（既存の履歴・日記・チャット・投票を残し、新しいものだけ追加）。メンバーは置き換えられます。",
     "title": "共有とエクスポート",
     "export": "エクスポート",
@@ -572,6 +595,9 @@
     "banners": "メンバーバナー"
   },
   "hub": {
+    "discordBlurb": "コミュニティチャットとサポート",
+    "supportPS": "Plural Star を支援する",
+    "supportPSBlurb": "Buy Me a Coffee",
     "title": "ハブ",
     "shareExport": "共有とエクスポート",
     "shareExportDesc": "データのエクスポート、他アプリからのインポート、システムプロフィールの共有。",
@@ -605,7 +631,12 @@
     "creditsBlurb": "コミュニティの貢献者",
     "archive": "アーカイブ"
   },
+  "markdown": {
+    "imageUnavailable": "[画像は利用できません]"
+  },
   "modal": {
+    "appFont": "アプリのフォント",
+    "changePfp": "プロフィール画像を変更",
     "read": "読む",
     "updateFront": "フロントを更新",
     "addMembersFirst": "先にメンバーを追加してください。",
@@ -738,6 +769,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "グループ名",
     "title": "グループ",
     "manage": "グループ",
     "allGroups": "すべてのグループ",
@@ -767,6 +799,8 @@
     "subsystemsCount": "{{count}} 件のサブシステム"
   },
   "stats": {
+    "showMore": "もっと見る",
+    "energyByHour": "時間帯別エネルギー",
     "allTime": "全期間",
     "last7": "7日間",
     "last30": "30日間",
@@ -800,6 +834,12 @@
     "sessionsSuffix": "セッション"
   },
   "chat": {
+    "addReaction": "リアクションを追加",
+    "attachFile": "ファイルを添付",
+    "messagePlaceholder": "#{{name}} へメッセージ...",
+    "reply": "返信",
+    "replyingTo": "返信先",
+    "send": "送信",
     "channels": "チャンネル",
     "newChannel": "新しいチャンネル",
     "channelName": "チャンネル名…",
@@ -870,6 +910,7 @@
     "hasNotes": "{{names}} のノートボードにノートがあります"
   },
   "polls": {
+    "removeOption": "選択肢を削除",
     "title": "投票",
     "createPoll": "+ 投票を作成",
     "question": "質問",

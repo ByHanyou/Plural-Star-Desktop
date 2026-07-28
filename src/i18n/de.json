@@ -143,6 +143,10 @@
     "publishFailed": "Dein Code konnte nicht veröffentlicht werden — prüfe deine Verbindung und versuche es erneut."
   },
   "whiteboard": {
+    "clearConfirm2Title": "Bist du sicher?",
+    "clearConfirm2Msg": "Das gesamte Board wird gelöscht. Das kann nicht rückgängig gemacht werden.",
+    "clearConfirm3Title": "Letzte Chance",
+    "clearConfirm3Msg": "Wirklich alles auf dem Whiteboard löschen?",
     "title": "Whiteboard",
     "draw": "Zeichnen",
     "move": "Verschieben",
@@ -156,6 +160,7 @@
     "penColor": "Stiftfarbe"
   },
   "systemMap": {
+    "showColors": "Farben",
     "manageTypes": "Typen verwalten",
     "connectionsCount": "{{count}} Verbindungen",
     "allOnMap": "Alle Mitglieder sind bereits auf der Karte.",
@@ -227,6 +232,15 @@
     "apptReminderTitle": "Termin-Erinnerung"
   },
   "common": {
+    "on": "An",
+    "off": "Aus",
+    "settingsSaved": "Einstellungen gespeichert",
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "change": "Ändern",
+    "search": "Suchen…",
+    "unlock": "Entsperren",
+    "back": "Zurück",
     "dragReorder": "Zum Umsortieren ziehen",
     "reorderLock": "Ziehen zum Umsortieren",
     "save": "Speichern",
@@ -406,6 +420,8 @@
     "searchPlaceholder": "Verlauf durchsuchen..."
   },
   "journal": {
+    "passwordPrompt": "Dieser Eintrag ist passwortgeschützt.",
+    "wrongPassword": "Falsches Passwort.",
     "title": "Tagebuch",
     "new": "+ Neu",
     "locked": "Tagebuch Gesperrt",
@@ -443,6 +459,13 @@
     "templateBody": "Eintragstext (voreingestellt)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "PluralKit-Export gespeichert",
+    "pkExportHint": "Exportiert Mitglieder und Front-Historie als Datei im PluralKit-Format für pk;import (PluralKit) oder tul!import (Tupperbox). Avatare werden nur übernommen, wenn sie Bild-Links sind — PluralKit kann lokal gespeicherte Bilder nicht lesen — und Proxy-Tags bleiben leer, um sie im Bot einzurichten.",
+    "importOtherApps": "Aus einer anderen App importieren",
+    "importOtherAppsDesc": "Importiere Mitglieder und Front-Historie aus Ourcana (.our oder .json), HiveMind oder Octocon (.json), einem Tupperbox-Export (tul!export) oder Ampersands JSON-Export. Ampersands binäres Backup wird nicht unterstützt — das Format ändert sich zwischen Releases, weshalb deren Entwickler JSON empfiehlt.",
+    "importFromOtherApp": "Datei wählen (.our / .json)",
+    "usePkDisplayNames": "Anzeigenamen verwenden",
     "mergeLogs": "Protokolle zusammenführen (vorhandene Historie, Journal, Chat & Umfragen behalten; nur Neues hinzufügen). Mitglieder werden weiterhin ersetzt.",
     "title": "Teilen & Exportieren",
     "export": "Exportieren",
@@ -571,7 +594,12 @@
     "spMergeDesc": "Simply-Plural-Backup in das aktuelle System einfügen.",
     "banners": "Mitglied-Banner"
   },
+  "markdown": {
+    "imageUnavailable": "[Bild nicht verfügbar]"
+  },
   "modal": {
+    "appFont": "App-Schriftart",
+    "changePfp": "Profilbild ändern",
     "updateFront": "Front Aktualisieren",
     "addMembersFirst": "Füge zuerst Mitglieder hinzu.",
     "mood": "Stimmung",
@@ -704,6 +732,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "Gruppenname",
     "title": "Gruppen",
     "manage": "Gruppen",
     "allGroups": "Alle Gruppen",
@@ -733,6 +762,9 @@
     "subsystemsCount": "{{count}} Subsysteme"
   },
   "hub": {
+    "discordBlurb": "Community-Chat & Support",
+    "supportPS": "Plural Star unterstützen",
+    "supportPSBlurb": "Buy Me a Coffee",
     "title": "Zentrum",
     "shareExport": "Teilen und Exportieren",
     "shareExportDesc": "Daten exportieren, aus anderen Apps importieren, Systemprofil teilen.",
@@ -767,6 +799,8 @@
     "archive": "Archiv"
   },
   "stats": {
+    "showMore": "Mehr anzeigen",
+    "energyByHour": "Energie nach Stunde",
     "allTime": "Gesamt",
     "last7": "7 Tage",
     "last30": "30 Tage",
@@ -800,6 +834,12 @@
     "uniqueFronters": "Einzigartige Fronter"
   },
   "chat": {
+    "addReaction": "Reaktion hinzufügen",
+    "attachFile": "Datei anhängen",
+    "messagePlaceholder": "Nachricht an #{{name}}...",
+    "reply": "Antworten",
+    "replyingTo": "Antwort an",
+    "send": "Senden",
     "channels": "Kanäle",
     "newChannel": "Neuer Kanal",
     "channelName": "Kanalname…",
@@ -870,6 +910,7 @@
     "startDate": "Anfang"
   },
   "polls": {
+    "removeOption": "Option entfernen",
     "title": "Umfragen",
     "createPoll": "Umfrage erstellen",
     "noPolls": "Keine Umfragen.",

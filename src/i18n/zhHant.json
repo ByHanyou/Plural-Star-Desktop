@@ -143,6 +143,12 @@
     "publishFailed": "無法發布你的好友碼——請檢查網路連線後再試一次。"
   },
   "common": {
+    "on": "開",
+    "off": "關",
+    "settingsSaved": "設定已儲存",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "unlock": "解鎖",
     "dragReorder": "拖曳以重新排序",
     "reorderLock": "拖曳排序",
     "movedToTop": "已移到首位",
@@ -370,6 +376,8 @@
     "showLess": "顯示較少"
   },
   "journal": {
+    "passwordPrompt": "此條目受密碼保護。",
+    "wrongPassword": "密碼錯誤。",
     "deleteTemplateMsg": "這將永久移除此範本。",
     "title": "日誌",
     "new": "+ 新增",
@@ -408,6 +416,15 @@
     "templateBody": "條目內容（預設）"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "已儲存 PluralKit 匯出",
+    "pkExportHint": "將成員與前台歷史匯出為 PluralKit 格式檔案，可用於 pk;import（PluralKit）或 tul!import（Tupperbox）。頭像只有在是圖片連結時才會保留 — PluralKit 無法讀取本機儲存的圖片 — 代理標籤留空，需在機器人中設定。",
+    "importOtherApps": "從其他應用程式匯入",
+    "importOtherAppsDesc": "從 Ourcana（.our 或 .json）、HiveMind 或 Octocon（.json）、Tupperbox 匯出（tul!export）或 Ampersand 的 JSON 匯出中匯入成員與前台歷史。不支援 Ampersand 的二進位備份 — 其格式在版本之間會變動，因此其開發者建議使用 JSON。",
+    "importFromOtherApp": "選擇檔案 (.our / .json)",
+    "usePkDisplayNames": "使用顯示名稱",
+    "psImportDone": "PluralSpace 匯入：{{members}} 位新成員、{{history}} 筆前台紀錄、{{avatars}} 個頭像",
+    "psUseSection": "這看起來是 PluralSpace 的匯出檔。請使用下方的 PluralSpace 匯入區段來匯入。",
     "mergeLogs": "合併記錄（保留現有的歷史、日記、聊天和投票；只新增新的）。成員仍會被取代。",
     "banners": "橫幅",
     "groups": "群組",
@@ -577,6 +594,9 @@
     "spMergeDesc": "將 Simply Plural 備份資料合併到你目前的系統。"
   },
   "hub": {
+    "creditsBlurb": "社群貢獻者",
+    "discordBlurb": "社群聊天與支援",
+    "supportPSBlurb": "Buy Me a Coffee",
     "front": "前台",
     "title": "中心",
     "shareExport": "分享與匯出",
@@ -611,6 +631,9 @@
     "creditLogo": "Plural Star 標誌",
     "creditIos": "Plural Star iOS 移植",
     "supportPS": "支持 PS"
+  },
+  "markdown": {
+    "imageUnavailable": "[圖片無法使用]"
   },
   "modal": {
     "read": "閱讀",
@@ -776,6 +799,7 @@
     "ms": "Bahasa Melayu"
   },
   "memberGroups": {
+    "groupName": "群組名稱",
     "changeColor": "變更顏色",
     "deleteSubtree": "全部刪除",
     "group": "群組",
@@ -839,6 +863,8 @@
     "uniqueFronters": "不同前台成員數"
   },
   "chat": {
+    "messagePlaceholder": "傳訊息到 #{{name}}...",
+    "replyingTo": "回覆給",
     "addReaction": "新增反應",
     "attachFile": "附加檔案",
     "formatting": "格式",
@@ -893,6 +919,7 @@
     "pickMember": "提及一位成員"
   },
   "systemManager": {
+    "subsystemsCount": "{{count}} 個子系統",
     "emptyFolder": "這裡還沒有任何內容。",
     "browse": "瀏覽",
     "deleteSelectedMsg": "移除所選的 {{count}} 個項目？成員不會被刪除。",
@@ -948,6 +975,10 @@
     "hasNotes": "{{names}} 的留言板上有留言"
   },
   "whiteboard": {
+    "clearConfirm2Title": "確定嗎？",
+    "clearConfirm2Msg": "整個畫板將被清除。此操作無法復原。",
+    "clearConfirm3Title": "最後確認",
+    "clearConfirm3Msg": "真的要清除白板上的所有內容嗎？",
     "title": "白板",
     "draw": "繪畫",
     "move": "移動",
@@ -961,6 +992,7 @@
     "penColor": "畫筆顏色"
   },
   "systemMap": {
+    "showColors": "顏色",
     "manageTypes": "管理類型",
     "connectionsCount": "{{count}} 條連結",
     "allOnMap": "所有成員都已在地圖上。",

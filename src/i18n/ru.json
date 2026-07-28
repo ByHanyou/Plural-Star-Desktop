@@ -143,6 +143,10 @@
     "publishFailed": "Не удалось опубликовать код — проверьте подключение и попробуйте снова."
   },
   "whiteboard": {
+    "clearConfirm2Title": "Вы уверены?",
+    "clearConfirm2Msg": "Вся доска будет стёрта. Это нельзя отменить.",
+    "clearConfirm3Title": "Последний шанс",
+    "clearConfirm3Msg": "Действительно стереть всё на доске?",
     "title": "Доска",
     "draw": "Рисовать",
     "move": "Перемещать",
@@ -156,6 +160,7 @@
     "penColor": "Цвет пера"
   },
   "systemMap": {
+    "showColors": "Цвета",
     "manageTypes": "Управление типами",
     "connectionsCount": "{{count}} связей",
     "allOnMap": "Все участники уже на карте.",
@@ -227,6 +232,15 @@
     "apptReminderTitle": "Напоминание о приёме"
   },
   "common": {
+    "on": "Вкл",
+    "off": "Выкл",
+    "settingsSaved": "Настройки сохранены",
+    "minimize": "Свернуть",
+    "maximize": "Развернуть",
+    "change": "Изменить",
+    "search": "Поиск…",
+    "unlock": "Разблокировать",
+    "back": "Назад",
     "dragReorder": "Перетащите, чтобы изменить порядок",
     "reorderLock": "Перетаскивание для сортировки",
     "save": "Сохранить",
@@ -406,6 +420,8 @@
     "entryCountOne": "1 запись"
   },
   "journal": {
+    "passwordPrompt": "Эта запись защищена паролем.",
+    "wrongPassword": "Неверный пароль.",
     "title": "Журнал",
     "new": "+ Новая",
     "locked": "Журнал заблокирован",
@@ -443,6 +459,13 @@
     "templateBody": "Текст Записи (предустановка)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "Экспорт PluralKit сохранён",
+    "pkExportHint": "Экспортирует участников и историю фронта в файл формата PluralKit для pk;import (PluralKit) или tul!import (Tupperbox). Аватары переносятся только если это ссылки на изображения — PluralKit не может читать локально сохранённые картинки — а прокси-теги остаются пустыми для настройки в боте.",
+    "importOtherApps": "Импорт из другого приложения",
+    "importOtherAppsDesc": "Импортируйте участников и историю фронта из Ourcana (.our или .json), HiveMind или Octocon (.json), экспорта Tupperbox (tul!export) или JSON-экспорта Ampersand. Бинарная резервная копия Ampersand не поддерживается — её формат меняется между версиями, поэтому разработчик рекомендует JSON.",
+    "importFromOtherApp": "Выбрать файл (.our / .json)",
+    "usePkDisplayNames": "Использовать отображаемые имена",
     "mergeLogs": "Объединить записи (сохранить существующую историю, дневник, чат и опросы; добавить только новое). Участники всё равно заменяются.",
     "title": "Поделиться и экспорт",
     "export": "Экспорт",
@@ -572,6 +595,9 @@
     "banners": "Баннеры участников"
   },
   "hub": {
+    "discordBlurb": "Чат сообщества и поддержка",
+    "supportPS": "Поддержать Plural Star",
+    "supportPSBlurb": "Buy Me a Coffee",
     "title": "Хаб",
     "shareExport": "Поделиться и экспорт",
     "shareExportDesc": "Экспорт данных, импорт из других приложений, общий профиль.",
@@ -605,7 +631,12 @@
     "creditsBlurb": "Участники сообщества",
     "archive": "Архив"
   },
+  "markdown": {
+    "imageUnavailable": "[изображение недоступно]"
+  },
   "modal": {
+    "appFont": "Шрифт приложения",
+    "changePfp": "Сменить фото профиля",
     "read": "Читать",
     "updateFront": "Обновить фронт",
     "addMembersFirst": "Сначала добавьте участников.",
@@ -738,6 +769,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "Название группы",
     "title": "Группы",
     "manage": "Группы",
     "allGroups": "Все группы",
@@ -767,6 +799,8 @@
     "subsystemsCount": "Подсистем: {{count}}"
   },
   "stats": {
+    "showMore": "Показать больше",
+    "energyByHour": "Энергия по часам",
     "allTime": "Всё время",
     "last7": "7 дней",
     "last30": "30 дней",
@@ -800,6 +834,12 @@
     "uniqueFronters": "Уникальных фронтеров"
   },
   "chat": {
+    "addReaction": "Добавить реакцию",
+    "attachFile": "Прикрепить файл",
+    "messagePlaceholder": "Сообщение в #{{name}}...",
+    "reply": "Ответить",
+    "replyingTo": "В ответ",
+    "send": "Отправить",
     "channels": "Каналы",
     "newChannel": "Новый канал",
     "channelName": "Имя канала…",
@@ -870,6 +910,7 @@
     "hasNotes": "У {{names}} есть заметки на доске"
   },
   "polls": {
+    "removeOption": "Убрать вариант",
     "title": "Опросы",
     "createPoll": "+ Создать опрос",
     "question": "Вопрос",

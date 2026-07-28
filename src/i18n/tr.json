@@ -143,6 +143,12 @@
     "publishFailed": "Kodun yayınlanamadı — bağlantını kontrol edip yeniden dene."
   },
   "common": {
+    "on": "Açık",
+    "off": "Kapalı",
+    "settingsSaved": "Ayarlar kaydedildi",
+    "minimize": "Simge durumuna küçült",
+    "maximize": "Büyüt",
+    "unlock": "Kilidi aç",
     "dragReorder": "Yeniden sıralamak için sürükle",
     "reorderLock": "Sürükleyerek sıralama",
     "movedToTop": "Artık ilk sırada",
@@ -370,6 +376,8 @@
     "showLess": "Daha az göster"
   },
   "journal": {
+    "passwordPrompt": "Bu kayıt parola korumalı.",
+    "wrongPassword": "Yanlış parola.",
     "deleteTemplateMsg": "Bu, şablonu kalıcı olarak kaldıracak.",
     "title": "Günlük",
     "new": "+ Yeni",
@@ -408,6 +416,15 @@
     "templateBody": "Girdi Gövdesi (ön ayar)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "PluralKit dışa aktarımı kaydedildi",
+    "pkExportHint": "Üyeleri ve front geçmişini pk;import (PluralKit) veya tul!import (Tupperbox) için PluralKit biçiminde bir dosya olarak dışa aktarır. Avatarlar yalnızca resim bağlantısıysa taşınır — PluralKit yerel kayıtlı resimleri okuyamaz — proxy etiketleri ise botta ayarlanmak üzere boş bırakılır.",
+    "importOtherApps": "Başka bir uygulamadan içe aktar",
+    "importOtherAppsDesc": "Ourcana (.our veya .json), HiveMind veya Octocon (.json), bir Tupperbox dışa aktarımı (tul!export) ya da Ampersand'in JSON dışa aktarımından üyeleri ve front geçmişini içe aktarın. Ampersand'in ikili yedeği desteklenmez — biçimi sürümler arasında değişir, bu yüzden geliştiricisi JSON önerir.",
+    "importFromOtherApp": "Dosya seç (.our / .json)",
+    "usePkDisplayNames": "Görünen adları kullan",
+    "psImportDone": "PluralSpace içe aktarımı: {{members}} yeni üye, {{history}} front kaydı, {{avatars}} avatar",
+    "psUseSection": "Bu bir PluralSpace dışa aktarımına benziyor. İçe aktarmak için aşağıdaki PluralSpace İçe Aktarma bölümünü kullanın.",
     "mergeLogs": "Günlükleri birleştir (mevcut geçmiş, günlük, sohbet ve anketleri koru; yalnızca yenileri ekle). Üyeler yine de değiştirilir.",
     "banners": "Afişler",
     "groups": "Gruplar",
@@ -577,6 +594,9 @@
     "spMergeDesc": "Simply Plural yedek verilerini mevcut sisteminize birleştirin."
   },
   "hub": {
+    "creditsBlurb": "Topluluk katkıcıları",
+    "discordBlurb": "Topluluk sohbeti ve destek",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} daha",
     "front": "Front",
     "title": "Merkez",
@@ -611,6 +631,9 @@
     "creditLogo": "Plural Star Logosu",
     "creditIos": "Plural Star iOS Portu",
     "supportPS": "PS'yi Destekle"
+  },
+  "markdown": {
+    "imageUnavailable": "[görsel kullanılamıyor]"
   },
   "modal": {
     "read": "Görüntüle",
@@ -776,6 +799,7 @@
     "ms": "Bahasa Melayu"
   },
   "memberGroups": {
+    "groupName": "Grup adı",
     "changeColor": "Rengi değiştir",
     "deleteSubtree": "Tümünü sil",
     "group": "Grup",
@@ -839,6 +863,8 @@
     "uniqueFronters": "Benzersiz Fronter"
   },
   "chat": {
+    "messagePlaceholder": "#{{name}} kanalına mesaj...",
+    "replyingTo": "Yanıtlanan",
     "addReaction": "Tepki ekle",
     "attachFile": "Dosya ekle",
     "formatting": "Biçimlendirme",
@@ -893,6 +919,7 @@
     "pickMember": "Bir üyeden bahset"
   },
   "systemManager": {
+    "subsystemsCount": "{{count}} alt sistem",
     "emptyFolder": "Burada henüz bir şey yok.",
     "browse": "Göz at",
     "deleteSelectedMsg": "Seçilen {{count}} öğe kaldırılsın mı? Üyeler silinmeyecek.",
@@ -948,6 +975,10 @@
     "hasNotes": "{{names}} not panolarında not var"
   },
   "whiteboard": {
+    "clearConfirm2Title": "Emin misiniz?",
+    "clearConfirm2Msg": "Tüm pano silinecek. Bu geri alınamaz.",
+    "clearConfirm3Title": "Son şans",
+    "clearConfirm3Msg": "Beyaz tahtadaki her şey gerçekten silinsin mi?",
     "title": "Beyaz tahta",
     "draw": "Çiz",
     "move": "Taşı",
@@ -961,6 +992,7 @@
     "penColor": "Kalem rengi"
   },
   "systemMap": {
+    "showColors": "Renkler",
     "manageTypes": "Türleri yönet",
     "connectionsCount": "{{count}} bağlantı",
     "allOnMap": "Tüm üyeler zaten haritada.",

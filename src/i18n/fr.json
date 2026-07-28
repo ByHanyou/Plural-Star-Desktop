@@ -143,6 +143,10 @@
     "publishFailed": "Impossible de publier ton code — vérifie ta connexion et réessaie."
   },
   "whiteboard": {
+    "clearConfirm2Title": "Vraiment sûr·e ?",
+    "clearConfirm2Msg": "Tout le tableau sera effacé. C'est irréversible.",
+    "clearConfirm3Title": "Dernière chance",
+    "clearConfirm3Msg": "Vraiment tout effacer sur le tableau blanc ?",
     "title": "Tableau blanc",
     "draw": "Dessiner",
     "move": "Déplacer",
@@ -156,6 +160,7 @@
     "penColor": "Couleur du stylo"
   },
   "systemMap": {
+    "showColors": "Couleurs",
     "manageTypes": "Gérer les types",
     "connectionsCount": "{{count}} connexions",
     "allOnMap": "Tous les membres sont déjà sur la carte.",
@@ -227,6 +232,15 @@
     "apptReminderTitle": "Rappel de rendez-vous"
   },
   "common": {
+    "on": "Activé",
+    "off": "Désactivé",
+    "settingsSaved": "Paramètres enregistrés",
+    "minimize": "Réduire",
+    "maximize": "Agrandir",
+    "change": "Changer",
+    "search": "Rechercher…",
+    "unlock": "Déverrouiller",
+    "back": "Retour",
     "dragReorder": "Glisser pour réorganiser",
     "reorderLock": "Réorganisation par glissement",
     "save": "Enregistrer",
@@ -406,6 +420,8 @@
     "searchPlaceholder": "Rechercher dans l'historique..."
   },
   "journal": {
+    "passwordPrompt": "Cette entrée est protégée par mot de passe.",
+    "wrongPassword": "Mot de passe incorrect.",
     "title": "Journal",
     "new": "+ Nouveau",
     "locked": "Journal Verrouillé",
@@ -443,6 +459,13 @@
     "templateBody": "Corps d'Entrée (préréglé)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "Export PluralKit enregistré",
+    "pkExportHint": "Exporte les membres et l'historique de front au format PluralKit pour pk;import (PluralKit) ou tul!import (Tupperbox). Les avatars ne sont repris que s'ils sont des liens d'image — PluralKit ne peut pas lire les images enregistrées localement — et les balises de proxy restent vides, à configurer dans le bot.",
+    "importOtherApps": "Importer depuis une autre app",
+    "importOtherAppsDesc": "Importe les membres et l'historique de front depuis Ourcana (.our ou .json), HiveMind ou Octocon (.json), un export Tupperbox (tul!export) ou l'export JSON d'Ampersand. La sauvegarde binaire d'Ampersand n'est pas prise en charge — son format change entre les versions, c'est pourquoi son développeur recommande le JSON.",
+    "importFromOtherApp": "Choisir un fichier (.our / .json)",
+    "usePkDisplayNames": "Utiliser les noms d'affichage",
     "mergeLogs": "Fusionner les journaux (conserver l'historique, le journal, le chat et les sondages existants ; n'ajouter que les nouveaux). Les membres sont quand même remplacés.",
     "title": "Partager et Exporter",
     "export": "Exporter",
@@ -571,7 +594,12 @@
     "spMergeDesc": "Fusionner une sauvegarde Simply Plural avec votre système actuel.",
     "banners": "Bannières des Membres"
   },
+  "markdown": {
+    "imageUnavailable": "[image indisponible]"
+  },
   "modal": {
+    "appFont": "Police de l'app",
+    "changePfp": "Changer la photo de profil",
     "updateFront": "Mettre à Jour le Front",
     "addMembersFirst": "Ajoutez d'abord des membres.",
     "mood": "Humeur",
@@ -704,6 +732,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "Nom du groupe",
     "title": "Groupes",
     "manage": "Groupes",
     "allGroups": "Tous les Groupes",
@@ -733,6 +762,9 @@
     "subsystemsCount": "{{count}} sous-systèmes"
   },
   "hub": {
+    "discordBlurb": "Chat communautaire et support",
+    "supportPS": "Soutenir Plural Star",
+    "supportPSBlurb": "Buy Me a Coffee",
     "title": "Centre",
     "shareExport": "Partager et Exporter",
     "shareExportDesc": "Exporter des données, importer d'autres apps, partager le profil du système.",
@@ -767,6 +799,8 @@
     "archive": "Archives"
   },
   "stats": {
+    "showMore": "Afficher plus",
+    "energyByHour": "Énergie par heure",
     "allTime": "Tout",
     "last7": "7 Jours",
     "last30": "30 Jours",
@@ -800,6 +834,12 @@
     "uniqueFronters": "Membres uniques au front"
   },
   "chat": {
+    "addReaction": "Ajouter une réaction",
+    "attachFile": "Joindre un fichier",
+    "messagePlaceholder": "Message à #{{name}}...",
+    "reply": "Répondre",
+    "replyingTo": "En réponse à",
+    "send": "Envoyer",
     "channels": "Canaux",
     "newChannel": "Nouveau Canal",
     "channelName": "Nom du canal…",
@@ -870,6 +910,7 @@
     "startDate": "Début"
   },
   "polls": {
+    "removeOption": "Retirer l'option",
     "title": "Sondages",
     "createPoll": "Créer un sondage",
     "noPolls": "Aucun sondage.",

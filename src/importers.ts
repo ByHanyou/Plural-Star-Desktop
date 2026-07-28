@@ -367,6 +367,61 @@ export const convertPluralSpace = (d: any): PluralSpaceImport => {
  * Same entity model as the old .ampar tables, but as plain JSON, which lets us
  * carry things the binary path never did: avatars, covers, roles and tags.
  */
+/**
+ * Tupperbox `tul!export` JSON: `{ tuppers: [], groups: [] }`. Field list
+ * verified against PluralKit's TupperboxImport.cs and /plu/ral's porting model
+ * (both open source): tupper = id, name, brackets (flat prefix/suffix PAIRS),
+ * avatar_url, avatar, banner, posts, show_brackets, birthday, tag, nick,
+ * created_at, group_id, last_used; group = id, name, avatar, description, tag.
+ * No system meta, fronting, custom fields, or colors. Brackets/avatar_url are
+ * preserved as pkProxyTags/pkAvatarUrl (our PK round-trip policy); the
+ * Discord-proxy leftovers (tag, nick, show_brackets, posts) and birthday are
+ * dropped. avatar_url also rides `avatar`, which inlineRemoteAvatars fetches
+ * into a data URI at apply time.
+ */
+export const detectTupperbox = (d: any): boolean =>
+  !!d && typeof d === 'object' && Array.isArray(d.tuppers);
+
+export const convertTupperbox = (d: any): ConvertedImport => {
+  const tuppers: any[] = Array.isArray(d.tuppers) ? d.tuppers : [];
+  const tbGroups: any[] = Array.isArray(d.groups) ? d.groups : [];
+
+  const groups: MemberGroup[] = [];
+  const groupIdMap: Record<string, string> = {};
+  tbGroups.forEach((g: any) => {
+    const name = (g?.name && String(g.name).trim()) || '';
+    if (!name || g?.id == null) return;
+    const gid = uid();
+    groupIdMap[String(g.id)] = gid;
+    groups.push({ id: gid, name, description: g.description ? String(g.description) : undefined, sourceId: 'tb:g:' + String(g.id) });
+  });
+
+  const members: Member[] = tuppers.map((tp: any) => {
+    const rawBr: any[] = Array.isArray(tp?.brackets) ? tp.brackets : [];
+    const proxyTags: { prefix?: string | null; suffix?: string | null }[] = [];
+    if (rawBr.length % 2 === 0) {
+      for (let i = 0; i + 1 < rawBr.length; i += 2) {
+        proxyTags.push({ prefix: rawBr[i] == null ? null : String(rawBr[i]), suffix: rawBr[i + 1] == null ? null : String(rawBr[i + 1]) });
+      }
+    }
+    return {
+      id: uid(),
+      sourceId: 'tb:' + String(tp?.id ?? uid()),
+      name: (tp?.name && String(tp.name).trim()) || 'Unnamed member',
+      pronouns: '', role: '', color: hex(undefined),
+      description: String(tp?.description || ''),
+      tags: [], customFields: [],
+      groupIds: tp?.group_id != null && groupIdMap[String(tp.group_id)] ? [groupIdMap[String(tp.group_id)]] : [],
+      avatar: tp?.avatar_url ? String(tp.avatar_url) : undefined,
+      createdAt: tp?.created_at ? toMs(tp.created_at) : undefined,
+      ...(proxyTags.length > 0 ? { pkProxyTags: proxyTags } : {}),
+      ...(tp?.avatar_url ? { pkAvatarUrl: String(tp.avatar_url) } : {}),
+    } as Member;
+  });
+
+  return { sourceLabel: 'Tupperbox', members, history: [], groups };
+};
+
 export const detectAmpersandJson = (d: any): boolean =>
   !!d && typeof d === 'object' && !!d.database && typeof d.database === 'object'
   && Array.isArray(d.database.members) && Array.isArray(d.database.frontingEntries);
@@ -392,6 +447,17 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
   const cfIdMap: Record<string, string> = {};
   fieldDefs.forEach((f: any, i: number) => { cfIdMap[String(f?.uuid)] = cfDefs[i].id; });
 
+  // Ampersand keeps `age` on the member; we have no native age, so it becomes
+  // an "Age" custom field instead of being dropped. Deliberately NOT localized:
+  // defs sync across devices and dedupe by name — a translated name on one
+  // platform and a plain one on the other would double the field.
+  let ageFieldId = '';
+  if (mem.some((a: any) => a?.age != null && String(a.age).trim() !== '')
+      && !cfDefs.some(f => f.name.toLowerCase() === 'age')) {
+    ageFieldId = uid();
+    cfDefs.push({ id: ageFieldId, name: 'Age', type: 'text' as CustomFieldType, sortOrder: cfDefs.length });
+  }
+
   // Only member-type tags become groups; journal and asset tags are theirs alone.
   const groups: MemberGroup[] = [];
   const tagIdMap: Record<string, string> = {};
@@ -401,14 +467,28 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     groups.push({ id: gid, name: String(tg.name || 'Group'), color: tg.color ? hex(tg.color) : undefined, sourceId: 'amp:' + String(tg.uuid) });
   });
 
+  // Every Ampersand system becomes a group when the export holds more than
+  // one, so multi-system rosters stay tellable-apart instead of merging into
+  // one indistinguishable pile. A single system needs no group.
+  const sysGroupMap: Record<string, string> = {};
+  if (systems.length > 1) {
+    systems.forEach((sy: any, i: number) => {
+      const gid = uid();
+      if (sy?.uuid != null) sysGroupMap[String(sy.uuid)] = gid;
+      groups.push({ id: gid, name: (sy?.name && String(sy.name).trim()) || `System ${i + 1}`, sourceId: 'amp:sys:' + String(sy?.uuid || i) });
+    });
+  }
+
   const idMap: Record<string, string> = {};
   const dataUri = (v: any): string | undefined => {
     const s = String(v || '');
     return s.startsWith('data:') ? s : undefined;
   };
   const members: Member[] = mem
-    // A multi-system export would otherwise merge everyone into one roster.
-    .filter((a: any) => a && (!defaultId || !a.system || String(a.system) === defaultId))
+    // ALL systems are kept. Filtering to defaultSystem silently DROPPED every
+    // other system's members — real data loss for multi-system users. Each
+    // system becomes a group (above) so nothing merges indistinguishably.
+    .filter((a: any) => !!a)
     .map((a: any) => {
       const id = uid();
       idMap[String(a.uuid)] = id;
@@ -419,6 +499,9 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
         const v = vals[k];
         if (!fid || v === null || v === undefined || v === '') continue;
         cfs.push({ fieldId: fid, value: typeof v === 'object' ? JSON.stringify(v) : String(v) });
+      }
+      if (ageFieldId && a?.age != null && String(a.age).trim() !== '') {
+        cfs.push({ fieldId: ageFieldId, value: String(a.age) });
       }
       return {
         id,
@@ -434,7 +517,10 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
         banner: dataUri(a.cover),
         createdAt: a.dateCreated ? toMs(a.dateCreated) : undefined,
         tags: [],
-        groupIds: (Array.isArray(a.tags) ? a.tags : []).map((t: any) => tagIdMap[String(t)]).filter(Boolean) as string[],
+        groupIds: [
+          ...(Array.isArray(a.tags) ? a.tags : []).map((t: any) => tagIdMap[String(t)]).filter(Boolean) as string[],
+          ...(a.system != null && sysGroupMap[String(a.system)] ? [sysGroupMap[String(a.system)]] : []),
+        ],
         customFields: cfs,
       } as Member;
     });

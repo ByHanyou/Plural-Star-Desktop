@@ -17,7 +17,7 @@ export default function SettingsTile({ onClick }: Props) {
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.palette')}</span><span className="tile__stat-value">{paletteName}</span></div>
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.language')}</span><span className="tile__stat-value">{t(`language.${settings.language}`)}</span></div>
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.textSize')}</span><span className="tile__stat-value">{settings.textScale}×</span></div>
-        <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.notifications')}</span><span className="tile__stat-value">{settings.notificationsEnabled ? 'On' : 'Off'}</span></div>
+        <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.notifications')}</span><span className="tile__stat-value">{settings.notificationsEnabled ? t('common.on') : t('common.off')}</span></div>
       </div>
     </div>
   );

@@ -124,6 +124,7 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
         <div style={{ display: 'flex', gap: 3, marginBottom: 8, alignItems: 'center' }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
             <button key={n} onClick={() => setEnergy(energy === n ? undefined : n)}
+              aria-label={`${t('energy.level')} ${n}/10`} aria-pressed={energy === n}
               style={{
                 flex: 1, padding: '6px 0', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 600,
                 background: energy === n ? 'var(--accent-bg)' : 'var(--surface)',

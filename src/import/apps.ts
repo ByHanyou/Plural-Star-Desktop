@@ -3,7 +3,7 @@ import {
   Member, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, uid,
 } from '../utils';
-import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
+import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
 import { isImportStopped } from './progress';
 import { unzipSync, strFromU8 } from 'fflate';
 import { bytesToDataUri, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
@@ -123,8 +123,12 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
           // binary one, so check it before the generic sniffers.
           if (parsedJson && detectAmpersandJson(parsedJson)) {
             conv = convertAmpersandJson(parsedJson);
+          } else if (parsedJson && detectTupperbox(parsedJson)) {
+            // Tupperbox `tul!export` — PluralKit's own sniffer for these files
+            // is simply "has a tuppers array".
+            conv = convertTupperbox(parsedJson);
           } else {
-            if (!fmt) { showStatus('Error: Unrecognized file. Use an Ourcana (.our/.json), HiveMind, Octocon, or Ampersand JSON export.'); setImporting(false); return; }
+            if (!fmt) { showStatus('Error: Unrecognized file. Use an Ourcana (.our/.json), HiveMind, Octocon, Tupperbox, or Ampersand JSON export.'); setImporting(false); return; }
             const d = parsedJson ?? JSON.parse(text);
             conv = fmt === 'ourcana' ? convertOurcana(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
           }
@@ -154,15 +158,29 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         if (conv.groups && conv.groups.length > 0) {
           const existingGroups = await store.getStrict<any[]>(KEYS.groups, []) || [];
           const mergedGroupList = [...existingGroups];
+          // When a converter group dedupes into an EXISTING group, imported
+          // members still carry the converter's group id — remap those to the
+          // surviving local id, or their groupIds dangle at nothing.
+          const groupIdRemap: Record<string, string> = {};
           conv.groups.forEach(g => {
-            const srcId = `ext:${String(g.id)}`;
+            const srcId = g.sourceId || `ext:${String(g.id)}`;
             const idx = mergedGroupList.findIndex((e: any) => e.sourceId === srcId);
             const nameIdx = idx < 0 ? mergedGroupList.findIndex((e: any) => !e.sourceId && String(e.name || '').toLowerCase() === g.name.toLowerCase()) : -1;
             const at = idx >= 0 ? idx : nameIdx;
-            if (at >= 0) mergedGroupList[at] = { ...mergedGroupList[at], name: g.name, sourceId: srcId };
-            else mergedGroupList.push({ ...g, sourceId: srcId });
+            if (at >= 0) {
+              mergedGroupList[at] = { ...mergedGroupList[at], name: g.name, sourceId: srcId };
+              groupIdRemap[g.id] = mergedGroupList[at].id;
+            } else {
+              mergedGroupList.push({ ...g, sourceId: srcId });
+            }
           });
           batch[KEYS.groups] = mergedGroupList;
+          if (Object.keys(groupIdRemap).length > 0) {
+            batch[KEYS.members] = (batch[KEYS.members] as Member[]).map(m =>
+              m.groupIds && m.groupIds.some(gid => groupIdRemap[gid])
+                ? { ...m, groupIds: m.groupIds.map(gid => groupIdRemap[gid] || gid) }
+                : m);
+          }
         }
         if (conv.customFieldDefs && conv.customFieldDefs.length > 0) {
           const existingDefs = await store.getStrict<any[]>(KEYS.customFieldDefs, []) || [];

@@ -143,6 +143,12 @@
     "publishFailed": "ไม่สามารถเผยแพร่รหัสของคุณได้ — ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง"
   },
   "common": {
+    "on": "เปิด",
+    "off": "ปิด",
+    "settingsSaved": "บันทึกการตั้งค่าแล้ว",
+    "minimize": "ย่อหน้าต่าง",
+    "maximize": "ขยายหน้าต่าง",
+    "unlock": "ปลดล็อก",
     "dragReorder": "ลากเพื่อจัดลำดับใหม่",
     "reorderLock": "ลากเพื่อจัดลำดับ",
     "movedToTop": "ตอนนี้อยู่ลำดับแรก",
@@ -370,6 +376,8 @@
     "showLess": "แสดงน้อยลง"
   },
   "journal": {
+    "passwordPrompt": "บันทึกนี้มีรหัสผ่านป้องกันอยู่",
+    "wrongPassword": "รหัสผ่านไม่ถูกต้อง",
     "deleteTemplateMsg": "เทมเพลตนี้จะถูกนำออกอย่างถาวร",
     "title": "บันทึก",
     "new": "+ ใหม่",
@@ -408,6 +416,15 @@
     "templateBody": "เนื้อหาบันทึก (ตั้งล่วงหน้า)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "บันทึกไฟล์ส่งออก PluralKit แล้ว",
+    "pkExportHint": "ส่งออกสมาชิกและประวัติฟรอนต์เป็นไฟล์รูปแบบ PluralKit สำหรับ pk;import (PluralKit) หรือ tul!import (Tupperbox) อวาตาร์จะติดไปเฉพาะเมื่อเป็นลิงก์รูปภาพ — PluralKit อ่านรูปที่บันทึกในเครื่องไม่ได้ — ส่วนแท็กพร็อกซีจะเว้นว่างไว้ให้ตั้งค่าในบอต",
+    "importOtherApps": "นำเข้าจากแอปอื่น",
+    "importOtherAppsDesc": "นำเข้าสมาชิกและประวัติฟรอนต์จาก Ourcana (.our หรือ .json), HiveMind หรือ Octocon (.json), ไฟล์ส่งออก Tupperbox (tul!export) หรือไฟล์ส่งออก JSON ของ Ampersand ไม่รองรับข้อมูลสำรองไบนารีของ Ampersand — รูปแบบเปลี่ยนไปตามรุ่น ผู้พัฒนาจึงแนะนำ JSON",
+    "importFromOtherApp": "เลือกไฟล์ (.our / .json)",
+    "usePkDisplayNames": "ใช้ชื่อที่แสดง",
+    "psImportDone": "นำเข้า PluralSpace: สมาชิกใหม่ {{members}} คน, ประวัติฟรอนต์ {{history}} รายการ, อวาตาร์ {{avatars}} รูป",
+    "psUseSection": "ไฟล์นี้ดูเหมือนไฟล์ส่งออกของ PluralSpace ใช้ส่วนนำเข้า PluralSpace ด้านล่างเพื่อนำเข้า",
     "mergeLogs": "รวมบันทึก (เก็บประวัติ ไดอารี่ แชต และโพลที่มีอยู่ เพิ่มเฉพาะรายการใหม่) สมาชิกจะยังถูกแทนที่",
     "banners": "แบนเนอร์",
     "groups": "กลุ่ม",
@@ -577,6 +594,9 @@
     "spMergeDesc": "รวมข้อมูลสำรอง Simply Plural เข้ากับระบบปัจจุบันของคุณ"
   },
   "hub": {
+    "creditsBlurb": "ผู้ร่วมพัฒนาจากชุมชน",
+    "discordBlurb": "แชทชุมชนและซัพพอร์ต",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} เพิ่มเติม",
     "front": "ฟรอนต์",
     "title": "ศูนย์กลาง",
@@ -611,6 +631,9 @@
     "creditLogo": "โลโก้ Plural Star",
     "creditIos": "พอร์ต iOS ของ Plural Star",
     "supportPS": "สนับสนุน PS"
+  },
+  "markdown": {
+    "imageUnavailable": "[รูปภาพไม่พร้อมใช้งาน]"
   },
   "modal": {
     "read": "ดู",
@@ -776,6 +799,7 @@
     "ms": "Bahasa Melayu"
   },
   "memberGroups": {
+    "groupName": "ชื่อกลุ่ม",
     "changeColor": "เปลี่ยนสี",
     "deleteSubtree": "ลบทั้งหมด",
     "group": "กลุ่ม",
@@ -839,6 +863,8 @@
     "uniqueFronters": "จำนวนฟรอนเตอร์ที่ต่างกัน"
   },
   "chat": {
+    "messagePlaceholder": "ส่งข้อความถึง #{{name}}...",
+    "replyingTo": "กำลังตอบกลับ",
     "addReaction": "เพิ่มรีแอคชัน",
     "attachFile": "แนบไฟล์",
     "formatting": "การจัดรูปแบบ",
@@ -893,6 +919,7 @@
     "pickMember": "กล่าวถึงสมาชิก"
   },
   "systemManager": {
+    "subsystemsCount": "ระบบย่อย {{count}} ระบบ",
     "emptyFolder": "ยังไม่มีอะไรที่นี่",
     "browse": "เรียกดู",
     "deleteSelectedMsg": "นำ {{count}} รายการที่เลือกออก? สมาชิกจะไม่ถูกลบ",
@@ -948,6 +975,10 @@
     "hasNotes": "{{names}} มีโน้ตบนกระดานโน้ตของพวกเขา"
   },
   "whiteboard": {
+    "clearConfirm2Title": "แน่ใจหรือไม่?",
+    "clearConfirm2Msg": "กระดานทั้งหมดจะถูกลบ ไม่สามารถย้อนกลับได้",
+    "clearConfirm3Title": "โอกาสสุดท้าย",
+    "clearConfirm3Msg": "ต้องการลบทุกอย่างบนไวท์บอร์ดจริงหรือ?",
     "title": "ไวท์บอร์ด",
     "draw": "วาด",
     "move": "เลื่อน",
@@ -961,6 +992,7 @@
     "penColor": "สีปากกา"
   },
   "systemMap": {
+    "showColors": "สี",
     "manageTypes": "จัดการประเภท",
     "connectionsCount": "{{count}} การเชื่อมต่อ",
     "allOnMap": "สมาชิกทุกคนอยู่บนแผนที่แล้ว",

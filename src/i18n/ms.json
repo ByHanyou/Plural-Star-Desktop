@@ -143,6 +143,12 @@
     "publishFailed": "Kod anda tidak dapat diterbitkan — semak sambungan anda dan cuba lagi."
   },
   "common": {
+    "on": "Hidup",
+    "off": "Mati",
+    "settingsSaved": "Tetapan disimpan",
+    "minimize": "Minimumkan",
+    "maximize": "Maksimumkan",
+    "unlock": "Buka kunci",
     "dragReorder": "Seret untuk menyusun semula",
     "reorderLock": "Susun semula dengan seretan",
     "movedToTop": "Kini pertama",
@@ -370,6 +376,8 @@
     "showLess": "Tunjuk kurang"
   },
   "journal": {
+    "passwordPrompt": "Entri ini dilindungi kata laluan.",
+    "wrongPassword": "Kata laluan salah.",
     "deleteTemplateMsg": "Ini akan membuang templat ini secara kekal.",
     "title": "Jurnal",
     "new": "+ Baharu",
@@ -408,6 +416,15 @@
     "templateBody": "Isi Entri (praset)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "Eksport PluralKit disimpan",
+    "pkExportHint": "Mengeksport ahli dan sejarah front sebagai fail format PluralKit untuk pk;import (PluralKit) atau tul!import (Tupperbox). Avatar hanya dibawa jika ia pautan imej — PluralKit tidak boleh membaca gambar yang disimpan secara setempat — dan tag proksi dibiarkan kosong untuk ditetapkan dalam bot.",
+    "importOtherApps": "Import dari aplikasi lain",
+    "importOtherAppsDesc": "Import ahli dan sejarah front dari Ourcana (.our atau .json), HiveMind atau Octocon (.json), eksport Tupperbox (tul!export) atau eksport JSON Ampersand. Sandaran binari Ampersand tidak disokong — formatnya berubah antara keluaran, sebab itu pembangunnya mengesyorkan JSON.",
+    "importFromOtherApp": "Pilih fail (.our / .json)",
+    "usePkDisplayNames": "Guna nama paparan",
+    "psImportDone": "Import PluralSpace: {{members}} ahli baharu, {{history}} entri front, {{avatars}} avatar",
+    "psUseSection": "Ini kelihatan seperti eksport PluralSpace. Guna bahagian Import PluralSpace di bawah untuk mengimportnya.",
     "mergeLogs": "Gabungkan log (kekalkan sejarah, jurnal, sembang & undian sedia ada; tambah yang baharu sahaja). Ahli tetap digantikan.",
     "banners": "Sepanduk",
     "groups": "Kumpulan",
@@ -577,6 +594,9 @@
     "spMergeDesc": "Gabungkan data sandaran Simply Plural ke dalam sistem semasa anda."
   },
   "hub": {
+    "creditsBlurb": "Penyumbang komuniti",
+    "discordBlurb": "Sembang komuniti & sokongan",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} lagi",
     "front": "Front",
     "title": "Hab",
@@ -611,6 +631,9 @@
     "creditLogo": "Logo Plural Star",
     "creditIos": "Port iOS Plural Star",
     "supportPS": "Sokong PS"
+  },
+  "markdown": {
+    "imageUnavailable": "[imej tidak tersedia]"
   },
   "modal": {
     "read": "Baca",
@@ -776,6 +799,7 @@
     "ms": "Bahasa Melayu"
   },
   "memberGroups": {
+    "groupName": "Nama kumpulan",
     "changeColor": "Tukar warna",
     "deleteSubtree": "Padam semua",
     "group": "Kumpulan",
@@ -839,6 +863,8 @@
     "uniqueFronters": "Fronter Unik"
   },
   "chat": {
+    "messagePlaceholder": "Mesej ke #{{name}}...",
+    "replyingTo": "Membalas kepada",
     "addReaction": "Tambah reaksi",
     "attachFile": "Lampirkan fail",
     "formatting": "Pemformatan",
@@ -893,6 +919,7 @@
     "pickMember": "Sebut seorang ahli"
   },
   "systemManager": {
+    "subsystemsCount": "{{count}} sub-sistem",
     "emptyFolder": "Belum ada apa-apa di sini.",
     "browse": "Semak",
     "deleteSelectedMsg": "Buang {{count}} item yang dipilih? Ahli tidak akan dipadam.",
@@ -948,6 +975,10 @@
     "hasNotes": "{{names}} mempunyai nota pada papan nota mereka"
   },
   "whiteboard": {
+    "clearConfirm2Title": "Anda pasti?",
+    "clearConfirm2Msg": "Seluruh papan akan dipadamkan. Ini tidak boleh dibuat asal.",
+    "clearConfirm3Title": "Peluang terakhir",
+    "clearConfirm3Msg": "Betul-betul padamkan semuanya pada papan putih?",
     "title": "Papan putih",
     "draw": "Lukis",
     "move": "Alih",
@@ -961,6 +992,7 @@
     "penColor": "Warna pen"
   },
   "systemMap": {
+    "showColors": "Warna",
     "manageTypes": "Urus jenis",
     "connectionsCount": "{{count}} sambungan",
     "allOnMap": "Semua ahli sudah berada di peta.",

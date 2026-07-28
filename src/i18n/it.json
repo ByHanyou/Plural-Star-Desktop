@@ -143,6 +143,12 @@
     "publishFailed": "Impossibile pubblicare il tuo codice — controlla la connessione e riprova."
   },
   "common": {
+    "on": "Attivo",
+    "off": "Disattivo",
+    "settingsSaved": "Impostazioni salvate",
+    "minimize": "Riduci a icona",
+    "maximize": "Ingrandisci",
+    "unlock": "Sblocca",
     "dragReorder": "Trascina per riordinare",
     "reorderLock": "Riordino tramite trascinamento",
     "movedToTop": "Ora in prima posizione",
@@ -370,6 +376,8 @@
     "showLess": "Mostra meno"
   },
   "journal": {
+    "passwordPrompt": "Questa voce è protetta da password.",
+    "wrongPassword": "Password errata.",
     "deleteTemplateMsg": "Questo rimuoverà definitivamente questo modello.",
     "title": "Diario",
     "new": "+ Nuova",
@@ -408,6 +416,15 @@
     "templateBody": "Corpo Voce (preimpostato)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "Esportazione PluralKit salvata",
+    "pkExportHint": "Esporta membri e cronologia del front come file in formato PluralKit per pk;import (PluralKit) o tul!import (Tupperbox). Gli avatar vengono trasferiti solo se sono link a immagini — PluralKit non può leggere immagini salvate in locale — e i tag proxy restano vuoti, da configurare nel bot.",
+    "importOtherApps": "Importa da un'altra app",
+    "importOtherAppsDesc": "Importa membri e cronologia del front da Ourcana (.our o .json), HiveMind o Octocon (.json), un'esportazione Tupperbox (tul!export) o l'esportazione JSON di Ampersand. Il backup binario di Ampersand non è supportato — il formato cambia tra le versioni, per questo lo sviluppatore consiglia il JSON.",
+    "importFromOtherApp": "Scegli file (.our / .json)",
+    "usePkDisplayNames": "Usa i nomi visualizzati",
+    "psImportDone": "Importazione PluralSpace: {{members}} nuovi membri, {{history}} voci di front, {{avatars}} avatar",
+    "psUseSection": "Sembra un'esportazione PluralSpace. Usa la sezione Importazione PluralSpace qui sotto per importarla.",
     "mergeLogs": "Unisci i registri (mantieni cronologia, diario, chat e sondaggi esistenti; aggiungi solo i nuovi). I membri vengono comunque sostituiti.",
     "banners": "Banner",
     "groups": "Gruppi",
@@ -577,6 +594,9 @@
     "spMergeDesc": "Unisci i dati di backup di Simply Plural al tuo sistema attuale."
   },
   "hub": {
+    "creditsBlurb": "Contributori della community",
+    "discordBlurb": "Chat della community e supporto",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} altri",
     "front": "Front",
     "title": "Hub",
@@ -611,6 +631,9 @@
     "creditLogo": "Logo di Plural Star",
     "creditIos": "Port iOS di Plural Star",
     "supportPS": "Sostieni PS"
+  },
+  "markdown": {
+    "imageUnavailable": "[immagine non disponibile]"
   },
   "modal": {
     "linkPfp": "Collega immagine",
@@ -776,6 +799,7 @@
     "ms": "Bahasa Melayu"
   },
   "memberGroups": {
+    "groupName": "Nome del gruppo",
     "changeColor": "Cambia colore",
     "deleteSubtree": "Elimina tutto",
     "group": "Gruppo",
@@ -839,6 +863,8 @@
     "uniqueFronters": "Fronter Unici"
   },
   "chat": {
+    "messagePlaceholder": "Messaggio a #{{name}}...",
+    "replyingTo": "In risposta a",
     "addReaction": "Aggiungi reazione",
     "attachFile": "Allega file",
     "formatting": "Formattazione",
@@ -893,6 +919,7 @@
     "pickMember": "Menziona un membro"
   },
   "systemManager": {
+    "subsystemsCount": "{{count}} sotto-sistemi",
     "emptyFolder": "Qui non c'è ancora niente.",
     "browse": "Esplora",
     "deleteSelectedMsg": "Rimuovere {{count}} elemento/i selezionato/i? I membri non saranno eliminati.",
@@ -948,6 +975,10 @@
     "hasNotes": "{{names}} hanno note sulla loro bacheca"
   },
   "whiteboard": {
+    "clearConfirm2Title": "Sei sicurə?",
+    "clearConfirm2Msg": "L'intera lavagna verrà cancellata. Non si può annullare.",
+    "clearConfirm3Title": "Ultima possibilità",
+    "clearConfirm3Msg": "Cancellare davvero tutto dalla lavagna?",
     "title": "Lavagna",
     "draw": "Disegna",
     "move": "Sposta",
@@ -961,6 +992,7 @@
     "penColor": "Colore penna"
   },
   "systemMap": {
+    "showColors": "Colori",
     "manageTypes": "Gestisci tipi",
     "connectionsCount": "{{count}} connessioni",
     "allOnMap": "Tutti i membri sono già sulla mappa.",

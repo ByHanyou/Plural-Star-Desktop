@@ -38,6 +38,11 @@
     "sand": "Sand"
   },
   "common": {
+    "on": "On",
+    "off": "Off",
+    "settingsSaved": "Settings saved",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
     "change": "Change",
     "search": "Search…",
     "unlock": "Unlock",
@@ -270,7 +275,7 @@
     "pkExportDone": "PluralKit export saved",
     "pkExportHint": "Exports members and front history as a PluralKit-format file for pk;import (PluralKit) or tul!import (Tupperbox). Avatars only carry over if they're image links — PluralKit can't read locally saved pictures — and proxy tags are left blank to set up in the bot.",
     "importOtherApps": "Import from another app",
-    "importOtherAppsDesc": "Import members and fronting history from Ourcana (.our or .json), HiveMind or Octocon (.json), or Ampersand's JSON export. Ampersand's binary backup is not supported — its format changes between releases, which is why their developer recommends JSON.",
+    "importOtherAppsDesc": "Import members and fronting history from Ourcana (.our or .json), HiveMind or Octocon (.json), a Tupperbox export (tul!export), or Ampersand's JSON export. Ampersand's binary backup is not supported — its format changes between releases, which is why their developer recommends JSON.",
     "importFromOtherApp": "Pick file (.our / .json)",
     "title": "Share & Export",
     "export": "Export",
@@ -436,6 +441,7 @@
     "imageUnavailable": "[image unavailable]"
   },
   "modal": {
+    "changePfp": "Change profile picture",
     "appFont": "App Font",
     "updateFront": "Update Front",
     "addMembersFirst": "Add members first.",
@@ -569,6 +575,7 @@
     "zhHant": "繁體中文"
   },
   "memberGroups": {
+    "groupName": "Group name",
     "title": "Groups",
     "manage": "Groups",
     "allGroups": "All Groups",
@@ -827,6 +834,12 @@
     "uniqueFronters": "Unique Fronters"
   },
   "chat": {
+    "addReaction": "Add reaction",
+    "attachFile": "Attach file",
+    "messagePlaceholder": "Message #{{name}}...",
+    "reply": "Reply",
+    "replyingTo": "Replying to",
+    "send": "Send",
     "channels": "Channels",
     "newChannel": "New Channel",
     "channelName": "Channel name…",
@@ -897,6 +910,7 @@
     "hasNotes": "{{names}} have notes on their noteboard"
   },
   "polls": {
+    "removeOption": "Remove option",
     "title": "Polls",
     "createPoll": "+ Create Poll",
     "question": "Question",

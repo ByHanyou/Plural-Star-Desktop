@@ -166,7 +166,7 @@ export default function SettingsView({ onUpdate }: Props) {
       applyTextScale(textScale);
       applyFontChoice(fontChoice);
       onUpdate();
-      setSaveStatus('Settings saved');
+      setSaveStatus(t('common.settingsSaved'));
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (e: any) {
       console.error('Settings save error:', e);

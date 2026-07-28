@@ -143,6 +143,12 @@
     "publishFailed": "Không thể công bố mã của bạn — kiểm tra kết nối và thử lại."
   },
   "common": {
+    "on": "Bật",
+    "off": "Tắt",
+    "settingsSaved": "Đã lưu cài đặt",
+    "minimize": "Thu nhỏ",
+    "maximize": "Phóng to",
+    "unlock": "Mở khóa",
     "dragReorder": "Kéo để sắp xếp lại",
     "reorderLock": "Sắp xếp bằng cách kéo",
     "movedToTop": "Bây giờ ở vị trí đầu tiên",
@@ -370,6 +376,8 @@
     "showLess": "Thu gọn"
   },
   "journal": {
+    "passwordPrompt": "Mục này được bảo vệ bằng mật khẩu.",
+    "wrongPassword": "Mật khẩu không đúng.",
     "deleteTemplateMsg": "Mẫu này sẽ bị gỡ vĩnh viễn.",
     "title": "Nhật ký",
     "new": "+ Mới",
@@ -408,6 +416,15 @@
     "templateBody": "Nội dung Bài (đặt sẵn)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "Đã lưu bản xuất PluralKit",
+    "pkExportHint": "Xuất thành viên và lịch sử front thành tệp định dạng PluralKit cho pk;import (PluralKit) hoặc tul!import (Tupperbox). Avatar chỉ được giữ nếu là liên kết ảnh — PluralKit không đọc được ảnh lưu cục bộ — và thẻ proxy để trống để thiết lập trong bot.",
+    "importOtherApps": "Nhập từ ứng dụng khác",
+    "importOtherAppsDesc": "Nhập thành viên và lịch sử front từ Ourcana (.our hoặc .json), HiveMind hay Octocon (.json), bản xuất Tupperbox (tul!export) hoặc bản xuất JSON của Ampersand. Không hỗ trợ bản sao lưu nhị phân của Ampersand — định dạng thay đổi giữa các phiên bản, vì vậy nhà phát triển khuyên dùng JSON.",
+    "importFromOtherApp": "Chọn tệp (.our / .json)",
+    "usePkDisplayNames": "Dùng tên hiển thị",
+    "psImportDone": "Nhập PluralSpace: {{members}} thành viên mới, {{history}} mục front, {{avatars}} avatar",
+    "psUseSection": "Tệp này có vẻ là bản xuất PluralSpace. Hãy dùng mục Nhập PluralSpace bên dưới để nhập.",
     "mergeLogs": "Hợp nhất nhật ký (giữ lịch sử, nhật ký, trò chuyện và bình chọn hiện có; chỉ thêm mục mới). Thành viên vẫn bị thay thế.",
     "banners": "Ảnh bìa",
     "groups": "Nhóm",
@@ -577,6 +594,9 @@
     "spMergeDesc": "Gộp dữ liệu sao lưu Simply Plural vào hệ thống hiện tại của bạn."
   },
   "hub": {
+    "creditsBlurb": "Người đóng góp cộng đồng",
+    "discordBlurb": "Trò chuyện cộng đồng & hỗ trợ",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} nữa",
     "front": "Front",
     "title": "Trung tâm",
@@ -611,6 +631,9 @@
     "creditLogo": "Logo Plural Star",
     "creditIos": "Bản port iOS của Plural Star",
     "supportPS": "Ủng hộ PS"
+  },
+  "markdown": {
+    "imageUnavailable": "[ảnh không khả dụng]"
   },
   "modal": {
     "read": "Xem",
@@ -776,6 +799,7 @@
     "ms": "Bahasa Melayu"
   },
   "memberGroups": {
+    "groupName": "Tên nhóm",
     "changeColor": "Đổi màu",
     "deleteSubtree": "Xóa tất cả",
     "group": "Nhóm",
@@ -839,6 +863,8 @@
     "uniqueFronters": "Số Fronter Riêng biệt"
   },
   "chat": {
+    "messagePlaceholder": "Nhắn tin tới #{{name}}...",
+    "replyingTo": "Đang trả lời",
     "addReaction": "Thêm cảm xúc",
     "attachFile": "Đính kèm tệp",
     "formatting": "Định dạng",
@@ -893,6 +919,7 @@
     "pickMember": "Nhắc đến một thành viên"
   },
   "systemManager": {
+    "subsystemsCount": "{{count}} hệ thống con",
     "emptyFolder": "Chưa có gì ở đây.",
     "browse": "Duyệt",
     "deleteSelectedMsg": "Gỡ {{count}} mục đã chọn? Thành viên sẽ không bị xóa.",
@@ -948,6 +975,10 @@
     "hasNotes": "{{names}} có ghi chú trên bảng ghi chú của họ"
   },
   "whiteboard": {
+    "clearConfirm2Title": "Bạn chắc chứ?",
+    "clearConfirm2Msg": "Toàn bộ bảng sẽ bị xóa. Không thể hoàn tác.",
+    "clearConfirm3Title": "Cơ hội cuối",
+    "clearConfirm3Msg": "Thật sự xóa mọi thứ trên bảng trắng?",
     "title": "Bảng trắng",
     "draw": "Vẽ",
     "move": "Di chuyển",
@@ -961,6 +992,7 @@
     "penColor": "Màu bút"
   },
   "systemMap": {
+    "showColors": "Màu sắc",
     "manageTypes": "Quản lý loại",
     "connectionsCount": "{{count}} kết nối",
     "allOnMap": "Tất cả thành viên đã có trên bản đồ.",

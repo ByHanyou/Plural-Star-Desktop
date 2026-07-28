@@ -143,6 +143,10 @@
     "publishFailed": "Koodin julkaisu epäonnistui — tarkista yhteytesi ja yritä uudelleen."
   },
   "whiteboard": {
+    "clearConfirm2Title": "Oletko varma?",
+    "clearConfirm2Msg": "Koko taulu tyhjennetään. Tätä ei voi kumota.",
+    "clearConfirm3Title": "Viimeinen tilaisuus",
+    "clearConfirm3Msg": "Haluatko todella pyyhkiä kaiken taululta?",
     "title": "Piirtotaulu",
     "draw": "Piirrä",
     "move": "Siirrä",
@@ -156,6 +160,7 @@
     "penColor": "Kynän väri"
   },
   "systemMap": {
+    "showColors": "Värit",
     "manageTypes": "Hallitse tyyppejä",
     "connectionsCount": "{{count}} yhteyttä",
     "allOnMap": "Kaikki jäsenet ovat jo kartalla.",
@@ -227,6 +232,15 @@
     "apptReminderTitle": "Ajanvarausmuistutus"
   },
   "common": {
+    "on": "Päällä",
+    "off": "Pois",
+    "settingsSaved": "Asetukset tallennettu",
+    "minimize": "Pienennä",
+    "maximize": "Suurenna",
+    "change": "Muuta",
+    "search": "Hae…",
+    "unlock": "Avaa lukitus",
+    "back": "Takaisin",
     "dragReorder": "Järjestä vetämällä",
     "reorderLock": "Vetojärjestely",
     "save": "Tallenna",
@@ -406,6 +420,8 @@
     "searchPlaceholder": "Etsi historiasta..."
   },
   "journal": {
+    "passwordPrompt": "Tämä merkintä on suojattu salasanalla.",
+    "wrongPassword": "Väärä salasana.",
     "title": "Päiväkirja",
     "new": "+ Uusi",
     "noEntries": "Ei merkintöjä vielä.",
@@ -443,6 +459,13 @@
     "templateBody": "Merkinnän Sisältö (esiasetus)"
   },
   "share": {
+    "exportPluralKit": "↓ PluralKit / Tupperbox",
+    "pkExportDone": "PluralKit-vienti tallennettu",
+    "pkExportHint": "Vie jäsenet ja front-historian PluralKit-muotoisena tiedostona komennoille pk;import (PluralKit) tai tul!import (Tupperbox). Avatarit siirtyvät vain, jos ne ovat kuvalinkkejä — PluralKit ei voi lukea paikallisesti tallennettuja kuvia — ja proxy-tunnisteet jätetään tyhjiksi botissa määritettäviksi.",
+    "importOtherApps": "Tuo toisesta sovelluksesta",
+    "importOtherAppsDesc": "Tuo jäsenet ja front-historia Ourcanasta (.our tai .json), HiveMindistä tai Octoconista (.json), Tupperbox-viennistä (tul!export) tai Ampersandin JSON-viennistä. Ampersandin binäärivarmuuskopiota ei tueta — sen muoto muuttuu julkaisujen välillä, minkä vuoksi sen kehittäjä suosittelee JSONia.",
+    "importFromOtherApp": "Valitse tiedosto (.our / .json)",
+    "usePkDisplayNames": "Käytä näyttönimiä",
     "mergeLogs": "Yhdistä lokit (säilytä nykyinen historia, päiväkirja, chat ja kyselyt; lisää vain uudet). Jäsenet korvataan silti.",
     "title": "Jaa & Vie",
     "export": "Vie",
@@ -572,6 +595,9 @@
     "banners": "Jäsenten Bannerit"
   },
   "hub": {
+    "discordBlurb": "Yhteisöchat ja tuki",
+    "supportPS": "Tue Plural Staria",
+    "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} lisää",
     "title": "Hub",
     "shareExport": "Jaa & Vie",
@@ -605,7 +631,12 @@
     "creditsBlurb": "Yhteisön avustajat",
     "archive": "Arkisto"
   },
+  "markdown": {
+    "imageUnavailable": "[kuva ei saatavilla]"
+  },
   "modal": {
+    "appFont": "Sovelluksen fontti",
+    "changePfp": "Vaihda profiilikuva",
     "systemSettings": "Järjestelmäasetukset",
     "systemName": "Järjestelmän Nimi",
     "systemNamePlaceholder": "Järjestelmän nimi",
@@ -738,6 +769,7 @@
     "uk": "Українська"
   },
   "memberGroups": {
+    "groupName": "Ryhmän nimi",
     "title": "Ryhmät",
     "manage": "Ryhmät",
     "allGroups": "Kaikki Ryhmät",
@@ -767,6 +799,8 @@
     "subsystemsCount": "{{count}} alijärjestelmää"
   },
   "stats": {
+    "showMore": "Näytä lisää",
+    "energyByHour": "Energia tunneittain",
     "allTime": "Kaikki",
     "last7": "7 päivää",
     "last30": "30 päivää",
@@ -800,6 +834,12 @@
     "uniqueFronters": "Uniikit frontaajat"
   },
   "chat": {
+    "addReaction": "Lisää reaktio",
+    "attachFile": "Liitä tiedosto",
+    "messagePlaceholder": "Viesti kanavalle #{{name}}...",
+    "reply": "Vastaa",
+    "replyingTo": "Vastataan käyttäjälle",
+    "send": "Lähetä",
     "channels": "Kanavat",
     "newChannel": "Uusi kanava",
     "channelName": "Kanavan nimi…",
@@ -870,6 +910,7 @@
     "startDate": "Alku"
   },
   "polls": {
+    "removeOption": "Poista vaihtoehto",
     "title": "Kyselyt",
     "createPoll": "Luo kysely",
     "noPolls": "Ei kyselyjä.",
