@@ -7,7 +7,7 @@ import { ImportCtx } from './ctx';
 import { isImportStopped } from './progress';
 
 export const handleExport = async (ctx: ImportCtx) => {
-  const { showExportOptions, exportSel, channels, members, system, history, journal, settings, palettes, showStatus } = ctx;
+  const { showExportOptions, exportSel, channels, members, system, history, journal, settings, palettes, showStatus, t } = ctx;
     const cat = showExportOptions ? exportSel : {
       system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
       groups: true, chat: true, moods: true, palettes: true, settings: true,
@@ -103,7 +103,7 @@ export const handleExport = async (ctx: ImportCtx) => {
     if (!filePath) return;
 
     await window.electronAPI.file.writeBytes(filePath, u8ToBase64(zipBytes));
-    showStatus('Backup exported successfully');
+    showStatus(t('share.statusBackupExported'));
 };
 
 export const handlePluralKitExport = async (ctx: ImportCtx) => {
@@ -130,7 +130,7 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
         if (file.name.toLowerCase().endsWith('.zip')) {
           const files = unzipSync(new Uint8Array(await file.arrayBuffer()));
           const dj = files['data.json'];
-          if (!dj) { showStatus('Error: backup bundle is missing data.json'); return; }
+          if (!dj) { showStatus(t('share.statusBackupMissingData')); return; }
           data = JSON.parse(strFromU8(dj)) as ExportPayload;
           const avatars: Record<string, string> = { ...(data.avatars || {}) };
           const banners: Record<string, string> = { ...(data.banners || {}) };
@@ -146,11 +146,11 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
         }
 
         if (detectPluralSpace(data)) {
-          showStatus(`Error: ${t('share.psUseSection')}`);
+          showStatus(t('share.statusError', {msg: t('share.psUseSection')}));
           return;
         }
         if (!data._meta?.app?.includes('PluralSpace') && !data._meta?.app?.includes('Plural Space') && !data._meta?.app?.includes('PluralStar') && !data._meta?.app?.includes('Plural Star')) {
-          showStatus('Error: Not a Plural Star backup file');
+          showStatus(t('share.statusNotBackup'));
           return;
         }
 
@@ -159,7 +159,7 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
       };
       input.click();
     } catch (e: any) {
-      showStatus(`Import error: ${e.message}`);
+      showStatus(t('share.statusImportError', {msg: e.message}));
     }
 };
 
@@ -286,13 +286,13 @@ export const handleRestore = async (ctx: ImportCtx) => {
       if (restoreSel.journalTemplates && restoreData.journalTemplates) batch[KEYS.journalTemplates] = restoreData.journalTemplates;
 
       if (Object.keys(batch).length === 0) {
-        showStatus('Nothing selected to restore');
+        showStatus(t('share.statusNothingSelected'));
         return;
       }
 
       await store.setBatch(batch);
 
-      showStatus('Restore complete');
+      showStatus(t('share.statusRestoreComplete'));
       setRestoreData(null);
       setRestoreFile(null);
       onUpdate();
@@ -306,7 +306,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
           count: ctx.control?.completed.length ?? 0,
         }));
       } else {
-        showStatus(`Restore error (no changes saved): ${e.message}`);
+        showStatus(t('share.statusRestoreError', {msg: e.message}));
       }
     } finally {
       setImporting(false);

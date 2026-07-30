@@ -197,7 +197,7 @@ export default function ChatView({ onUpdate }: Props) {
 
         <div style={{ padding: 12, borderTop: '1px solid var(--border)' }}>
           <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--dim)', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-            Speaking as
+            {t('common.speakingAs')}
           </span>
           <button style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
@@ -262,7 +262,7 @@ export default function ChatView({ onUpdate }: Props) {
         <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
           {!activeChannelId ? (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-              Select a channel to start chatting
+              {t('common.selectChannel')}
             </div>
           ) : messages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
@@ -401,7 +401,7 @@ export default function ChatView({ onUpdate }: Props) {
 
       <Modal open={showNewChannel} title={t('chat.newChannel')} onClose={() => setShowNewChannel(false)}
         footer={<Btn onClick={createChannel}>{t('common.add')}</Btn>}>
-        <Field label={t('chat.channelName')} value={newChannelName} onChange={setNewChannelName} placeholder="e.g. Planning" />
+        <Field label={t('chat.channelName')} value={newChannelName} onChange={setNewChannelName} placeholder={t('common.channelNameExample')} />
       </Modal>
 
       <Modal open={!!editChannelId} title={t('chat.channelName')} onClose={() => setEditChannelId(null)}

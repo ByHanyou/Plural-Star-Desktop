@@ -196,21 +196,21 @@ export default function JournalView({ onUpdate }: Props) {
       {tab === 'entries' && (<>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
           <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search entries..." style={{ flex: 1, minWidth: 200 }} />
+            placeholder={t('common.searchEntries')} style={{ flex: 1, minWidth: 200 }} />
 
           <select style={{
             background: 'var(--surface)', color: tagFilter ? 'var(--accent)' : 'var(--muted)',
             border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
-          }} aria-label="Filter by tag" value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
-            <option value="">All tags</option>
+          }} aria-label={t('common.filterByTag')} value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
+            <option value="">{t('journal.allTags')}</option>
             {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
           </select>
 
           <select style={{
             background: 'var(--surface)', color: authorFilter ? 'var(--accent)' : 'var(--muted)',
             border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
-          }} aria-label="Filter by author" value={authorFilter} onChange={e => setAuthorFilter(e.target.value)}>
-            <option value="">All authors</option>
+          }} aria-label={t('common.filterByAuthor')} value={authorFilter} onChange={e => setAuthorFilter(e.target.value)}>
+            <option value="">{t('common.allAuthors')}</option>
             {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
 

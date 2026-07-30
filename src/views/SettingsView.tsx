@@ -100,7 +100,7 @@ export default function SettingsView({ onUpdate }: Props) {
 
   const savePaletteEdit = async () => {
     if (!editPalette || !palName.trim()) {
-      setSaveStatus('Palette name is required');
+      setSaveStatus(t('common.paletteNameRequired'));
       setTimeout(() => setSaveStatus(null), 3000);
       return;
     }
@@ -116,12 +116,12 @@ export default function SettingsView({ onUpdate }: Props) {
     try {
       await store.set(KEYS.palettes, newList);
       setEditPalette(null);
-      setSaveStatus('Palette saved');
+      setSaveStatus(t('common.paletteSaved'));
       setTimeout(() => setSaveStatus(null), 3000);
       onUpdate();
     } catch (e: any) {
       console.error('Palette save error:', e);
-      setSaveStatus('Error saving palette');
+      setSaveStatus(t('common.paletteError'));
       setTimeout(() => setSaveStatus(null), 4000);
     }
   };
@@ -170,7 +170,7 @@ export default function SettingsView({ onUpdate }: Props) {
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (e: any) {
       console.error('Settings save error:', e);
-      setSaveStatus('Error saving settings');
+      setSaveStatus(t('common.settingsError'));
       setTimeout(() => setSaveStatus(null), 4000);
     }
   };
@@ -248,7 +248,7 @@ export default function SettingsView({ onUpdate }: Props) {
 
       {editPalette ? (
         <div style={{ padding: 14, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 14 }}>
-          <Field label={t('modal.paletteName')} value={palName} onChange={setPalName} placeholder="My Theme" />
+          <Field label={t('modal.paletteName')} value={palName} onChange={setPalName} placeholder={t('common.paletteNamePlaceholder')} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <HexField label={t('modal.palBg')} value={palBg} onChange={setPalBg} />
             <HexField label={t('modal.palAccent')} value={palAccent} onChange={setPalAccent} />

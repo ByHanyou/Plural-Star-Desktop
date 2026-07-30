@@ -103,7 +103,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const clearAllData = async () => {
     await store.clearAll();
     setConfirmClear(false);
-    showStatus('All data cleared');
+    showStatus(t('share.statusAllCleared'));
     onUpdate();
   };
 

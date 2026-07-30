@@ -233,7 +233,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       <div style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{title}</h3>
         {shown.length === 0 ? (
-          <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No data</span>
+          <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('common.noData')}</span>
         ) : (
           shown.map(([id, val]) => {
             const m = getMember(id);

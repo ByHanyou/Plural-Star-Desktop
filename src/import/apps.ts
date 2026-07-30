@@ -73,17 +73,17 @@ export const handleImportSP = async (ctx: ImportCtx) => {
             [KEYS.history]: [...existingHistory, ...importedHistory],
           });
 
-          showStatus(`SP Import: ${newMembers.length} new members, ${importedHistory.length} history entries`);
+          showStatus(t('share.statusSpImported', {members: newMembers.length, history: importedHistory.length}));
           onUpdate();
         } catch (e: any) {
-          showStatus(`SP Import error (no changes saved): ${e.message}`);
+          showStatus(t('share.statusImportErrorSafe', {msg: e.message}));
         } finally {
           setImporting(false);
         }
       };
       input.click();
     } catch (e: any) {
-      showStatus(`SP Import error: ${e.message}`);
+      showStatus(t('share.statusImportError', {msg: e.message}));
       setImporting(false);
     }
 };
@@ -112,7 +112,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
           if (isZip) {
             const files = unzipSync(buf);
             const name = Object.keys(files).find(n => n.toLowerCase().endsWith('.json'));
-            if (!name) { showStatus('Error: That archive has no .json inside it'); setImporting(false); return; }
+            if (!name) { showStatus(t('share.statusArchiveNoJson')); setImporting(false); return; }
             text = strFromU8(files[name]);
           } else {
             text = strFromU8(buf);
@@ -128,12 +128,12 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
             // is simply "has a tuppers array".
             conv = convertTupperbox(parsedJson);
           } else {
-            if (!fmt) { showStatus('Error: Unrecognized file. Use an Ourcana (.our/.json), HiveMind, Octocon, Tupperbox, or Ampersand JSON export.'); setImporting(false); return; }
+            if (!fmt) { showStatus(t('share.statusUnrecognized')); setImporting(false); return; }
             const d = parsedJson ?? JSON.parse(text);
             conv = fmt === 'ourcana' ? convertOurcana(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
           }
         }
-        if (!conv || (conv.members.length === 0 && conv.history.length === 0)) { showStatus('Error: Nothing to import from that file'); setImporting(false); return; }
+        if (!conv || (conv.members.length === 0 && conv.history.length === 0)) { showStatus(t('share.statusNothingInFile')); setImporting(false); return; }
 
         const batch: Record<string, unknown> = {};
         const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
@@ -189,10 +189,10 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         }
 
         await store.setBatch(batch);
-        showStatus(`${conv.sourceLabel} import: ${toAdd.length} new members, ${conv.history.length} history entries`);
+        showStatus(t('share.statusForeignImported', {label: conv.sourceLabel, members: toAdd.length, history: conv.history.length}));
         onUpdate();
       } catch (e: any) {
-        showStatus(`Import error (no changes saved): ${e.message}`);
+        showStatus(t('share.statusImportErrorSafe', {msg: e.message}));
       } finally {
         setImporting(false);
       }
@@ -385,7 +385,7 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
       showStatus(t('share.psImportDone', { members: toAdd.length, history: conv.history.length, avatars: avatarsLoaded }));
       onUpdate();
     } catch (e: any) {
-      showStatus(`Error: ${e.message}`);
+      showStatus(t('share.statusError', {msg: e.message}));
     } finally {
       setImporting(false);
     }
@@ -421,7 +421,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
           customFields: Array.isArray(cfData) ? cfData : (cfData?.customFields || []),
           groups: Array.isArray(gData) ? gData : (gData?.groups || []),
         });
-        if (failedCats.length > 0) showStatus(`Error: ${t('share.spFetchPartial', {categories: failedCats.join(', ')})}`);
+        if (failedCats.length > 0) showStatus(t('share.statusError', {msg: t('share.spFetchPartial', {categories: failedCats.join(', ')})}));
       } else {
         const headers = {Authorization: extToken.trim(), 'Content-Type': 'application/json'};
         const [sData, mData] = await Promise.all([
@@ -625,20 +625,20 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       }
 
       if (Object.keys(batch).length === 0) {
-        showStatus('Nothing to import');
+        showStatus(t('share.statusNothingToImport'));
         return;
       }
 
       await store.setBatch(batch);
 
-      showStatus(`Imported: ${newM.length} members, ${extPreview.switches.length} switches`);
+      showStatus(t('share.statusImportedCounts', {members: newM.length, switches: extPreview.switches.length}));
       setExtPreview(null); setExtToken('');
       onUpdate();
     } catch (e: any) {
       // A user stop is not a failure. This path buffers into `batch` and writes
       // once at the end, so stopping before that leaves the data untouched.
       if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
-      else showStatus(`Import error (no changes saved): ${e.message}`);
+      else showStatus(t('share.statusImportErrorSafe', {msg: e.message}));
     }
     finally { setImporting(false); }
 };
