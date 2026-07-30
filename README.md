@@ -122,7 +122,7 @@ Download the latest installer from [Releases](https://github.com/ByHanyou/Plural
 Requirements: Node 22+
 
 ```bash
-git clone https://github.com/TheHanyou/Plural-Star-Desktop.git
+git clone https://github.com/ByHanyou/Plural-Star-Desktop.git
 cd Plural-Star-Desktop
 npm install
 npm run electron:dev       # development
