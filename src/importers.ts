@@ -1,4 +1,5 @@
-import { Member, HistoryEntry, MemberGroup, CustomFieldDef, CustomFieldType, uid } from './utils';
+import { Member, HistoryEntry, MemberGroup, CustomFieldDef, CustomFieldType, JournalEntry, uid } from './utils';
+import { bytesToDataUri } from './exportUtils';
 
 export interface ConvertedImport {
   sourceLabel: string;
@@ -8,6 +9,9 @@ export interface ConvertedImport {
   customFieldDefs?: CustomFieldDef[];
   systemName?: string;
   systemDesc?: string;
+  // Same loose shape PluralSpaceImport uses — id and hashtags are filled in at
+  // apply time, so a converter never has to know about local ids.
+  journal?: { title: string; body: string; authorIds: string[]; timestamp: number; hashtags?: string[]; pinned?: boolean }[];
 }
 
 const hex = (c: any): string => { const s = String(c || '').trim(); return s.startsWith('#') ? s : (s ? `#${s}` : '#DAA520'); };
@@ -204,6 +208,178 @@ export interface PluralSpaceImport extends ConvertedImport {
 
 export const detectPluralSpace = (d: any): boolean =>
   !!d && !d._meta && d.system && typeof d.system === 'object' && Array.isArray(d.members) && Array.isArray(d.fronts);
+
+/**
+ * PluralSpace replaced its flat `data.json` export with an account-scoped
+ * bundle in the OpenPlural interchange format:
+ *
+ *   manifest.json                            { format: "openplural", systems: [...] }
+ *   account/account.json
+ *   systems/<slug>/openplural.json           <- the actual system
+ *   systems/<slug>/media/...
+ *
+ * Nothing about it matches the old shape — every collection was renamed, media
+ * moved behind an asset table, and member role/status became a taxonomy. Rather
+ * than fork the whole importer, normalise an OpenPlural system back into the
+ * legacy shape the rest of the PS path already consumes, so old exports and new
+ * ones travel the same code. Kept byte-identical to the mobile copy in
+ * src/import/convert.ts — diff the two before changing either.
+ */
+export const isOpenPluralSystem = (o: any): boolean =>
+  !!o && typeof o === 'object' && typeof o.openplural_version === 'string'
+  && Array.isArray(o.members) && Array.isArray(o.front_periods);
+
+export const normalizeOpenPlural = (root: any, mediaPrefix = ''): any | null => {
+  if (!isOpenPluralSystem(root)) return null;
+  const sys = (Array.isArray(root.systems) ? root.systems : [])[0] || {};
+  const assets = new Map<string, any>();
+  for (const a of Array.isArray(root.assets) ? root.assets : []) if (a && a.id) assets.set(String(a.id), a);
+  // asset.uri is relative to the system folder ("media/x.jpg"), but zip entries
+  // are keyed from the archive root, so re-attach the prefix we found it under.
+  const assetPath = (id: any): string => {
+    const a = id ? assets.get(String(id)) : null;
+    const uri = a && a.uri ? String(a.uri) : '';
+    return uri ? `${mediaPrefix}${uri}` : '';
+  };
+
+  const terms = new Map<string, any>();
+  for (const t of Array.isArray(root.taxonomy_terms) ? root.taxonomy_terms : []) if (t && t.id) terms.set(String(t.id), t);
+  // Member "role" is no longer a column — it is a taxonomy term of kind 'role'
+  // assigned to the member. Terms of kind 'status' hang off front periods.
+  const rolesByMember = new Map<string, string[]>();
+  for (const a of Array.isArray(root.taxonomy_assignments) ? root.taxonomy_assignments : []) {
+    if (!a || a.subject_type !== 'member') continue;
+    const term = terms.get(String(a.term_id));
+    if (!term || term.kind !== 'role' || !term.name) continue;
+    const key = String(a.subject_id);
+    rolesByMember.set(key, [...(rolesByMember.get(key) || []), String(term.name)]);
+  }
+
+  const fieldNames = new Map<string, string>();
+  for (const f of Array.isArray(root.custom_fields) ? root.custom_fields : []) if (f && f.id) fieldNames.set(String(f.id), String(f.name || ''));
+  const valuesByMember = new Map<string, {field_name: string; value: any}[]>();
+  for (const v of Array.isArray(root.custom_field_values) ? root.custom_field_values : []) {
+    if (!v) continue;
+    const owner = String(v.member_id || v.subject_id || '');
+    const name = fieldNames.get(String(v.custom_field_id || v.field_id)) || String(v.field_name || '');
+    if (!owner || !name) continue;
+    valuesByMember.set(owner, [...(valuesByMember.get(owner) || []), {field_name: name, value: v.value}]);
+  }
+
+  const groupsByMember = new Map<string, string[]>();
+  for (const gm of Array.isArray(root.group_memberships) ? root.group_memberships : []) {
+    if (!gm) continue;
+    const key = String(gm.member_id || '');
+    if (!key) continue;
+    groupsByMember.set(key, [...(groupsByMember.get(key) || []), String(gm.group_id || '')]);
+  }
+
+  const members = (Array.isArray(root.members) ? root.members : []).map((m: any) => ({
+    id: m?.id,
+    name: m?.name,
+    display_name: m?.display_name,
+    pronouns: m?.pronouns,
+    description: m?.description,
+    color: m?.color,
+    role: (rolesByMember.get(String(m?.id)) || []).join(', '),
+    is_archived: !!m?.archived,
+    is_custom_front: !!m?.is_custom_front,
+    avatar_media_path: assetPath(m?.avatar_asset_id),
+    banner_media_path: assetPath(m?.banner_asset_id),
+    groups: groupsByMember.get(String(m?.id)) || [],
+    custom_field_values: valuesByMember.get(String(m?.id)) || [],
+    created_at: m?.created_at,
+  }));
+
+  const periods = Array.isArray(root.front_periods) ? root.front_periods : [];
+  const at = (v: any): number => { if (!v) return 0; const ms = new Date(String(v)).getTime(); return isNaN(ms) ? 0 : ms; };
+
+  /**
+   * OpenPlural dropped `is_live`, and PluralSpace CLOSES the fronting period
+   * when it writes the export — so read literally, every import ends with
+   * nobody fronting. Reopen the newest period, but only when it ends flush
+   * against the export, which is unambiguous in practice: in the reference
+   * export the newest period ends 26s before `exported_at` and the one before
+   * it ends 3 hours before. A front the user genuinely ended earlier stays
+   * ended — silently resurrecting those is the bug class fixed on 08-03.
+   */
+  const LIVE_AT_EXPORT_MS = 5 * 60 * 1000;
+  const exportedAt = at(root.exported_at);
+  let liveEnd = 0;
+  if (exportedAt > 0) {
+    for (const p of periods) { const e = at(p?.ended_at); if (e > liveEnd) liveEnd = e; }
+    const gap = exportedAt - liveEnd;
+    if (!(liveEnd > 0 && gap >= 0 && gap <= LIVE_AT_EXPORT_MS)) liveEnd = 0;
+  }
+
+  // One period can name several members at different tiers; the legacy shape is
+  // one row per member, so flatten. 'member' is PluralSpace's plain fronting
+  // role and maps to primary front, same as 'primary'.
+  const fronts: any[] = [];
+  for (const p of periods) {
+    if (!p) continue;
+    // Co-fronters share the period's end instant, so compare on the value and
+    // every row of that final group reopens together.
+    const live = !p.ended_at || (liveEnd > 0 && at(p.ended_at) === liveEnd);
+    const assignments = Array.isArray(p.assignments) && p.assignments.length ? p.assignments : [{member_id: p.member_id, front_role: 'primary'}];
+    for (const a of assignments) {
+      if (!a || !a.member_id) continue;
+      const role = String(a.front_role || 'primary');
+      fronts.push({
+        id: p.id,
+        member_id: a.member_id,
+        type: role === 'co_front' ? 'co_front' : role === 'co_conscious' || role === 'co_con' ? 'co_con' : 'front',
+        started_at: p.started_at,
+        ended_at: live ? null : p.ended_at,
+        comment: a.note || p.note || '',
+        is_live: live,
+      });
+    }
+  }
+
+  const messagesByConv = new Map<string, any[]>();
+  const chat = root.chat && typeof root.chat === 'object' ? root.chat : {};
+  for (const msg of Array.isArray(chat.messages) ? chat.messages : []) {
+    if (!msg) continue;
+    const key = String(msg.conversation_id || '');
+    messagesByConv.set(key, [...(messagesByConv.get(key) || []), msg]);
+  }
+
+  return {
+    system: {
+      id: sys.id,
+      name: sys.name,
+      description: sys.description,
+      color: sys.color,
+      avatar_media_path: assetPath(sys.avatar_asset_id),
+      banner_media_path: assetPath(sys.banner_asset_id),
+    },
+    members,
+    fronts,
+    custom_fields: (Array.isArray(root.custom_fields) ? root.custom_fields : []).map((f: any) => ({
+      id: f?.id, name: f?.name, field_type: f?.field_type, is_multiple: false, values: [],
+    })),
+    member_groups: (Array.isArray(root.groups) ? root.groups : []).map((g: any) => ({
+      id: g?.id, name: g?.name, color: g?.color, description: g?.description,
+    })),
+    journal_entries: (Array.isArray(root.notes) ? root.notes : []).map((n: any) => ({
+      id: n?.id,
+      title: n?.title,
+      body: n?.body,
+      created_at: n?.created_at || n?.entry_date,
+      member_id: n?.member_id,
+      author_member_ids: Array.isArray(n?.author_member_ids) ? n.author_member_ids : [],
+    })),
+    chat_channels: (Array.isArray(chat.conversations) ? chat.conversations : []).map((c: any) => ({
+      id: c?.id,
+      name: c?.name || c?.title,
+      messages: (messagesByConv.get(String(c?.id)) || []).map((m: any) => ({
+        id: m?.id, member_id: m?.member_id || m?.author_member_id, content: m?.body ?? m?.content, created_at: m?.created_at,
+      })),
+    })),
+    polls: Array.isArray(root.polls?.polls) ? root.polls.polls : [],
+  };
+};
 
 const psTime = (v: any): number => { if (!v) return 0; const ms = new Date(String(v)).getTime(); return isNaN(ms) ? 0 : ms; };
 
@@ -422,6 +598,178 @@ export const convertTupperbox = (d: any): ConvertedImport => {
   return { sourceLabel: 'Tupperbox', members, history: [], groups };
 };
 
+/**
+ * .ampar reader.
+ *
+ * Verified against a real 37 MB archive (2026-08-02), not guessed:
+ *
+ *   "AMPAR\0"            6-byte magic
+ *   u16 be               format version (1)
+ *   u16 be               reserved, 0
+ *   <msgpack stream>     concatenated {table, data} maps, NOT length-prefixed
+ *
+ * Decoded here rather than via a dependency: it is a small, frozen subset of
+ * MessagePack, and the mobile side would otherwise have to bundle a decoder for
+ * one importer. Handles exactly what the format uses — maps, arrays, str, bin,
+ * ints, floats, bool, nil, and ext -1 timestamps. Kept byte-identical to the
+ * mobile copy in src/import/ampersand.ts — diff the two before changing either.
+ */
+const AMPAR_MAGIC = [0x41, 0x4d, 0x50, 0x41, 0x52, 0x00];
+
+export const isAmparBytes = (b: Uint8Array): boolean =>
+  !!b && b.length > 10 && AMPAR_MAGIC.every((c, i) => b[i] === c);
+
+const utf8 = (b: Uint8Array, start: number, len: number): string => {
+  let out = '';
+  let i = start;
+  const end = start + len;
+  while (i < end) {
+    const c = b[i++];
+    if (c < 0x80) { out += String.fromCharCode(c); continue; }
+    let cp: number;
+    if (c < 0xe0) cp = ((c & 0x1f) << 6) | (b[i++] & 0x3f);
+    else if (c < 0xf0) { cp = ((c & 0x0f) << 12) | ((b[i++] & 0x3f) << 6); cp |= b[i++] & 0x3f; }
+    else {
+      cp = ((c & 0x07) << 18) | ((b[i++] & 0x3f) << 12) | ((b[i++] & 0x3f) << 6);
+      cp |= b[i++] & 0x3f;
+    }
+    if (cp > 0xffff) {
+      cp -= 0x10000;
+      out += String.fromCharCode(0xd800 + (cp >> 10), 0xdc00 + (cp & 0x3ff));
+    } else out += String.fromCharCode(cp);
+  }
+  return out;
+};
+
+export const decodeAmpar = (bytes: Uint8Array): {table: string; data: any}[] => {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let p = 10; // magic + version + reserved
+
+  // ext -1: the standard MessagePack timestamp. Emitted as epoch milliseconds
+  // because convertSPSwitches takes a number or a date string, and a number
+  // cannot be misparsed by a locale.
+  const timestamp = (len: number): number => {
+    if (len === 4) { const s = dv.getUint32(p); p += 4; return s * 1000; }
+    if (len === 8) {
+      const hi = dv.getUint32(p); const lo = dv.getUint32(p + 4); p += 8;
+      const ns = hi >>> 2;
+      const sec = (hi & 0x3) * 4294967296 + lo;
+      return sec * 1000 + Math.floor(ns / 1e6);
+    }
+    if (len === 12) {
+      const ns = dv.getUint32(p); const sec = Number(dv.getBigInt64(p + 4)); p += 12;
+      return sec * 1000 + Math.floor(ns / 1e6);
+    }
+    p += len;
+    return 0;
+  };
+
+  const read = (): any => {
+    const c = bytes[p++];
+    if (c <= 0x7f) return c;                       // positive fixint
+    if (c >= 0xe0) return c - 256;                 // negative fixint
+    if (c >= 0x80 && c <= 0x8f) return map(c & 0x0f);
+    if (c >= 0x90 && c <= 0x9f) return arr(c & 0x0f);
+    if (c >= 0xa0 && c <= 0xbf) return str(c & 0x1f);
+    switch (c) {
+      case 0xc0: return null;
+      case 0xc2: return false;
+      case 0xc3: return true;
+      case 0xc4: return bin(dv.getUint8(p), 1);
+      case 0xc5: return bin(dv.getUint16(p), 2);
+      case 0xc6: return bin(dv.getUint32(p), 4);
+      case 0xc7: { const l = dv.getUint8(p); const t = dv.getInt8(p + 1); p += 2; return ext(t, l); }
+      case 0xc8: { const l = dv.getUint16(p); const t = dv.getInt8(p + 2); p += 3; return ext(t, l); }
+      case 0xc9: { const l = dv.getUint32(p); const t = dv.getInt8(p + 4); p += 5; return ext(t, l); }
+      case 0xca: { const v = dv.getFloat32(p); p += 4; return v; }
+      case 0xcb: { const v = dv.getFloat64(p); p += 8; return v; }
+      case 0xcc: return dv.getUint8(p++);
+      case 0xcd: { const v = dv.getUint16(p); p += 2; return v; }
+      case 0xce: { const v = dv.getUint32(p); p += 4; return v; }
+      case 0xcf: { const v = Number(dv.getBigUint64(p)); p += 8; return v; }
+      case 0xd0: return dv.getInt8(p++);
+      case 0xd1: { const v = dv.getInt16(p); p += 2; return v; }
+      case 0xd2: { const v = dv.getInt32(p); p += 4; return v; }
+      case 0xd3: { const v = Number(dv.getBigInt64(p)); p += 8; return v; }
+      case 0xd4: { const t = dv.getInt8(p++); return ext(t, 1); }
+      case 0xd5: { const t = dv.getInt8(p++); return ext(t, 2); }
+      case 0xd6: { const t = dv.getInt8(p++); return ext(t, 4); }
+      case 0xd7: { const t = dv.getInt8(p++); return ext(t, 8); }
+      case 0xd8: { const t = dv.getInt8(p++); return ext(t, 16); }
+      case 0xd9: { const l = dv.getUint8(p); p += 1; return str(l); }
+      case 0xda: { const l = dv.getUint16(p); p += 2; return str(l); }
+      case 0xdb: { const l = dv.getUint32(p); p += 4; return str(l); }
+      case 0xdc: { const l = dv.getUint16(p); p += 2; return arr(l); }
+      case 0xdd: { const l = dv.getUint32(p); p += 4; return arr(l); }
+      case 0xde: { const l = dv.getUint16(p); p += 2; return map(l); }
+      case 0xdf: { const l = dv.getUint32(p); p += 4; return map(l); }
+      default: throw new Error(`ampar: unsupported byte 0x${c.toString(16)} at ${p - 1}`);
+    }
+  };
+  const ext = (type: number, len: number): any => {
+    if (type === -1) return timestamp(len);
+    const raw = bytes.subarray(p, p + len); p += len;
+    return raw;
+  };
+  const str = (len: number): string => { const s = utf8(bytes, p, len); p += len; return s; };
+  const bin = (len: number, skip: number): Uint8Array => { p += skip; const s = bytes.subarray(p, p + len); p += len; return s; };
+  const arr = (len: number): any[] => { const o: any[] = []; for (let i = 0; i < len; i++) o.push(read()); return o; };
+  const map = (len: number): any => {
+    const o: any = {};
+    for (let i = 0; i < len; i++) { const k = read(); o[typeof k === 'string' ? k : String(k)] = read(); }
+    return o;
+  };
+
+  const out: {table: string; data: any}[] = [];
+  while (p < bytes.length) {
+    const rec = read();
+    if (rec && typeof rec === 'object' && typeof rec.table === 'string') out.push(rec);
+  }
+  return out;
+};
+
+/**
+ * Re-shape a decoded archive into the DatabaseJSON layout their JSON export
+ * uses, so detectAmpersandJson/convertAmpersandJson stay a single code path.
+ * The only difference between the two formats is member custom fields: JSON has
+ * { fieldUuid: value }, the archive has a { _meta:{type:'map'}, value:[[k,v]] }
+ * envelope. Flatten that one field and everything else lines up.
+ */
+export const amparToDatabaseJson = (bytes: Uint8Array): any => {
+  const byTable: Record<string, any[]> = {};
+  for (const r of decodeAmpar(bytes)) (byTable[r.table] = byTable[r.table] || []).push(r.data);
+  // Images ride inline as {_meta:{type:'file', name}, value:<bin>}. Turning
+  // them into data URIs here means convertAmpersandJson's existing
+  // dataUri(a.image) / dataUri(a.cover) picks up avatars and banners with no
+  // change at all.
+  const fileUri = (v: any): any => {
+    const raw = v?.value;
+    if (!raw || typeof raw.length !== 'number' || !v?._meta || v._meta.type !== 'file') return v;
+    try { return bytesToDataUri(raw as Uint8Array, String(v._meta.name || 'x.png')); } catch { return undefined; }
+  };
+  const members = (byTable.members || []).map((m: any) => {
+    const out: any = {...m, image: fileUri(m?.image), cover: fileUri(m?.cover)};
+    const pairs = m?.customFields?.value;
+    if (!Array.isArray(pairs)) return out;
+    const flat: Record<string, any> = {};
+    for (const pair of pairs) if (Array.isArray(pair) && pair.length >= 2) flat[String(pair[0])] = pair[1];
+    out.customFields = flat;
+    return out;
+  });
+  return {
+    database: {
+      systems: byTable.systems || [],
+      members,
+      frontingEntries: byTable.frontingEntries || [],
+      customFields: byTable.customFields || [],
+      tags: byTable.tags || [],
+      journalPosts: byTable.journalPosts || [],
+      boardMessages: byTable.boardMessages || [],
+    },
+    config: byTable.__config?.[0] || {},
+  };
+};
+
 export const detectAmpersandJson = (d: any): boolean =>
   !!d && typeof d === 'object' && !!d.database && typeof d.database === 'object'
   && Array.isArray(d.database.members) && Array.isArray(d.database.frontingEntries);
@@ -459,12 +807,20 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
   }
 
   // Only member-type tags become groups; journal and asset tags are theirs alone.
+  // Archived, unnamed, and unused tags are skipped so the import does not land
+  // a pile of empty groups — the reference archive has 22 tags nobody carries.
+  // Mobile applies the same three guards; keep them in step or the same file
+  // imports differently on each platform.
+  const usedTags = new Set<string>();
+  mem.forEach((a: any) => (Array.isArray(a?.tags) ? a.tags : []).forEach((t: any) => usedTags.add(String(t))));
   const groups: MemberGroup[] = [];
   const tagIdMap: Record<string, string> = {};
   tags.filter((tg: any) => tg && (tg.type === 'member' || tg.type === undefined)).forEach((tg: any) => {
+    const name = String(tg.name || '').trim();
+    if (!name || tg.isArchived || !usedTags.has(String(tg.uuid))) return;
     const gid = uid();
     tagIdMap[String(tg.uuid)] = gid;
-    groups.push({ id: gid, name: String(tg.name || 'Group'), color: tg.color ? hex(tg.color) : undefined, sourceId: 'amp:' + String(tg.uuid) });
+    groups.push({ id: gid, name, color: tg.color ? hex(tg.color) : undefined, sourceId: 'amp:' + String(tg.uuid) });
   });
 
   // Every Ampersand system becomes a group when the export holds more than
@@ -557,6 +913,49 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
   });
   history.sort((a, b) => a.startTime - b.startTime);
 
+  // Journal posts AND the system message board both become journal entries —
+  // they are the only two things Ampersand has that are dated, titled, authored
+  // prose. A board poll has no equivalent of ours (ours target one member,
+  // theirs are system-wide), so the results are rendered into the body rather
+  // than forced into a shape that would misrepresent them.
+  const tagName: Record<string, string> = {};
+  tags.forEach((tg: any) => { if (tg?.uuid != null) tagName[String(tg.uuid)] = String(tg.name || ''); });
+  const memberName: Record<string, string> = {};
+  mem.forEach((a: any) => { memberName[String(a?.uuid)] = String(a?.name || '').trim(); });
+  const authorOf = (u: any): string[] => (idMap[String(u)] ? [idMap[String(u)]] : []);
+  const journal: NonNullable<ConvertedImport['journal']> = (Array.isArray(db.journalPosts) ? db.journalPosts : []).map((p: any) => ({
+    title: String(p?.title || '').trim(),
+    body: String(p?.body || ''),
+    authorIds: authorOf(p?.member),
+    hashtags: (Array.isArray(p?.tags) ? p.tags : []).map((t: any) => tagName[String(t)]).filter(Boolean),
+    timestamp: toMs(p?.date),
+    pinned: !!p?.isPinned,
+  }));
+  (Array.isArray(db.boardMessages) ? db.boardMessages : []).forEach((b: any) => {
+    let body = String(b?.body || '');
+    const entries = Array.isArray(b?.poll?.entries) ? b.poll.entries : [];
+    if (entries.length > 0) {
+      const lines = entries.map((e: any) => {
+        const votes = Array.isArray(e?.votes) ? e.votes : [];
+        const who = votes.map((v: any) => {
+          const n = memberName[String(v?.member)] || '';
+          const reason = String(v?.reason || '').trim();
+          return reason ? `${n} (${reason})` : n;
+        }).filter(Boolean);
+        return `- **${String(e?.choice || '')}** — ${votes.length}${who.length ? `: ${who.join(', ')}` : ''}`;
+      });
+      body = `${body}\n\n${lines.join('\n')}`.trim();
+    }
+    journal.push({
+      title: String(b?.title || '').trim(),
+      body,
+      authorIds: authorOf(b?.member),
+      hashtags: [],
+      timestamp: toMs(b?.date),
+      pinned: !!b?.isPinned,
+    });
+  });
+
   return {
     sourceLabel: 'Ampersand',
     members,
@@ -565,11 +964,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     customFieldDefs: cfDefs,
     systemName: sys?.name ? String(sys.name) : undefined,
     systemDesc: sys?.description ? String(sys.description) : undefined,
+    journal: journal.filter(e => e.title || e.body).sort((a, b) => b.timestamp - a.timestamp),
   };
 };
-
-// convertAmpar and its msgpack decoder (src/ampar.ts) were REMOVED 2026-07-26.
-// Ampersand's binary backup changes shape every few releases — their developer
-// says so and recommends the JSON export instead — so maintaining a hand-rolled
-// decoder for it was a standing liability. convertAmpersandJson above is the
-// only Ampersand path now.

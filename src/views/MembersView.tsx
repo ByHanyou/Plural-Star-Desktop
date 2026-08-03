@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, resizeBannerDataUrl, sortGroupsForDisplay } from '../utils';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay } from '../utils';
 import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
@@ -238,7 +238,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder={t('members.search')} style={{ flex: 1, minWidth: 140 }} />
+          aria-label={t('members.search')} placeholder={t('members.search')} style={{ flex: 1, minWidth: 140 }} />
         <Dropdown<MemberSortMode>
           value={sortMode}
           options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}
@@ -559,22 +559,23 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                         <div style={{ display: 'flex', gap: 8 }}>
                           <select className="field__input" aria-label={fd.name} style={{ flex: 1 }} value={String(val || '').split('-')[0] || ''}
                             onChange={e => setFieldVal(`${e.target.value}-${String(val || '').split('-')[1] || '01'}`)}>
-                            <option value="">Month</option>
-                            {Array.from({length: 12}, (_, i) => <option key={i+1} value={String(i+1).padStart(2,'0')}>{new Date(2000, i).toLocaleString('default', {month: 'long'})}</option>)}
+                            <option value="">{t('customFields.typeMonth')}</option>
+                            {Array.from({length: 12}, (_, i) => <option key={i+1} value={String(i+1).padStart(2,'0')}>{new Date(2000, i).toLocaleString(getLocale(), {month: 'long'})}</option>)}
                           </select>
                           <input className="field__input" type="number" min="1" max="31" style={{ width: 70 }}
+                            aria-label={t('customFields.day')}
                             value={String(val || '').split('-')[1] || ''}
                             onChange={e => setFieldVal(`${String(val || '').split('-')[0] || '01'}-${e.target.value}`)}
-                            placeholder="Day" />
+                            placeholder={t('customFields.day')} />
                         </div>
                       </div>
                     ) : fd.type === 'dateRange' ? (
                       <div>
                         <label className="field__label">{fd.name}</label>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <input className="field__input" aria-label={`${fd.name} (start)`} type="date" value={String(val || '').split('|')[0] || ''}
+                          <input className="field__input" aria-label={`${fd.name} (${t('customFields.startDate')})`} type="date" value={String(val || '').split('|')[0] || ''}
                             onChange={e => setFieldVal(`${e.target.value}|${String(val || '').split('|')[1] || ''}`)} style={{ flex: 1 }} />
-                          <input className="field__input" aria-label={`${fd.name} (end)`} type="date" value={String(val || '').split('|')[1] || ''}
+                          <input className="field__input" aria-label={`${fd.name} (${t('customFields.endDate')})`} type="date" value={String(val || '').split('|')[1] || ''}
                             onChange={e => setFieldVal(`${String(val || '').split('|')[0] || ''}|${e.target.value}`)} style={{ flex: 1 }} />
                         </div>
                       </div>
@@ -693,7 +694,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <textarea className="field__input field__input--multi" value={noteText} onChange={e => setNoteText(e.target.value)}
-                  placeholder={t('noteboard.placeholder')} style={{ flex: 1, minHeight: 48, fontSize: 13 }}
+                  aria-label={t('noteboard.placeholder')} placeholder={t('noteboard.placeholder')} style={{ flex: 1, minHeight: 48, fontSize: 13 }}
                   onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addNote(); }} />
                 <Btn variant="solid" onClick={addNote}>{t('common.add')}</Btn>
               </div>

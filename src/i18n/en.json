@@ -495,6 +495,7 @@
     "role": "Role / Archetype",
     "rolePlaceholder": "Host, Protector, Gatekeeper…",
     "color": "Color",
+    "hue": "Hue",
     "invalidHex": "Invalid hex color",
     "descriptionBio": "Description / Bio",
     "descriptionPlaceholder": "A bit about this headmate… paste image/GIF URLs inline",
@@ -603,7 +604,14 @@
     "th": "ไทย",
     "tr": "Türkçe",
     "vi": "Tiếng Việt",
-    "zhHant": "繁體中文"
+    "zhHant": "繁體中文",
+    "nl": "Nederlands",
+    "is": "Íslenska",
+    "hi": "हिन्दी",
+    "af": "Afrikaans",
+    "ko": "한국어",
+    "sv": "Svenska",
+    "pl": "Polski"
   },
   "memberGroups": {
     "groupName": "Group name",
@@ -912,6 +920,7 @@
     "deleteFieldMsg": "This will remove this field from all members.",
     "startDate": "Start",
     "endDate": "End",
+    "day": "Day",
     "typeColor": "Color",
     "typeMonth": "Month",
     "typeYear": "Year",

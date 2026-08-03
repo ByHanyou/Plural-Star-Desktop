@@ -127,7 +127,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
           <div style={{ flex: 1, minWidth: 160 }}>
             <label className="field__label">{t('customFields.fieldName')}</label>
             <input className="field__input" value={newName} onChange={e => setNewName(e.target.value)}
-              placeholder={t('customFields.fieldName')}
+              aria-label={t('customFields.fieldName')} placeholder={t('customFields.fieldName')}
               onKeyDown={e => { if (e.key === 'Enter') addField(); }} />
           </div>
           <div style={{ minWidth: 140 }}>

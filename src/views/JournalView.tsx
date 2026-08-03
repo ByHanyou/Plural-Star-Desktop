@@ -196,7 +196,7 @@ export default function JournalView({ onUpdate }: Props) {
       {tab === 'entries' && (<>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
           <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={t('common.searchEntries')} style={{ flex: 1, minWidth: 200 }} />
+            aria-label={t('common.searchEntries')} placeholder={t('common.searchEntries')} style={{ flex: 1, minWidth: 200 }} />
 
           <select style={{
             background: 'var(--surface)', color: tagFilter ? 'var(--accent)' : 'var(--muted)',
@@ -233,7 +233,7 @@ export default function JournalView({ onUpdate }: Props) {
                   <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                     {fmtDate(entry.timestamp)}
                   </span>
-                  <button onClick={ev => togglePin(entry, ev)} title={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} style={{
+                  <button onClick={ev => togglePin(entry, ev)} aria-label={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} aria-pressed={!!entry.pinned} title={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} style={{
                     background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: 12,
                     filter: entry.pinned ? 'none' : 'grayscale(1) opacity(0.5)',
                   }}>📌</button>
@@ -368,7 +368,7 @@ export default function JournalView({ onUpdate }: Props) {
 
         <Section label={t('modal.authors')} />
         <input className="field__input" value={authorSearch} onChange={e => setAuthorSearch(e.target.value)}
-          placeholder={t('members.search')} style={{ marginBottom: 8 }} />
+          aria-label={t('members.search')} placeholder={t('members.search')} style={{ marginBottom: 8 }} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
           {filteredAuthors.slice(0, 12).map(m => {
             const active = authorIds.includes(m.id);
@@ -397,7 +397,7 @@ export default function JournalView({ onUpdate }: Props) {
         </div>
         <div className="add-row">
           <input className="field__input" value={tagInput} onChange={e => setTagInput(e.target.value)}
-            placeholder={t('modal.topic')} onKeyDown={e => { if (e.key === 'Enter') addTag(); }} />
+            aria-label={t('modal.topic')} placeholder={t('modal.topic')} onKeyDown={e => { if (e.key === 'Enter') addTag(); }} />
           <Btn onClick={addTag}>{t('common.add')}</Btn>
         </div>
         </>)}
@@ -428,7 +428,7 @@ export default function JournalView({ onUpdate }: Props) {
         </div>
         <div className="add-row">
           <input className="field__input" value={tplTagInput} onChange={e => setTplTagInput(e.target.value)}
-            placeholder={t('modal.topic')} onKeyDown={e => { if (e.key === 'Enter') addTplTag(); }} />
+            aria-label={t('modal.topic')} placeholder={t('modal.topic')} onKeyDown={e => { if (e.key === 'Enter') addTplTag(); }} />
           <Btn onClick={addTplTag}>{t('common.add')}</Btn>
         </div>
       </Modal>

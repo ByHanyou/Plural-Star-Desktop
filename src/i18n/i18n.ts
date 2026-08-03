@@ -18,8 +18,15 @@ import th from './th.json';
 import tr from './tr.json';
 import vi from './vi.json';
 import zhHant from './zhHant.json';
+import nl from './nl.json';
+import is from './is.json';
+import hi from './hi.json';
+import af from './af.json';
+import ko from './ko.json';
+import sv from './sv.json';
+import pl from './pl.json';
 
-export const SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de', 'pt', 'fi', 'nb', 'zh', 'ja', 'ru', 'uk', 'it', 'ms', 'th', 'tr', 'vi', 'zhHant'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de', 'nl', 'pt', 'fi', 'sv', 'nb', 'is', 'it', 'pl', 'tr', 'ms', 'vi', 'th', 'hi', 'af', 'zh', 'zhHant', 'ja', 'ko', 'ru', 'uk'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 const getDeviceLanguage = (): SupportedLanguage => {
@@ -54,6 +61,13 @@ i18n
       tr: { translation: tr },
       vi: { translation: vi },
       zhHant: { translation: zhHant },
+      nl: { translation: nl },
+      is: { translation: is },
+      hi: { translation: hi },
+      af: { translation: af },
+      ko: { translation: ko },
+      sv: { translation: sv },
+      pl: { translation: pl },
     },
     lng: getDeviceLanguage(),
     fallbackLng: 'en',

@@ -44,7 +44,25 @@ Build out your system roster with profile pictures, 900×300 banner images, name
 Manage your groups and subsystems from one dedicated screen — create, rename, recolor, nest, and reorganize without digging through individual member profiles.
 
 **✦ Custom Fields**  
-Define your own per-member fields beyond the built-in ones. Support for text, number, toggle, date, month/year, month, year, and markdown types. Create fields once from the dashboard; fill them out per-member in the member edit modal. Fields are reorderable, renameable, and fully exportable. Compatible with Simply Plural custom field imports.
+Define your own per-member fields beyond the built-in ones. Thirteen field types: Text, Rich Text, Image, Number, Toggle, Color, Date, Date Range, Timestamp, Month, Year, Month + Year, and Month + Day. Create fields once from the dashboard; fill them out per-member in the member edit modal. Fields are reorderable, renameable, and fully exportable. Compatible with Simply Plural custom field imports.
+
+**🕸 System Map**  
+Chart the relationships between your headmates on an interactive force-directed graph. Four connection types ship built in — Rival, Friend, Ally, Love — and the Connections manager lets you create unlimited custom types with their own names, colors, and optional directionality with inverse labels. Threads rest grey until you select a member; their web then lights up in connection colors, with a reach selector to extend the glow to friends-of-friends and one ring beyond. Pan, zoom, click any node for their relationship list, and jump straight to their profile.
+
+**⚕ Medical**  
+Medication reminders, appointments, medical history, and emergency info in one dashboard tile — available in both system and Observatory modes. Medications support dosage, multiple daily reminder times, notes, and a pause toggle. Appointments take a date and time, location, and a remind-before offset. Keep a dated medical history of conditions, surgeries, and diagnoses, plus an emergency section for conditions, allergies, and blood type. Medical data is deliberately **local-only** — it never syncs and never leaves the machine.
+
+**🖌 Whiteboard**  
+A shared system canvas for sketching, mapping, or thinking out loud. Draw freehand, fill regions with the bucket tool, and pick colors from the Colors system. Clearing the board triple-confirms before anything is destroyed.
+
+**🎨 Colors**  
+A dedicated Colors tile: 92 named presets across four rows (default, darker, pastel, neon) plus 24 custom slots you fill yourself. Every color picker in the app — members, groups, connection types, palettes, whiteboard — draws from the same set, and each preset is named so screen readers announce a color rather than a hex code.
+
+**◈ Facets**  
+Split a member into facets — distinct aspects of one headmate that need their own name, color, and profile without becoming separate members. Facets appear in their own member-list tab and stay out of the front picker's main roster.
+
+**🪞 Friend Data Mirrors**  
+When a friend shares data with you, their members, front history, and connections appear read-only on your side and refresh as they change — so you can follow a partner or friend system's roster without either of you exporting anything.
 
 **📊 System Polls**  
 Create polls the whole system can vote on — decisions, preferences, member opinions. Polls live on the dashboard with options (each with its own vote tallies), voter tracking (who voted for what), and optional closure. Every active member can cast one vote per poll; votes can be changed until the poll is closed.
@@ -68,12 +86,18 @@ Local-only IRC-style chat for your system. Create, rename, and organize channels
 Write journal entries with the same editor available in member profiles. Entries open in a clean read-only view with a one-click Edit button. Pin important entries to the top of the list, and start new ones from saved templates with preset titles, bodies, and tags. Tag entries with authors (searchable by name), add topic hashtags (searchable by tag), and optionally lock individual entries or the entire journal behind passwords. Export individual entries or the full journal in `.txt`, `.md`, or `.json`.
 
 **⇅ Import & Export**  
-Migrating from another app? Import your full system data — members, history, custom fields, and system info — from Simply Plural, PluralKit, Octocon, Ampersand, Ourcana, HiveMind, or PluralSpace, via API token or export file. Co-fronting sessions from Simply Plural are correctly grouped into combined entries. Profile pictures are imported from avatar URLs. Custom field names and values are mapped automatically with bidirectional ID normalization.
+Migrating from another app? Import your full system data — members, history, custom fields, and system info — from Simply Plural, PluralKit, Tupperbox, Octocon, Ampersand, Ourcana, HiveMind, or PluralSpace, via API token or export file. Co-fronting sessions from Simply Plural are correctly grouped into combined entries. Profile pictures are imported from avatar URLs. Custom field names and values are mapped automatically with bidirectional ID normalization.
 
-Export your full system data as JSON (reimportable), HTML (opens in Google Docs), or send a formatted summary to any email address. Granular per-category toggles — pick exactly what to export or restore: system info, members, avatars, banners, front history, journal, groups, chat, moods, palettes, settings, custom fields, noteboards, polls. Import `.txt`, `.md`, or `.json` files directly as journal entries.
+Every format these apps currently produce is read directly, including the awkward ones:
+
+- **PluralSpace** — both the older `data.json` export and the current account-scoped **OpenPlural** bundle (`manifest.json` + `systems/<name>/openplural.json` + per-system media). Whoever was fronting when the export was taken stays fronting after the import.
+- **Ampersand** — both their JSON export and the binary **`.ampar`** archive, read natively. Profile pictures and banners travel inside that archive and come across with everything else; their member tags become groups, and journal posts and board messages (polls included) land in your journal.
+- **PluralKit** — front history is paginated properly rather than stopping at the first hundred switches.
+
+Export your full system data as JSON (reimportable), HTML (opens in Google Docs), or send a formatted summary to any email address. Granular per-category toggles — pick exactly what to export or restore: system info, members, avatars, banners, front history, journal, groups, chat, moods, palettes, settings, custom fields, mailbox, polls, System Map relationships, medical. Import `.txt`, `.md`, or `.json` files directly as journal entries.
 
 **🌐 Multilingual**  
-Full interface available in English, Español, Français, Deutsch, Português, Suomi, Norsk, Italiano, Türkçe, Bahasa Melayu, Tiếng Việt, ไทย, 简体中文, 繁體中文, 日本語, Русский, and Українська — 17 languages total. Auto-detects your device language on first launch. Change anytime via the dropdown in System Settings.
+Full interface available in English, Español, Français, Deutsch, Nederlands, Português, Suomi, Svenska, Norsk, Íslenska, Italiano, Polski, Türkçe, Bahasa Melayu, Tiếng Việt, ไทย, हिन्दी, Afrikaans, 简体中文, 繁體中文, 日本語, 한국어, Русский, and Українська — 24 languages total. Auto-detects your device language on first launch. Change anytime via the dropdown in System Settings.
 
 **Other Features**
 - Obsidian Blue dark theme and Steel light theme built-in, plus 10 custom palette slots — define your own four-color theme
@@ -82,22 +106,38 @@ Full interface available in English, Español, Français, Deutsch, Português, S
 - Adjustable text size — Normal, Large, or Extra Large — plus OpenDyslexic and other font choices
 - Mood picker with preset and custom mood support, per tier
 - Per-tier energy levels (1–10) for Primary, Co-Front, and Co-Conscious
-- Location tagging with preset location chips
-- Pinnable journal entries and noteboard notes
+- Location tagging with preset location chips, on every tier
+- Pinnable journal entries and mailbox messages
 - Password protection per journal entry and for the full journal
 - Searchable tag and author filters in journal
 - Member tags and named groups with multi-group assignment
 - Searchable member and Custom Front pickers in front selection
 - Custom Fronts (Sleeping, Blurry, etc.) selectable in Update Front and Retro History
-- Token and file imports from seven plural apps with co-front grouping
+- Token and file imports from eight plural apps with co-front grouping
 - Full data export and restore with per-category granularity
 - Discord community accessible directly from the dashboard
+
+---
+
+## Accessibility
+
+Screen reader support is treated as a feature, not a checkbox. Every control carries a programmatic name, role, and state.
+
+- **Every input is named**, whether or not it has a visible label — the name stays put once you start typing rather than vanishing with the placeholder.
+- **State is never colour-only** — selected chips, toggles, and tabs report their state to assistive tech as well as showing it.
+- **Everything is reachable from the keyboard**; no interactive element is a bare clickable `div`.
+- **Adjustable text size** (Normal, Large, Extra Large) with an OpenDyslexic option.
+- **Destructive actions confirm** before removing stored data or media; clearing the whiteboard triple-confirms.
+
+Dates, times, and number formatting follow your selected app language across all 24 locales rather than defaulting to US English, and plural forms follow proper CLDR rules — including the separate few/many forms Russian, Ukrainian, and Polish require.
 
 ---
 
 ## Privacy
 
 Everything lives on your machine. No accounts, no cloud sync, no tracking, no ads. All data is stored locally using `electron-store`.
+
+Medical data is local-only by design — it is excluded from sync entirely and never leaves the machine. Friends and syncing are opt-in and off by default; when enabled they are end-to-end encrypted, and the relay only ever sees sealed blobs it cannot read.
 
 Full privacy policy: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
 

@@ -222,7 +222,7 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         )}
         <input className="field__input" value={q}
           onChange={e => setSearch({ ...search, [poolKey]: e.target.value })}
-          placeholder={t('members.searchToAdd')} style={{ marginBottom: 6, fontSize: 12 }} />
+          aria-label={t('members.searchToAdd')} placeholder={t('members.searchToAdd')} style={{ marginBottom: 6, fontSize: 12 }} />
         {ql && filtered.length > 0 && (
           <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 4 }}>
             {filtered.slice(0, 20).map(m => {

@@ -221,7 +221,7 @@ export default function ChatView({ onUpdate }: Props) {
           {showMemberPicker && (
             <div style={{ marginTop: 4, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 200, overflowY: 'auto' }}>
               <input className="field__input" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
-                placeholder={t('common.search', {defaultValue: 'Search…'})} style={{ fontSize: 11, padding: '6px 8px', borderRadius: 0, border: 'none', borderBottom: '1px solid var(--border)' }} />
+                aria-label={t('common.search', {defaultValue: 'Search…'})} placeholder={t('common.search', {defaultValue: 'Search…'})} style={{ fontSize: 11, padding: '6px 8px', borderRadius: 0, border: 'none', borderBottom: '1px solid var(--border)' }} />
               {members.filter(m => !m.archived && (!memberSearch || m.name.toLowerCase().includes(memberSearch.toLowerCase()))).map(m => (
                 <button key={m.id} style={{
                   display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '6px 8px',
@@ -372,6 +372,7 @@ export default function ChatView({ onUpdate }: Props) {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <textarea className="field__input" value={input} onChange={e => setInput(e.target.value)}
+                aria-label={t('chat.messagePlaceholder', {name: activeChannel?.name || '', defaultValue: 'Message #{{name}}...'})}
                 placeholder={t('chat.messagePlaceholder', {name: activeChannel?.name || '', defaultValue: 'Message #{{name}}...'})}
                 style={{ flex: 1, minHeight: 36, maxHeight: 120, resize: 'vertical', fontSize: 13 }}
                 onPaste={e => {

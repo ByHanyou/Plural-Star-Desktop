@@ -23,7 +23,7 @@ const HexField = ({ label, value, onChange }: { label: string; value: string; on
           onChange={e => onChange(e.target.value.toUpperCase())}
           style={{ width: 28, height: 28, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', background: 'none' }} />
         <input className={`field__input field__input--mono ${valid ? '' : 'field__input--error'}`}
-          value={value} onChange={e => onChange(e.target.value)} placeholder="#000000" maxLength={7}
+          value={value} onChange={e => onChange(e.target.value)} aria-label={label} placeholder="#000000" maxLength={7}
           style={{ width: '100%' }} />
       </div>
     </div>

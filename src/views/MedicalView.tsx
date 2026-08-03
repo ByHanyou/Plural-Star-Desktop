@@ -97,12 +97,12 @@ export default function MedicalView({ onUpdate }: Props) {
           </div>
         ))}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
-          <input className="field__input" value={medName} onChange={e => setMedName(e.target.value)} placeholder={t('medical.namePlaceholder')} style={{ flex: 2, minWidth: 120 }} />
-          <input className="field__input" value={medDose} onChange={e => setMedDose(e.target.value)} placeholder={t('medical.dosagePlaceholder')} style={{ flex: 1, minWidth: 80 }} />
+          <input className="field__input" value={medName} onChange={e => setMedName(e.target.value)} aria-label={t('medical.namePlaceholder')} placeholder={t('medical.namePlaceholder')} style={{ flex: 2, minWidth: 120 }} />
+          <input className="field__input" value={medDose} onChange={e => setMedDose(e.target.value)} aria-label={t('medical.dosagePlaceholder')} placeholder={t('medical.dosagePlaceholder')} style={{ flex: 1, minWidth: 80 }} />
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 6 }}>
           <input className={`field__input ${timeErr ? 'field__input--error' : ''}`} value={medTime} onChange={e => { setMedTime(e.target.value); setTimeErr(false); }}
-            onKeyDown={e => { if (e.key === 'Enter') addMedTime(); }} placeholder="9:00" style={{ width: 70 }} />
+            onKeyDown={e => { if (e.key === 'Enter') addMedTime(); }} aria-label={t('medical.timeHint')} placeholder="9:00" style={{ width: 70 }} />
           <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
             {(['AM', 'PM'] as const).map(ap => (
               <button key={ap} onClick={() => setMedAmPm(ap)} aria-pressed={medAmPm === ap}
@@ -134,9 +134,9 @@ export default function MedicalView({ onUpdate }: Props) {
           </div>
         ))}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
-          <input className="field__input" value={apptTitle} onChange={e => setApptTitle(e.target.value)} placeholder={t('medical.apptPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
+          <input className="field__input" value={apptTitle} onChange={e => setApptTitle(e.target.value)} aria-label={t('medical.apptPlaceholder')} placeholder={t('medical.apptPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
           <input className="field__input" aria-label={t('medical.apptPlaceholder')} type="datetime-local" value={apptWhen} onChange={e => setApptWhen(e.target.value)} style={{ width: 200 }} />
-          <select className="field__input" value={apptRemind} onChange={e => setApptRemind(Number(e.target.value))} title={t('medical.remindBefore')} style={{ width: 130 }}>
+          <select className="field__input" value={apptRemind} onChange={e => setApptRemind(Number(e.target.value))} aria-label={t('medical.remindBefore')} title={t('medical.remindBefore')} style={{ width: 130 }}>
             <option value={0}>{t('medical.atTime')}</option>
             <option value={15}>15m</option>
             <option value={30}>{t('medical.remind30m')}</option>
@@ -160,7 +160,7 @@ export default function MedicalView({ onUpdate }: Props) {
           </div>
         ))}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
-          <input className="field__input" value={histTitle} onChange={e => setHistTitle(e.target.value)} placeholder={t('medical.historyPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
+          <input className="field__input" value={histTitle} onChange={e => setHistTitle(e.target.value)} aria-label={t('medical.historyPlaceholder')} placeholder={t('medical.historyPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
           <input className="field__input" aria-label={t('medical.historyPlaceholder')} type="date" value={histWhen} onChange={e => setHistWhen(e.target.value)} style={{ width: 160 }} />
           <Btn variant="solid" onClick={addHistory}>{t('medical.addHistory')}</Btn>
         </div>
@@ -169,11 +169,11 @@ export default function MedicalView({ onUpdate }: Props) {
       <div style={card}>
         <h3 style={sectionHead('')}>{t('medical.emergency')}</h3>
         <label className="field__label">{t('medical.conditions')}</label>
-        <input className="field__input" value={data.emergency.conditions || ''} onChange={e => setEmergency({ conditions: e.target.value })} placeholder={t('medical.conditionsPlaceholder')} style={{ marginBottom: 10 }} />
+        <input className="field__input" value={data.emergency.conditions || ''} onChange={e => setEmergency({ conditions: e.target.value })} aria-label={t('medical.conditionsPlaceholder')} placeholder={t('medical.conditionsPlaceholder')} style={{ marginBottom: 10 }} />
         <label className="field__label">{t('medical.allergies')}</label>
-        <input className="field__input" value={data.emergency.allergies || ''} onChange={e => setEmergency({ allergies: e.target.value })} placeholder={t('medical.allergiesPlaceholder')} style={{ marginBottom: 10 }} />
+        <input className="field__input" value={data.emergency.allergies || ''} onChange={e => setEmergency({ allergies: e.target.value })} aria-label={t('medical.allergiesPlaceholder')} placeholder={t('medical.allergiesPlaceholder')} style={{ marginBottom: 10 }} />
         <label className="field__label">{t('medical.bloodType')}</label>
-        <input className="field__input" value={data.emergency.bloodType || ''} onChange={e => setEmergency({ bloodType: e.target.value })} placeholder="e.g. O+" style={{ marginBottom: 12 }} />
+        <input className="field__input" value={data.emergency.bloodType || ''} onChange={e => setEmergency({ bloodType: e.target.value })} aria-label={t('medical.bloodType')} placeholder="e.g. O+" style={{ marginBottom: 12 }} />
         <Toggle label={t('medical.showOnNotification')} description={t('medical.emergencyDesc')}
           value={data.emergency.showOnNotification} onChange={v => setEmergency({ showOnNotification: v })} />
       </div>

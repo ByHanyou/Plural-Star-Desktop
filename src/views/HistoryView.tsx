@@ -125,7 +125,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder={t('members.search')} style={{ flex: 1, minWidth: 200 }} />
+          aria-label={t('members.search')} placeholder={t('members.search')} style={{ flex: 1, minWidth: 200 }} />
         <select aria-label={t('common.filterByMember')} style={{
           background: 'var(--surface)', color: memberFilter ? 'var(--accent)' : 'var(--muted)',
           border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,

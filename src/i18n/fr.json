@@ -652,6 +652,7 @@
     "role": "Rôle / Archétype",
     "rolePlaceholder": "Hôte, Protecteur, Gardien…",
     "color": "Couleur",
+    "hue": "Teinte",
     "invalidHex": "Couleur hex invalide",
     "descriptionBio": "Description / Bio",
     "descriptionPlaceholder": "Un peu sur ce compagnon… collez des URLs d'images/GIF en ligne",
@@ -760,7 +761,14 @@
     "zh": "中文",
     "ja": "日本語",
     "ru": "Русский",
-    "uk": "Українська"
+    "uk": "Українська",
+    "nl": "Nederlands",
+    "is": "Íslenska",
+    "hi": "हिन्दी",
+    "af": "Afrikaans",
+    "ko": "한국어",
+    "sv": "Svenska",
+    "pl": "Polski"
   },
   "memberGroups": {
     "groupName": "Nom du groupe",
@@ -936,6 +944,7 @@
     "confirmChanges": "Confirmer les changements",
     "editFieldsInfo": "Modifier infos des champs",
     "endDate": "Fin",
+    "day": "Jour",
     "manageFields": "Gérer les champs",
     "reorder": "Réordonner",
     "startDate": "Début"

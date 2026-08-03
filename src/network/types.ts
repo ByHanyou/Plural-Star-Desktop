@@ -133,6 +133,18 @@ export const SYNC_EXCLUDE_KEYS = [
 export const SYNC_STATE_KEY = 'ps:networkSyncState';
 
 /**
+ * When this device last set the front to empty. DOT prefix: device-local, never
+ * syncs or exports — each device only needs its own clear time to defend its own
+ * state, so this costs nothing on the wire.
+ *
+ * A cleared front is stored as `null`, which carries no startTime, so the
+ * last-write-wins guard on ps:front had nothing to compare against and a peer
+ * holding a week-old front would happily overwrite the clear. This timestamp is
+ * that missing side of the comparison.
+ */
+export const FRONT_CLEARED_KEY = 'ps.frontClearedAt';
+
+/**
  * Device-local keys. The DOT is load-bearing: every sweep here filters
  * `startsWith('ps:')` with a COLON, so `ps.` keys can never sync or be swept.
  * (electron-store nests dotted keys under a `ps` object — harmless, since

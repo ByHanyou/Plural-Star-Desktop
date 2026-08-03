@@ -61,7 +61,22 @@ export const KEYS = {
   medical:      'ps:medical',
 };
 
+import { FRONT_CLEARED_KEY } from './network/types';
+
 export const chatMsgKey = (channelId: string): string => `ps:chat:${channelId}`;
+
+/**
+ * True for both shapes a cleared front can take: the `null` we actually write,
+ * and a tier object that happens to hold nobody. Duplicated here rather than
+ * imported from utils so storage stays free of the i18n/utils import chain.
+ */
+const frontValueIsEmpty = (v: unknown): boolean => {
+  if (v == null) return true;
+  const f = v as any;
+  if (typeof f !== 'object') return false;
+  const n = (t: any) => (t && Array.isArray(t.memberIds) ? t.memberIds.length : 0);
+  return n(f.primary) + n(f.coFront) + n(f.coConscious) === 0;
+};
 
 export const store = {
   async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
@@ -82,6 +97,9 @@ export const store = {
 
   async set(key: string, value: unknown): Promise<void> {
     try {
+      if (key === KEYS.front && frontValueIsEmpty(value)) {
+        await window.electronAPI.store.set(FRONT_CLEARED_KEY, Date.now());
+      }
       await window.electronAPI.store.set(key, value);
     } catch (e) {
       console.error('Storage write error:', e);

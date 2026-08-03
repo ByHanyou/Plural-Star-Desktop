@@ -3,7 +3,7 @@ import {
   Member, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, uid,
 } from '../utils';
-import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
+import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace, isOpenPluralSystem, normalizeOpenPlural, isAmparBytes, amparToDatabaseJson } from '../importers';
 import { isImportStopped } from './progress';
 import { unzipSync, strFromU8 } from 'fflate';
 import { bytesToDataUri, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
@@ -101,36 +101,44 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         ctx.control?.begin(t('share.importing'));
         let conv: ConvertedImport | null = null;
         {
-          // The binary .ampar/.ampdb path is GONE: Ampersand's developer reshapes
-          // that format every few releases, so we take their JSON export only.
           // An Ourcana .our is a plain zip holding a single ourcana.json. Sniff
           // the PK zip magic instead of trusting the extension, since users
           // rename these.
           const buf = new Uint8Array(await file.arrayBuffer());
-          const isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b && (buf[2] === 3 || buf[2] === 5 || buf[2] === 7);
-          let text: string;
-          if (isZip) {
-            const files = unzipSync(buf);
-            const name = Object.keys(files).find(n => n.toLowerCase().endsWith('.json'));
-            if (!name) { showStatus(t('share.statusArchiveNoJson')); setImporting(false); return; }
-            text = strFromU8(files[name]);
-          } else {
-            text = strFromU8(buf);
+          // Ampersand's binary archive is not text at all, so it has to be
+          // caught by its magic before anything tries to decode it as a string.
+          if (isAmparBytes(buf)) {
+            conv = convertAmpersandJson(amparToDatabaseJson(buf));
           }
-          const fmt = detectForeignFormat(text);
-          const parsedJson = (() => { try { return JSON.parse(text); } catch { return null; } })();
-          // Ampersand's JSON export is the format their dev recommends over the
-          // binary one, so check it before the generic sniffers.
-          if (parsedJson && detectAmpersandJson(parsedJson)) {
-            conv = convertAmpersandJson(parsedJson);
-          } else if (parsedJson && detectTupperbox(parsedJson)) {
-            // Tupperbox `tul!export` — PluralKit's own sniffer for these files
-            // is simply "has a tuppers array".
-            conv = convertTupperbox(parsedJson);
-          } else {
-            if (!fmt) { showStatus(t('share.statusUnrecognized')); setImporting(false); return; }
-            const d = parsedJson ?? JSON.parse(text);
-            conv = fmt === 'ourcana' ? convertOurcana(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
+          // Everything below decodes the file as TEXT, which would mangle a
+          // binary archive, so it only runs when the magic check did not
+          // already produce a conversion.
+          if (!conv) {
+            const isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b && (buf[2] === 3 || buf[2] === 5 || buf[2] === 7);
+            let text: string;
+            if (isZip) {
+              const files = unzipSync(buf);
+              const name = Object.keys(files).find(n => n.toLowerCase().endsWith('.json'));
+              if (!name) { showStatus(t('share.statusArchiveNoJson')); setImporting(false); return; }
+              text = strFromU8(files[name]);
+            } else {
+              text = strFromU8(buf);
+            }
+            const fmt = detectForeignFormat(text);
+            const parsedJson = (() => { try { return JSON.parse(text); } catch { return null; } })();
+            // Ampersand's JSON export is the format their dev recommends over the
+            // binary one, so check it before the generic sniffers.
+            if (parsedJson && detectAmpersandJson(parsedJson)) {
+              conv = convertAmpersandJson(parsedJson);
+            } else if (parsedJson && detectTupperbox(parsedJson)) {
+              // Tupperbox `tul!export` — PluralKit's own sniffer for these files
+              // is simply "has a tuppers array".
+              conv = convertTupperbox(parsedJson);
+            } else {
+              if (!fmt) { showStatus(t('share.statusUnrecognized')); setImporting(false); return; }
+              const d = parsedJson ?? JSON.parse(text);
+              conv = fmt === 'ourcana' ? convertOurcana(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
+            }
           }
         }
         if (!conv || (conv.members.length === 0 && conv.history.length === 0)) { showStatus(t('share.statusNothingInFile')); setImporting(false); return; }
@@ -141,7 +149,11 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         const idRemap: Record<string, string> = {};
         const toAdd: Member[] = [];
         conv.members.forEach(nm => {
-          const di = merged.findIndex(e => (nm.sourceId && e.sourceId === nm.sourceId) || (!e.sourceId && e.name.toLowerCase() === nm.name.toLowerCase()));
+          const claimed = new Set(Object.values(idRemap));
+          const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && e.name.toLowerCase() === nm.name.toLowerCase();
+          let di = nm.sourceId ? merged.findIndex(e => e.sourceId === nm.sourceId) : -1;
+          if (di < 0) di = merged.findIndex(e => !e.sourceId && nameMatch(e));
+          if (di < 0) di = merged.findIndex(nameMatch);
           if (di >= 0) {
             const dup = merged[di];
             idRemap[nm.id] = dup.id;
@@ -154,6 +166,24 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         if (conv.history.length > 0) {
           const remapped = conv.history.map(h => ({ ...h, memberIds: h.memberIds.map(id => idRemap[id] || id) }));
           batch[KEYS.history] = [...remapped, ...history].sort((a, b) => b.startTime - a.startTime);
+        }
+        if (conv.journal && conv.journal.length > 0) {
+          const existingJournal = await store.getStrict<any[]>(KEYS.journal, []) || [];
+          // Dedupe on title+timestamp so re-importing the same archive does not
+          // stack duplicates.
+          const sig = (e: any) => `${e?.timestamp}|${e?.title}`;
+          const seen = new Set(existingJournal.map(sig));
+          const addJournal = conv.journal
+            .filter(e => !seen.has(sig(e)))
+            .map(e => ({
+              ...e,
+              id: uid(),
+              hashtags: e.hashtags || [],
+              authorIds: e.authorIds.map(id => idRemap[id] || id),
+            }));
+          if (addJournal.length > 0) {
+            batch[KEYS.journal] = [...addJournal, ...existingJournal].sort((a: any, b: any) => b.timestamp - a.timestamp);
+          }
         }
         if (conv.groups && conv.groups.length > 0) {
           const existingGroups = await store.getStrict<any[]>(KEYS.groups, []) || [];
@@ -217,18 +247,26 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       let zipFiles: Record<string, Uint8Array> | null = null;
       let text: string;
+      let openPluralPrefix = '';
       if (/\.zip$/i.test(filePath)) {
         zipFiles = unzipSync(bytes);
+        // Newer PluralSpace exports are OpenPlural bundles with no data.json at
+        // the root — the system lives at systems/<slug>/openplural.json. Look
+        // for that BEFORE the "any .json" fallback, which would otherwise grab
+        // manifest.json or account.json and report a valid export as garbage.
+        const openPlural = Object.keys(zipFiles).find(k => /(^|\/)openplural\.json$/i.test(k));
         const jsonEntry = zipFiles['data.json']
           ? 'data.json'
-          : Object.keys(zipFiles).find(k => /(^|\/)data\.json$/i.test(k)) || Object.keys(zipFiles).find(k => /\.json$/i.test(k));
+          : Object.keys(zipFiles).find(k => /(^|\/)data\.json$/i.test(k)) || openPlural || Object.keys(zipFiles).find(k => /\.json$/i.test(k));
         if (!jsonEntry) throw new Error(t('share.psNotExport'));
+        if (jsonEntry === openPlural) openPluralPrefix = jsonEntry.replace(/openplural\.json$/i, '');
         text = strFromU8(zipFiles[jsonEntry]);
       } else {
         text = new TextDecoder('utf-8').decode(bytes);
       }
       let d: any;
       try { d = JSON.parse(text); } catch { throw new Error(t('share.psNotExport')); }
+      if (isOpenPluralSystem(d)) d = normalizeOpenPlural(d, openPluralPrefix);
       if (!detectPluralSpace(d)) throw new Error(t('share.psNotExport'));
       const conv = convertPluralSpace(d);
 
@@ -275,7 +313,11 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
           customFields: (nm.customFields || []).map(cv => ({ ...cv, fieldId: defRemap[cv.fieldId] || cv.fieldId })),
           groupIds: (nm.groupIds || []).map(g => groupRemap[g] || g),
         };
-        const di = merged.findIndex(e => (nm.sourceId && e.sourceId === nm.sourceId) || (!e.sourceId && e.name.toLowerCase() === nm.name.toLowerCase()));
+        const claimed = new Set(Object.values(idRemap));
+        const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && e.name.toLowerCase() === nm.name.toLowerCase();
+        let di = nm.sourceId ? merged.findIndex(e => e.sourceId === nm.sourceId) : -1;
+        if (di < 0) di = merged.findIndex(e => !e.sourceId && nameMatch(e));
+        if (di < 0) di = merged.findIndex(nameMatch);
         if (di >= 0) {
           const dup = merged[di];
           idRemap[nm.id] = dup.id;

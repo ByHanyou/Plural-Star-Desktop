@@ -230,7 +230,7 @@ export default function MailboxView({ onUpdate }: Props) {
           <textarea
             value={composeBody}
             onChange={e => setComposeBody(e.target.value)}
-            placeholder={t('mailbox.messagePlaceholder')}
+            aria-label={t('mailbox.messagePlaceholder')} placeholder={t('mailbox.messagePlaceholder')}
             rows={5}
             style={{ display: 'block', width: '100%', marginTop: 6, background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
           />

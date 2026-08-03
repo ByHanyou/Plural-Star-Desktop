@@ -284,7 +284,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         </p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <input className="field__input" value={extToken} onChange={e => setExtToken(e.target.value)}
-            placeholder={extSource === 'sp' ? t('share.spTokenPlaceholder') : t('share.pkTokenPlaceholder')}
+            aria-label={extSource === 'sp' ? t('share.spTokenPlaceholder') : t('share.pkTokenPlaceholder')} placeholder={extSource === 'sp' ? t('share.spTokenPlaceholder') : t('share.pkTokenPlaceholder')}
             style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }} />
           <Btn onClick={() => handleTokenFetch({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={extLoading}>
             {extLoading ? t('share.fetching') : t('share.fetchData')}

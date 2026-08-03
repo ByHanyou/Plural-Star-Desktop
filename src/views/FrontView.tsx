@@ -209,7 +209,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
             </div>
             {isEditingNote ? (
               <textarea className="field__input field__input--multi" value={noteText} onChange={e => setNoteText(e.target.value)}
-                placeholder={t('modal.whatHappening')} style={{ minHeight: 56, fontSize: 12 }} />
+                aria-label={t('modal.whatHappening')} placeholder={t('modal.whatHappening')} style={{ minHeight: 56, fontSize: 12 }} />
             ) : (
               <p style={{ fontSize: 12, lineHeight: 1.5, color: tier.note ? 'var(--text)' : 'var(--muted)' }}>
                 {tier.note || t('front.noNote')}
@@ -428,7 +428,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
           )}
           <input className="field__input" value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder={t('members.searchToAdd')} style={{ marginBottom: 6, fontSize: 12 }} />
+            aria-label={t('members.searchToAdd')} placeholder={t('members.searchToAdd')} style={{ marginBottom: 6, fontSize: 12 }} />
           {ql && filtered.length > 0 && (
             <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 10 }}>
               {filtered.slice(0, 20).map(m => {
@@ -499,7 +499,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         {showCustomMood[tierKey] && (
           <input className="field__input" value={customMood[tierKey]}
             onChange={e => setCustomMood({ ...customMood, [tierKey]: e.target.value })}
-            placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
+            aria-label={t('modal.enterMood')} placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
         )}
 
         {/* Every tier gets Mood, Energy, Location and Note — they were inconsistent,
@@ -508,12 +508,12 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
           {(settings.locations || []).map(l => (
             <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
-              style={{ padding: '4px 10px', fontSize: 11 }}
+              style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
               onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
           ))}
         </div>
         <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-          placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
+          aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
 
         <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -522,11 +522,11 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             onChange={e => setEnergy(Number(e.target.value))}
             style={{ flex: 1, accentColor: color }} />
           <button className="btn btn--ghost" style={{ padding: '2px 8px', fontSize: 10 }}
-            onClick={() => setEnergy(undefined)}>✕</button>
+            aria-label={t('common.clear')} onClick={() => setEnergy(undefined)}>✕</button>
         </div>
 
         <textarea className="field__input field__input--multi" value={note} onChange={e => setNote(e.target.value)}
-          placeholder={t('modal.whatHappening')} style={{ minHeight: 48, fontSize: 12 }} />
+          aria-label={t('modal.whatHappening')} placeholder={t('modal.whatHappening')} style={{ minHeight: 48, fontSize: 12 }} />
       </div>
     );
   };
@@ -588,13 +588,13 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
         {allLocations.map(l => (
           <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }}
+            style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
             onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
         ))}
       </div>
       <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-        placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 10 }} />
-      <Field label={t('modal.note')} value={note} onChange={setNote} placeholder={t('modal.whatHappening')} multiline />
+        aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 10 }} />
+      <Field label={t('modal.note')} value={note} onChange={setNote} aria-label={t('modal.whatHappening')} placeholder={t('modal.whatHappening')} multiline />
     </Modal>
   );
 }

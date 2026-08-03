@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, GroupNodeKind, uid, childrenOf, descendantsOf, isDescendant, groupKind } from '../utils';
+import { Member, MemberGroup, GroupNodeKind, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Modal, ConfirmDialog, useEscapeKey } from '../components/ui';
@@ -131,7 +131,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
     seen.add(g.id);
     const isEditing = editId === g.id;
     const isSub = groupKind(g) === 'subsystem';
-    const memberCount = members.filter(m => (m.groupIds || []).includes(g.id)).length;
+    const memberCount = members.filter(m => isRosterMember(m) && (m.groupIds || []).includes(g.id)).length;
     const moving = movingId;
     const canDrop = !!moving && moving !== g.id && !isDescendant(groups, g.id, moving);
     return (
@@ -342,10 +342,10 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
 
       {!browse && (<>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 12 }}>
-        <button title={t('memberGroups.changeColor')} onClick={() => setShowNewColor(v => !v)}
+        <button aria-label={t('memberGroups.changeColor')} title={t('memberGroups.changeColor')} onClick={() => setShowNewColor(v => !v)}
           style={{ width: 28, height: 28, borderRadius: newKind === 'subsystem' ? 6 : 14, backgroundColor: newColor, border: '2px solid rgba(255,255,255,0.15)', cursor: 'pointer', flexShrink: 0 }} />
         <input className="field__input" value={newName} onChange={e => setNewName(e.target.value)}
-          placeholder={t('memberGroups.addPlaceholder')}
+          aria-label={t('memberGroups.addPlaceholder')} placeholder={t('memberGroups.addPlaceholder')}
           onKeyDown={e => { if (e.key === 'Enter') addNode(); }}
           style={{ flex: 1, fontSize: 13 }} />
         <Btn variant="ghost" onClick={() => setNewKind(k => k === 'group' ? 'subsystem' : 'group')}>

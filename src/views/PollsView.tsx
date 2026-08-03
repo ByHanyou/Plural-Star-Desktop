@@ -160,7 +160,7 @@ export default function PollsView({ onUpdate }: Props) {
         {options.map((opt, i) => (
           <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
             <input className="field__input" value={opt} onChange={e => { const u = [...options]; u[i] = e.target.value; setOptions(u); }}
-              placeholder={`${t('polls.optionPlaceholder')} ${i + 1}`} style={{ flex: 1 }} />
+              aria-label={t('polls.optionPlaceholder')} placeholder={`${t('polls.optionPlaceholder')} ${i + 1}`} style={{ flex: 1 }} />
             {options.length > 2 && (
               <button aria-label={t('polls.removeOption', {defaultValue: 'Remove option'})} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 14 }}
                 onClick={() => setOptions(options.filter((_, j) => j !== i))}>✕</button>

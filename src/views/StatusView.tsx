@@ -106,19 +106,19 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
         </div>
         {showCustom && (
           <input className="field__input" value={customMood} onChange={e => setCustomMood(e.target.value)}
-            placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
+            aria-label={t('modal.enterMood')} placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
         )}
 
         <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
           {allLocations.map(l => (
             <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
-              style={{ padding: '4px 10px', fontSize: 11 }}
+              style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
               onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
           ))}
         </div>
         <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-          placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
+          aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
 
         <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
         <div style={{ display: 'flex', gap: 3, marginBottom: 8, alignItems: 'center' }}>

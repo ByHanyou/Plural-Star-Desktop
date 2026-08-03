@@ -141,11 +141,12 @@ export function ChipList({ items, onRemove, color = 'var(--info)' }: {
 export function AddRow({ value, onChange, onAdd, placeholder }: {
   value: string; onChange: (v: string) => void; onAdd: () => void; placeholder?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="add-row">
-      <input className="field__input" value={value} onChange={e => onChange(e.target.value)}
+      <input className="field__input" value={value} onChange={e => onChange(e.target.value)} aria-label={placeholder}
         placeholder={placeholder} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAdd(); } }} />
-      <Btn onClick={onAdd}>Add</Btn>
+      <Btn onClick={onAdd}>{t('common.add')}</Btn>
     </div>
   );
 }
@@ -284,7 +285,7 @@ export function ColorPicker({ value, onChange, palette }: {
           onPointerDown={e => { dragRef.current = 'sv'; onSvPointer(e); }}>
           <div className="color-picker__thumb" style={{ left: `${hsv.s}%`, top: `${100 - hsv.v}%`, background: value }} />
         </div>
-        <div ref={hueRef} className="color-picker__hue" role="slider" aria-label="Hue" aria-valuetext={`${Math.round(hsv.h)}`}
+        <div ref={hueRef} className="color-picker__hue" role="slider" aria-label={t('modal.hue')} aria-valuetext={`${Math.round(hsv.h)}`}
           tabIndex={0} onKeyDown={onHueKey}
           onPointerDown={e => { dragRef.current = 'hue'; onHuePointer(e); }}>
           <div className="color-picker__hue-thumb" style={{ left: `${(hsv.h / 360) * 100}%`, background: hueColor }} />
@@ -293,7 +294,7 @@ export function ColorPicker({ value, onChange, palette }: {
       <div className="color-picker__row">
         <div className="color-picker__preview" style={{ background: value }} />
         <input className={`field__input field__input--mono ${error ? 'field__input--error' : ''}`}
-          value={hex} onChange={e => handleHex(e.target.value)} placeholder="#C9A96E" maxLength={7}
+          value={hex} onChange={e => handleHex(e.target.value)} aria-label={t('modal.color')} placeholder="#C9A96E" maxLength={7}
           style={{ width: 100 }} />
       </div>
       <div className="color-picker__swatches">
