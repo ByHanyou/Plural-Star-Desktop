@@ -8,6 +8,9 @@ import { useAppStore } from '../store/appStore';
 
 interface Props { onUpdate?: () => void; }
 
+// Recipient sentinel for "send to everyone". Not a member id, never stored.
+const ALL_RECIPIENTS = '*';
+
 export default function MailboxView({ onUpdate }: Props) {
   const { t } = useTranslation();
   const members = useAppStore(s => s.state.members);
@@ -100,15 +103,22 @@ export default function MailboxView({ onUpdate }: Props) {
 
   const sendMessage = async () => {
     if (!composeTo || !composeFrom || !composeBody.trim()) return;
-    const entry: NoteboardEntry = {
+    // "Everyone" fans out a real message per member rather than inventing a
+    // broadcast row: each inbox keeps its own unread flag, pin and delete, and
+    // every existing count, lock, sync and export path works untouched.
+    const targets = composeTo === ALL_RECIPIENTS ? activeMembers.map(m => m.id) : [composeTo];
+    if (targets.length === 0) return;
+    const body = composeBody.trim();
+    const now = Date.now();
+    const entries: NoteboardEntry[] = targets.map(id => ({
       id: uid(),
-      memberId: composeTo,
+      memberId: id,
       authorId: composeFrom,
-      content: composeBody.trim(),
-      timestamp: Date.now(),
-      read: false,
-    };
-    await save([entry, ...notes]);
+      content: body,
+      timestamp: now,
+      read: composeFrom === id,
+    }));
+    await save([...entries, ...notes]);
     setShowCompose(false);
     setComposeBody('');
   };
@@ -142,7 +152,10 @@ export default function MailboxView({ onUpdate }: Props) {
   );
 
   const memberOptions = activeMembers.map(m => m.id);
+  const recipientOptions = activeMembers.length > 0 ? [ALL_RECIPIENTS, ...memberOptions] : memberOptions;
   const renderMemberOption = (id: string) => nameOf(id);
+  const renderRecipientOption = (id: string) =>
+    id === ALL_RECIPIENTS ? `${t('mailbox.everyone')} (${activeMembers.length})` : nameOf(id);
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', paddingBottom: 32 }}>
@@ -223,7 +236,7 @@ export default function MailboxView({ onUpdate }: Props) {
             <Btn onClick={sendMessage} disabled={!composeTo || !composeFrom || !composeBody.trim()}>{t('mailbox.send')}</Btn>
           </div>
         }>
-        <Dropdown value={composeTo} options={memberOptions} onChange={setComposeTo} label={t('mailbox.to')} renderOption={renderMemberOption} />
+        <Dropdown value={composeTo} options={recipientOptions} onChange={setComposeTo} label={t('mailbox.to')} renderOption={renderRecipientOption} />
         <Dropdown value={composeFrom} options={memberOptions} onChange={setComposeFrom} label={t('mailbox.from')} renderOption={renderMemberOption} />
         <label style={{ display: 'block', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '10px 0 4px' }}>
           {t('mailbox.title')}

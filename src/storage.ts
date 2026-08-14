@@ -59,6 +59,7 @@ export const KEYS = {
   whiteboard:   'ps:whiteboard',
   customColors: 'ps:customColors',
   medical:      'ps:medical',
+  planner:      'ps:planner',
 };
 
 import { FRONT_CLEARED_KEY } from './network/types';

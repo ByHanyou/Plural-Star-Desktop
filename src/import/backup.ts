@@ -65,6 +65,7 @@ export const handleExport = async (ctx: ImportCtx) => {
       relationshipTypes: cat.groups ? (await store.get(KEYS.relationshipTypes) || []) : [],
       systemMapMembers: cat.groups ? (await store.get(KEYS.systemMapMembers) || []) : [],
       medical: (await store.get(KEYS.medical)) || undefined,
+      planner: (cat as any).planner !== false ? ((await store.get(KEYS.planner)) || undefined) : undefined,
       // Map layout rides with the map; the rest are system-wide settings.
       systemMapPositions: cat.groups ? ((await store.get(KEYS.systemMapPositions)) || undefined) : undefined,
       whiteboard: cat.settings ? ((await store.get(KEYS.whiteboard)) || undefined) : undefined,
@@ -276,6 +277,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
       if (restoreSel.palettes && restoreData.palettes) batch[KEYS.palettes] = restoreData.palettes;
       if (restoreSel.customFields && restoreData.customFieldDefs) batch[KEYS.customFieldDefs] = restoreData.customFieldDefs;
       if (restoreSel.noteboards && restoreData.noteboards) batch[KEYS.noteboards] = restoreData.noteboards;
+      if (restoreSel.planner !== false && restoreData.planner) batch[KEYS.planner] = restoreData.planner;
       if (restoreSel.polls && restoreData.polls) {
         if (mergeLogs) {
           const existing = await store.getStrict<any[]>(KEYS.polls, []) || [];

@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { terminologyPostProcessor } from './terminology';
 
 import en from './en.json';
 import es from './es.json';
@@ -42,6 +43,7 @@ const getDeviceLanguage = (): SupportedLanguage => {
 
 i18n
   .use(initReactI18next)
+  .use(terminologyPostProcessor)
   .init({
     resources: {
       en: { translation: en },
@@ -73,10 +75,23 @@ i18n
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
     compatibilityJSON: 'v4',
+    postProcess: ['terminology'],
   });
+
+// index.html ships lang="en" and nothing ever changed it, so a screen reader
+// read all 23 other languages with an English voice. Keep the document tag in
+// step with i18n (zhHant needs the script subtag to be a valid BCP 47 code).
+const htmlLang = (lang: SupportedLanguage): string => (lang === 'zhHant' ? 'zh-Hant' : lang);
+
+export const applyDocumentLanguage = (lang: SupportedLanguage): void => {
+  document.documentElement.lang = htmlLang(lang);
+};
+
+applyDocumentLanguage(i18n.language as SupportedLanguage);
 
 export const changeLanguage = (lang: SupportedLanguage) => {
   i18n.changeLanguage(lang);
+  applyDocumentLanguage(lang);
 };
 
 export default i18n;

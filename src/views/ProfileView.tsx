@@ -6,6 +6,7 @@ import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
+import { CustomHexEntry } from '../components/CustomHexEntry';
 
 type SubTab = 'profile' | 'statuses';
 
@@ -229,6 +230,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
         <Section label={t('profile.favoriteColor')} />
         <ColorCarousel value={f.color} onChange={v => set('color', v)} />
+        <CustomHexEntry value={f.color} onApply={v => set('color', v)} />
         <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} multiline />
       </Modal>
 

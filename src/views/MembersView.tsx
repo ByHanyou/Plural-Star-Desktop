@@ -5,6 +5,7 @@ import { PALETTE } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
+import { CustomHexEntry } from '../components/CustomHexEntry';
 import { useAppStore } from '../store/appStore';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -53,6 +54,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [showClone, setShowClone] = useState(false);
   const [cloneSel, setCloneSel] = useState({ name: true, pronouns: true, role: true, color: true, description: true });
   const [readMode, setReadMode] = useState(false);
+  const [viewPfp, setViewPfp] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [fieldDefs, setFieldDefs] = useState<CustomFieldDef[]>([]);
 
@@ -102,10 +104,14 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
   // Facets live in their own list and are never members: the active/archived
   // lists must exclude them the same way they exclude custom fronts.
-  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
-  const archived = members.filter(m => m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
+  // The System Profile is not a roster member either. Observatory stores it as
+  // a plain member record pointed at by settings.selfMemberId, which is why it
+  // showed up here; exclude it from every tab and count.
+  const notSelf = (m: Member) => !settings.selfMemberId || m.id !== settings.selfMemberId;
+  const active = members.filter(m => notSelf(m) && !m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
+  const archived = members.filter(m => notSelf(m) && m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
   const customFronts = members.filter(m => m.isCustomFront && !m.deleted);
-  const facets = members.filter(m => m.isFacet && !m.deleted);
+  const facets = members.filter(m => notSelf(m) && m.isFacet && !m.deleted);
   const sorted = sortMembers(
     listView === 'customFronts' ? customFronts : listView === 'facets' ? facets : listView === 'archived' ? archived : active,
     sortMode,
@@ -425,9 +431,10 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               border: '1px solid var(--border)', background: 'var(--surface)',
               color: 'var(--muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
             }}>
+            <span aria-hidden>{f.isFacet ? '↩ ' : '◈ '}</span>
             {f.isFacet
-              ? `↩ ${t('members.makeMember', { defaultValue: 'Move to Members' })}`
-              : `◈ ${t('members.makeFacet', { defaultValue: 'Move to Facets' })}`}
+              ? t('members.makeMember', { defaultValue: 'Move to Members' })
+              : t('members.makeFacet', { defaultValue: 'Move to Facets' })}
           </button>
         )}
 
@@ -437,12 +444,16 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
               border: `2px solid ${f.color}`, overflow: 'hidden',
               ...(!f.avatar ? { backgroundColor: f.color } : {}),
-            }} {...(readMode ? {} : clickable(pickAvatar, 'Change profile picture'))}>
+            }} {...(readMode ? (f.avatar ? clickable(() => setViewPfp(true), t('modal.viewPfp')) : {}) : clickable(pickAvatar, 'Change profile picture'))}>
               {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
             </div>
             <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
               <button aria-label={t('modal.changePfp', {defaultValue: 'Change profile picture'})} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={pickAvatar}>📷</button>
+              {f.avatar && (
+                <button aria-label={t('modal.viewPfp')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  onClick={() => setViewPfp(true)}>🔍 {t('modal.viewPfp')}</button>
+              )}
               {f.avatar && (
                 <button style={{ fontSize: 11, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
                   onClick={() => set('avatar', undefined)}>{t('modal.removePfp')}</button>
@@ -468,6 +479,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
           <Section label={t('modal.color')} />
           <ColorCarousel value={f.color} onChange={v => set('color', v)} />
+          <CustomHexEntry value={f.color} onApply={v => set('color', v)} />
 
           {groups.length > 0 && (
             <>
@@ -478,15 +490,16 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   return (
                     <button key={g.id} className={`chip ${active ? '' : ''}`}
                       title={g.description || undefined}
+                      aria-pressed={active}
                       style={{
                         borderColor: active ? `${g.color || 'var(--accent)'}50` : 'var(--border)',
                         background: active ? `${g.color || 'var(--accent)'}20` : 'var(--surface)',
                         color: active ? (g.color || 'var(--accent)') : 'var(--dim)',
                       }}
                       onClick={() => toggleGroup(g.id)}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
+                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
                       {g.name}
-                      {active && <span style={{ fontWeight: 700 }}>✓</span>}
+                      {active && <span aria-hidden style={{ fontWeight: 700 }}>✓</span>}
                     </button>
                   );
                 })}
@@ -710,6 +723,15 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         danger
         onConfirm={() => confirmDelete && deleteMember(confirmDelete)}
         onCancel={() => setConfirmDelete(null)} />
+
+      {/* A look at the picture, not a change to it: nothing here resizes the
+          avatar anywhere else, and it closes on any click. */}
+      <Modal open={viewPfp && !!f.avatar} title={t('modal.viewPfpOf', { name: f.name || '?' })} onClose={() => setViewPfp(false)}>
+        <div {...clickable(() => setViewPfp(false), t('common.close'))} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+          <img src={f.avatar} alt={t('modal.viewPfpOf', { name: f.name || '?' })}
+            style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 12, display: 'block' }} />
+        </div>
+      </Modal>
 
       <Modal open={showClone} title={t('members.clone')} onClose={() => setShowClone(false)}
         footer={

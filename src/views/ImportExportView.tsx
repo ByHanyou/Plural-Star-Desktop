@@ -22,6 +22,7 @@ interface ExportCategories {
   system: boolean; members: boolean; avatars: boolean; banners: boolean; frontHistory: boolean; journal: boolean;
   groups: boolean; chat: boolean; moods: boolean; palettes: boolean; settings: boolean;
   customFields: boolean; noteboards: boolean; polls: boolean; journalTemplates: boolean;
+  planner: boolean;
 }
 
 interface Props {
@@ -62,7 +63,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const [restoreSel, setRestoreSel] = useState({
     system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
-    customFields: true, noteboards: true, polls: true, journalTemplates: true,
+    customFields: true, noteboards: true, polls: true, journalTemplates: true, planner: true,
   });
   const togR = (k: string) => setRestoreSel(s => ({ ...s, [k]: !s[k as keyof typeof s] }));
   const [mergeLogs, setMergeLogs] = useState(false);
@@ -70,7 +71,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const [exportSel, setExportSel] = useState<ExportCategories>({
     system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
-    customFields: true, noteboards: true, polls: true, journalTemplates: true,
+    customFields: true, noteboards: true, polls: true, journalTemplates: true, planner: true,
   });
   const togExp = (k: keyof ExportCategories) => setExportSel(s => ({ ...s, [k]: !s[k] }));
   const [showExportOptions, setShowExportOptions] = useState(false);
@@ -80,7 +81,10 @@ export default function ImportExportView({ onUpdate }: Props) {
     setTimeout(() => setStatus(null), 4000);
   };
 
-  const [extSource, setExtSource] = useState<'sp' | 'pk'>('sp');
+  // PluralKit is the only token importer now — the Simply Plural token path was
+  // removed, and leaving the default at 'sp' would have fetched from Simply
+  // Plural behind PluralKit's copy.
+  const [extSource] = useState<'sp' | 'pk'>('pk');
   const [extToken, setExtToken] = useState('');
   const [extLoading, setExtLoading] = useState(false);
   const [extPreview, setExtPreview] = useState<{members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[]} | null>(null);
@@ -159,7 +163,8 @@ export default function ImportExportView({ onUpdate }: Props) {
               ['palettes', t('share.themePalettes')],
               ['settings', t('share.appSettings')],
               ['customFields', t('customFields.title')],
-              ['noteboards', t('noteboard.title')],
+              ['noteboards', t('mailbox.title')],
+              ['planner', t('planner.title')],
               ['polls', t('polls.title')],
               ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' })],
             ] as [keyof ExportCategories, string][]).map(([k, label]) => (
@@ -207,7 +212,8 @@ export default function ImportExportView({ onUpdate }: Props) {
                 ['palettes', t('share.themePalettes'), !!restoreData.palettes?.length, restoreData.palettes?.length],
                 ['settings', t('share.appSettings'), !!restoreData.settings, null],
                 ['customFields', t('customFields.title'), !!restoreData.customFieldDefs?.length, restoreData.customFieldDefs?.length || 0],
-                ['noteboards', t('noteboard.title'), !!restoreData.noteboards?.length, restoreData.noteboards?.length || 0],
+                ['noteboards', t('mailbox.title'), !!restoreData.noteboards?.length, restoreData.noteboards?.length || 0],
+                ['planner', t('planner.title'), !!(restoreData.planner && ((restoreData.planner.appointments?.length || 0) + (restoreData.planner.reminders?.length || 0) > 0)), (restoreData.planner?.appointments?.length || 0) + (restoreData.planner?.reminders?.length || 0)],
                 ['polls', t('polls.title'), !!restoreData.polls?.length, restoreData.polls?.length || 0],
                 ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' }), !!restoreData.journalTemplates?.length, restoreData.journalTemplates?.length || 0],
               ] as [string, string, boolean, number | null][]).map(([k, label, avail, count]) => (
@@ -269,22 +275,14 @@ export default function ImportExportView({ onUpdate }: Props) {
         </Btn>
       </div>
 
-      <Section label={t('share.spImport') + ' / ' + t('share.pkImport') + ' (Token)'} />
+      <Section label={t('share.pkImport') + ' (Token)'} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <Btn variant={extSource === 'sp' ? 'solid' : 'ghost'} onClick={() => { setExtSource('sp'); setExtPreview(null); setExtToken(''); }}>
-            {t('share.simplyPlural')}
-          </Btn>
-          <Btn variant={extSource === 'pk' ? 'solid' : 'ghost'} onClick={() => { setExtSource('pk'); setExtPreview(null); setExtToken(''); }}>
-            {t('share.pluralKit')}
-          </Btn>
-        </div>
         <p style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 10, lineHeight: 1.5 }}>
-          {extSource === 'sp' ? t('share.spTokenHint') : t('share.pkTokenHint')}
+          {t('share.pkTokenHint')}
         </p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <input className="field__input" value={extToken} onChange={e => setExtToken(e.target.value)}
-            aria-label={extSource === 'sp' ? t('share.spTokenPlaceholder') : t('share.pkTokenPlaceholder')} placeholder={extSource === 'sp' ? t('share.spTokenPlaceholder') : t('share.pkTokenPlaceholder')}
+            aria-label={t('share.pkTokenPlaceholder')} placeholder={t('share.pkTokenPlaceholder')}
             style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }} />
           <Btn onClick={() => handleTokenFetch({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={extLoading}>
             {extLoading ? t('share.fetching') : t('share.fetchData')}
@@ -294,7 +292,6 @@ export default function ImportExportView({ onUpdate }: Props) {
           <div style={{ background: 'var(--card)', borderRadius: 8, border: '1px solid var(--border)', padding: 12, marginTop: 8 }}>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
               {t('share.membersCount', {count: extPreview.members.length})} · {t('share.frontEntries', {count: extPreview.switches.length})}
-              {extSource === 'sp' ? ` · ${t('share.customFieldsCount', {count: (extPreview.customFields || []).length})} · ${t('share.groupsCount', {count: (extPreview.groups || []).length})}` : ''}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
               {([
@@ -303,10 +300,6 @@ export default function ImportExportView({ onUpdate }: Props) {
                 ...(extSource === 'pk' ? [['displayNames', t('share.usePkDisplayNames'), true]] as [string, string, boolean][] : []),
                 ['avatars', t('share.profilePictures'), extPreview.members.length > 0],
                 ['frontHistory', t('share.frontHistory'), extPreview.switches.length > 0],
-                ...(extSource === 'sp' ? [
-                  ['customFields', t('customFields.title'), (extPreview.customFields || []).length > 0],
-                  ['groups', t('share.memberGroups'), (extPreview.groups || []).length > 0],
-                ] as [string, string, boolean][] : []),
               ] as [string, string, boolean][]).map(([k, label, avail]) => (
                 <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: avail ? 1 : 0.4, cursor: avail ? 'pointer' : 'default' }}>
                   <input type="checkbox" checked={avail && extSel[k as keyof typeof extSel]} disabled={!avail} onChange={() => togE(k)} />

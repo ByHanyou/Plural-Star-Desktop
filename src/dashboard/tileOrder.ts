@@ -4,6 +4,7 @@ const ORDER_KEY = 'ps.dashboardOrder';
 
 export const DEFAULT_TILE_ORDER: string[] = [
   'front',
+  'planner',
   'system-manager',
   'system-map',
   'medical',

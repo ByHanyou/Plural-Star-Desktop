@@ -60,7 +60,12 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const findOverlaps = (start: number, end: number | null): HistoryEntry[] => {
     const effectiveEnd = end ?? Date.now();
     return history.filter(e => {
+      // Mood, location and note rows are point-in-time markers. Nothing ever
+      // closes them, so their endTime stays null for good, and reading that as
+      // "still running" made every one of them overlap everything recorded
+      // after it. Only real front spans can overlap.
       if (!e.startTime) return false;
+      if (e.changeType && e.changeType !== 'front') return false;
       const eEnd = e.endTime ?? Date.now();
       return e.startTime < effectiveEnd && start < eEnd;
     });
@@ -211,11 +216,11 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         {poolSelected.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
             {poolSelected.map(m => (
-              <button key={m.id} className="chip" style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
+              <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
                 onClick={() => toggle(m.id)}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
                 <span style={{ color: m.color }}>{m.name}</span>
-                <span style={{ fontSize: 10, color: m.color }}>✕</span>
+                <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
               </button>
             ))}
           </div>

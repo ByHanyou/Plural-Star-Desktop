@@ -10,7 +10,7 @@ export default function ArchiveTile({ onClick }: Props) {
   const archived = members.filter(m => m.archived && !m.isCustomFront && !m.isFacet);
   return (
     <div className="tile tile--center" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph">🗃</div><span className="tile__title">{t('hub.archive')}</span></div>
+      <div className="tile__header"><div className="tile__glyph" aria-hidden>🗃</div><span className="tile__title">{t('hub.archive')}</span></div>
       <div className="tile__body">
         {archived.length === 0 ? (
           <span className="tile__empty">{t('members.noArchived')}</span>

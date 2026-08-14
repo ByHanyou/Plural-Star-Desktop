@@ -22,6 +22,37 @@ export function useEscapeKey(active: boolean, onEscape: () => void) {
   }, [active, onEscape]);
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Dialog focus handling: move focus into the dialog when it opens, keep Tab
+ *  inside it while it is open, and hand focus back to whatever opened it on
+ *  close. Without this a keyboard user tabs straight out of an open modal into
+ *  the page behind it and never finds their way back. */
+export function useDialogFocus(open: boolean, ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const returnTo = document.activeElement as HTMLElement | null;
+    const node = ref.current;
+    const visible = () => Array.from(node?.querySelectorAll<HTMLElement>(FOCUSABLE) || []).filter(el => el.offsetParent !== null);
+    (visible()[0] || node)?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !node) return;
+      const items = visible();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === node)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('keydown', onKey, true);
+      returnTo?.focus?.();
+    };
+  }, [open, ref]);
+}
+
 type BtnVariant = 'primary' | 'ghost' | 'danger' | 'solid' | 'info';
 
 export function Btn({ children, onClick, variant = 'primary', disabled = false, className = '', ...rest }: {
@@ -125,12 +156,14 @@ export function Dropdown<T extends string>({ value, options, onChange, label, re
 export function ChipList({ items, onRemove, color = 'var(--info)' }: {
   items: string[]; onRemove: (item: string) => void; color?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="chip-list">
       {items.map(item => (
-        <button key={item} className="chip" style={{ borderColor: `${color}50`, background: `${color}18` }} onClick={() => onRemove(item)}>
+        // Named "Remove X", not just "X ✕": the chip's only action is removal.
+        <button key={item} className="chip" aria-label={`${t('common.remove')} ${item}`} style={{ borderColor: `${color}50`, background: `${color}18` }} onClick={() => onRemove(item)}>
           <span style={{ color }}>{item}</span>
-          <span className="chip__x">✕</span>
+          <span className="chip__x" aria-hidden>✕</span>
         </button>
       ))}
     </div>
@@ -313,13 +346,16 @@ export function Modal({ open, title, onClose, footer, children }: {
   open: boolean; title: string; onClose: () => void; footer?: React.ReactNode; children: React.ReactNode;
 }) {
   const { t } = useTranslation();
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
   useEscapeKey(open, onClose);
+  useDialogFocus(open, dialogRef);
   if (!open) return null;
   return (
     <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div className="modal" role="presentation" onClick={e => e.stopPropagation()}>
+      <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onClick={e => e.stopPropagation()}>
         <div className="modal__header">
-          <span className="modal__title">{title}</span>
+          <span className="modal__title" id={titleId} role="heading" aria-level={2}>{title}</span>
           <button className="modal__close" aria-label={t('common.close')} onClick={onClose}>✕</button>
         </div>
         <div className="modal__body">{children}</div>
@@ -334,16 +370,22 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, dange
   open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; danger?: boolean;
 }) {
   const { t } = useTranslation();
+  const titleId = useId();
+  const msgId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
   useEscapeKey(open, onCancel);
+  useDialogFocus(open, dialogRef);
   if (!open) return null;
   return (
     <div className="modal-overlay" role="presentation" onClick={onCancel}>
-      <div className="modal modal--sm" role="presentation" onClick={e => e.stopPropagation()}>
+      {/* alertdialog + describedby so the destructive question itself is read,
+          not just its title. Focus lands on Cancel, never on Confirm. */}
+      <div ref={dialogRef} className="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} tabIndex={-1} onClick={e => e.stopPropagation()}>
         <div className="modal__header">
-          <span className="modal__title">{title}</span>
+          <span className="modal__title" id={titleId} role="heading" aria-level={2}>{title}</span>
         </div>
         <div className="modal__body">
-          <p style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5 }}>{message}</p>
+          <p id={msgId} style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5 }}>{message}</p>
         </div>
         <div className="modal__footer">
           <Btn variant="ghost" onClick={onCancel}>{t('common.cancel')}</Btn>

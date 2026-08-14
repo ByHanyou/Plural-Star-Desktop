@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn, clickable } from '../components/ui';
 import { TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex, resizeBannerDataUrl } from '../utils';
-import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice } from '../theme';
+import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice, ensureReadable } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
 import type { SupportedLanguage } from '../i18n/i18n';
+import { setTerminologyOverrides } from '../i18n/terminology';
 
 interface Props {
   onUpdate: () => void;
@@ -57,6 +58,7 @@ export default function SettingsView({ onUpdate }: Props) {
   const [newMood, setNewMood] = useState('');
   const [lang, setLang] = useState<SupportedLanguage>(settings.language);
   const [notif, setNotif] = useState(settings.notificationsEnabled);
+  const [termMap, setTermMap] = useState<Record<string, string>>(settings.terminology || {});
   const [textScale, setTextScale] = useState<TextScale>(settings.textScale);
   const [activePaletteId, setActivePaletteId] = useState(settings.activePaletteId);
   const [fontChoice, setFontChoice] = useState<FontChoice>(settings.fontChoice ?? (settings.useDyslexicFont === true ? 'opendyslexic' : 'default'));
@@ -161,7 +163,9 @@ export default function SettingsView({ onUpdate }: Props) {
       await store.set(KEYS.settings, {
         ...settings, accountMode: singletMode ? 'singlet' : 'system', locations: locs, customMoods: moods, language: lang,
         notificationsEnabled: notif, textScale, activePaletteId, fontChoice, useDyslexicFont: fontChoice === 'opendyslexic',
+        terminology: termMap,
       });
+      setTerminologyOverrides(termMap);
       changeLanguage(lang);
       applyTextScale(textScale);
       applyFontChoice(fontChoice);
@@ -256,9 +260,13 @@ export default function SettingsView({ onUpdate }: Props) {
             <HexField label={t('modal.palMid')} value={palMid} onChange={setPalMid} />
           </div>
           {isValidHex(normalizeHex(palBg)) && isValidHex(normalizeHex(palAccent)) && (
+            // Preview labels are clamped against the bg strip they sit on; the
+            // raw values went invisible whenever two palette colours shared a
+            // luminance, and the text span now mirrors the readable text the
+            // app will really derive.
             <div style={{ marginTop: 10, padding: 12, borderRadius: 8, background: normalizeHex(palBg), border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 13, color: normalizeHex(palAccent), fontWeight: 600 }}>{t('modal.palPreviewAccent')} </span>
-              <span style={{ fontSize: 13, color: normalizeHex(palText) }}>{t('modal.palPreviewText')}</span>
+              <span style={{ fontSize: 13, color: ensureReadable(normalizeHex(palAccent), normalizeHex(palBg), 3), fontWeight: 600 }}>{t('modal.palPreviewAccent')} </span>
+              <span style={{ fontSize: 13, color: isValidHex(normalizeHex(palText)) ? ensureReadable(normalizeHex(palText), normalizeHex(palBg), 4.5) : normalizeHex(palText) }}>{t('modal.palPreviewText')}</span>
             </div>
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -318,6 +326,15 @@ export default function SettingsView({ onUpdate }: Props) {
       <Section label={t('modal.customMoods')} />
       <ChipList items={moods} onRemove={m => setMoods(moods.filter(x => x !== m))} color="var(--info)" />
       <AddRow value={newMood} onChange={setNewMood} onAdd={addMood} placeholder={t('modal.addMoodPlaceholder')} />
+
+      <Section label={t('terminology.title')} />
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{t('terminology.hint')}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+        {(['member', 'members', 'group', 'groups', 'facet', 'facets', 'front', 'system'] as const).map(term => (
+          <Field key={term} label={t(`terminology.${term}`)} value={termMap[term] || ''}
+            onChange={v => setTermMap(m => ({ ...m, [term]: v }))} placeholder={t(`terminology.${term}`)} />
+        ))}
+      </div>
 
       <Toggle label={t('settings.observatory')} description={t('settings.observatoryDesc')} value={singletMode} onChange={setSingletMode} />
 

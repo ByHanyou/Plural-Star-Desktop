@@ -10,6 +10,7 @@ import {
   uid, singletStatuses, readableAccent,
 } from './utils';
 import { changeLanguage } from './i18n/i18n';
+import { setTerminologyOverrides } from './i18n/terminology';
 
 import FrontTile from './tiles/FrontTile';
 import MembersTile from './tiles/MembersTile';
@@ -27,6 +28,8 @@ import DiscordTile from './tiles/DiscordTile';
 import SystemManagerTile from './tiles/SystemManagerTile';
 import SystemMapTile from './tiles/SystemMapTile';
 import MedicalTile from './tiles/MedicalTile';
+import PlannerTile from './tiles/PlannerTile';
+import PlannerView from './views/PlannerView';
 import ArchiveTile from './tiles/ArchiveTile';
 import RetroHistoryTile from './tiles/RetroHistoryTile';
 import StatusTile from './tiles/StatusTile';
@@ -41,6 +44,7 @@ import MembersView from './views/MembersView';
 import SystemMapView from './views/SystemMapView';
 import MedicalView from './views/MedicalView';
 import { startMedicalReminders } from './services/medicalReminders';
+import { startPlannerReminders } from './services/plannerReminders';
 import { startFriendAlerts } from './services/friendAlerts';
 import ImportExportView from './views/ImportExportView';
 import StatsView from './views/StatsView';
@@ -67,7 +71,7 @@ import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arra
 import SortableTile from './components/SortableTile';
 import { loadTileOrder, saveTileOrder } from './dashboard/tileOrder';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard' | 'colors';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard' | 'colors' | 'planner';
 
 class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -150,6 +154,7 @@ function AppInner() {
     applyTextScale(mergedSettings.textScale);
     applyFontChoice(mergedSettings.fontChoice ?? (mergedSettings.useDyslexicFont === true ? 'opendyslexic' : 'default'));
     changeLanguage(mergedSettings.language);
+    setTerminologyOverrides(mergedSettings.terminology);
 
     setState({
       system: system || { name: '', description: '' },
@@ -168,6 +173,7 @@ function AppInner() {
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => startMedicalReminders(), []);
+  useEffect(() => startPlannerReminders(), []);
   useEffect(() => startFriendAlerts(), []);
 
   const [syncConflict, setSyncConflict] = useState<{peerId: string; deviceName: string} | null>(null);
@@ -181,7 +187,10 @@ function AppInner() {
 
   const systemName = state.system.name || 'Plural Star';
   const titlePalette = [...BUILTIN_PALETTES, ...(state.palettes || [])].find(p => p.id === state.settings.activePaletteId) || DARK_PALETTE;
-  const titleColor = readableAccent(titlePalette.accent, titlePalette.bg, titlePalette.text);
+  // Fall back to the DERIVED text, not the palette's raw one: the derived
+  // theme guarantees contrast, the raw value is whatever the user typed and
+  // is exactly what vanished on bright backgrounds.
+  const titleColor = readableAccent(titlePalette.accent, titlePalette.bg, state.theme.text);
 
   const isSinglet = state.settings.accountMode === 'singlet';
   const selfMember = isSinglet
@@ -260,6 +269,7 @@ function AppInner() {
     ),
     'system-manager': !isSinglet ? <SystemManagerTile onClick={() => setView('system-manager')} /> : null,
     'system-map': !isSinglet ? <SystemMapTile onClick={() => { setMapFocus(null); setView('system-map'); }} /> : null,
+    'planner': <PlannerTile onClick={() => setView('planner')} />,
     'medical': <MedicalTile onClick={() => setView('medical')} />,
     'network': <NetworkTile onClick={() => setView('network')} />,
     'members': isSinglet ? (
@@ -343,6 +353,7 @@ function AppInner() {
                 : view === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
                 : view === 'system-manager' ? t('systemManager.title')
                 : view === 'system-map' ? t('systemMap.title')
+                : view === 'planner' ? t('planner.title')
                 : view === 'medical' ? t('medical.title')
                 : view === 'archive' ? t('hub.archive')
                 : view === 'retro-history' ? t('hub.retroHistory')
@@ -405,6 +416,9 @@ function AppInner() {
             )}
             {view === 'medical' && (
               <MedicalView onUpdate={loadData} />
+            )}
+            {view === 'planner' && (
+              <PlannerView onUpdate={loadData} />
             )}
             {view === 'chat' && (
               <ChatView onUpdate={loadData} />

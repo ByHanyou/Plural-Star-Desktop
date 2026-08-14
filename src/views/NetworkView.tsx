@@ -178,17 +178,18 @@ export default function NetworkView() {
     return () => clearInterval(id);
   }, []);
 
-  const guard = async (fn: () => Promise<void>) => {
+  const guard = async (fn: () => Promise<void>, kind?: Kind) => {
     setBusy(true);
     setError(null);
     try {
       await fn();
     } catch (e: any) {
       const msg = String(e?.message || e).toLowerCase();
-      if (msg.includes('own')) setError(t('network.ownCode'));
+      const sync = kind === 'device';
+      if (msg.includes('own')) setError(t(sync ? 'network.ownSyncCode' : 'network.ownCode'));
       else if (msg.includes('not found') || msg.includes('expired')) setError(t('network.notFound'));
       else if (msg.includes('not connected')) setError(t('network.status.error'));
-      else setError(t('network.invalidCode'));
+      else setError(t(sync ? 'network.invalidSyncCode' : 'network.invalidCode'));
     } finally {
       setBusy(false);
     }
@@ -235,7 +236,7 @@ export default function NetworkView() {
       if (kind === 'device') await NetworkManager.enterDeviceCode(value.trim(), role || 'source');
       else await NetworkManager.enterFriendCode(value.trim());
       clear();
-    });
+    }, kind);
 
   const onEnter = (kind: Kind, value: string, clear: () => void) => {
     if (!value.trim()) return;
@@ -543,7 +544,13 @@ export default function NetworkView() {
       <ConfirmDialog
         open={!!removeTarget}
         title={t('network.remove')}
-        message={removeTarget?.displayName || ''}
+        message={
+          // Name alone never said that removal is mutual: it sends a
+          // disconnect, so they lose you too and both sides' mirrors go.
+          !removeTarget ? ''
+            : removeTarget.kind === 'device' ? removeTarget.displayName
+            : t('network.removeFriendWarn', { name: removeTarget.displayName })
+        }
         danger
         onConfirm={() => { const f = removeTarget!; setRemoveTarget(null); guard(() => NetworkManager.removeFriend(f.peerId)); }}
         onCancel={() => setRemoveTarget(null)}

@@ -74,6 +74,14 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
   const allMoods = [...DEFAULT_MOODS, ...(settings.customMoods || [])];
 
 
+  // Quick Remove: one click takes a member out of the front without opening
+  // the full editor; saveFront keeps every history behavior identical.
+  const quickRemove = (memberId: string) => {
+    if (!front) return;
+    const strip = (tier: any) => ({ ...tier, memberIds: (tier.memberIds || []).filter((x: string) => x !== memberId) });
+    void saveFront(strip(front.primary), strip(front.coFront), strip(front.coConscious));
+  };
+
   const saveFront = async (primary: any, coFront: any, coConscious: any) => {
     const newFront = await applyFrontUpdate(front, primary, coFront, coConscious);
     if (newFront) {
@@ -155,6 +163,8 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
                     {m.role && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: m.color, marginTop: 1 }}>{m.role.toUpperCase()}</div>}
                   </div>
                   <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>
+                  <button className="icon-btn" aria-label={t('front.quickRemove', { name: m.name })} onClick={() => quickRemove(id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: 8 }}>✕</button>
                 </div>
               );
             })}
@@ -417,11 +427,11 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
           {poolSelected.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
               {poolSelected.map(m => (
-                <button key={m.id} className="chip" style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
+                <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
                   onClick={() => toggleMember(tierKey, m.id)}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                  <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
                   <span style={{ color: m.color }}>{m.name}</span>
-                  <span style={{ fontSize: 10, color: m.color }}>✕</span>
+                  <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
                 </button>
               ))}
             </div>

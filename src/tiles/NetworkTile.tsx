@@ -26,7 +26,7 @@ export default function NetworkTile({ onClick }: Props) {
 
   return (
     <div className="tile tile--clickable" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph">🛰</div><span className="tile__title">{t('network.title')}</span></div>
+      <div className="tile__header"><div className="tile__glyph" aria-hidden>🛰</div><span className="tile__title">{t('network.title')}</span></div>
       <div className="tile__body">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text)' }}>
           <span style={{ width: 9, height: 9, borderRadius: 5, background: statusColor, flexShrink: 0 }} aria-hidden />

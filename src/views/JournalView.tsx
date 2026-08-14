@@ -373,13 +373,13 @@ export default function JournalView({ onUpdate }: Props) {
           {filteredAuthors.slice(0, 12).map(m => {
             const active = authorIds.includes(m.id);
             return (
-              <button key={m.id} className="chip" style={{
+              <button key={m.id} className="chip" aria-pressed={active} style={{
                 borderColor: active ? `${m.color}60` : 'var(--border)',
                 background: active ? `${m.color}20` : 'var(--surface)',
               }} onClick={() => toggleAuthor(m.id)}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
                 <span style={{ color: active ? m.color : 'var(--dim)' }}>{m.name}</span>
-                {active && <span style={{ fontWeight: 700, color: m.color }}>✓</span>}
+                {active && <span aria-hidden style={{ fontWeight: 700, color: m.color }}>✓</span>}
               </button>
             );
           })}
@@ -388,10 +388,10 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {hashtags.map(tag => (
-            <button key={tag} className="chip" style={{ borderColor: 'var(--info)40', background: 'var(--info-bg)' }}
+            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'var(--info)40', background: 'var(--info-bg)' }}
               onClick={() => setHashtags(hashtags.filter(t => t !== tag))}>
               <span style={{ color: 'var(--info)' }}>{tag}</span>
-              <span className="chip__x">✕</span>
+              <span className="chip__x" aria-hidden>✕</span>
             </button>
           ))}
         </div>
@@ -419,10 +419,10 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {tplTags.map(tag => (
-            <button key={tag} className="chip" style={{ borderColor: 'var(--info)40', background: 'var(--info-bg)' }}
+            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'var(--info)40', background: 'var(--info-bg)' }}
               onClick={() => setTplTags(tplTags.filter(t => t !== tag))}>
               <span style={{ color: 'var(--info)' }}>{tag}</span>
-              <span className="chip__x">✕</span>
+              <span className="chip__x" aria-hidden>✕</span>
             </button>
           ))}
         </div>

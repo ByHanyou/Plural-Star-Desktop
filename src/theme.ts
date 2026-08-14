@@ -47,6 +47,46 @@ const luminance = (hex: string): number => {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 };
 
+// Private copy rather than an import from utils.ts, so theme.ts keeps zero
+// imports and no circular-dependency risk.
+const wcagContrast = (hexA: string, hexB: string): number => {
+  const lum = (hex: string): number => {
+    const h = (hex || '').replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : (h + '000000').slice(0, 6);
+    const n = parseInt(full, 16) || 0;
+    const chan = (v: number) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+  };
+  const la = lum(hexA);
+  const lb = lum(hexB);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+// Nothing ever validated that a palette's text can be read on its background,
+// so a bright bg with light text (bg #EDB5C7 + text #8D8AB8 is the reported
+// pair, 1.86:1) made the titlebar name and most labels vanish — and
+// readableAccent made it worse, because its fallback IS that text. This nudges
+// a failing colour toward black or white, keeping as much of the chosen hue
+// as the floor allows; palettes that already pass come back untouched.
+export const ensureReadable = (color: string, bg: string, min: number): string => {
+  if (wcagContrast(color, bg) >= min) return color;
+  const pole = wcagContrast('#000000', bg) >= wcagContrast('#FFFFFF', bg) ? '#000000' : '#FFFFFF';
+  if (wcagContrast(pole, bg) < min) return pole; // mid-grey bg: closest possible
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 8; i++) {
+    const t = (lo + hi) / 2;
+    if (wcagContrast(mix(color, pole, t), bg) >= min) hi = t;
+    else lo = t;
+  }
+  return mix(color, pole, hi);
+};
+
 export const deriveTheme = (bg: string, accent: string, text: string, mid: string): ThemeColors => {
   const lum = luminance(bg);
   const isLight = lum > 0.3;
@@ -61,8 +101,11 @@ export const deriveTheme = (bg: string, accent: string, text: string, mid: strin
   const border = mix(bg, mid, borderT);
   const borderLt = mix(bg, mid, borderLtT);
 
-  const dim = mix(text, mid, 0.12);
-  const muted = mix(text, mid, 0.30);
+  // 4.5:1 is WCAG AA for body text; muted is placeholder/tertiary and gets
+  // the large-text floor of 3:1 so it still reads as quieter than dim.
+  const effText = ensureReadable(text, bg, 4.5);
+  const dim = ensureReadable(mix(effText, mid, 0.12), bg, 4.5);
+  const muted = ensureReadable(mix(effText, mid, 0.30), bg, 3);
   const toggleOff = mix(bg, mid, 0.22);
 
   const accentRgb = hexToRgb(accent);
@@ -84,7 +127,7 @@ export const deriveTheme = (bg: string, accent: string, text: string, mid: strin
 
   return {
     bg, surface, card, border, borderLt,
-    accent, accentBg, text, dim, muted, toggleOff,
+    accent, accentBg, text: effText, dim, muted, toggleOff,
     danger: dangerBase,
     dangerBg: rgbToHex(bgRgb[0] + (dangerBgRgb[0] - bgRgb[0]) * opacity, bgRgb[1] + (dangerBgRgb[1] - bgRgb[1]) * opacity, bgRgb[2] + (dangerBgRgb[2] - bgRgb[2]) * opacity),
     success: successBase,

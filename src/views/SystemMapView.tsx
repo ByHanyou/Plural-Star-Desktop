@@ -199,7 +199,10 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     if (relationships.some(r => r.typeId === id)) saveRelationships(relationships.filter(r => r.typeId !== id));
   };
 
-  const off = members.filter(m => !mapIdSet.has(m.id) && (showArchived || !m.archived));
+  // Tombstoned members (deleted) stay in storage only so history, chat and map
+  // links keep resolving to a name. They must never be offered for selection,
+  // including when Archived is switched on.
+  const off = members.filter(m => !mapIdSet.has(m.id) && !m.deleted && (showArchived || !m.archived));
   const selected = selectedId ? memberById.get(selectedId) : null;
   const selRels = selectedId ? mapRels.filter(r => r.fromId === selectedId || r.toId === selectedId) : [];
 

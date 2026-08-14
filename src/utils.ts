@@ -267,6 +267,10 @@ export interface AppSettings {
   fontChoice?: import('./theme').FontChoice;
   customFrontsSeeded?: boolean;
   memberListFields?: { groups?: boolean; descriptions?: boolean; pronouns?: boolean; roles?: boolean };
+  /** Terminology Picker: user's own word per core term ('member', 'members',
+   *  'group', 'groups', 'facet', 'facets', 'front', 'system'). Blank/absent =
+   *  the app's default word. Swapped at translation time. */
+  terminology?: Record<string, string>;
 }
 
 export interface Medication {
@@ -317,6 +321,108 @@ export const DEFAULT_MEDICAL: MedicalData = {
   appointments: [],
   history: [],
   emergency: { showOnNotification: false },
+};
+
+// Day Planner. Same shapes as the parked Medical machinery on purpose: the
+// field names and semantics were already proven there. Lives in its OWN store
+// (ps:planner) and syncs normally; nothing is migrated out of the medical
+// store, which stays local-only.
+export type PlannerRepeat = 'daily' | 'everyOtherDay' | 'weekly' | 'everyOtherWeek' | 'monthly' | 'everyOtherMonth' | 'annually';
+/** Reminders additionally support 'once': fire on one chosen day, then done.
+ *  Appointments express one-time as an absent repeat instead. */
+export type PlannerReminderRepeat = PlannerRepeat | 'once';
+
+export interface PlannerAppointment {
+  id: string;
+  title: string;
+  time: number;
+  location?: string;
+  notes?: string;
+  reminderMinutesBefore?: number;
+  /** Absent = one-time. Set = repeats on this cadence, anchored at `time`. */
+  repeat?: PlannerRepeat;
+  createdAt: number;
+}
+
+export interface PlannerReminder {
+  id: string;
+  title: string;
+  times: string[];
+  enabled: boolean;
+  notes?: string;
+  /** Absent = daily (the original behavior). */
+  repeat?: PlannerReminderRepeat;
+  /** Cadence anchor day for non-daily repeats and the day a 'once' reminder
+   *  fires; absent = createdAt's day. */
+  startDate?: number;
+  createdAt: number;
+}
+
+export interface PlannerData {
+  appointments: PlannerAppointment[];
+  reminders: PlannerReminder[];
+}
+
+export const DEFAULT_PLANNER: PlannerData = {
+  appointments: [],
+  reminders: [],
+};
+
+// --- Planner cadence maths ---------------------------------------------------
+// Byte-matched with the mobile implementation. Day arithmetic runs on UTC day
+// numbers so DST transitions can't produce off-by-one days; day-of-month
+// cadences clamp (31st -> last day of shorter months, Feb 29 -> Feb 28 off
+// leap years) instead of skipping months.
+const plannerDayNumber = (d: Date): number => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
+
+export const daysInMonth = (year: number, monthZeroIndexed: number): number =>
+  new Date(year, monthZeroIndexed + 1, 0).getDate();
+
+export const plannerOccursOnDay = (anchorTs: number, repeat: PlannerReminderRepeat | undefined, day: Date): boolean => {
+  const a = new Date(anchorTs);
+  const diff = plannerDayNumber(day) - plannerDayNumber(a);
+  if (repeat == null || repeat === 'once') return diff === 0;
+  if (diff < 0) return false;
+  switch (repeat) {
+    case 'daily': return true;
+    case 'everyOtherDay': return diff % 2 === 0;
+    case 'weekly': return diff % 7 === 0;
+    case 'everyOtherWeek': return diff % 14 === 0;
+    case 'monthly':
+    case 'everyOtherMonth': {
+      const months = (day.getFullYear() - a.getFullYear()) * 12 + (day.getMonth() - a.getMonth());
+      if (months < 0) return false;
+      if (repeat === 'everyOtherMonth' && months % 2 !== 0) return false;
+      const dom = Math.min(a.getDate(), daysInMonth(day.getFullYear(), day.getMonth()));
+      return day.getDate() === dom;
+    }
+    case 'annually': {
+      if (day.getFullYear() < a.getFullYear()) return false;
+      if (day.getMonth() !== a.getMonth()) return false;
+      const dom = Math.min(a.getDate(), daysInMonth(day.getFullYear(), day.getMonth()));
+      return day.getDate() === dom;
+    }
+  }
+  return false;
+};
+
+/** Next occurrence strictly after `after`, carrying the anchor's local
+ *  time-of-day. A bounded day-walk beats seven closed forms: 800 days spans
+ *  two annual cycles including the leap-clamp edge, and the scan is trivial. */
+export const plannerNextOccurrence = (anchorTs: number, repeat: PlannerReminderRepeat | undefined, after: number): number | null => {
+  if (repeat == null || repeat === 'once') return anchorTs > after ? anchorTs : null;
+  const a = new Date(anchorTs);
+  const probe = new Date(after);
+  probe.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 800; i++) {
+    if (plannerOccursOnDay(anchorTs, repeat, probe)) {
+      const cand = new Date(probe);
+      cand.setHours(a.getHours(), a.getMinutes(), a.getSeconds(), 0);
+      if (cand.getTime() > after) return cand.getTime();
+    }
+    probe.setDate(probe.getDate() + 1);
+  }
+  return null;
 };
 
 export const isValidTimeHHMM = (v: string): boolean =>
@@ -559,6 +665,7 @@ export interface ExportPayload {
   relationshipTypes?: RelationshipTypeDef[];
   systemMapMembers?: string[];
   medical?: MedicalData;
+  planner?: PlannerData;
   /**
    * These four were being silently left out of every backup: map layout, the
    * whiteboard, custom colour slots and share settings. A "full export" that

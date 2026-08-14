@@ -203,10 +203,10 @@ export default function ChatView({ onUpdate }: Props) {
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '6px 8px', background: 'var(--card)', border: '1px solid var(--border)',
             borderRadius: 6, cursor: 'pointer',
-          }} onClick={() => setShowMemberPicker(!showMemberPicker)}>
+          }} onClick={() => setShowMemberPicker(!showMemberPicker)} aria-expanded={showMemberPicker} aria-label={`${t('common.speakingAs')}${activeMember ? `, ${activeMember.name}` : ''}`}>
             {activeMember && (
               <>
-                <div className="tile__avatar" style={{
+                <div className="tile__avatar" aria-hidden style={{
                   width: 22, height: 22, fontSize: 9, overflow: 'hidden',
                   ...(!activeMember.avatar ? { backgroundColor: activeMember.color } : {}),
                 }}>
@@ -215,7 +215,7 @@ export default function ChatView({ onUpdate }: Props) {
                 <span style={{ fontSize: 12, color: activeMember.color, flex: 1, textAlign: 'left' }}>{activeMember.name}</span>
               </>
             )}
-            <span style={{ fontSize: 10, color: 'var(--dim)' }}>▼</span>
+            <span style={{ fontSize: 10, color: 'var(--dim)' }} aria-hidden>▼</span>
           </button>
 
           {showMemberPicker && (
@@ -322,7 +322,7 @@ export default function ChatView({ onUpdate }: Props) {
                       onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
                       onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}>
                       <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
-                        onClick={() => setReplyTo(msg)}>↩ {t('chat.reply', {defaultValue: 'Reply'})}</button>
+                        onClick={() => setReplyTo(msg)}><span aria-hidden>↩ </span>{t('chat.reply', {defaultValue: 'Reply'})}</button>
                       <button aria-label={t('chat.addReaction', {defaultValue: 'Add reaction'})} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
                         onClick={() => setShowEmojiFor(showEmojiFor === msg.id ? null : msg.id)}>😊</button>
                     </div>

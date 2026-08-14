@@ -12,7 +12,7 @@ export default function SettingsTile({ onClick }: Props) {
   const paletteName = palette?.name || 'Custom';
   return (
     <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph">⚙</div><span className="tile__title">{t('modal.systemSettings')}</span></div>
+      <div className="tile__header"><div className="tile__glyph" aria-hidden>⚙</div><span className="tile__title">{t('modal.systemSettings')}</span></div>
       <div className="tile__body">
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.palette')}</span><span className="tile__stat-value">{paletteName}</span></div>
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.language')}</span><span className="tile__stat-value">{t(`language.${settings.language}`)}</span></div>

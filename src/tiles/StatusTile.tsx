@@ -21,7 +21,7 @@ export default function StatusTile({ selfId, onClick, onUpdateStatus }: Props) {
   return (
     <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header">
-        <div className="tile__glyph">◉</div><span className="tile__title">{t('tabs.status')}</span>
+        <div className="tile__glyph" aria-hidden>◉</div><span className="tile__title">{t('tabs.status')}</span>
         <button
           onClick={e => { e.stopPropagation(); onUpdateStatus(); }}
           style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 500, fontFamily: 'inherit', padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--accent-bg)', color: 'var(--accent)', cursor: 'pointer' }}>

@@ -28,7 +28,7 @@ export default function ChatTile({ onClick }: Props) {
   const activeCount = channels.filter(c => !c.archived).length;
   return (
     <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph">⌨</div><span className="tile__title">{t('hub.systemChat')}</span></div>
+      <div className="tile__header"><div className="tile__glyph" aria-hidden>⌨</div><span className="tile__title">{t('hub.systemChat')}</span></div>
       <div className="tile__body">
         {!lastMsg ? <span className="tile__empty">{t('chat.noMessages')}</span> : (<>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>#{lastMsg.channel}</span>
