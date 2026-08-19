@@ -1,7 +1,7 @@
 import { store, KEYS, chatMsgKey } from '../storage';
 import {
   Member, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
-  CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, uid,
+  CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, NoteboardEntry, uid,
 } from '../utils';
 import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace, isOpenPluralSystem, normalizeOpenPlural, isAmparBytes, amparToDatabaseJson } from '../importers';
 import { isImportStopped } from './progress';
@@ -433,6 +433,261 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
     }
 };
 
+/**
+ * PluralLog export bundle (com.arcadearmor.plurallog), reversed from a real
+ * export — the Tupperbox rule: match the file the app actually writes, not a
+ * doc. Zip layout: manifest.json {generatedAt, exportJson, mediaCount, files[]},
+ * plurallog_export_<stamp>.json (the database), stored_media/(pfp_|headspace_)*.png.
+ * Same field notes as the mobile importer (src/import/plurallog.ts there);
+ * their polls are system-wide questions with no target member and headspaces
+ * have no home here, so both are dropped like every importer drops what does
+ * not fit.
+ */
+const PL_ARGB_MASK = 0xffffff;
+const plArgbToHex = (n: unknown): string => {
+  const num = typeof n === 'number' && Number.isFinite(n) ? n : NaN;
+  if (Number.isNaN(num)) return '#DAA520';
+  return `#${(num & PL_ARGB_MASK).toString(16).padStart(6, '0').toUpperCase()}`;
+};
+const plCsv = (s: unknown): string[] => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
+const plBaseName = (p: unknown): string => String(p || '').split('/').pop() || '';
+const isPluralLogDb = (o: any): boolean =>
+  !!o && typeof o === 'object' && Array.isArray(o.members) && Array.isArray(o.switchEvents) && o.config && typeof o.config === 'object';
+
+export const handleImportPluralLog = async (ctx: ImportCtx) => {
+  const { t, setImporting, showStatus, history, system, onUpdate } = ctx;
+  const filePath = await window.electronAPI.dialog.openFile([
+    { name: 'PluralLog export (.zip)', extensions: ['zip'] },
+    { name: 'All Files', extensions: ['*'] },
+  ]);
+  if (!filePath) return;
+  setImporting(true);
+  try {
+    const dataUri = await window.electronAPI.file.readAsBase64(filePath);
+    if (!dataUri) throw new Error(t('share.plurallogNeedsZip'));
+    const b64 = dataUri.split(',')[1] || '';
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const files = unzipSync(bytes);
+    // The database file name carries an export timestamp; find it rather than
+    // hardcode it. manifest.exportJson names it too when present.
+    let manifest: any = null;
+    if (files['manifest.json']) { try { manifest = JSON.parse(strFromU8(files['manifest.json'])); } catch {} }
+    const dbName = (manifest && typeof manifest.exportJson === 'string' && files[manifest.exportJson])
+      ? manifest.exportJson
+      : Object.keys(files).find(n => /(^|\/)plurallog_export.*\.json$/i.test(n));
+    let db: any = null;
+    if (dbName && files[dbName]) { try { db = JSON.parse(strFromU8(files[dbName])); } catch {} }
+    if (!isPluralLogDb(db)) throw new Error(t('share.plurallogNeedsZip'));
+
+    const batch: Record<string, unknown> = {};
+    const plMembers: any[] = db.members;
+    const idMap: Record<string, string> = {};
+
+    if (db.config?.systemName) {
+      batch[KEYS.system] = { ...system, name: String(db.config.systemName) || system.name };
+    }
+
+    // Members — same replace semantics as the mobile importer: match by
+    // sourceId, then by claimable name; anything of ours left unmatched is
+    // soft-tombstoned, because a member import replaces the roster.
+    const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
+    const merged = [...existing];
+    plMembers.forEach((m: any) => {
+      if (!m || !m.id) return;
+      const srcId = 'pl:' + String(m.id);
+      const incoming: Partial<Member> = {
+        name: (m.name && String(m.name).trim()) || 'Unnamed member',
+        pronouns: String(m.pronouns || ''),
+        role: String(m.role || ''),
+        color: plArgbToHex(m.color),
+        description: String(m.description || m.profileMarkdown || ''),
+        archived: !!m.archived,
+        // PluralLog sub-members (parentMemberId) are the closest thing to our
+        // facets: profiles that belong to another member.
+        ...(m.parentMemberId ? { isFacet: true } : {}),
+      };
+      const claimed = new Set(Object.values(idMap));
+      const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && e.name.toLowerCase() === String(incoming.name).toLowerCase();
+      let di = merged.findIndex(e => e.sourceId === srcId);
+      if (di < 0) di = merged.findIndex(e => !e.sourceId && nameMatch(e));
+      if (di < 0) di = merged.findIndex(nameMatch);
+      if (di >= 0) {
+        const dup = merged[di];
+        merged[di] = { ...dup, ...incoming, sourceId: srcId, ...(dup.deleted ? { deleted: false } : {}) };
+        idMap[String(m.id)] = dup.id;
+      } else {
+        const nid = uid();
+        merged.push({ id: nid, sourceId: srcId, tags: [], groupIds: [], customFields: [], ...incoming } as Member);
+        idMap[String(m.id)] = nid;
+      }
+    });
+    const keptIds = new Set(Object.values(idMap));
+    let allMembers: Member[] = merged.map(m =>
+      (m.isCustomFront || m.isFacet || m.deleted || keptIds.has(m.id)) ? m : { ...m, archived: true, deleted: true });
+
+    // Avatars ship in the bundle under stored_media/; profileImagePath is an
+    // absolute app path, so only its basename matches the zip entries.
+    let avatarsLoaded = 0;
+    plMembers.forEach((m: any) => {
+      const localId = idMap[String(m?.id)];
+      const entryName = m?.profileImagePath ? `stored_media/${plBaseName(m.profileImagePath)}` : '';
+      const entry = entryName ? files[entryName] : undefined;
+      if (!localId || !entry) return;
+      allMembers = allMembers.map(x => x.id === localId ? { ...x, avatar: bytesToDataUri(entry, entryName) } : x);
+      avatarsLoaded++;
+    });
+
+    // Folders are their groups; parentFolderId nests, memberIds is CSV.
+    if (Array.isArray(db.folders) && db.folders.length > 0) {
+      const existingGroups = await store.getStrict<MemberGroup[]>(KEYS.groups, []) || [];
+      const groups = [...existingGroups];
+      const folderIdMap: Record<string, string> = {};
+      db.folders.forEach((f: any, i: number) => {
+        const name = (f?.name && String(f.name).trim()) || `Group ${i + 1}`;
+        const found = groups.find(g => g.name.toLowerCase() === name.toLowerCase());
+        const localId = found ? found.id : uid();
+        if (!found) groups.push({ id: localId, name, color: plArgbToHex(f.colorValue), sortOrder: f.sortOrder ?? i });
+        folderIdMap[String(f.id)] = localId;
+      });
+      // Second pass for nesting: parents may appear after children.
+      db.folders.forEach((f: any) => {
+        const localId = folderIdMap[String(f.id)];
+        const parent = f.parentFolderId ? folderIdMap[String(f.parentFolderId)] : null;
+        if (!localId || !parent) return;
+        const idx = groups.findIndex(g => g.id === localId);
+        if (idx >= 0) groups[idx] = { ...groups[idx], parentId: parent };
+      });
+      batch[KEYS.groups] = groups;
+      const membership: Record<string, string[]> = {};
+      db.folders.forEach((f: any) => {
+        const gid = folderIdMap[String(f.id)];
+        if (!gid) return;
+        plCsv(f.memberIds).forEach(mid => {
+          const local = idMap[mid];
+          if (!local) return;
+          if (!membership[local]) membership[local] = [];
+          membership[local].push(gid);
+        });
+      });
+      allMembers = allMembers.map(m => {
+        const add = (membership[m.id] || []).filter(g => !(m.groupIds || []).includes(g));
+        return add.length ? { ...m, groupIds: [...(m.groupIds || []), ...add] } : m;
+      });
+    }
+    batch[KEYS.members] = allMembers;
+
+    // Switch events: memberId + cofronterIds CSV; endTime null = still open.
+    // Dedupe-merge by signature so a re-import cannot stack duplicates.
+    let historyAdded = 0;
+    if (Array.isArray(db.switchEvents) && db.switchEvents.length > 0) {
+      const entries: HistoryEntry[] = [];
+      [...db.switchEvents]
+        .sort((a: any, b: any) => (a.startTime || 0) - (b.startTime || 0))
+        .forEach((s: any) => {
+          const primary = idMap[String(s.memberId)];
+          if (!primary || !s.startTime) return;
+          const co = plCsv(s.cofronterIds).map(x => idMap[x]).filter(Boolean) as string[];
+          entries.push({
+            memberIds: [primary],
+            ...(co.length ? { coFrontIds: co } : {}),
+            startTime: Number(s.startTime),
+            endTime: s.endTime == null ? null : Number(s.endTime),
+            note: String(s.notes || ''),
+          });
+        });
+      const sig = (e: HistoryEntry) => `${e.startTime}|${[...(e.memberIds || [])].sort().join(',')}|${[...(e.coFrontIds || [])].sort().join(',')}`;
+      const seen = new Set(history.map(sig));
+      const fresh = entries.filter(e => !seen.has(sig(e)));
+      historyAdded = fresh.length;
+      if (fresh.length > 0) batch[KEYS.history] = [...fresh, ...history].sort((a, b) => b.startTime - a.startTime);
+    }
+
+    // Journal: text-only entries; the first line becomes the title, the tags
+    // CSV plus the emotion land as hashtags.
+    if (Array.isArray(db.journal) && db.journal.length > 0) {
+      const existingJ = await store.getStrict<JournalEntry[]>(KEYS.journal, []) || [];
+      const jSig = (e: JournalEntry) => `${e.timestamp}|${e.body}`;
+      const seenJ = new Set(existingJ.map(jSig));
+      const added: JournalEntry[] = [];
+      db.journal.forEach((j: any) => {
+        const body = String(j?.text || '').trim();
+        if (!body || !j.timestamp) return;
+        const author = idMap[String(j.authorId)];
+        const tags = plCsv(j.tags).map(x => (x.startsWith('#') ? x : `#${x}`));
+        if (j.emotion) tags.push(`#${String(j.emotion)}`);
+        const entry: JournalEntry = {
+          id: uid(),
+          title: body.split('\n')[0].slice(0, 60),
+          body,
+          authorIds: author ? [author] : [],
+          hashtags: [...new Set(tags)],
+          timestamp: Number(j.timestamp),
+        };
+        if (!seenJ.has(jSig(entry))) { seenJ.add(jSig(entry)); added.push(entry); }
+      });
+      if (added.length) batch[KEYS.journal] = [...added, ...existingJ].sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    // Chat: channels matched by name, messages deduped on
+    // timestamp|author|content.
+    if (Array.isArray(db.channels) && Array.isArray(db.messages) && db.messages.length > 0) {
+      const existingCh = await store.getStrict<ChatChannel[]>(KEYS.chatChannels, []) || [];
+      const channels = [...existingCh];
+      const chMap: Record<string, string> = {};
+      db.channels.forEach((c: any, i: number) => {
+        const name = (c?.name && String(c.name).trim()) || `Channel ${i + 1}`;
+        const found = channels.find(x => x.name.toLowerCase() === name.toLowerCase());
+        const localId = found ? found.id : uid();
+        if (!found) channels.push({ id: localId, name, createdAt: Date.now() });
+        chMap[String(c.id)] = localId;
+      });
+      batch[KEYS.chatChannels] = channels;
+      const byChannel: Record<string, ChatMessage[]> = {};
+      db.messages.forEach((m: any) => {
+        const channelId = chMap[String(m.channelId)];
+        const authorId = idMap[String(m.authorId)];
+        const content = String(m?.text || '');
+        if (!channelId || !authorId || !content || !m.timestamp) return;
+        if (!byChannel[channelId]) byChannel[channelId] = [];
+        byChannel[channelId].push({ id: uid(), channelId, authorId, type: 'text', content, timestamp: Number(m.timestamp) });
+      });
+      for (const [channelId, msgs] of Object.entries(byChannel)) {
+        const cur = await store.getStrict<ChatMessage[]>(chatMsgKey(channelId), []) || [];
+        const seenM = new Set(cur.map(m => `${m.timestamp}|${m.authorId}|${m.content}`));
+        const fresh = msgs.filter(m => !seenM.has(`${m.timestamp}|${m.authorId}|${m.content}`));
+        if (fresh.length) batch[chatMsgKey(channelId)] = [...cur, ...fresh].sort((a, b) => a.timestamp - b.timestamp);
+      }
+    }
+
+    // frontMessages are their member-to-member mail — our Mailbox.
+    if (Array.isArray(db.frontMessages) && db.frontMessages.length > 0) {
+      const existingN = await store.getStrict<NoteboardEntry[]>(KEYS.noteboards, []) || [];
+      const seenN = new Set(existingN.map(n => `${n.timestamp}|${n.authorId}|${n.content}`));
+      const added: NoteboardEntry[] = [];
+      db.frontMessages.forEach((fm: any) => {
+        const memberId = idMap[String(fm.toMemberId)];
+        const authorId = idMap[String(fm.fromMemberId)];
+        const content = String(fm?.text || '');
+        if (!memberId || !authorId || !content || !fm.createdAt) return;
+        const entry: NoteboardEntry = { id: uid(), memberId, authorId, content, timestamp: Number(fm.createdAt), read: !!fm.read };
+        const k = `${entry.timestamp}|${entry.authorId}|${entry.content}`;
+        if (!seenN.has(k)) { seenN.add(k); added.push(entry); }
+      });
+      if (added.length) batch[KEYS.noteboards] = [...existingN, ...added];
+    }
+
+    await store.setBatch(batch);
+    showStatus(t('share.statusImportedCounts', { members: plMembers.length, switches: historyAdded }));
+    onUpdate();
+  } catch (e: any) {
+    showStatus(t('share.statusError', { msg: e.message }));
+  } finally {
+    setImporting(false);
+  }
+};
+
 export const handleTokenFetch = async (ctx: ImportCtx) => {
   const { extToken, showStatus, t, setExtLoading, setExtPreview, extSource, spGet } = ctx;
     if (!extToken.trim()) { showStatus(t('share.tokenRequired')); return; }
@@ -521,7 +776,9 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       let newM: Member[] = extSel.members && extPreview.members.length > 0
         ? extPreview.members.map((m: any) => ({
             id: uid(), name: isPK ? ((extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) || 'Unknown') : (m.content?.name || m.name || 'Unknown'),
-            pronouns: isPK ? (m.pronouns || '') : (m.content?.pronouns || ''),
+            // With the pronouns toggle off, PK members arrive blank here and
+            // hand-written pronouns on existing members stay untouched.
+            pronouns: isPK ? (extSel.pronouns !== false ? (m.pronouns || '') : '') : (m.content?.pronouns || ''),
             role: isPK ? '' : (m.content?.role || ''),
             color: isPK ? (m.color ? `#${m.color}` : '#DAA520') : (m.content?.color || '#DAA520'),
             description: isPK ? (m.description || '') : (m.content?.desc || ''),

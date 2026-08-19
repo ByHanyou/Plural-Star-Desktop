@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMinuteTick } from '../useMinuteTick';
 import {
   Member, FrontState, AppSettings, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, isFrontEmpty, translateMood,
@@ -156,6 +157,8 @@ interface Props {
 }
 
 export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSelf }: Props) {
+  // The current status duration freezes without a tick.
+  useMinuteTick();
   const front = useAppStore(s => s.state.front);
   const members = useAppStore(s => s.state.members);
   const settings = useAppStore(s => s.state.settings);

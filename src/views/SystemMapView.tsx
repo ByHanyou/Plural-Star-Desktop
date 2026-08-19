@@ -37,7 +37,12 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const [showTypes, setShowTypes] = useState(false);
   const [showArchived, setShowArchived] = useState(() => localStorage.getItem('ps.mapShowArchived') === '1');
   const [colorAll, setColorAll] = useState(() => localStorage.getItem('ps.mapColorThreads') === '1');
-  const [relEditor, setRelEditor] = useState<{ from: string; to: string; typeId: string; note: string } | null>(null);
+  // `toIds` is a LIST: one pass can create the same relationship to several
+  // members (poly relationships), mirroring the mobile editor.
+  const [relEditor, setRelEditor] = useState<{ from: string; toIds: string[]; typeId: string; note: string } | null>(null);
+  // Duplicate notice for the relationship editor; any edit clears it.
+  const [relDup, setRelDup] = useState(false);
+  useEffect(() => { setRelDup(false); }, [relEditor]);
   const [typeDraft, setTypeDraft] = useState<TypeDraft | null>(null);
   const [confirmDelRel, setConfirmDelRel] = useState<string | null>(null);
 
@@ -172,12 +177,22 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
 
   const addRelationship = () => {
     if (!relEditor) return;
-    const { from, to, typeId, note } = relEditor;
-    if (!from || !to || from === to) { setRelEditor(null); return; }
-    const dup = relationships.find(r => r.typeId === typeId && ((r.fromId === from && r.toId === to) || (r.fromId === to && r.toId === from)));
-    if (dup) { setRelEditor(null); return; }
-    const entry: Relationship = { id: uid(), fromId: from, toId: to, typeId, note: note || undefined, createdAt: Date.now() };
-    saveRelationships([...relationships, entry]);
+    const { from, toIds, typeId, note } = relEditor;
+    const targets = [...new Set(toIds)].filter(id => id && id !== from);
+    if (!from || targets.length === 0) { setRelEditor(null); return; }
+    // Reversed pairs only count as duplicates for NON-directional types
+    // (mobile parity — A→B Rival must not block B→A Rival). Multi-select To:
+    // pairs that already have this relationship are skipped rather than
+    // refused; only an all-duplicates save keeps the editor open with the
+    // visible notice, instead of silently closing it, which read as "it says
+    // I've already added relationships I haven't."
+    const td = typeById.get(typeId);
+    const isDup = (to: string) => relationships.some(r => r.typeId === typeId && ((r.fromId === from && r.toId === to) || (!td?.directional && r.fromId === to && r.toId === from)));
+    const fresh = targets.filter(to => !isDup(to));
+    if (fresh.length === 0) { setRelDup(true); return; }
+    const nowTs = Date.now();
+    const entries: Relationship[] = fresh.map(to => ({ id: uid(), fromId: from, toId: to, typeId, note: note || undefined, createdAt: nowTs }));
+    saveRelationships([...relationships, ...entries]);
     setRelEditor(null);
   };
 
@@ -213,7 +228,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         <span style={{ fontSize: 12, color: 'var(--muted)' }}>{relationships.length === 1 ? t('systemMap.relationshipOne') : t('systemMap.relationships', { count: relationships.length })}</span>
         <div style={{ flex: 1 }} />
         <Btn variant="solid" onClick={() => setShowAddMember(true)}>{t('systemMap.addMember')}</Btn>
-        <Btn variant="ghost" onClick={() => setRelEditor({ from: selectedId || mapIds[0] || '', to: '', typeId: types[0]?.id || 'friend', note: '' })}>{t('systemMap.addRelationship')}</Btn>
+        <Btn variant="ghost" onClick={() => setRelEditor({ from: selectedId || mapIds[0] || '', toIds: [], typeId: types[0]?.id || 'friend', note: '' })}>{t('systemMap.addRelationship')}</Btn>
         <Btn variant="ghost" onClick={() => setShowTypes(true)}>{t('systemMap.manageTypes')}</Btn>
         <button
           className={showArchived ? 'btn btn--solid' : 'btn btn--ghost'}
@@ -324,12 +339,28 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
             </div>
             <div>
               <label className="field__label">{t('systemMap.to')}</label>
-              <Dropdown<string> value={relEditor.to} options={mapIds.filter(id => id !== relEditor.from)} onChange={v => setRelEditor({ ...relEditor, to: v })} renderOption={id => memberById.get(id)?.name || '?'} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {mapIds.filter(id => id !== relEditor.from).map(id => {
+                  const m = memberById.get(id);
+                  if (!m) return null;
+                  const on = relEditor.toIds.includes(id);
+                  return (
+                    <button key={id} className="chip" aria-pressed={on} style={{
+                      borderColor: on ? `${m.color}60` : 'var(--border)',
+                      background: on ? `${m.color}20` : 'var(--surface)',
+                    }} onClick={() => setRelEditor({ ...relEditor, toIds: on ? relEditor.toIds.filter(x => x !== id) : [...relEditor.toIds, id] })}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                      <span style={{ color: on ? m.color : 'var(--dim)', fontWeight: on ? 600 : 400 }}>{m.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <label className="field__label">{t('systemMap.type')}</label>
               <Dropdown<string> value={relEditor.typeId} options={types.map(ty => ty.id)} onChange={v => setRelEditor({ ...relEditor, typeId: v })} renderOption={id => { const ty = typeById.get(id); return ty ? typeLabel(ty) : id; }} />
             </div>
+            {relDup && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{t('systemMap.duplicate')}</div>}
           </div>
         )}
       </Modal>

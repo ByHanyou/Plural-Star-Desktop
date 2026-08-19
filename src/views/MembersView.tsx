@@ -21,6 +21,11 @@ interface Props {
   onRemoveFromFront?: (memberId: string) => void;
 }
 
+// Blank and whitespace-only lines eat the clamped card preview (a "\n\n"
+// description rendered a card with a bare gap in it), so drop them here; the
+// edit modal shows the description untouched.
+const descPreview = (d?: string) => (d || '').split('\n').filter(l => l.trim()).join('\n');
+
 export default function MembersView({ onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, onQuickFront, onRemoveFromFront }: Props) {
   const members = useAppStore(s => s.state.members);
   const groups = useAppStore(s => s.state.groups);
@@ -104,14 +109,10 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
   // Facets live in their own list and are never members: the active/archived
   // lists must exclude them the same way they exclude custom fronts.
-  // The System Profile is not a roster member either. Observatory stores it as
-  // a plain member record pointed at by settings.selfMemberId, which is why it
-  // showed up here; exclude it from every tab and count.
-  const notSelf = (m: Member) => !settings.selfMemberId || m.id !== settings.selfMemberId;
-  const active = members.filter(m => notSelf(m) && !m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
-  const archived = members.filter(m => notSelf(m) && m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
+  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
+  const archived = members.filter(m => m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
   const customFronts = members.filter(m => m.isCustomFront && !m.deleted);
-  const facets = members.filter(m => notSelf(m) && m.isFacet && !m.deleted);
+  const facets = members.filter(m => m.isFacet && !m.deleted);
   const sorted = sortMembers(
     listView === 'customFronts' ? customFronts : listView === 'facets' ? facets : listView === 'archived' ? archived : active,
     sortMode,
@@ -332,9 +333,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               )}
               <div style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
             </div>
-            {listFields.descriptions && m.description && (
+            {listFields.descriptions && descPreview(m.description) && (
               <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 8, lineHeight: 1.45, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                {m.description}
+                {descPreview(m.description)}
               </div>
             )}
             {listFields.groups && (m.groupIds || []).length > 0 && (

@@ -108,6 +108,7 @@ export default function PollsView({ onUpdate }: Props) {
                         textAlign: 'left', overflow: 'hidden',
                       }}
                         onClick={() => !isClosed && vote(poll.id, opt.id)}
+                        aria-pressed={voted}
                         disabled={isClosed}>
                         <div style={{
                           position: 'absolute', left: 0, top: 0, bottom: 0,

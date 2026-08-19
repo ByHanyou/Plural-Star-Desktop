@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, GroupNodeKind, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember } from '../utils';
+import { Member, MemberGroup, GroupNodeKind, MemberSortMode, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember, sortMembers } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Modal, ConfirmDialog, useEscapeKey } from '../components/ui';
+import { Btn, Modal, ConfirmDialog, Dropdown, useEscapeKey } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { NetworkManager } from '../network/NetworkManager';
 import { PALETTE } from '../theme';
@@ -19,7 +19,16 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
   const members = useAppStore(s => s.state.members);
   const groups = useAppStore(s => s.state.groups);
   const front = useAppStore(s => s.state.front);
+  const settings = useAppStore(s => s.state.settings);
   const { t } = useTranslation();
+  // Same sort options the Members list offers, applied to the members shown
+  // inside the open group; 'manual' = the roster's own order, which is what
+  // this list always showed.
+  const groupSortMode: MemberSortMode = settings.groupSortMode || 'manual';
+  const saveGroupSortMode = async (mode: MemberSortMode) => {
+    await store.set(KEYS.settings, { ...settings, groupSortMode: mode });
+    onUpdate();
+  };
 
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PALETTE[0]);
@@ -206,9 +215,9 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
       {browse && (() => {
         const folder = browseId ? groups.find(g => g.id === browseId) : null;
         const subFolders = childrenOf(groups, browseId);
-        const folderMembers = browseId
+        const folderMembers = sortMembers(browseId
           ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && !m.isCustomFront)
-          : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && !m.isCustomFront);
+          : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && !m.isCustomFront), groupSortMode);
         const addCandidates = folder
           ? members
               .filter(m => !m.archived && !m.isCustomFront && !(m.groupIds || []).includes(folder.id) && (!addSearch || m.name.toLowerCase().includes(addSearch.toLowerCase())))
@@ -223,6 +232,14 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 <button onClick={() => goBrowseTo(folder?.parentId ?? null)} aria-label={t('common.back')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 14, cursor: 'pointer' }}>←</button>
               )}
               <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{folder ? folder.name : t('systemManager.title')}</span>
+              {/* Always visible, same as the Members list's sort dropdown —
+                  never gated on how many members happen to be in view. */}
+              <Dropdown<MemberSortMode>
+                value={groupSortMode}
+                options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}
+                onChange={saveGroupSortMode}
+                renderOption={v => t(`memberSort.${v}`)}
+              />
               {folder && !removeMode && (
                 <button onClick={() => { setAddPickIds([]); setAddSearch(''); setAddPickOpen(true); }} aria-label={t('memberGroups.addMembers')} title={t('memberGroups.addMembers')}
                   style={{ width: 24, height: 24, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 14, lineHeight: 1 }}>＋</button>

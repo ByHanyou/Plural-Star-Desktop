@@ -307,7 +307,7 @@ export default function ChatView({ onUpdate }: Props) {
                     {msg.reactions && Object.keys(msg.reactions).length > 0 && (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
                         {Object.entries(msg.reactions).map(([emoji, userIds]) => (
-                          <button key={emoji} style={{
+                          <button key={emoji} aria-pressed={(userIds as string[]).includes(activeMemberId || '')} style={{
                             padding: '2px 6px', borderRadius: 999, fontSize: 12, cursor: 'pointer',
                             background: (userIds as string[]).includes(activeMemberId || '') ? 'var(--accent-bg)' : 'var(--surface)',
                             border: `1px solid ${(userIds as string[]).includes(activeMemberId || '') ? 'var(--accent)' : 'var(--border)'}`,

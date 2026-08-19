@@ -868,7 +868,10 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
         color: hex(a.color),
         description: String(a.description || ''),
         archived: !!a.isArchived,
-        isCustomFront: !!a.isCustomFront,
+        // Ampersand 0.3.0 (AMPAR v2 / current JSON) renamed isCustomFront →
+        // isDissociativeState; read both so old and new exports import
+        // identically.
+        isCustomFront: !!(a.isCustomFront || a.isDissociativeState),
         avatar: dataUri(a.image),
         banner: dataUri(a.cover),
         createdAt: a.dateCreated ? toMs(a.dateCreated) : undefined,
@@ -891,7 +894,8 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     let s = spans.get(key);
     if (!s) { s = { start: f.startTime, end: f.endTime ?? null, main: [], co: [], notes: [] }; spans.set(key, s); }
     (f.isMainFronter ? s.main : s.co).push(String(f.member));
-    const note = String(f.comment || f.customStatus || '').trim();
+    // 0.3.0 renamed the fronting `comment` to `summary`; read all spellings.
+    const note = String(f.comment || f.summary || f.customStatus || '').trim();
     if (note) s.notes.push(note);
   });
   const history: HistoryEntry[] = [];

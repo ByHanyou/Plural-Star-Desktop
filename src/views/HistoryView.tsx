@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMinuteTick } from '../useMinuteTick';
 import { HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials, translateMood, buildEffectiveEnd } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, ConfirmDialog } from '../components/ui';
+import FrontTimeline from '../components/FrontTimeline';
 import { useAppStore } from '../store/appStore';
 
 interface Props {
@@ -14,12 +16,15 @@ interface Props {
 type TimeRange = 'all' | '7d' | '30d' | '90d';
 
 export default function HistoryView({ onUpdate, singlet = false, selfId }: Props) {
+  // The open entry's live duration freezes without a tick.
+  useMinuteTick();
   const { t } = useTranslation();
   const history = useAppStore(s => s.state.history);
   const members = useAppStore(s => s.state.members);
   const [search, setSearch] = useState('');
   const [range, setRange] = useState<TimeRange>('all');
   const [memberFilter, setMemberFilter] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [deleteStep, setDeleteStep] = useState(0);
 
@@ -124,6 +129,16 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['list', 'timeline'] as const).map(v => (
+            <button key={v} className={`btn ${viewMode === v ? 'btn--primary' : 'btn--ghost'}`}
+              style={{ padding: '7px 10px', fontSize: 12 }} aria-pressed={viewMode === v}
+              onClick={() => setViewMode(v)}>
+              {v === 'list' ? (singlet ? t('history.statusHistory') : t('history.frontHistory')) : t('history.timeline')}
+            </button>
+          ))}
+        </div>
+        {viewMode === 'list' && (<>
         <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
           aria-label={t('members.search')} placeholder={t('members.search')} style={{ flex: 1, minWidth: 200 }} />
         <select aria-label={t('common.filterByMember')} style={{
@@ -142,13 +157,20 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
             </button>
           ))}
         </div>
+        </>)}
       </div>
 
+      {viewMode === 'timeline' && (
+        <FrontTimeline history={history} members={members} singlet={singlet} />
+      )}
+
+      {viewMode === 'list' && (
       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
         {filtered.length} entr{filtered.length === 1 ? 'y' : 'ies'}
       </div>
+      )}
 
-      {grouped.map(group => (
+      {viewMode === 'list' && grouped.map(group => (
         <div key={group.date} style={{ marginBottom: 20 }}>
           <div style={{
             fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8,
@@ -234,7 +256,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
         </div>
       ))}
 
-      {filtered.length === 0 && (
+      {viewMode === 'list' && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
           {search || memberFilter ? t('history.noHistoryFilter') : singlet ? t('history.noHistorySinglet') : t('history.noHistory')}
         </div>

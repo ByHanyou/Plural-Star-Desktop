@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMinuteTick } from '../useMinuteTick';
 import { Btn, Field, Toggle, Section, Modal, ConfirmDialog } from '../components/ui';
 import { useNetwork } from '../network/useNetwork';
 import { NetworkManager } from '../network/NetworkManager';
@@ -41,6 +42,8 @@ const normalizeBucket = (b: PrivacyBucket): PrivacyBucket => ({
 });
 
 export default function NetworkView() {
+  // Friend fronting durations freeze between incoming updates otherwise.
+  useMinuteTick();
   const { t } = useTranslation();
   const net = useNetwork();
   const members = useAppStore(s => s.state.members);
@@ -256,6 +259,9 @@ export default function NetworkView() {
   const friendStatusLines = (f: Friend): string[] => {
     if (f.status === 'entered_theirs') return [t('network.waitingThem')];
     if (f.status === 'entered_mine') return [t('network.waitingYou')];
+    // Their side told us this friendship is gone. Anything below would be a
+    // frozen copy presented as live, so say the truth instead.
+    if (f.needsRefriend) return [t('network.needsRefriend')];
     const online = net.onlinePeers.includes(f.peerId);
     const s = f.lastStatus;
     if (!s) return [online ? t('network.online') : t('network.offline')];

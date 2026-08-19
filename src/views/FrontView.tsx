@@ -10,6 +10,7 @@ import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
+import { useMinuteTick } from '../useMinuteTick';
 
 interface Props {
   onUpdate: () => void;
@@ -47,6 +48,9 @@ export async function applyFrontUpdate(current: FrontState | null, primary: any,
 }
 
 export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed }: Props) {
+  // Fronting durations are computed at render; without this they freeze until
+  // the user "wiggles" the app (Devon's report).
+  useMinuteTick();
   const front = useAppStore(s => s.state.front);
   const members = useAppStore(s => s.state.members);
   const groups = useAppStore(s => s.state.groups);

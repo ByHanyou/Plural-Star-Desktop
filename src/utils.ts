@@ -262,6 +262,9 @@ export interface AppSettings {
   activePaletteId: string;
   textScale: TextScale;
   memberSortMode?: MemberSortMode;
+  // Sort for member lists inside group browses (System Manager, mirror
+  // viewer) — same options as the Members list, remembered separately.
+  groupSortMode?: MemberSortMode;
   frontCheckInterval?: number;
   useDyslexicFont?: boolean;
   fontChoice?: import('./theme').FontChoice;

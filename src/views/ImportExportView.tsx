@@ -15,7 +15,7 @@ import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 
 import { extFromDataUri, dataUriToBytes, u8ToBase64, bytesToDataUri, buildPluralKitExport, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
 import { handleExport, handlePluralKitExport, handlePickBackup, handleRestore } from '../import/backup';
-import { handleImportSP, handleImportForeign, handleImportPluralSpace, handleTokenFetch, handleTokenImport } from '../import/apps';
+import { handleImportSP, handleImportForeign, handleImportPluralSpace, handleImportPluralLog, handleTokenFetch, handleTokenImport } from '../import/apps';
 import { useAppStore } from '../store/appStore';
 
 interface ExportCategories {
@@ -88,7 +88,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const [extToken, setExtToken] = useState('');
   const [extLoading, setExtLoading] = useState(false);
   const [extPreview, setExtPreview] = useState<{members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[]} | null>(null);
-  const [extSel, setExtSel] = useState({system: true, members: true, avatars: true, frontHistory: true, customFields: true, groups: true, displayNames: true});
+  const [extSel, setExtSel] = useState({system: true, members: true, avatars: true, frontHistory: true, customFields: true, groups: true, displayNames: true, pronouns: true});
   const togE = (k: string) => setExtSel(s => ({...s, [k]: !s[k as keyof typeof s]}));
 
   const spGet = async (url: string, headers: Record<string, string>): Promise<any | null> => {
@@ -275,6 +275,16 @@ export default function ImportExportView({ onUpdate }: Props) {
         </Btn>
       </div>
 
+      <Section label={t('share.pluralLog')} />
+      <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
+          {t('share.plurallogHint')}
+        </p>
+        <Btn onClick={() => handleImportPluralLog({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={importing}>
+          {importing ? t('share.importing') : t('share.plurallogPick')}
+        </Btn>
+      </div>
+
       <Section label={t('share.pkImport') + ' (Token)'} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 10, lineHeight: 1.5 }}>
@@ -297,7 +307,7 @@ export default function ImportExportView({ onUpdate }: Props) {
               {([
                 ['system', t('share.systemNameDesc'), true],
                 ['members', t('share.memberProfiles'), extPreview.members.length > 0],
-                ...(extSource === 'pk' ? [['displayNames', t('share.usePkDisplayNames'), true]] as [string, string, boolean][] : []),
+                ...(extSource === 'pk' ? [['displayNames', t('share.usePkDisplayNames'), true], ['pronouns', t('share.importPronouns'), true]] as [string, string, boolean][] : []),
                 ['avatars', t('share.profilePictures'), extPreview.members.length > 0],
                 ['frontHistory', t('share.frontHistory'), extPreview.switches.length > 0],
               ] as [string, string, boolean][]).map(([k, label, avail]) => (
