@@ -88,6 +88,9 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const saveCustomTypes = async (next: RelationshipTypeDef[]) => { setCustomTypes(next); await store.set(KEYS.relationshipTypes, next); };
   const saveMapIds = async (next: string[]) => { setMapIds(next); await store.set(KEYS.systemMapMembers, next); };
 
+  // Facets are out of every member LIST, but one that was deliberately added
+  // through its own control still belongs on the map and still takes
+  // relationships, so membership here is the explicit mapIds opt-in.
   const mapMembers = useMemo(() => (mapIds.map(id => memberById.get(id)).filter(Boolean) as Member[]).filter(m => showArchived || !m.archived), [mapIds, memberById, showArchived]);
   const mapIdSet = useMemo(() => new Set(mapIds), [mapIds]);
   const mapRels = useMemo(() => relationships.filter(r => mapIdSet.has(r.fromId) && mapIdSet.has(r.toId)), [relationships, mapIdSet]);
@@ -217,7 +220,10 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   // Tombstoned members (deleted) stay in storage only so history, chat and map
   // links keep resolving to a name. They must never be offered for selection,
   // including when Archived is switched on.
-  const off = members.filter(m => !mapIdSet.has(m.id) && !m.deleted && (showArchived || !m.archived));
+  const offAll = members.filter(m => !mapIdSet.has(m.id) && !m.deleted && (showArchived || !m.archived));
+  const off = offAll.filter(m => !m.isFacet);
+  // Facets get their own section: out of the member list, still addable on purpose.
+  const offFacets = offAll.filter(m => m.isFacet);
   const selected = selectedId ? memberById.get(selectedId) : null;
   const selRels = selectedId ? mapRels.filter(r => r.fromId === selectedId || r.toId === selectedId) : [];
 
@@ -254,7 +260,14 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
             {mapRels.map(r => {
               const a = pos.get(r.fromId), b = pos.get(r.toId);
               if (!a || !b) return null;
-              const active = dist ? (dist.has(r.fromId) && dist.has(r.toId)) : false;
+              // Both ends being reachable is not enough: that also lights the
+              // relationships BETWEEN two of the selected member's neighbours,
+              // which are not the selected member's relationships at all
+              // ("more than the 1st ring is highlighted"). A lit edge steps
+              // outward exactly one ring.
+              const da = dist?.get(r.fromId);
+              const db = dist?.get(r.toId);
+              const active = da !== undefined && db !== undefined && Math.abs(da - db) === 1;
               const ty = typeById.get(r.typeId);
               const color = (selectedId ? active : false) || colorAll ? (ty?.color || DEFAULT_REL_COLOR) : DEFAULT_REL_COLOR;
               const opacity = !selectedId ? 0.5 : active ? 0.95 : 0.12;
@@ -319,14 +332,29 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
       )}
 
       <Modal open={showAddMember} title={t('systemMap.addMember')} onClose={() => setShowAddMember(false)}>
-        {off.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('systemMap.allOnMap')}</p> :
-          off.map(m => (
-            <button key={m.id} onClick={() => { saveMapIds([...mapIds, m.id]); setShowAddMember(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color }} />
-              <span style={{ fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
-            </button>
-          ))}
+        {off.length === 0 && offFacets.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('systemMap.allOnMap')}</p> : (
+          <>
+            {off.map(m => (
+              <button key={m.id} onClick={() => { saveMapIds([...mapIds, m.id]); setShowAddMember(false); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color }} />
+                <span style={{ fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
+              </button>
+            ))}
+            {offFacets.length > 0 && (
+              <>
+                <label className="field__label" style={{ marginTop: 12 }}>{t('members.facets')}</label>
+                {offFacets.map(m => (
+                  <button key={m.id} onClick={() => { saveMapIds([...mapIds, m.id]); setShowAddMember(false); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color }} />
+                    <span style={{ fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </>
+        )}
       </Modal>
 
       <Modal open={!!relEditor} title={t('systemMap.addRelationship')} onClose={() => setRelEditor(null)}

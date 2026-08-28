@@ -360,7 +360,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.memberLeaderboard', { name: '' }).replace(/^\s+/, '') || 'Member Details'}</h3>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {members.filter(m => !m.archived && (!singlet || (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)))).map(m => (
+          {members.filter(m => !m.archived && !m.isFacet && (!singlet || (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)))).map(m => (
             <button key={m.id} className={`chip`}
               style={{
                 borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
@@ -373,6 +373,26 @@ export default function StatsView({ singlet = false, selfId }: Props) {
             </button>
           ))}
         </div>
+        {/* Facets keep their own row: out of the member list, still selectable. */}
+        {!singlet && members.some(m => !m.archived && m.isFacet) && (
+          <>
+            <label className="field__label">{t('members.facets')}</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+              {members.filter(m => !m.archived && m.isFacet).map(m => (
+                <button key={m.id} className={`chip`}
+                  style={{
+                    borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
+                    background: selectedStatMember === m.id ? `${m.color}20` : 'var(--surface)',
+                    color: selectedStatMember === m.id ? m.color : 'var(--dim)', cursor: 'pointer',
+                  }}
+                  onClick={() => setSelectedStatMember(selectedStatMember === m.id ? null : m.id)}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         {memberSpecific && selectedStatMember && (() => {
           const m = getMember(selectedStatMember);

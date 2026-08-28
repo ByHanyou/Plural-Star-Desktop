@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SystemInfo, Member, MemberGroup, FrontState, HistoryEntry, JournalEntry, ChatChannel, AppSettings } from '../utils';
+import { SystemInfo, Member, MemberGroup, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatCategory, AppSettings } from '../utils';
 import { CustomPalette, ThemeColors, deriveTheme, DARK_PALETTE } from '../theme';
 
 export interface AppState {
@@ -10,6 +10,7 @@ export interface AppState {
   history: HistoryEntry[];
   journal: JournalEntry[];
   channels: ChatChannel[];
+  chatCategories: ChatCategory[];
   settings: AppSettings;
   palettes: CustomPalette[];
   theme: ThemeColors;
@@ -37,6 +38,7 @@ const INITIAL_STATE: AppState = {
   history: [],
   journal: [],
   channels: [],
+  chatCategories: [],
   settings: DEFAULT_SETTINGS,
   palettes: [],
   theme: deriveTheme(DARK_PALETTE.bg, DARK_PALETTE.accent, DARK_PALETTE.text, DARK_PALETTE.mid),

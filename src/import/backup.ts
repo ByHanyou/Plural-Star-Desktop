@@ -50,6 +50,7 @@ export const handleExport = async (ctx: ImportCtx) => {
       journal: cat.journal ? journal : [],
       groups: cat.groups ? (await store.get(KEYS.groups) || []) : [],
       chatChannels: cat.chat ? channels : [],
+      chatCategories: cat.chat ? (await store.get(KEYS.chatCategories) || []) : [],
       chatMessages: cat.chat ? chatMessages : {},
       settings: cat.settings ? settings : undefined,
       front: cat.frontHistory ? (await store.get(KEYS.front) || null) : undefined,
@@ -164,12 +165,28 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
     }
 };
 
+/** Update-mode list merge: incoming rows refresh matches (by id, then by the
+ *  optional key) and append; nothing local is removed. */
+const restoreMergeById = <T extends { id?: any }>(existing: T[] | null | undefined, incoming: T[], sameKey?: (a: T, b: T) => boolean): T[] => {
+  const out = [...(existing || [])];
+  incoming.forEach(inc => {
+    if (!inc) return;
+    const at = out.findIndex(e => !!e && ((inc.id != null && e.id === inc.id) || (sameKey ? sameKey(e, inc) : false)));
+    if (at >= 0) out[at] = { ...out[at], ...inc, id: out[at].id ?? inc.id };
+    else out.push(inc);
+  });
+  return out;
+};
+
 export const handleRestore = async (ctx: ImportCtx) => {
-  const { restoreData, setImporting, restoreSel, mergeLogs, showStatus, setRestoreData, setRestoreFile, onUpdate, t } = ctx;
+  const { restoreData, setImporting, restoreSel, mergeLogs, importMode, showStatus, setRestoreData, setRestoreFile, onUpdate, t } = ctx;
     if (!restoreData) return;
     setImporting(true);
     try {
       const batch: Record<string, unknown> = {};
+      // Update mode = merge-don't-delete for record lists; singletons behave as
+      // before. Overwrite keeps the strict per-category replace.
+      const upd = importMode === 'update';
 
       if (restoreSel.system && restoreData.system) batch[KEYS.system] = restoreData.system;
 
@@ -194,7 +211,24 @@ export const handleRestore = async (ctx: ImportCtx) => {
           }
           return result;
         });
-        batch[KEYS.members] = importedMembers;
+        if (upd) {
+          const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
+          const out = [...existing];
+          const claimed = new Set<string>();
+          importedMembers.forEach((im: any) => {
+            if (!im || !im.id) return;
+            let at = out.findIndex(m => m.id === im.id);
+            if (at < 0) {
+              const nm = String(im.name || '').trim().toLowerCase();
+              at = nm ? out.findIndex(m => !claimed.has(m.id) && !m.isCustomFront && !m.isFacet && String(m.name || '').trim().toLowerCase() === nm) : -1;
+            }
+            if (at >= 0) { out[at] = { ...out[at], ...im, id: out[at].id, deleted: im.deleted ?? false }; claimed.add(out[at].id); }
+            else { out.push(im); claimed.add(im.id); }
+          });
+          batch[KEYS.members] = out;
+        } else {
+          batch[KEYS.members] = importedMembers;
+        }
       } else if ((restoreSel.avatars || restoreSel.banners) && !restoreSel.members) {
         const avatarMap: Record<string, string> = restoreSel.avatars ? { ...(restoreData.avatars || {}) } : {};
         const bannerMap: Record<string, string> = restoreSel.banners ? { ...(restoreData.banners || {}) } : {};
@@ -218,7 +252,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
 
       ctx.control?.begin(t('share.progressJournal', { defaultValue: 'Restoring journal…' }));
       if (restoreSel.journal && restoreData.journal) {
-        if (mergeLogs) {
+        if (mergeLogs || upd) {
           const existing = await store.getStrict<any[]>(KEYS.journal, []) || [];
           const seen = new Set(existing.map((j: any) => j.id));
           batch[KEYS.journal] = [...existing, ...restoreData.journal.filter((j: any) => !seen.has(j.id))];
@@ -227,7 +261,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
 
       ctx.control?.begin(t('share.progressHistory', { defaultValue: 'Restoring front history…' }));
       if (restoreSel.frontHistory && restoreData.frontHistory) {
-        if (mergeLogs) {
+        if (mergeLogs || upd) {
           const existing = await store.getStrict<any[]>(KEYS.history, []) || [];
           const sig = (e: any) => `${e.startTime}|${(e.memberIds || []).join(',')}`;
           const seen = new Set(existing.map(sig));
@@ -238,21 +272,36 @@ export const handleRestore = async (ctx: ImportCtx) => {
         }
       }
 
-      if (restoreSel.groups && restoreData.groups) batch[KEYS.groups] = restoreData.groups;
-      if (restoreSel.groups && restoreData.relationships) batch[KEYS.relationships] = restoreData.relationships;
-      if (restoreSel.groups && restoreData.relationshipTypes) batch[KEYS.relationshipTypes] = restoreData.relationshipTypes;
-      if (restoreSel.groups && restoreData.systemMapMembers) batch[KEYS.systemMapMembers] = restoreData.systemMapMembers;
-      if (restoreSel.groups && restoreData.systemMapPositions) batch[KEYS.systemMapPositions] = restoreData.systemMapPositions;
-      if (restoreData.medical) batch[KEYS.medical] = restoreData.medical;
+      if (restoreSel.groups && restoreData.groups) batch[KEYS.groups] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.groups, []) || [], restoreData.groups as any[], (a, b) => String(a.name || '').toLowerCase() === String(b.name || '').toLowerCase()) : restoreData.groups;
+      if (restoreSel.groups && restoreData.relationships) batch[KEYS.relationships] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.relationships, []) || [], restoreData.relationships as any[]) : restoreData.relationships;
+      if (restoreSel.groups && restoreData.relationshipTypes) batch[KEYS.relationshipTypes] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.relationshipTypes, []) || [], restoreData.relationshipTypes as any[]) : restoreData.relationshipTypes;
+      if (restoreSel.groups && restoreData.systemMapMembers) batch[KEYS.systemMapMembers] = upd ? [...new Set([...(await store.getStrict<string[]>(KEYS.systemMapMembers, []) || []), ...restoreData.systemMapMembers])] : restoreData.systemMapMembers;
+      if (restoreSel.groups && restoreData.systemMapPositions) batch[KEYS.systemMapPositions] = upd ? { ...((await store.getStrict<any>(KEYS.systemMapPositions, null)) || {}), ...(restoreData.systemMapPositions as any) } : restoreData.systemMapPositions;
+      if (restoreData.medical) {
+        if (upd) {
+          const cur = (await store.getStrict<any>(KEYS.medical, null)) || {};
+          const inc: any = restoreData.medical;
+          batch[KEYS.medical] = {
+            ...cur,
+            ...inc,
+            medications: restoreMergeById(cur.medications, Array.isArray(inc.medications) ? inc.medications : []),
+            appointments: restoreMergeById(cur.appointments, Array.isArray(inc.appointments) ? inc.appointments : []),
+            history: restoreMergeById(cur.history, Array.isArray(inc.history) ? inc.history : []),
+          };
+        } else {
+          batch[KEYS.medical] = restoreData.medical;
+        }
+      }
       if (restoreSel.settings && restoreData.whiteboard) batch[KEYS.whiteboard] = restoreData.whiteboard;
       if (restoreSel.settings && restoreData.customColors) batch[KEYS.customColors] = restoreData.customColors;
       if (restoreSel.settings && restoreData.shareSettings) batch[KEYS.share] = restoreData.shareSettings;
 
       if (restoreSel.chat) {
-        if (restoreData.chatChannels) batch[KEYS.chatChannels] = restoreData.chatChannels;
+        if (restoreData.chatChannels) batch[KEYS.chatChannels] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.chatChannels, []) || [], restoreData.chatChannels as any[], (a, b) => String(a.name || '').toLowerCase() === String(b.name || '').toLowerCase()) : restoreData.chatChannels;
+        if (restoreData.chatCategories) batch[KEYS.chatCategories] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.chatCategories, []) || [], restoreData.chatCategories as any[], (a, b) => String(a.name || '').toLowerCase() === String(b.name || '').toLowerCase()) : restoreData.chatCategories;
         if (restoreData.chatMessages) {
           for (const [chId, msgs] of Object.entries(restoreData.chatMessages)) {
-            if (mergeLogs) {
+            if (mergeLogs || upd) {
               const existing = await store.getStrict<any[]>(chatMsgKey(chId), []) || [];
               const seen = new Set(existing.map((m: any) => m.id));
               batch[chatMsgKey(chId)] = [...existing, ...(msgs as any[]).filter((m: any) => !seen.has(m.id))];
@@ -274,18 +323,31 @@ export const handleRestore = async (ctx: ImportCtx) => {
         batch[KEYS.settings] = newSettings;
       }
 
-      if (restoreSel.palettes && restoreData.palettes) batch[KEYS.palettes] = restoreData.palettes;
-      if (restoreSel.customFields && restoreData.customFieldDefs) batch[KEYS.customFieldDefs] = restoreData.customFieldDefs;
-      if (restoreSel.noteboards && restoreData.noteboards) batch[KEYS.noteboards] = restoreData.noteboards;
-      if (restoreSel.planner !== false && restoreData.planner) batch[KEYS.planner] = restoreData.planner;
+      if (restoreSel.palettes && restoreData.palettes) batch[KEYS.palettes] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.palettes, []) || [], restoreData.palettes as any[], (a, b) => String(a.name || '').toLowerCase() === String(b.name || '').toLowerCase()) : restoreData.palettes;
+      if (restoreSel.customFields && restoreData.customFieldDefs) batch[KEYS.customFieldDefs] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.customFieldDefs, []) || [], restoreData.customFieldDefs as any[], (a, b) => String(a.name || '').toLowerCase() === String(b.name || '').toLowerCase()) : restoreData.customFieldDefs;
+      if (restoreSel.noteboards && restoreData.noteboards) batch[KEYS.noteboards] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.noteboards, []) || [], restoreData.noteboards as any[], (a, b) => a.timestamp === b.timestamp && a.authorId === b.authorId && a.content === b.content) : restoreData.noteboards;
+      if (restoreSel.planner !== false && restoreData.planner) {
+        if (upd) {
+          const cur = (await store.getStrict<any>(KEYS.planner, null)) || {};
+          const inc: any = restoreData.planner;
+          batch[KEYS.planner] = {
+            ...cur,
+            ...inc,
+            appointments: restoreMergeById(cur.appointments, Array.isArray(inc.appointments) ? inc.appointments : []),
+            reminders: restoreMergeById(cur.reminders, Array.isArray(inc.reminders) ? inc.reminders : []),
+          };
+        } else {
+          batch[KEYS.planner] = restoreData.planner;
+        }
+      }
       if (restoreSel.polls && restoreData.polls) {
-        if (mergeLogs) {
+        if (mergeLogs || upd) {
           const existing = await store.getStrict<any[]>(KEYS.polls, []) || [];
           const seen = new Set(existing.map((p: any) => p.id));
           batch[KEYS.polls] = [...existing, ...restoreData.polls.filter((p: any) => !seen.has(p.id))];
         } else batch[KEYS.polls] = restoreData.polls;
       }
-      if (restoreSel.journalTemplates && restoreData.journalTemplates) batch[KEYS.journalTemplates] = restoreData.journalTemplates;
+      if (restoreSel.journalTemplates && restoreData.journalTemplates) batch[KEYS.journalTemplates] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.journalTemplates, []) || [], restoreData.journalTemplates as any[], (a, b) => String(a.name || '').toLowerCase() === String(b.name || '').toLowerCase()) : restoreData.journalTemplates;
 
       if (Object.keys(batch).length === 0) {
         showStatus(t('share.statusNothingSelected'));

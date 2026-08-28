@@ -3,7 +3,7 @@ import {
   Member, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
   CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, NoteboardEntry, uid,
 } from '../utils';
-import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace, isOpenPluralSystem, normalizeOpenPlural, isAmparBytes, amparToDatabaseJson } from '../importers';
+import { detectForeignFormat, convertOurcana, convertParallax, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace, isOpenPluralSystem, normalizeOpenPlural, isAmparBytes, amparToDatabaseJson, findOurcanaJsonEntry } from '../importers';
 import { isImportStopped } from './progress';
 import { unzipSync, strFromU8 } from 'fflate';
 import { bytesToDataUri, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
@@ -68,8 +68,15 @@ export const handleImportSP = async (ctx: ImportCtx) => {
           const newMembersRaw = importedMembers.filter(m => !existingIds.has(m.id));
           const newMembers = extSel.avatars ? await inlineRemoteAvatars(newMembersRaw) : newMembersRaw;
 
+          // Overwrite treats the file as the whole roster: locals it doesn't
+          // carry are soft-tombstoned (custom fronts and facets exempt).
+          const importedIds = new Set(importedMembers.map(m => m.id));
+          const keptExisting = ctx.importMode === 'overwrite'
+            ? existing.map(m => (importedIds.has(m.id) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true })
+            : existing;
+
           await store.setBatch({
-            [KEYS.members]: [...existing, ...newMembers],
+            [KEYS.members]: [...keptExisting, ...newMembers],
             [KEYS.history]: [...existingHistory, ...importedHistory],
           });
 
@@ -89,7 +96,7 @@ export const handleImportSP = async (ctx: ImportCtx) => {
 };
 
 export const handleImportForeign = async (ctx: ImportCtx) => {
-  const { setImporting, showStatus, history, onUpdate, t } = ctx;
+  const { setImporting, showStatus, history, system, onUpdate, t } = ctx;
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,.our';
@@ -116,11 +123,13 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
           if (!conv) {
             const isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b && (buf[2] === 3 || buf[2] === 5 || buf[2] === 7);
             let text: string;
+            let ourZipFiles: Record<string, Uint8Array> | undefined;
             if (isZip) {
               const files = unzipSync(buf);
-              const name = Object.keys(files).find(n => n.toLowerCase().endsWith('.json'));
+              const name = findOurcanaJsonEntry(files);
               if (!name) { showStatus(t('share.statusArchiveNoJson')); setImporting(false); return; }
               text = strFromU8(files[name]);
+              ourZipFiles = files;
             } else {
               text = strFromU8(buf);
             }
@@ -137,7 +146,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
             } else {
               if (!fmt) { showStatus(t('share.statusUnrecognized')); setImporting(false); return; }
               const d = parsedJson ?? JSON.parse(text);
-              conv = fmt === 'ourcana' ? convertOurcana(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
+              conv = fmt === 'ourcana' ? convertOurcana(d, ourZipFiles) : fmt === 'parallax' ? convertParallax(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
             }
           }
         }
@@ -161,7 +170,13 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
           } else { idRemap[nm.id] = nm.id; toAdd.push(nm); }
         });
         const toAddInlined = await inlineRemoteAvatars(toAdd);
-        batch[KEYS.members] = [...merged, ...toAddInlined];
+        // Overwrite treats the file as the whole roster: unmatched locals are
+        // soft-tombstoned (custom fronts and facets exempt). Update keeps them.
+        const claimedIds = new Set(Object.values(idRemap));
+        const mergedFinal = ctx.importMode === 'overwrite'
+          ? merged.map(m => (claimedIds.has(m.id) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true })
+          : merged;
+        batch[KEYS.members] = [...mergedFinal, ...toAddInlined];
 
         if (conv.history.length > 0) {
           const remapped = conv.history.map(h => ({ ...h, memberIds: h.memberIds.map(id => idRemap[id] || id) }));
@@ -204,6 +219,14 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
               mergedGroupList.push({ ...g, sourceId: srcId });
             }
           });
+          // A deduped group changes id, so children pointing at the converter's
+          // id must follow it or their nesting dangles.
+          if (Object.keys(groupIdRemap).length > 0) {
+            for (let i = 0; i < mergedGroupList.length; i++) {
+              const p = (mergedGroupList[i] as any).parentId;
+              if (p && groupIdRemap[p]) mergedGroupList[i] = { ...mergedGroupList[i], parentId: groupIdRemap[p] };
+            }
+          }
           batch[KEYS.groups] = mergedGroupList;
           if (Object.keys(groupIdRemap).length > 0) {
             batch[KEYS.members] = (batch[KEYS.members] as Member[]).map(m =>
@@ -216,6 +239,30 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
           const existingDefs = await store.getStrict<any[]>(KEYS.customFieldDefs, []) || [];
           const names = new Set(existingDefs.map((d: any) => String(d.name || '').toLowerCase()));
           batch[KEYS.customFieldDefs] = [...existingDefs, ...conv.customFieldDefs.filter(d => !names.has(d.name.toLowerCase()))];
+        }
+        if (conv.chat && conv.chat.length > 0) {
+          const existingCh = await store.getStrict<ChatChannel[]>(KEYS.chatChannels, []) || [];
+          const mergedCh: ChatChannel[] = [...existingCh];
+          for (const ch of conv.chat) {
+            let local = mergedCh.find(c => c.name.toLowerCase() === ch.name.toLowerCase());
+            if (!local) { local = { id: uid(), name: ch.name, createdAt: ch.createdAt }; mergedCh.push(local); }
+            if (ch.messages.length === 0) continue;
+            const cur = await store.getStrict<ChatMessage[]>(chatMsgKey(local.id), []) || [];
+            const seen = new Set(cur.map(m => `${m.timestamp}|${m.authorId}|${m.content}`));
+            const mapped: ChatMessage[] = ch.messages.map(msg => ({ id: uid(), channelId: local!.id, authorId: idRemap[msg.authorId] || msg.authorId, type: 'text', content: msg.content, timestamp: msg.timestamp }));
+            const fresh = mapped.filter(m => !seen.has(`${m.timestamp}|${m.authorId}|${m.content}`));
+            if (fresh.length > 0) batch[chatMsgKey(local.id)] = [...cur, ...fresh].sort((a, b) => a.timestamp - b.timestamp);
+          }
+          batch[KEYS.chatChannels] = mergedCh;
+        }
+        if (conv.systemName || conv.systemAvatar || conv.systemBanner) {
+          batch[KEYS.system] = {
+            ...system,
+            name: conv.systemName || system.name,
+            description: conv.systemDesc || system.description,
+            ...(conv.systemAvatar ? { avatar: conv.systemAvatar } : {}),
+            ...(conv.systemBanner ? { banner: conv.systemBanner } : {}),
+          };
         }
 
         await store.setBatch(batch);
@@ -342,7 +389,13 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
           toAdd.push(fixed);
         }
       });
-      let allMembers: Member[] = [...merged, ...toAdd];
+      // Overwrite treats the export as the whole roster: unmatched locals are
+      // soft-tombstoned (custom fronts and facets exempt). Update keeps them.
+      const psClaimed = new Set(Object.values(idRemap));
+      const psMerged = ctx.importMode === 'overwrite'
+        ? merged.map(m => (psClaimed.has(m.id) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true })
+        : merged;
+      let allMembers: Member[] = [...psMerged, ...toAdd];
 
       let avatarsLoaded = 0;
       const sep = filePath.includes('\\') ? '\\' : '/';
@@ -419,8 +472,14 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
         batch[KEYS.polls] = [...existingPolls, ...newPolls];
       }
 
-      if (conv.systemName) {
-        batch[KEYS.system] = { ...system, name: conv.systemName || system.name, description: conv.systemDesc || system.description };
+      if (conv.systemName || conv.systemAvatar || conv.systemBanner) {
+        batch[KEYS.system] = {
+          ...system,
+          name: conv.systemName || system.name,
+          description: conv.systemDesc || system.description,
+          ...(conv.systemAvatar ? { avatar: conv.systemAvatar } : {}),
+          ...(conv.systemBanner ? { banner: conv.systemBanner } : {}),
+        };
       }
 
       await store.setBatch(batch);
@@ -524,8 +583,10 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       }
     });
     const keptIds = new Set(Object.values(idMap));
-    let allMembers: Member[] = merged.map(m =>
-      (m.isCustomFront || m.isFacet || m.deleted || keptIds.has(m.id)) ? m : { ...m, archived: true, deleted: true });
+    let allMembers: Member[] = ctx.importMode === 'overwrite'
+      ? merged.map(m =>
+          (m.isCustomFront || m.isFacet || m.deleted || keptIds.has(m.id)) ? m : { ...m, archived: true, deleted: true })
+      : merged;
 
     // Avatars ship in the bundle under stored_media/; profileImagePath is an
     // absolute app path, so only its basename matches the zip entries.
@@ -795,6 +856,14 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       let membersDirty = false;
       if (newM.length > 0) {
         membersAfter = [...members, ...newM.filter(nm => !members.find(em => em.name.toLowerCase() === nm.name.toLowerCase()))];
+        membersDirty = true;
+      }
+      // Overwrite treats the fetch as the whole roster: locals whose name the
+      // import doesn't carry are soft-tombstoned (custom fronts and facets
+      // exempt). Update keeps everything local.
+      if (ctx.importMode === 'overwrite' && extSel.members && extPreview.members.length > 0) {
+        const importNames = new Set(extPreview.members.map((m: any) => String((isPK ? (extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) : (m.content?.name || m.name)) || 'Unknown').trim().toLowerCase()));
+        membersAfter = membersAfter.map(m => (importNames.has(String(m.name || '').trim().toLowerCase()) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true });
         membersDirty = true;
       }
 

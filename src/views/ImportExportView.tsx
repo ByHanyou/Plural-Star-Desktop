@@ -89,6 +89,9 @@ export default function ImportExportView({ onUpdate }: Props) {
   const [extLoading, setExtLoading] = useState(false);
   const [extPreview, setExtPreview] = useState<{members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[]} | null>(null);
   const [extSel, setExtSel] = useState({system: true, members: true, avatars: true, frontHistory: true, customFields: true, groups: true, displayNames: true, pronouns: true});
+  // Governs EVERY import path incl. backup restore. Overwrite = the standing
+  // replace semantics; Update = refresh matches and add, never remove local.
+  const [importMode, setImportMode] = useState<'overwrite' | 'update'>('overwrite');
   const togE = (k: string) => setExtSel(s => ({...s, [k]: !s[k as keyof typeof s]}));
 
   const spGet = async (url: string, headers: Record<string, string>): Promise<any | null> => {
@@ -176,12 +179,27 @@ export default function ImportExportView({ onUpdate }: Props) {
           </div>
         )}
 
-        <Btn variant="solid" onClick={() => handleExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })}>{t('share.exportBackup')}</Btn>
+        <Btn variant="solid" onClick={() => handleExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })}>{t('share.exportBackup')}</Btn>
         <div style={{ marginTop: 8 }}>
-          <Btn variant="ghost" onClick={() => handlePluralKitExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })}>{t('share.exportPluralKit', { defaultValue: '↓ PluralKit / Tupperbox' })}</Btn>
+          <Btn variant="ghost" onClick={() => handlePluralKitExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })}>{t('share.exportPluralKit', { defaultValue: '↓ PluralKit / Tupperbox' })}</Btn>
         </div>
         <p style={{ fontSize: 11, color: 'var(--dim)', marginTop: 6, lineHeight: 1.4 }}>
           {t('share.pkExportHint', { defaultValue: 'Exports members and front history as a PluralKit-format file for pk;import (PluralKit) or tul!import (Tupperbox). Avatars only carry over if they are image links, and proxy tags are left blank to set up in the bot.' })}
+        </p>
+      </div>
+
+      <Section label={t('share.importMode')} />
+      <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['overwrite', 'update'] as const).map(m => (
+            <button key={m} onClick={() => setImportMode(m)} aria-pressed={importMode === m}
+              style={{ flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500, background: importMode === m ? 'var(--accent-bg)' : 'transparent', color: importMode === m ? 'var(--accent)' : 'var(--dim)', border: `1px solid ${importMode === m ? 'var(--accent)' : 'var(--border)'}` }}>
+              {t(m === 'overwrite' ? 'share.importModeOverwrite' : 'share.importModeUpdate')}
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, marginBottom: 0, lineHeight: 1.4 }}>
+          {t(importMode === 'overwrite' ? 'share.importModeOverwriteHint' : 'share.importModeUpdateHint')}
         </p>
       </div>
 
@@ -190,7 +208,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.restoreDesc')}
         </p>
-        <Btn onClick={() => handlePickBackup({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })}>
+        <Btn onClick={() => handlePickBackup({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })}>
           {restoreFile || t('share.importPSBackup')}
         </Btn>
         {restoreData && (
@@ -237,7 +255,7 @@ export default function ImportExportView({ onUpdate }: Props) {
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => { setRestoreData(null); setRestoreFile(null); }}>{t('common.cancel')}</Btn>
-              <Btn variant="danger" onClick={() => handleRestore({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(Object.values(restoreSel).filter(Boolean).length) })} disabled={importing}>
+              <Btn variant="danger" onClick={() => handleRestore({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(Object.values(restoreSel).filter(Boolean).length) })} disabled={importing}>
                 {importing ? t('share.importing') : t('share.restoreSelectedData')}
               </Btn>
             </div>
@@ -250,7 +268,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.spMergeDesc')}
         </p>
-        <Btn onClick={() => handleImportSP({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(5) })} disabled={importing}>
+        <Btn onClick={() => handleImportSP({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(5) })} disabled={importing}>
           {importing ? t('share.importing') : t('share.importFromSP')}
         </Btn>
       </div>
@@ -260,7 +278,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.importOtherAppsDesc', { defaultValue: 'Import members and fronting history from Ourcana (.our or .json), HiveMind or Octocon (.json), or Ampersand\'s JSON export. Ampersand\'s binary backup is not supported — its format changes between releases, which is why their developer recommends JSON.' })}
         </p>
-        <Btn onClick={() => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(4) })} disabled={importing}>
+        <Btn onClick={() => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(4) })} disabled={importing}>
           {importing ? t('share.importing') : t('share.importFromOtherApp', { defaultValue: 'Pick file (.our / .json)' })}
         </Btn>
       </div>
@@ -270,7 +288,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.psHint')}
         </p>
-        <Btn onClick={() => handleImportPluralSpace({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={importing}>
+        <Btn onClick={() => handleImportPluralSpace({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })} disabled={importing}>
           {importing ? t('share.importing') : t('share.pickPsFile')}
         </Btn>
       </div>
@@ -280,7 +298,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.plurallogHint')}
         </p>
-        <Btn onClick={() => handleImportPluralLog({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={importing}>
+        <Btn onClick={() => handleImportPluralLog({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })} disabled={importing}>
           {importing ? t('share.importing') : t('share.plurallogPick')}
         </Btn>
       </div>
@@ -294,7 +312,7 @@ export default function ImportExportView({ onUpdate }: Props) {
           <input className="field__input" value={extToken} onChange={e => setExtToken(e.target.value)}
             aria-label={t('share.pkTokenPlaceholder')} placeholder={t('share.pkTokenPlaceholder')}
             style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }} />
-          <Btn onClick={() => handleTokenFetch({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet })} disabled={extLoading}>
+          <Btn onClick={() => handleTokenFetch({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })} disabled={extLoading}>
             {extLoading ? t('share.fetching') : t('share.fetchData')}
           </Btn>
         </div>
@@ -319,7 +337,7 @@ export default function ImportExportView({ onUpdate }: Props) {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => { setExtPreview(null); setExtToken(''); }}>{t('common.cancel')}</Btn>
-              <Btn variant="solid" onClick={() => handleTokenImport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, spGet, control: beginImport(Object.values(extSel).filter(Boolean).length) })} disabled={importing}>
+              <Btn variant="solid" onClick={() => handleTokenImport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(Object.values(extSel).filter(Boolean).length) })} disabled={importing}>
                 {importing ? t('share.importing') : t('share.importSelected')}
               </Btn>
             </div>

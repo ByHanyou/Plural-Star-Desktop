@@ -24,7 +24,10 @@ interface Props {
 // Blank and whitespace-only lines eat the clamped card preview (a "\n\n"
 // description rendered a card with a bare gap in it), so drop them here; the
 // edit modal shows the description untouched.
-const descPreview = (d?: string) => (d || '').split('\n').filter(l => l.trim()).join('\n');
+// String(), not `|| ''`: a truthy NON-STRING description (imported or synced
+// data has carried numbers and objects) sails through `||` and then .split does
+// not exist on it, which takes down the whole Members view on render.
+const descPreview = (d?: unknown) => String(d ?? '').split('\n').filter(l => l.trim()).join('\n');
 
 export default function MembersView({ onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, onQuickFront, onRemoveFromFront }: Props) {
   const members = useAppStore(s => s.state.members);
@@ -41,7 +44,10 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
-  const [listView, setListView] = useState<'active' | 'archived' | 'customFronts' | 'facets'>(archiveOnly ? 'archived' : 'active');
+  // The tab picks the CATEGORY; `archiveOnly` picks the state. Archive is the
+  // same view with the same three tabs, showing what is archived, so an
+  // archived facet is found where a facet is expected.
+  const [listView, setListView] = useState<'active' | 'customFronts' | 'facets'>('active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
   const [reorderLocked, setReorderLocked] = useState(true);
@@ -107,21 +113,23 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const deleteNote = (id: string) => saveNotes(allNotes.filter(n => n.id !== id));
   const togglePin = (id: string) => saveNotes(allNotes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
 
-  // Facets live in their own list and are never members: the active/archived
-  // lists must exclude them the same way they exclude custom fronts.
-  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
-  const archived = members.filter(m => m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
-  const customFronts = members.filter(m => m.isCustomFront && !m.deleted);
-  const facets = members.filter(m => m.isFacet && !m.deleted);
+  // State first, category second, so one set of lists serves both screens.
+  // Archiving a custom front or a facet used to make it vanish from Archive
+  // while still sitting in its own list looking active.
+  const inState = (m: Member) => !m.deleted && archiveOnly === !!m.archived;
+  const active = members.filter(m => inState(m) && !m.isCustomFront && !m.isFacet);
+  const customFronts = members.filter(m => inState(m) && m.isCustomFront);
+  const facets = members.filter(m => inState(m) && m.isFacet && !m.isCustomFront);
   const sorted = sortMembers(
-    listView === 'customFronts' ? customFronts : listView === 'facets' ? facets : listView === 'archived' ? archived : active,
+    listView === 'customFronts' ? customFronts : listView === 'facets' ? facets : active,
     sortMode,
   );
   const filtered = sorted.filter(m =>
     !search || m.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const canReorder = sortMode === 'manual' && !search && (listView === 'active' || listView === 'customFronts' || listView === 'facets');
+  // Never in Archive: manual order is the roster's own arrangement.
+  const canReorder = !archiveOnly && sortMode === 'manual' && !search;
   const reorderActive = canReorder && !reorderLocked;
 
   const sensors = useSensors(
@@ -264,18 +272,20 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             🤏
           </button>
         )}
-        {!archiveOnly && (<>
-          <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
-            {t('members.active')} ({active.length})
-          </Btn>
-          <Btn variant={listView === 'facets' ? 'info' : 'ghost'} onClick={() => setListView('facets')}>
-            {t('members.facets')} ({facets.length})
-          </Btn>
-          <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => setListView('customFronts')}>
-            {t('members.customFronts')} ({customFronts.length})
-          </Btn>
+        {/* Archive gets the SAME three tabs, filtered to what is archived. Only
+            the Add button is withheld: you do not create things into Archive. */}
+        <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
+          {t('members.title')} ({active.length})
+        </Btn>
+        <Btn variant={listView === 'facets' ? 'info' : 'ghost'} onClick={() => setListView('facets')}>
+          {t('members.facets')} ({facets.length})
+        </Btn>
+        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => setListView('customFronts')}>
+          {t('members.customFronts')} ({customFronts.length})
+        </Btn>
+        {!archiveOnly && (
           <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : listView === 'facets' ? t('members.addFacet') : t('members.add')}</Btn>
-        </>)}
+        )}
         <div style={{ position: 'relative' }}>
           <Btn variant="ghost" onClick={() => setShowFields(v => !v)}>{t('members.displayFields')}</Btn>
           {showFields && (
@@ -312,7 +322,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   </div>
                 )}
               </div>
-              {quickFrontEnabled && listView !== 'archived' && !m.archived && (
+              {quickFrontEnabled && !m.archived && (
                 isFronting(m.id) ? (
                   <button
                     aria-label={`${t('members.removeFromFront')} — ${m.name}`}
@@ -368,7 +378,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-          {search ? t('members.noMembers') : listView === 'archived' ? t('members.noArchived') : listView === 'customFronts' ? t('members.noCustomFronts') : listView === 'facets' ? t('members.noFacets') : t('members.noMembers')}
+          {search ? t('members.noMembers') : archiveOnly ? t('members.noArchived') : listView === 'customFronts' ? t('members.noCustomFronts') : listView === 'facets' ? t('members.noFacets') : t('members.noMembers')}
         </div>
       )}
 
@@ -703,7 +713,13 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                 <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('noteboard.writingAs')}</span>
                 <select style={{ background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 12 }}
                   aria-label={t('noteboard.writingAs')} value={noteAuthorId || ''} onChange={e => setNoteAuthorId(e.target.value)}>
-                  {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {members.filter(m => !m.archived && !m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {/* Facets keep their own group: out of the member list, still selectable. */}
+                  {members.some(m => !m.archived && m.isFacet) && (
+                    <optgroup label={t('members.facets')}>
+                      {members.filter(m => !m.archived && m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </optgroup>
+                  )}
                 </select>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>

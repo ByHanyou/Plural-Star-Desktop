@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Btn, Dropdown, Modal, ConfirmDialog } from '../components/ui';
-import { NoteboardEntry, uid, fmtTime, getInitials } from '../utils';
+import { NoteboardEntry, uid, fmtTime, getInitials, nameCompare } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { useAppStore } from '../store/appStore';
@@ -30,7 +30,11 @@ export default function MailboxView({ onUpdate }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<NoteboardEntry | null>(null);
 
   const activeMembers = useMemo(
-    () => members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted).sort((a, b) => a.name.localeCompare(b.name)),
+    () => members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted).sort((a, b) => nameCompare(a.name, b.name)),
+    [members],
+  );
+  const activeFacets = useMemo(
+    () => members.filter(m => !m.isCustomFront && m.isFacet && !m.deleted).sort((a, b) => nameCompare(a.name, b.name)),
     [members],
   );
   const nameOf = (id: string) => members.find(m => m.id === id)?.name || '?';
@@ -151,7 +155,9 @@ export default function MailboxView({ onUpdate }: Props) {
     [notes, openId],
   );
 
-  const memberOptions = activeMembers.map(m => m.id);
+  // Facets follow the roster rather than being mixed into it, and stay pickable
+  // as a sender or a recipient. "Everyone" deliberately still means the roster.
+  const memberOptions = [...activeMembers.map(m => m.id), ...activeFacets.map(m => m.id)];
   const recipientOptions = activeMembers.length > 0 ? [ALL_RECIPIENTS, ...memberOptions] : memberOptions;
   const renderMemberOption = (id: string) => nameOf(id);
   const renderRecipientOption = (id: string) =>

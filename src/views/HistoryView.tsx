@@ -146,7 +146,13 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
           border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
         }} value={memberFilter} onChange={e => setMemberFilter(e.target.value)}>
           <option value="">{singlet ? t('history.byStatus') : t('history.allMembers')}</option>
-          {members.filter(m => !m.archived && (!singlet || (m.isCustomFront && m.id !== selfId))).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {members.filter(m => !m.archived && !m.isFacet && (!singlet || (m.isCustomFront && m.id !== selfId))).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {/* Facets keep their own group: out of the member list, still selectable. */}
+          {members.some(m => !m.archived && m.isFacet && !singlet) && (
+            <optgroup label={t('members.facets')}>
+              {members.filter(m => !m.archived && m.isFacet && !singlet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </optgroup>
+          )}
         </select>
         <div style={{ display: 'flex', gap: 4 }}>
           {(['all', '90d', '30d', '7d'] as TimeRange[]).map(r => (

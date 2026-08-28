@@ -133,6 +133,24 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* The system name opens the system profile. Only the name itself opts out of
+   the window drag region, so the rest of the bar still drags the window. */
+.titlebar__name {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar__name:hover,
+.titlebar__name:focus-visible {
+  text-decoration: underline;
+}
+
 .titlebar__controls {
   display: flex;
   gap: 8px;
@@ -233,6 +251,14 @@ body {
 .tile-sortable:hover .tile__grip,
 .tile__grip:focus-visible {
   opacity: 1;
+}
+
+/* Chat sidebar rows are narrow, stacked and inside a scroller, so the dashboard's
+   corner grip would sit outside the visible area. Centre it in the row instead. */
+.chan-list .tile__grip {
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
 }
 
 .tile__grip:focus-visible {

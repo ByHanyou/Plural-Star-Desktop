@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ChatChannel, ChatMessage, DEFAULT_CHANNELS,
-  uid, getInitials, fmtTime,
+  ChatChannel, ChatCategory, ChatMessage, DEFAULT_CHANNELS, Member,
+  uid, getInitials, fmtTime, frontersFirst, sortChatCategories, chatChannelsIn, isRosterMember,
 } from '../utils';
 import { store, KEYS, chatMsgKey } from '../storage';
-import { Btn, Field, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { Btn, Field, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
 import { useAppStore } from '../store/appStore';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import SortableCard from '../components/SortableCard';
 
 interface Props {
   onUpdate: () => void;
@@ -18,6 +21,8 @@ export default function ChatView({ onUpdate }: Props) {
   const { t } = useTranslation();
   const members = useAppStore(s => s.state.members);
   const channels = useAppStore(s => s.state.channels);
+  const categories = useAppStore(s => s.state.chatCategories);
+  const front = useAppStore(s => s.state.front);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(channels.find(c => !c.archived)?.id || null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -32,6 +37,13 @@ export default function ChatView({ onUpdate }: Props) {
   const [editChannelName, setEditChannelName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [reorderLocked, setReorderLocked] = useState(true);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [confirmDeleteCategory, setConfirmDeleteCategory] = useState<string | null>(null);
+  const [editChannelCategory, setEditChannelCategory] = useState<string>('__none__');
   const msgEndRef = useRef<HTMLDivElement>(null);
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
@@ -39,6 +51,15 @@ export default function ChatView({ onUpdate }: Props) {
   const activeChannels = channels.filter(c => !c.archived);
   const archivedChannels = channels.filter(c => c.archived);
   const getMember = (id: string) => members.find(m => m.id === id);
+  const sortedCategories = sortChatCategories(categories);
+  const uncategorized = chatChannelsIn(activeChannels, null, categories);
+  const channelsOf = (categoryId: string | null | undefined) => chatChannelsIn(activeChannels, categoryId, categories);
+  const reorderActive = !reorderLocked;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const loadMessages = useCallback(async (channelId: string) => {
     const msgs = await store.get<ChatMessage[]>(chatMsgKey(channelId), []);
@@ -119,7 +140,7 @@ export default function ChatView({ onUpdate }: Props) {
   const createChannel = async () => {
     const name = newChannelName.trim();
     if (!name || channels.length >= 100) return;
-    const ch: ChatChannel = { id: uid(), name, createdAt: Date.now() };
+    const ch: ChatChannel = { id: uid(), name, sortOrder: uncategorized.length, createdAt: Date.now() };
     await saveChannels([...channels, ch]);
     setNewChannelName(''); setShowNewChannel(false); setActiveChannelId(ch.id);
   };
@@ -127,7 +148,15 @@ export default function ChatView({ onUpdate }: Props) {
   const renameChannel = async (id: string) => {
     const name = editChannelName.trim();
     if (!name) return;
-    await saveChannels(channels.map(c => c.id === id ? { ...c, name } : c));
+    const current = channels.find(c => c.id === id);
+    const nextCat = editChannelCategory === '__none__' ? undefined : editChannelCategory;
+    const movedCategory = (current?.categoryId || undefined) !== nextCat;
+    // Landing in a new category means landing at the END of it, so the channel
+    // never inherits a position that belongs to a row already sitting there.
+    const tail = movedCategory ? channelsOf(nextCat || null).filter(c => c.id !== id).length : 0;
+    await saveChannels(channels.map(c => c.id === id
+      ? { ...c, name, categoryId: nextCat, ...(movedCategory ? { sortOrder: tail } : {}) }
+      : c));
     setEditChannelId(null);
   };
 
@@ -143,10 +172,107 @@ export default function ChatView({ onUpdate }: Props) {
     if (activeChannelId === id) setActiveChannelId(activeChannels.find(c => c.id !== id)?.id || null);
   };
 
+  const saveCategories = async (cats: ChatCategory[]) => {
+    await store.set(KEYS.chatCategories, cats);
+    onUpdate();
+  };
+
+  const createCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    const cat: ChatCategory = { id: uid(), name, sortOrder: sortedCategories.length, createdAt: Date.now() };
+    await saveCategories([...categories, cat]);
+    setNewCategoryName('');
+    setShowNewCategory(false);
+  };
+
+  const renameCategory = async (id: string) => {
+    const name = editCategoryName.trim();
+    if (!name) return;
+    await saveCategories(categories.map(c => c.id === id ? { ...c, name } : c));
+    setEditCategoryId(null);
+  };
+
+  const toggleCategory = async (id: string) => {
+    await saveCategories(categories.map(c => c.id === id ? { ...c, collapsed: !c.collapsed } : c));
+  };
+
+  const deleteCategory = async (id: string) => {
+    // Deleting a category never deletes a channel. Its channels move to the
+    // uncategorized list, appended after whatever is already there.
+    const inside = channels.filter(c => c.categoryId === id);
+    if (inside.length > 0) {
+      let next = uncategorized.length;
+      const moved = new Map(inside.map(c => [c.id, next++] as const));
+      await saveChannels(channels.map(c => moved.has(c.id) ? { ...c, categoryId: undefined, sortOrder: moved.get(c.id) } : c));
+    }
+    await saveCategories(categories.filter(c => c.id !== id));
+    setConfirmDeleteCategory(null);
+  };
+
+
+  /**
+   * One DndContext holds the category list and every category's channel list,
+   * so the drop has to be resolved against the dragged row's OWN list. A drop
+   * onto a different list is ignored: moving a channel between categories is
+   * the picker's job, which is also the only version of it a keyboard can do.
+   */
+  const onDragEnd = async (e: DragEndEvent) => {
+    const { active: dragged, over } = e;
+    if (!over || dragged.id === over.id) return;
+    const draggedId = String(dragged.id);
+    const overId = String(over.id);
+
+    const catFrom = sortedCategories.findIndex(c => c.id === draggedId);
+    if (catFrom >= 0) {
+      const catTo = sortedCategories.findIndex(c => c.id === overId);
+      if (catTo < 0) return;
+      const ordered = arrayMove(sortedCategories, catFrom, catTo);
+      const pos = new Map(ordered.map((c, i) => [c.id, i] as const));
+      await saveCategories(categories.map(c => pos.has(c.id) ? { ...c, sortOrder: pos.get(c.id) } : c));
+      return;
+    }
+
+    const ch = channels.find(c => c.id === draggedId);
+    if (!ch) return;
+    const list = channelsOf(ch.categoryId);
+    const from = list.findIndex(c => c.id === draggedId);
+    const to = list.findIndex(c => c.id === overId);
+    if (from < 0 || to < 0) return;
+    const ordered = arrayMove(list, from, to);
+    const pos = new Map(ordered.map((c, i) => [c.id, i] as const));
+    await saveChannels(channels.map(c => pos.has(c.id) ? { ...c, sortOrder: pos.get(c.id) } : c));
+  };
+
 
   const insertFormat = (before: string, after: string) => {
     setInput(prev => prev + before + (after ? 'text' : '') + after);
   };
+
+  const openChannelEditor = (ch: ChatChannel) => {
+    setEditChannelId(ch.id);
+    setEditChannelName(ch.name);
+    setEditChannelCategory(ch.categoryId || '__none__');
+  };
+
+  const renderChannelRow = (ch: ChatChannel) => (
+    <SortableCard key={ch.id} id={ch.id} label={ch.name} disabled={!reorderActive}>
+      <div style={{
+        flex: 1, minWidth: 0,
+        display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer',
+        background: activeChannelId === ch.id ? 'var(--accent-bg)' : 'transparent',
+        borderLeft: activeChannelId === ch.id ? '3px solid var(--accent)' : '3px solid transparent',
+      }} {...clickable(() => setActiveChannelId(ch.id), ch.name)}
+        onContextMenu={e => { e.preventDefault(); openChannelEditor(ch); }}>
+        <span style={{
+          color: activeChannelId === ch.id ? 'var(--accent)' : 'var(--dim)', fontSize: 13,
+          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          # {ch.name}
+        </span>
+      </div>
+    </SortableCard>
+  );
 
 
   return (
@@ -158,24 +284,66 @@ export default function ChatView({ onUpdate }: Props) {
         <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--dim)', fontWeight: 600 }}>{t('chat.channels', {defaultValue: 'Channels'})}</span>
-            <button aria-label={t('common.add')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16 }}
-              onClick={() => setShowNewChannel(true)}>+</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <button type="button" role="switch" aria-checked={reorderActive}
+                aria-label={t('common.reorderLock', { defaultValue: 'Drag reordering' })}
+                title={t('common.reorderLock', { defaultValue: 'Drag reordering' })}
+                onClick={() => setReorderLocked(v => !v)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, fontSize: 13, lineHeight: 1, opacity: reorderLocked ? 0.35 : 1 }}>🤏</button>
+              <button aria-label={t('chat.newCategory')} title={t('chat.newCategory')}
+                style={{ background: 'none', border: 'none', color: 'var(--dim)', cursor: 'pointer', fontSize: 13, padding: 2 }}
+                onClick={() => setShowNewCategory(true)}>🗂</button>
+              <button aria-label={t('common.add')} title={t('chat.newChannel')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16, padding: 2 }}
+                onClick={() => setShowNewChannel(true)}>+</button>
+            </div>
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-          {activeChannels.map(ch => (
-            <div key={ch.id} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer',
-              background: activeChannelId === ch.id ? 'var(--accent-bg)' : 'transparent',
-              borderLeft: activeChannelId === ch.id ? '3px solid var(--accent)' : '3px solid transparent',
-            }} {...clickable(() => setActiveChannelId(ch.id), ch.name)}
-              onContextMenu={e => { e.preventDefault(); setEditChannelId(ch.id); setEditChannelName(ch.name); }}>
-              <span style={{ color: activeChannelId === ch.id ? 'var(--accent)' : 'var(--dim)', fontSize: 13 }}>
-                # {ch.name}
-              </span>
-            </div>
-          ))}
+        <div className="chan-list" style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            {sortedCategories.length > 0 && uncategorized.length > 0 && (
+              <div style={{ padding: '6px 12px 2px', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--muted)', fontWeight: 600 }}>
+                {t('chat.uncategorized')}
+              </div>
+            )}
+            <SortableContext items={uncategorized.map(c => c.id)} strategy={verticalListSortingStrategy}>
+              {uncategorized.map(ch => renderChannelRow(ch))}
+            </SortableContext>
+
+            <SortableContext items={sortedCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+              {sortedCategories.map(cat => {
+                const list = channelsOf(cat.id);
+                return (
+                  <SortableCard key={cat.id} id={cat.id} label={cat.name} disabled={!reorderActive}>
+                    <div style={{ flex: 1, minWidth: 0, borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '2px 8px 2px 12px' }}>
+                        <button onClick={() => toggleCategory(cat.id)} aria-expanded={!cat.collapsed} aria-label={cat.name}
+                          style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', textAlign: 'left' }}>
+                          <span aria-hidden style={{ fontSize: 9, color: 'var(--dim)' }}>{cat.collapsed ? '▶' : '▼'}</span>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--dim)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</span>
+                          <span style={{ fontSize: 10, color: 'var(--muted)' }}>{list.length}</span>
+                        </button>
+                        <button aria-label={`${t('common.edit')} ${cat.name}`} title={t('common.edit')}
+                          style={{ background: 'none', border: 'none', color: 'var(--dim)', cursor: 'pointer', fontSize: 11, padding: 2 }}
+                          onClick={() => { setEditCategoryId(cat.id); setEditCategoryName(cat.name); }}>✎</button>
+                        <button aria-label={`${t('common.delete')} ${cat.name}`} title={t('common.delete')}
+                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11, padding: 2 }}
+                          onClick={() => setConfirmDeleteCategory(cat.id)}>✕</button>
+                      </div>
+                      {!cat.collapsed && (
+                        <SortableContext items={list.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                          {list.map(ch => renderChannelRow(ch))}
+                        </SortableContext>
+                      )}
+                      {!cat.collapsed && list.length === 0 && (
+                        <div style={{ padding: '4px 12px 8px', fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{t('chat.categoryEmpty')}</div>
+                      )}
+                    </div>
+                  </SortableCard>
+                );
+              })}
+            </SortableContext>
+          </DndContext>
 
           {archivedChannels.length > 0 && (
             <>
@@ -222,16 +390,33 @@ export default function ChatView({ onUpdate }: Props) {
             <div style={{ marginTop: 4, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 200, overflowY: 'auto' }}>
               <input className="field__input" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
                 aria-label={t('common.search', {defaultValue: 'Search…'})} placeholder={t('common.search', {defaultValue: 'Search…'})} style={{ fontSize: 11, padding: '6px 8px', borderRadius: 0, border: 'none', borderBottom: '1px solid var(--border)' }} />
-              {members.filter(m => !m.archived && (!memberSearch || m.name.toLowerCase().includes(memberSearch.toLowerCase()))).map(m => (
-                <button key={m.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '6px 8px',
-                  background: m.id === activeMemberId ? `${m.color}15` : 'transparent',
-                  border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                }} onClick={() => { setActiveMemberId(m.id); setShowMemberPicker(false); setMemberSearch(''); }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color }} />
-                  <span style={{ fontSize: 12, color: m.id === activeMemberId ? m.color : 'var(--dim)' }}>{m.name}</span>
-                </button>
-              ))}
+              {(() => {
+                const q = memberSearch.toLowerCase();
+                const match = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && (!memberSearch || m.name.toLowerCase().includes(q));
+                const row = (m: Member) => (
+                  <button key={m.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '6px 8px',
+                    background: m.id === activeMemberId ? `${m.color}15` : 'transparent',
+                    border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                  }} onClick={() => { setActiveMemberId(m.id); setShowMemberPicker(false); setMemberSearch(''); }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color }} />
+                    <span style={{ fontSize: 12, color: m.id === activeMemberId ? m.color : 'var(--dim)' }}>{m.name}</span>
+                  </button>
+                );
+                // Facets keep their own section: out of the member list, still pickable.
+                const facets = members.filter(m => m.isFacet && match(m));
+                return (
+                  <>
+                    {frontersFirst(members.filter(m => !m.isFacet && match(m)), front).map(row)}
+                    {facets.length > 0 && (
+                      <>
+                        <div className="field__label" style={{ padding: '8px 8px 2px' }}>{t('members.facets')}</div>
+                        {facets.map(row)}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -248,12 +433,12 @@ export default function ChatView({ onUpdate }: Props) {
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="btn btn--ghost" style={{ padding: '3px 8px', fontSize: 11 }}
-                onClick={() => { setEditChannelId(activeChannelId); setEditChannelName(activeChannel.name); }}>
-                Rename
+                onClick={() => openChannelEditor(activeChannel)}>
+                {t('common.edit')}
               </button>
               <button className="btn btn--ghost" style={{ padding: '3px 8px', fontSize: 11 }}
                 onClick={() => activeChannelId && archiveChannel(activeChannelId)}>
-                Archive
+                {t('chat.archiveChannel')}
               </button>
             </div>
           </div>
@@ -266,7 +451,7 @@ export default function ChatView({ onUpdate }: Props) {
             </div>
           ) : messages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-              No messages in #{activeChannel?.name}. Say something!
+              {t('chat.noMessages')}
             </div>
           ) : (
             messages.map(msg => {
@@ -413,12 +598,34 @@ export default function ChatView({ onUpdate }: Props) {
           </div>
         }>
         <Field label={t('chat.channelName')} value={editChannelName} onChange={setEditChannelName} />
+        <Dropdown
+          label={t('chat.moveToCategory')}
+          value={editChannelCategory}
+          options={['__none__', ...sortedCategories.map(c => c.id)]}
+          onChange={setEditChannelCategory}
+          renderOption={v => v === '__none__' ? t('chat.uncategorized') : (categories.find(c => c.id === v)?.name || v)}
+        />
+      </Modal>
+
+      <Modal open={showNewCategory} title={t('chat.newCategory')} onClose={() => setShowNewCategory(false)}
+        footer={<Btn onClick={createCategory}>{t('common.add')}</Btn>}>
+        <Field label={t('chat.categoryName')} value={newCategoryName} onChange={setNewCategoryName} />
+      </Modal>
+
+      <Modal open={!!editCategoryId} title={t('chat.categoryName')} onClose={() => setEditCategoryId(null)}
+        footer={<Btn onClick={() => editCategoryId && renameCategory(editCategoryId)}>{t('common.save')}</Btn>}>
+        <Field label={t('chat.categoryName')} value={editCategoryName} onChange={setEditCategoryName} />
       </Modal>
 
       <ConfirmDialog open={!!confirmDelete} title={t('chat.deleteChannel')}
         message={t('chat.deleteChannelMsg')}
         danger onConfirm={() => confirmDelete && deleteChannel(confirmDelete)}
         onCancel={() => setConfirmDelete(null)} />
+
+      <ConfirmDialog open={!!confirmDeleteCategory} title={t('chat.deleteCategory')}
+        message={t('chat.deleteCategoryMsg')}
+        danger onConfirm={() => confirmDeleteCategory && deleteCategory(confirmDeleteCategory)}
+        onCancel={() => setConfirmDeleteCategory(null)} />
     </div>
   );
 }

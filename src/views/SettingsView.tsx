@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn, clickable } from '../components/ui';
-import { TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex, resizeBannerDataUrl } from '../utils';
+import { TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex } from '../utils';
 import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice, ensureReadable } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
@@ -11,6 +11,7 @@ import { setTerminologyOverrides } from '../i18n/terminology';
 
 interface Props {
   onUpdate: () => void;
+  onOpenProfile: () => void;
 }
 
 const HexField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
@@ -37,7 +38,7 @@ const LANG_NAMES: Record<string, string> = {
   zh: '中文', ja: '日本語', ru: 'Русский', uk: 'Українська',
 };
 
-export default function SettingsView({ onUpdate }: Props) {
+export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   const system = useAppStore(s => s.state.system);
   const settings = useAppStore(s => s.state.settings);
   const palettes = useAppStore(s => s.state.palettes);
@@ -45,11 +46,11 @@ export default function SettingsView({ onUpdate }: Props) {
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [singletMode, setSingletMode] = useState(settings.accountMode === 'singlet');
 
-  const [name, setName] = useState(system.name);
-  const [desc, setDesc] = useState(system.description);
-  const [systemAvatar, setSystemAvatar] = useState(system.avatar || '');
-  const [systemBanner, setSystemBanner] = useState(system.banner || '');
   const [journalPw, setJournalPw] = useState(system.journalPassword || '');
+  // Singlets have no System Profile — they have the Profile view. Their name
+  // and goals stay here, where they have always been.
+  const [sysName, setSysName] = useState(system.name || '');
+  const [sysDesc, setSysDesc] = useState(system.description || '');
   const [showPw, setShowPw] = useState(!!system.journalPassword);
 
   const [locs, setLocs] = useState(settings.locations);
@@ -135,30 +136,15 @@ export default function SettingsView({ onUpdate }: Props) {
     onUpdate();
   };
 
-  const pickSystemImage = async (target: 'avatar' | 'banner') => {
-    const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
-    ]);
-    if (!filePath) return;
-    const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (!dataUrl) return;
-    if (target === 'avatar') {
-      setSystemAvatar(dataUrl);
-    } else {
-      try {
-        const resized = await resizeBannerDataUrl(dataUrl);
-        setSystemBanner(resized);
-      } catch { setSystemBanner(dataUrl); }
-    }
-  };
-
   const save = async () => {
     try {
+      // Merged onto the live record, not written wholesale: the profile fields
+      // are edited elsewhere now, and a wholesale write would erase whatever
+      // was set there since this view mounted.
       await store.set(KEYS.system, {
-        name: name.trim(), description: desc.trim(),
+        ...system,
+        ...(singletMode ? { name: sysName.trim(), description: sysDesc.trim() } : {}),
         journalPassword: showPw && journalPw ? journalPw : undefined,
-        avatar: systemAvatar || undefined,
-        banner: systemBanner || undefined,
       });
       await store.set(KEYS.settings, {
         ...settings, accountMode: singletMode ? 'singlet' : 'system', locations: locs, customMoods: moods, language: lang,
@@ -182,41 +168,20 @@ export default function SettingsView({ onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      <Section label={singletMode ? t('modal.name') : t('modal.systemName')} />
-      <Field label={singletMode ? t('modal.name') : t('modal.systemName')} value={name} onChange={setName} placeholder={singletMode ? t('setup.yourNamePlaceholder') : t('modal.systemNamePlaceholder')} />
-      <Field label={singletMode ? t('modal.goals') : t('modal.descriptionLabel')} value={desc} onChange={setDesc} placeholder={singletMode ? t('setup.goalsPlaceholder') : t('modal.descriptionFieldPlaceholder')} multiline />
-
-      {!singletMode && (<>
-      <Section label={t('systemProfile.title')} />
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 72, height: 72, borderRadius: 36, border: '2px solid var(--accent)', overflow: 'hidden', cursor: 'pointer',
-            backgroundImage: systemAvatar ? `url(${systemAvatar})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
-            backgroundColor: systemAvatar ? undefined : 'var(--surface)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--dim)',
-          }} {...clickable(() => pickSystemImage('avatar'), 'Change system picture')}>
-            {!systemAvatar && '📷'}
-          </div>
-          <div style={{ marginTop: 4, display: 'flex', gap: 6, justifyContent: 'center' }}>
-            <button style={{ fontSize: 10, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onClick={() => pickSystemImage('avatar')}>{t('systemProfile.changeAvatar')}</button>
-            {systemAvatar && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onClick={() => setSystemAvatar('')}>{t('systemProfile.removeAvatar')}</button>}
-          </div>
+      {/* Name, description, avatar and banner moved to the System Profile,
+          reached by clicking the system name in the title bar. A profile is not
+          a setting. */}
+      {singletMode ? (
+        <>
+          <Section label={t('modal.name')} />
+          <Field label={t('modal.name')} value={sysName} onChange={setSysName} placeholder={t('setup.yourNamePlaceholder')} />
+          <Field label={t('modal.goals')} value={sysDesc} onChange={setSysDesc} placeholder={t('setup.goalsPlaceholder')} multiline />
+        </>
+      ) : (
+        <div style={{ marginBottom: 16 }}>
+          <Btn variant="solid" onClick={onOpenProfile}>{t('systemProfile.title')}</Btn>
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
-            backgroundImage: systemBanner ? `url(${systemBanner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
-            backgroundColor: systemBanner ? undefined : 'var(--surface)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 13,
-          }} {...clickable(() => pickSystemImage('banner'), 'Change system banner')}>
-            {!systemBanner && t('systemProfile.changeBanner')}
-          </div>
-          {systemBanner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
-            onClick={() => setSystemBanner('')}>{t('systemProfile.removeBanner')}</button>}
-        </div>
-      </div>
-      </>)}
+      )}
 
       <Section label={t('modal.palette')} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MemberPoll, PollOption, uid, fmtTime } from '../utils';
+import { MemberPoll, PollOption, uid, fmtTime, isRosterMember } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
 import { useAppStore } from '../store/appStore';
@@ -22,7 +22,9 @@ export default function PollsView({ onUpdate }: Props) {
   const [voterId, setVoterId] = useState<string>(members.find(m => !m.archived)?.id || '');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const activeMembers = members.filter(m => !m.archived);
+  const activeMembers = members.filter(m => !m.archived && isRosterMember(m));
+  // Facets keep their own group: out of the member list, still selectable.
+  const activeFacets = members.filter(m => !m.archived && m.isFacet && !m.isCustomFront && !m.deleted);
 
   useEffect(() => {
     store.get<MemberPoll[]>(KEYS.polls, []).then(p => setPolls(p || []));
@@ -75,6 +77,11 @@ export default function PollsView({ onUpdate }: Props) {
         <select style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}
           aria-label={t('polls.votingAs')} value={voterId} onChange={e => setVoterId(e.target.value)}>
           {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {activeFacets.length > 0 && (
+            <optgroup label={t('members.facets')}>
+              {activeFacets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </optgroup>
+          )}
         </select>
         <div style={{ marginLeft: 'auto' }}>
           <Btn variant="solid" onClick={() => setShowCreate(true)}>{t('polls.createPoll')}</Btn>
@@ -154,6 +161,11 @@ export default function PollsView({ onUpdate }: Props) {
           <select style={{ width: '100%', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 10px', fontSize: 13 }}
             aria-label={t('polls.forMember')} value={targetId} onChange={e => setTargetId(e.target.value)}>
             {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            {activeFacets.length > 0 && (
+              <optgroup label={t('members.facets')}>
+                {activeFacets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </optgroup>
+            )}
           </select>
         </div>
         <Field label={t('polls.question')} value={question} onChange={setQuestion} placeholder={t('polls.questionPlaceholder')} />

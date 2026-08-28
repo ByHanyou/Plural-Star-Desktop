@@ -1,5 +1,6 @@
 import { Member, HistoryEntry, MemberGroup, CustomFieldDef, CustomFieldType, JournalEntry, uid } from './utils';
 import { bytesToDataUri } from './exportUtils';
+import { strFromU8 } from 'fflate';
 
 export interface ConvertedImport {
   sourceLabel: string;
@@ -9,9 +10,12 @@ export interface ConvertedImport {
   customFieldDefs?: CustomFieldDef[];
   systemName?: string;
   systemDesc?: string;
+  systemAvatar?: string;
+  systemBanner?: string;
   // Same loose shape PluralSpaceImport uses — id and hashtags are filled in at
   // apply time, so a converter never has to know about local ids.
   journal?: { title: string; body: string; authorIds: string[]; timestamp: number; hashtags?: string[]; pinned?: boolean }[];
+  chat?: { name: string; createdAt: number; messages: { authorId: string; content: string; timestamp: number }[] }[];
 }
 
 const hex = (c: any): string => { const s = String(c || '').trim(); return s.startsWith('#') ? s : (s ? `#${s}` : '#DAA520'); };
@@ -30,11 +34,14 @@ const buildHistory = (
     }))
     .filter(h => h.memberIds.length > 0 && h.startTime > 0) as HistoryEntry[];
 
-export type ForeignFormat = 'ourcana' | 'multiplicity' | 'octocon';
+export type ForeignFormat = 'ourcana' | 'multiplicity' | 'octocon' | 'parallax';
 
 export const detectForeignFormat = (text: string): ForeignFormat | null => {
   try {
     const d = JSON.parse(text);
+    // Parallax: flat tables keyed off a Supabase-style account. fronting_log
+    // is its unique marker — nothing else exports one.
+    if (!d._meta && typeof d.user_id === 'string' && Array.isArray(d.members) && Array.isArray(d.fronting_log)) return 'parallax';
     // v3 is a graph with no top-level members array, so match the format tag
     // and the graph shape as well as the old flat layout.
     if (d.format === 'ourcana' || (d.graph && Array.isArray(d.graph.nodes)) || (!d._meta && Array.isArray(d.members) && Array.isArray(d.frontHistory) && d.members[0]?.id !== undefined)) return 'ourcana';
@@ -52,8 +59,45 @@ export const detectForeignFormat = (text: string): ForeignFormat | null => {
  * types are ignored on purpose so a future Ourcana release adds data rather
  * than breaking the import.
  */
-const convertOurcanaGraph = (d: any): ConvertedImport => {
+/** The database json inside an .our archive — never image_assets/index.json. */
+export const findOurcanaJsonEntry = (files: Record<string, Uint8Array>): string | undefined => {
+  const names = Object.keys(files);
+  return names.find(n => /(^|\/)ourcana[^/]*\.json$/i.test(n))
+    || names.find(n => !n.includes('/') && n.toLowerCase().endsWith('.json'))
+    || names.find(n => n.toLowerCase().endsWith('.json') && !n.toLowerCase().endsWith('index.json'));
+};
+
+/** Pick the bytes of `avatars/<ownerId>.<ext>` out of an .our archive. */
+const ourZipAvatarFor = (zipFiles: Record<string, Uint8Array>, ownerId: string): { name: string; bytes: Uint8Array } | null => {
+  if (!ownerId) return null;
+  const name = Object.keys(zipFiles).find(n => {
+    const parts = n.split('/');
+    const file = parts[parts.length - 1];
+    return parts[parts.length - 2] === 'avatars' && file.startsWith(`${ownerId}.`);
+  });
+  return name ? { name, bytes: zipFiles[name] } : null;
+};
+
+/** Resolve an image_assets entry by owner + role (system banner etc.). */
+const ourAssetFor = (zipFiles: Record<string, Uint8Array>, ownerId: string, role: string): { name: string; bytes: Uint8Array } | null => {
+  if (!ownerId) return null;
+  const idxName = Object.keys(zipFiles).find(n => n.endsWith('image_assets/index.json'));
+  if (!idxName) return null;
+  try {
+    const idx = JSON.parse(strFromU8(zipFiles[idxName]));
+    const assets: any[] = Array.isArray(idx?.assets) ? idx.assets : [];
+    const hit = assets
+      .filter(a => a && a.role === role && String(a.ownerId) === ownerId && typeof a.localPath === 'string')
+      .sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))[0];
+    if (!hit) return null;
+    const entry = Object.keys(zipFiles).find(n => n === hit.localPath || n.endsWith(`/${hit.localPath}`));
+    return entry ? { name: entry, bytes: zipFiles[entry] } : null;
+  } catch { return null; }
+};
+
+const convertOurcanaGraph = (d: any, zipFiles?: Record<string, Uint8Array>): ConvertedImport => {
   const nodes: any[] = Array.isArray(d?.graph?.nodes) ? d.graph.nodes : [];
+  const edges: any[] = Array.isArray(d?.graph?.edges) ? d.graph.edges : [];
   const byType = (t: string) => nodes.filter(n => n && n.type === t);
   const sysNode = byType('system')[0];
   const sys = sysNode?.properties || {};
@@ -74,15 +118,51 @@ const convertOurcanaGraph = (d: any): ConvertedImport => {
       cfDefs.push({ id, name: String(p.label || `Field ${i + 1}`).trim() || `Field ${i + 1}`, type, sortOrder: p.order ?? i });
     });
 
+  // Ourcana mints a personal tag per member (id tag_default_<memberId>, labelled
+  // with the member's own name); importing those would create one junk
+  // single-member group per member, so only the real organizational tags survive.
+  const tagNodes = byType('tag').filter((n: any) => !String(n.id).startsWith('tag_default_'));
+  const groups: MemberGroup[] = [];
+  const gmap: Record<string, string> = {};
+  tagNodes.forEach((n: any) => {
+    const p = n.properties || {};
+    const gid = uid();
+    gmap[String(n.id)] = gid;
+    groups.push({ id: gid, name: String(p.label || 'Group'), color: p.color ? hex(p.color) : undefined });
+  });
+  tagNodes.forEach((n: any) => {
+    const p = n.properties || {};
+    if (p.parentId == null) return;
+    const childId = gmap[String(n.id)];
+    const parentId = gmap[String(p.parentId)];
+    if (!childId || !parentId || childId === parentId) return;
+    const g = groups.find(x => x.id === childId);
+    if (g) g.parentId = parentId;
+  });
+  const memberIdSet = new Set(byType('member').map((n: any) => String(n.id)));
+  const tagIdsByMember: Record<string, string[]> = {};
+  edges.forEach((e: any) => {
+    if (!e || e.type !== 'taggedWith') return;
+    const from = String(e.from);
+    const gid = gmap[String(e.to)];
+    if (!memberIdSet.has(from) || !gid) return;
+    if (!tagIdsByMember[from]) tagIdsByMember[from] = [];
+    tagIdsByMember[from].push(gid);
+  });
+
   const idMap: Record<string, string> = {};
   const members: Member[] = byType('member').map((n: any) => {
     const p = n.properties || {};
     const id = uid();
     idMap[String(n.id)] = id;
     const useDisplay = p.showOnlyDisplayName && p.displayName;
-    // localAvatarPath is a path on THEIR device — never portable, so only a
-    // real http(s) avatarUrl survives the trip.
-    const avatar = /^https?:\/\//.test(String(p.avatarUrl || '')) ? String(p.avatarUrl) : undefined;
+    // The archive bundles the pictures as avatars/<memberId>.<ext>; members
+    // without one fall back to a real http(s) avatarUrl (localAvatarPath is a
+    // path on THEIR device — never portable).
+    const zipAv = zipFiles ? ourZipAvatarFor(zipFiles, String(n.id)) : null;
+    const avatar = zipAv
+      ? (() => { try { return bytesToDataUri(zipAv.bytes, zipAv.name.split('/').pop() || 'a.png'); } catch { return undefined; } })()
+      : (/^https?:\/\//.test(String(p.avatarUrl || '')) ? String(p.avatarUrl) : undefined);
     const cfs: any[] = [];
     const vals = p.customFields && typeof p.customFields === 'object' ? p.customFields : {};
     for (const k in vals) {
@@ -102,14 +182,14 @@ const convertOurcanaGraph = (d: any): ConvertedImport => {
       archived: !!p.archived,
       avatar,
       tags: [],
-      groupIds: [],
+      groupIds: tagIdsByMember[String(n.id)] || [],
       customFields: cfs,
     } as Member;
   });
 
-  // v3 carries no fronting nodes. If a later version adds them, pick them up
-  // rather than silently dropping the history.
-  const fronts = byType('front').concat(byType('frontEntry'));
+  // v3 splits fronting into raw ourcanaSwitchAtom records and the frontEvent
+  // rows aggregated from them — read the events only, or every span doubles.
+  const fronts = byType('frontEvent').concat(byType('front')).concat(byType('frontEntry'));
   const history = buildHistory(
     fronts.map((n: any) => {
       const p = n.properties || {};
@@ -119,19 +199,29 @@ const convertOurcanaGraph = (d: any): ConvertedImport => {
     idMap,
   );
 
+  const sysId = sysNode ? String(sysNode.id) : '';
+  const sysAv = zipFiles && sysId ? (ourZipAvatarFor(zipFiles, sysId) || ourAssetFor(zipFiles, sysId, 'avatar')) : null;
+  const sysBn = zipFiles && sysId ? ourAssetFor(zipFiles, sysId, 'banner') : null;
+  const toUri = (f: { name: string; bytes: Uint8Array } | null): string | undefined => {
+    if (!f) return undefined;
+    try { return bytesToDataUri(f.bytes, f.name.split('/').pop() || 'a.png'); } catch { return undefined; }
+  };
+
   return {
     sourceLabel: 'Ourcana',
     members,
     history,
-    groups: [],
+    groups,
     customFieldDefs: cfDefs,
     systemName: sys.username ? String(sys.username) : undefined,
     systemDesc: sys.desc ? String(sys.desc) : undefined,
+    systemAvatar: toUri(sysAv),
+    systemBanner: toUri(sysBn),
   };
 };
 
-export const convertOurcana = (d: any): ConvertedImport => {
-  if (d && d.graph && Array.isArray(d.graph.nodes)) return convertOurcanaGraph(d);
+export const convertOurcana = (d: any, zipFiles?: Record<string, Uint8Array>): ConvertedImport => {
+  if (d && d.graph && Array.isArray(d.graph.nodes)) return convertOurcanaGraph(d, zipFiles);
   const sys = d.system || {};
   const mem: any[] = Array.isArray(d.members) ? d.members : [];
   const fronts: any[] = Array.isArray(d.frontHistory) ? d.frontHistory : [];
@@ -158,6 +248,70 @@ export const convertOurcana = (d: any): ConvertedImport => {
   });
   const history = buildHistory(fronts.map((f: any) => ({ members: Array.isArray(f.memberIds) ? f.memberIds : [], startTime: f.startTime, endTime: f.isLive ? null : (f.endTime ?? null) })), idMap);
   return { sourceLabel: 'Ourcana', members, history, groups, systemName: sys.name, systemDesc: sys.desc };
+};
+
+/**
+ * Parallax export (single .json), reversed from a real 272-member export — the
+ * Tupperbox rule: match the file the app actually writes. Tables: members,
+ * fronting_log (ONE fronter per row, part_id null = unknown fronter, ISO
+ * times), messages (chat_id groups them; the export names no chats), plus
+ * notes/polls/timeline/reminders which were all empty in the reference file
+ * and stay dropped until a real populated export shows their shape. Member
+ * profile_picture is a storage KEY relative to their host, not a URL —
+ * nothing fetchable. sp_id is the Simply Plural id and doubles as Ourcana's
+ * member id, so it is the sourceId: a Parallax import lands on the same
+ * members an SP or Ourcana import already created.
+ */
+export const convertParallax = (d: any): ConvertedImport => {
+  const mem: any[] = Array.isArray(d?.members) ? d.members : [];
+  const idMap: Record<string, string> = {};
+  const members: Member[] = [...mem]
+    .sort((a: any, b: any) => (a?.sort_order ?? 0) - (b?.sort_order ?? 0))
+    .filter((m: any) => m && m.id)
+    .map((m: any) => {
+      const id = uid();
+      idMap[String(m.id)] = id;
+      const spId = String(m.sp_id || '');
+      return {
+        id,
+        sourceId: /^[0-9a-f]{24}$/i.test(spId) ? spId : `px:${String(m.id)}`,
+        name: String(m.name || '').trim() || 'Unnamed member',
+        pronouns: String(m.pronouns || ''),
+        role: String(m.role || ''),
+        color: hex(m.color_theme),
+        description: String(m.description || ''),
+        archived: m.is_active === false,
+        tags: [],
+        groupIds: [],
+        customFields: [],
+      } as Member;
+    });
+  const fronts: any[] = Array.isArray(d?.fronting_log) ? d.fronting_log : [];
+  const history = buildHistory(
+    fronts.map((f: any) => ({
+      members: f?.part_id ? [String(f.part_id)] : [],
+      startTime: f?.started_at,
+      endTime: f?.ended_at ?? null,
+    })),
+    idMap,
+  );
+  const msgs: any[] = Array.isArray(d?.messages) ? d.messages : [];
+  const byChat: Record<string, { authorId: string; content: string; timestamp: number }[]> = {};
+  msgs.forEach((m: any) => {
+    const chatId = String(m?.chat_id || '');
+    const authorId = idMap[String(m?.from_part_id)];
+    const content = String(m?.body || '');
+    const timestamp = toMs(m?.created_at);
+    if (!chatId || !authorId || !content || !timestamp) return;
+    if (!byChat[chatId]) byChat[chatId] = [];
+    byChat[chatId].push({ authorId, content, timestamp });
+  });
+  // The export carries no chat names — number them by first-message date.
+  const chat = Object.values(byChat)
+    .map(messages => messages.sort((a, b) => a.timestamp - b.timestamp))
+    .sort((a, b) => a[0].timestamp - b[0].timestamp)
+    .map((messages, i) => ({ name: `Parallax ${i + 1}`, createdAt: messages[0].timestamp, messages }));
+  return { sourceLabel: 'Parallax', members, history, groups: [], chat: chat.length > 0 ? chat : undefined };
 };
 
 export const convertMultiplicity = (d: any): ConvertedImport => {

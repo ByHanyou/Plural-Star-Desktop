@@ -48,6 +48,7 @@ export const KEYS = {
   groups:       'ps:groups',
   palettes:     'ps:palettes',
   chatChannels: 'ps:chatChannels',
+  chatCategories: 'ps:chatCategories',
   customFieldDefs: 'ps:customFieldDefs',
   noteboards:   'ps:noteboards',
   polls:        'ps:polls',

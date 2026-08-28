@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Btn, Field, Modal } from '../components/ui';
 import { NetworkManager } from '../network/NetworkManager';
-import { MirrorFeature, MirrorCacheEntry, MirrorMember, MirrorGroup } from '../network/types';
+import { MirrorFeature, MirrorCacheEntry, MirrorMember, MirrorGroup, MirrorSystemProfile, MIRROR_SYSTEM_AVATAR_ID, MIRROR_SYSTEM_BANNER_ID } from '../network/types';
+import SystemProfileCard from '../components/SystemProfileCard';
 import { fmtTime } from '../utils';
 import { logError } from '../log';
 
@@ -74,7 +75,9 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     NetworkManager.loadMirror(peerId, feature)
       .then(e => setEntry(e))
       .catch(e => logError('mirror', e));
-    if (feature !== 'members') {
+    // The system profile stands alone — it never resolves member ids, so
+    // loading the roster mirror for it is a read for nothing.
+    if (feature !== 'members' && feature !== 'systemProfile') {
       NetworkManager.loadMirror(peerId, 'members')
         .then(e => setMemberCache(Array.isArray(e?.data) ? (e!.data as MirrorMember[]) : []))
         .catch(() => {});
@@ -103,6 +106,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     feature === 'members' ? t('tabs.members')
     : feature === 'groups' ? t('memberGroups.title')
     : feature === 'history' ? t('tabs.history')
+    : feature === 'systemProfile' ? t('systemProfile.title')
     : t('tabs.journal');
 
   const dim: React.CSSProperties = { fontSize: 12, color: 'var(--muted)' };
@@ -313,6 +317,19 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
       return <p style={dim}>{online ? t('network.mirrorLoading') : t('network.mirrorEmptyOffline')}</p>;
     }
     if (entry.none) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+    if (feature === 'systemProfile') {
+      const sp = (entry.data && typeof entry.data === 'object' && !Array.isArray(entry.data)
+        ? entry.data
+        : {}) as MirrorSystemProfile;
+      return (
+        <SystemProfileCard
+          name={sp.name || displayName}
+          description={sp.description}
+          avatar={avatarFor(MIRROR_SYSTEM_AVATAR_ID)}
+          banner={avatarFor(MIRROR_SYSTEM_BANNER_ID)}
+        />
+      );
+    }
     if (feature === 'members') return renderMembers();
     if (feature === 'groups') return renderGroups();
     if (feature === 'history') return renderHistory();

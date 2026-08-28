@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, GroupNodeKind, MemberSortMode, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember, sortMembers } from '../utils';
+import { Member, MemberGroup, GroupNodeKind, MemberSortMode, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember, sortMembers, nameCompare } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Modal, ConfirmDialog, Dropdown, useEscapeKey } from '../components/ui';
@@ -216,13 +216,23 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
         const folder = browseId ? groups.find(g => g.id === browseId) : null;
         const subFolders = childrenOf(groups, browseId);
         const folderMembers = sortMembers(browseId
-          ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && !m.isCustomFront)
-          : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && !m.isCustomFront), groupSortMode);
+          // Facets are their own category with their own tab; they must not turn
+          // up mixed into a plain list of members when picking for groups.
+          ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && isRosterMember(m))
+          : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && isRosterMember(m)), groupSortMode);
+        const addMatch = (m: Member) => !!folder && !m.archived && !m.isCustomFront && !m.deleted
+          && !(m.groupIds || []).includes(folder.id)
+          && (!addSearch || m.name.toLowerCase().includes(addSearch.toLowerCase()));
         const addCandidates = folder
-          ? members
-              .filter(m => !m.archived && !m.isCustomFront && !(m.groupIds || []).includes(folder.id) && (!addSearch || m.name.toLowerCase().includes(addSearch.toLowerCase())))
-              .sort((a, b) => a.name.localeCompare(b.name))
+          ? members.filter(m => !m.isFacet && addMatch(m)).sort((a, b) => nameCompare(a.name, b.name))
           : [];
+        // Facets keep their own section: out of the member list, still addable.
+        const addFacetCandidates = folder
+          ? members.filter(m => m.isFacet && addMatch(m)).sort((a, b) => nameCompare(a.name, b.name))
+          : [];
+        const folderFacets = sortMembers(browseId
+          ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && m.isFacet && !m.isCustomFront && !m.deleted)
+          : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && m.isFacet && !m.isCustomFront && !m.deleted), groupSortMode);
         const toggleAddPick = (id: string) => setAddPickIds(sel => sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
         const toggleRemovePick = (id: string) => setRemoveIds(sel => sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
         return (
@@ -291,7 +301,28 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 )}
               </div>
             ))}
-            {subFolders.length === 0 && folderMembers.length === 0 && (
+            {folderFacets.length > 0 && (
+              <>
+                <label className="field__label" style={{ marginTop: 10 }}>{t('members.facets')}</label>
+                {folderFacets.map(m => removeMode ? (
+                  <button key={m.id} onClick={() => toggleRemovePick(m.id)} role="checkbox" aria-checked={removeIds.includes(m.id)} aria-label={m.name}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                    <span style={{ fontSize: 14, color: removeIds.includes(m.id) ? 'var(--danger)' : 'var(--muted)' }}>{removeIds.includes(m.id) ? '☑' : '☐'}</span>
+                    <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
+                  </button>
+                ) : (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }}>
+                    <button onClick={() => onViewMember?.(m.id)} disabled={!onViewMember}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, padding: 8, background: 'none', border: 'none', cursor: onViewMember ? 'pointer' : 'default', textAlign: 'left' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
+            {subFolders.length === 0 && folderMembers.length === 0 && folderFacets.length === 0 && (
               <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('systemManager.emptyFolder')}</p>
             )}
 
@@ -313,7 +344,20 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
                   </button>
                 ))}
-                {addCandidates.length === 0 && (
+                {addFacetCandidates.length > 0 && (
+                  <>
+                    <label className="field__label" style={{ marginTop: 10 }}>{t('members.facets')}</label>
+                    {addFacetCandidates.map(m => (
+                      <button key={m.id} onClick={() => toggleAddPick(m.id)} role="checkbox" aria-checked={addPickIds.includes(m.id)} aria-label={m.name}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ fontSize: 14, color: addPickIds.includes(m.id) ? 'var(--accent)' : 'var(--muted)' }}>{addPickIds.includes(m.id) ? '☑' : '☐'}</span>
+                        <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
+                        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+                {addCandidates.length === 0 && addFacetCandidates.length === 0 && (
                   <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('members.noMembers')}</p>
                 )}
               </div>

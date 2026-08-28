@@ -74,6 +74,9 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
   }, []);
 
   const getMember = (id: string) => members.find(m => m.id === id);
+  // Feeds SetFrontModal, which splits this into its own roster / facets /
+  // custom-front sections. Filtering facets out HERE would leave that Facets
+  // section permanently empty, which is the opposite of keeping them addable.
   const activeMembers = members.filter(m => !m.archived);
   const allMoods = [...DEFAULT_MOODS, ...(settings.customMoods || [])];
 
@@ -422,7 +425,16 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
     energy?: number; setEnergy: (v: number | undefined) => void;
     location: string; setLocation: (v: string) => void;
   }) => {
-    const renderPool = (pool: Member[], q: string, setQ: (v: string) => void, showHint: boolean) => {
+    // kindLabel: what THIS pool lists. The same renderer runs three times per
+    // tier and every one of them said "search members", so the section headers
+    // named one thing and the box under them another.
+    const renderPool = (pool: Member[], q: string, setQ: (v: string) => void, showHint: boolean, kindLabel?: string) => {
+      const searchLabel = kindLabel
+        ? t('members.searchToAddKind', { kind: kindLabel, defaultValue: `Type to search ${kindLabel}…` })
+        : t('members.searchToAdd');
+      const hintLabel = kindLabel
+        ? t('members.searchHintKind', { kind: kindLabel, defaultValue: `Type a name or select a tag to find ${kindLabel}` })
+        : t('members.searchHint');
       const ql = q.toLowerCase();
       const filtered = ql ? pool.filter(m => !selectedIds.has(m.id) && m.name.toLowerCase().includes(ql)) : [];
       const poolSelected = pool.filter(m => selectedIds.has(m.id));
@@ -442,7 +454,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
           )}
           <input className="field__input" value={q}
             onChange={e => setQ(e.target.value)}
-            aria-label={t('members.searchToAdd')} placeholder={t('members.searchToAdd')} style={{ marginBottom: 6, fontSize: 12 }} />
+            aria-label={searchLabel} placeholder={searchLabel} style={{ marginBottom: 6, fontSize: 12 }} />
           {ql && filtered.length > 0 && (
             <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 10 }}>
               {filtered.slice(0, 20).map(m => {
@@ -462,7 +474,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             </div>
           )}
           {showHint && !ql && poolSelected.length === 0 && (
-            <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '4px 0 8px' }}>{t('members.searchHint')}</p>
+            <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '4px 0 8px' }}>{hintLabel}</p>
           )}
         </>
       );
@@ -485,12 +497,12 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         {/* Never gate this on facetPool.length: an empty section is how you add
             your first facet to a front. Hiding it looks like the feature is missing. */}
         <label className="field__label">{t('members.facets')}</label>
-        {renderPool(facetPool, searchFacet[tierKey], v => setSearchFacet({ ...searchFacet, [tierKey]: v }), false)}
+        {renderPool(facetPool, searchFacet[tierKey], v => setSearchFacet({ ...searchFacet, [tierKey]: v }), false, t('members.facets'))}
 
         {customPool.length > 0 && (
           <>
             <label className="field__label">{t('members.customFronts')}</label>
-            {renderPool(customPool, searchCf[tierKey], v => setSearchCf({ ...searchCf, [tierKey]: v }), false)}
+            {renderPool(customPool, searchCf[tierKey], v => setSearchCf({ ...searchCf, [tierKey]: v }), false, t('members.customFronts'))}
           </>
         )}
 

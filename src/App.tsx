@@ -4,7 +4,7 @@ import i18n from './i18n/i18n';
 import { store, KEYS } from './storage';
 import { deriveTheme, applyThemeToDOM, applyTextScale, applyFontChoice, DARK_PALETTE, BUILTIN_PALETTES, CustomPalette } from './theme';
 import {
-  Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
+  Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatCategory, ChatMessage,
   AppSettings, SystemInfo, MemberGroup, migrateFrontState, isFrontEmpty,
   fmtDur, getInitials, DEFAULT_CHANNELS, DEFAULT_MOODS, makeDefaultCustomFronts,
   uid, singletStatuses, readableAccent,
@@ -40,6 +40,7 @@ import WhiteboardTile from './tiles/WhiteboardTile';
 import ColorsTile from './tiles/ColorsTile';
 
 import SettingsView from './views/SettingsView';
+import SystemProfileView from './views/SystemProfileView';
 import MembersView from './views/MembersView';
 import SystemMapView from './views/SystemMapView';
 import MedicalView from './views/MedicalView';
@@ -71,7 +72,7 @@ import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arra
 import SortableTile from './components/SortableTile';
 import { loadTileOrder, saveTileOrder } from './dashboard/tileOrder';
 
-type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard' | 'colors' | 'planner';
+type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'system-profile' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard' | 'colors' | 'planner';
 
 class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -115,7 +116,7 @@ function AppInner() {
   const setState = useAppStore(s => s.setState);
 
   const loadData = useCallback(async () => {
-    const [system, members, groups, frontRaw, history, journal, channels, settings, palettes] = await Promise.all([
+    const [system, members, groups, frontRaw, history, journal, channels, chatCategories, settings, palettes] = await Promise.all([
       store.get<SystemInfo>(KEYS.system, { name: '', description: '' }),
       store.get<Member[]>(KEYS.members, []),
       store.get<MemberGroup[]>(KEYS.groups, []),
@@ -123,6 +124,7 @@ function AppInner() {
       store.get<HistoryEntry[]>(KEYS.history, []),
       store.get<JournalEntry[]>(KEYS.journal, []),
       store.get<ChatChannel[]>(KEYS.chatChannels, []),
+      store.get<ChatCategory[]>(KEYS.chatCategories, []),
       store.get<AppSettings>(KEYS.settings, DEFAULT_SETTINGS),
       store.get<CustomPalette[]>(KEYS.palettes, []),
     ]);
@@ -164,6 +166,7 @@ function AppInner() {
       history: history || [],
       journal: journal || [],
       channels: channels || [],
+      chatCategories: chatCategories || [],
       settings: mergedSettings,
       palettes: palettes || [],
       theme,
@@ -180,7 +183,7 @@ function AppInner() {
   const [roleMismatch, setRoleMismatch] = useState<{deviceName: string} | null>(null);
   useEffect(() => { NetworkManager.init().catch(e => console.error('[NETWORK] init failed:', e)); }, []);
   useEffect(() => { if (state.loaded) NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.loaded, state.front, state.members]);
-  useEffect(() => { NetworkManager.notifyDataChanged(); }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.settings, state.palettes]);
+  useEffect(() => { NetworkManager.notifyDataChanged(); }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.chatCategories, state.settings, state.palettes]);
   useEffect(() => NetworkManager.onSyncApplied(() => { loadData(); }), [loadData]);
   useEffect(() => NetworkManager.onSyncConflict(c => setSyncConflict({peerId: c.peerId, deviceName: c.deviceName})), []);
   useEffect(() => NetworkManager.onSyncRoleMismatch(c => setRoleMismatch({deviceName: c.deviceName})), []);
@@ -301,7 +304,7 @@ function AppInner() {
       <div className="app-shell">
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: 18 }}>
-            Loading...
+            {i18n.t('common.loading', { defaultValue: 'Loading…' })}
           </span>
         </div>
       </div>
@@ -312,7 +315,17 @@ function AppInner() {
     <div className="app-shell">
       <div className="titlebar">
         <span className="titlebar__title" style={{ color: titleColor }}>
-          {view === 'dashboard' ? systemName : `${systemName} — ${view.charAt(0).toUpperCase() + view.slice(1).replace('-', '/')}`}
+          {/* Singlets have no system profile — their profile is the Profile
+              view — so for them the name is plain text with nothing to press. */}
+          {isSinglet ? systemName : (
+            <button className="titlebar__name" onClick={() => setView('system-profile')}
+              aria-label={systemName} title={t('systemProfile.openHint')}>
+              {systemName}
+            </button>
+          )}
+          {view === 'system-profile'
+            ? ` — ${t('systemProfile.title')}`
+            : view !== 'dashboard' && ` — ${view.charAt(0).toUpperCase() + view.slice(1).replace('-', '/')}`}
         </span>
         <div className="titlebar__controls">
           <button className="titlebar__btn titlebar__btn--minimize" aria-label={t('common.minimize', {defaultValue: 'Minimize'})} onClick={() => window.electronAPI.window.minimize()} />
@@ -348,6 +361,7 @@ function AppInner() {
                 : view === 'stats' ? t('hub.statistics')
                 : view === 'import-export' ? t('hub.importExport')
                 : view === 'settings' ? t('modal.systemSettings')
+                : view === 'system-profile' ? t('systemProfile.title')
                 : view === 'custom-fields' ? t('customFields.title')
                 : view === 'polls' ? t('polls.title')
                 : view === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
@@ -366,7 +380,12 @@ function AppInner() {
           </div>
           <div className="full-view__content">
             {view === 'settings' && (
-              <SettingsView onUpdate={loadData} />
+              <SettingsView onUpdate={loadData} onOpenProfile={() => setView('system-profile')} />
+            )}
+            {/* Systems only. A singlet's profile is the Profile view, and their
+                name and goals stay in Settings where they were. */}
+            {view === 'system-profile' && !isSinglet && (
+              <SystemProfileView onUpdate={loadData} />
             )}
             {view === 'members' && (isSinglet ? (
               <ProfileView member={selfMember} statuses={statuses}

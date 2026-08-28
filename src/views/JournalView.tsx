@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { JournalEntry, JournalTemplate, uid, fmtDate, fmtTime } from '../utils';
+import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
 import { useAppStore } from '../store/appStore';
@@ -177,7 +177,10 @@ export default function JournalView({ onUpdate }: Props) {
     setEditingTemplate(null);
   };
 
-  const filteredAuthors = members.filter(m => !m.archived && (!authorSearch || m.name.toLowerCase().includes(authorSearch.toLowerCase())));
+  const authorMatch = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && (!authorSearch || m.name.toLowerCase().includes(authorSearch.toLowerCase()));
+  const filteredAuthors = members.filter(m => !m.isFacet && authorMatch(m));
+  // Facets keep their own section: out of the member list, still selectable.
+  const filteredFacetAuthors = members.filter(m => m.isFacet && authorMatch(m));
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -211,13 +214,19 @@ export default function JournalView({ onUpdate }: Props) {
             border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
           }} aria-label={t('common.filterByAuthor')} value={authorFilter} onChange={e => setAuthorFilter(e.target.value)}>
             <option value="">{t('common.allAuthors')}</option>
-            {members.filter(m => !m.archived).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            {members.filter(m => !m.archived && !m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            {/* Facets keep their own group: out of the member list, still selectable. */}
+            {members.some(m => !m.archived && m.isFacet) && (
+              <optgroup label={t('members.facets')}>
+                {members.filter(m => !m.archived && m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </optgroup>
+            )}
           </select>
 
           {templates.length > 0 && (
             <Btn variant="ghost" onClick={() => setShowTemplatePicker(true)}>{t('journal.fromTemplate', { defaultValue: 'From template…' })}</Btn>
           )}
-          <Btn variant="solid" onClick={openNew}>+ New Entry</Btn>
+          <Btn variant="solid" onClick={openNew}>{t('journal.newEntry', { defaultValue: '+ New Entry' })}</Btn>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -369,7 +378,7 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.authors')} />
         <input className="field__input" value={authorSearch} onChange={e => setAuthorSearch(e.target.value)}
           aria-label={t('members.search')} placeholder={t('members.search')} style={{ marginBottom: 8 }} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: filteredFacetAuthors.length > 0 ? 8 : 14 }}>
           {filteredAuthors.slice(0, 12).map(m => {
             const active = authorIds.includes(m.id);
             return (
@@ -384,6 +393,26 @@ export default function JournalView({ onUpdate }: Props) {
             );
           })}
         </div>
+        {filteredFacetAuthors.length > 0 && (
+          <>
+            <label className="field__label">{t('members.facets')}</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {filteredFacetAuthors.slice(0, 12).map(m => {
+                const active = authorIds.includes(m.id);
+                return (
+                  <button key={m.id} className="chip" aria-pressed={active} style={{
+                    borderColor: active ? `${m.color}60` : 'var(--border)',
+                    background: active ? `${m.color}20` : 'var(--surface)',
+                  }} onClick={() => toggleAuthor(m.id)}>
+                    <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                    <span style={{ color: active ? m.color : 'var(--dim)' }}>{m.name}</span>
+                    {active && <span aria-hidden style={{ fontWeight: 700, color: m.color }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>

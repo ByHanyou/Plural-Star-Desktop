@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TheHanyou/Plural-Star-Desktop/releases/latest">
+  <a href="https://github.com/ByHanyou/Plural-Star-Desktop/releases/latest">
     <img src="https://img.shields.io/badge/Download-Latest%20Release-DAA520?style=for-the-badge&logo=windows&logoColor=white" alt="Download Latest Release" />
   </a>
   &nbsp;
@@ -139,7 +139,7 @@ Everything lives on your machine. No accounts, no cloud sync, no tracking, no ad
 
 Medical data is local-only by design — it is excluded from sync entirely and never leaves the machine. Friends and syncing are opt-in and off by default; when enabled they are end-to-end encrypted, and the relay only ever sees sealed blobs it cannot read.
 
-Full privacy policy: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
+Full privacy policy: https://byhanyou.github.io/Plural-Star/
 
 ---
 
@@ -200,4 +200,4 @@ Plural Star is free, always. If it's been useful to you, a contribution helps co
 ## Contact
 
 **The Hanyou System**
-[Discord](https://discord.gg/FFQw33cu8m) · [r/PluralStar](https://www.reddit.com/r/PluralStar/) · [GitHub Issues](https://github.com/TheHanyou/Plural-Star-Desktop/issues)
+[Discord](https://discord.gg/FFQw33cu8m) · [r/PluralStar](https://www.reddit.com/r/PluralStar/) · [GitHub Issues](https://github.com/ByHanyou/Plural-Star-Desktop/issues)

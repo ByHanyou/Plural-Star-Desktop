@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HistoryEntry, Member, FrontTierKey, fmtTime, fmtDur, getLocale, getInitials, buildEffectiveEnd } from '../utils';
+import { HistoryEntry, Member, FrontTierKey, fmtTime, fmtDur, getLocale, getInitials, nameCompare, buildEffectiveEnd } from '../utils';
 
 /**
  * SP-style front history graph: one row per member, colored spans on a shared
@@ -77,7 +77,7 @@ const buildTimelineRows = (
     const total = spans.reduce((acc, sp) => acc + (sp.tier === 'coConscious' ? 0 : sp.end - sp.start), 0);
     rows.push({ member, spans, total });
   }
-  rows.sort((a, b) => b.total - a.total || a.member.name.localeCompare(b.member.name));
+  rows.sort((a, b) => b.total - a.total || nameCompare(a.member.name, b.member.name));
   return rows;
 };
 
