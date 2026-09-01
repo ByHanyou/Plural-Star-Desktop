@@ -133,6 +133,9 @@ export interface Member {
   customFields?: CustomFieldValue[];
   sortOrder?: number;
   createdAt?: number;
+  // Search-only alias. Shown nowhere in Read views; exists so someone whose
+  // NAME is symbols, emoji or a styled font can still be found by typing.
+  nickname?: string;
   isCustomFront?: boolean;
   /**
    * A facet of the system rather than a member of it. Same profile depth as a
@@ -269,11 +272,15 @@ export interface AppSettings {
   useDyslexicFont?: boolean;
   fontChoice?: import('./theme').FontChoice;
   customFrontsSeeded?: boolean;
-  memberListFields?: { groups?: boolean; descriptions?: boolean; pronouns?: boolean; roles?: boolean };
+  memberListFields?: { groups?: boolean; descriptions?: boolean; pronouns?: boolean; roles?: boolean; count?: boolean; background?: 'plain' | 'color' | 'banner' };
   /** Terminology Picker: user's own word per core term ('member', 'members',
    *  'group', 'groups', 'facet', 'facets', 'front', 'system'). Blank/absent =
    *  the app's default word. Swapped at translation time. */
   terminology?: Record<string, string>;
+  /** Custom fronting level names ('primary', 'coFront', 'coConscious').
+   *  Blank/absent = the app's default label. Applied at translation time to
+   *  every tier label, badge and notification line. */
+  tierNames?: Record<string, string>;
 }
 
 export interface Medication {
@@ -458,6 +465,10 @@ export interface RelationshipTypeDef {
   color?: string;
   preset?: boolean;
   overridden?: boolean;
+  /** Preset tombstone: a preset cannot be removed from the constant, so its
+   *  deletion is stored as an override row with this flag and
+   *  allRelationshipTypes drops the preset entirely. */
+  deleted?: boolean;
 }
 
 export interface Relationship {
@@ -628,11 +639,13 @@ export const PRESET_RELATIONSHIP_TYPES: RelationshipTypeDef[] = [
 
 export const allRelationshipTypes = (customTypes: RelationshipTypeDef[]): RelationshipTypeDef[] => {
   const overrides = new Map(customTypes.filter(t => t.preset).map(t => [t.id, t]));
-  const presets = PRESET_RELATIONSHIP_TYPES.map(p => {
-    const o = overrides.get(p.id);
-    return o ? { ...p, ...o, overridden: true } : p;
-  });
-  return [...presets, ...customTypes.filter(t => !t.preset)];
+  const presets = PRESET_RELATIONSHIP_TYPES
+    .filter(p => !overrides.get(p.id)?.deleted)
+    .map(p => {
+      const o = overrides.get(p.id);
+      return o ? { ...p, ...o, overridden: true } : p;
+    });
+  return [...presets, ...customTypes.filter(t => !t.preset && !t.deleted)];
 };
 
 export const relationshipDegrees = (memberIds: string[], relationships: Relationship[]): Record<string, number> => {
@@ -978,6 +991,17 @@ export const fmtDur = (start: number, end?: number | null): string => {
 
 export const getInitials = (name: string): string =>
   name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+/**
+ * One predicate for every member search box: matches the visible name OR the
+ * nickname. The nickname exists exactly for this — a member named "🕷" or in
+ * a fancy font is unfindable by typing otherwise.
+ */
+export const memberMatchesSearch = (m: { name: string; nickname?: string }, search: string): boolean => {
+  const q = String(search ?? '').trim().toLowerCase();
+  if (!q) return true;
+  return String(m.name ?? '').toLowerCase().includes(q) || String(m.nickname ?? '').toLowerCase().includes(q);
+};
 
 export const isValidHex = (hex: string): boolean =>
   /^#[0-9A-Fa-f]{6}$/.test(hex);

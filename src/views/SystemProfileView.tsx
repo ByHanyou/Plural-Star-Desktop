@@ -5,6 +5,7 @@ import { useAppStore } from '../store/appStore';
 import { Btn, Field, Section, ConfirmDialog, clickable } from '../components/ui';
 import SystemProfileCard from '../components/SystemProfileCard';
 import { resizeBannerDataUrl } from '../utils';
+import { chooseImageTreatment } from '../components/ImageCropModal';
 
 type Mode = 'read' | 'edit';
 
@@ -43,14 +44,16 @@ export default function SystemProfileView({ onUpdate }: Props) {
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
     if (!dataUrl) return;
+    const chosen = await chooseImageTreatment(dataUrl);
+    if (!chosen) return;
     if (target === 'avatar') {
-      setAvatar(dataUrl);
+      setAvatar(chosen);
       return;
     }
     try {
-      setBanner(await resizeBannerDataUrl(dataUrl));
+      setBanner(await resizeBannerDataUrl(chosen));
     } catch {
-      setBanner(dataUrl);
+      setBanner(chosen);
     }
   };
 

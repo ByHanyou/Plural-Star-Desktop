@@ -48,7 +48,11 @@
     "facets": "Грані",
     "front": "Фронт",
     "fronting": "Фронтинг",
-    "system": "Система"
+    "system": "Система",
+    "tierHint": "Перейменуйте рівні фронтингу. Ваше слово замінить стандартне всюди. Порожнє поле поверне стандартне.",
+    "tierPrimary": "Основний фронт",
+    "tierCoFront": "Спів-фронт",
+    "tierCoConscious": "Спів-свідомий"
   },
   "planner": {
     "title": "Планувальник дня",
@@ -226,6 +230,15 @@
     "clearTitle": "Очистити дошку?",
     "clearMsg": "Це назавжди видалить усе з дошки.",
     "brushSize": "Розмір пензля",
+    "shapeLine": "Лінія",
+    "shapeRect": "Прямокутник",
+    "shapeEllipse": "Еліпс",
+    "shapePoly": "Багатокутник",
+    "voPlaceShape": "Поставити {{shape}} тут",
+    "voPlacedShape": "{{shape}} додано",
+    "voPolyPoint": "Додати вершину тут",
+    "voPolyFinish": "Завершити багатокутник",
+    "voPolyPointAdded": "Вершину додано",
     "bucket": "Заливка",
     "penColor": "Колір пера"
   },
@@ -246,6 +259,8 @@
     "addRelationship": "+ Додати зв'язок",
     "deleteRelationship": "Видалити зв'язок",
     "deleteRelationshipMsg": "Видалити цей зв'язок?",
+    "deleteType": "Видалити тип",
+    "deleteTypeMsg": "Це також видалить усі зв'язки з цим типом.",
     "duplicate": "Ці учасники вже мають такий зв'язок.",
     "noRelationships": "Зв'язків ще немає. Натисніть + Додати зв'язок, щоб почати будувати карту.",
     "relationships": "{{count}} зв'язків",
@@ -432,6 +447,10 @@
     "clone": "Клонувати",
     "cloneFields": "Які поля скопіювати?",
     "displayFields": "Поля для показу",
+    "cardBackground": "Тло картки",
+    "bgPlain": "Звичайне",
+    "bgMemberColor": "Колір учасника",
+    "bgBanner": "Банер",
     "fieldPronouns": "Займенники",
     "fieldRoles": "Ролі",
     "fieldGroups": "Групи",
@@ -757,6 +776,7 @@
     "archive": "Архів"
   },
   "markdown": {
+    "brokenImage": "[пошкоджене зображення]",
     "imageUnavailable": "[зображення недоступне]"
   },
   "modal": {
@@ -778,6 +798,7 @@
     "editMember": "Редагувати учасника",
     "name": "Ім'я *",
     "headmateName": "Ім'я учасника",
+    "nickname": "Прізвисько",
     "pronouns": "Займенники",
     "pronounsPlaceholder": "наприклад, вони/їх",
     "role": "Роль / Архетип",
@@ -843,6 +864,9 @@
     "palPreviewMid": "Середній",
     "paletteSlots": "{{used}} / {{max}} власних палітр",
     "pfpFailed": "Помилка зображення",
+    "imagePickHow": "Як додати це зображення?",
+    "imageAuto": "Авто",
+    "cropImage": "Обрізати зображення",
     "removePfp": "Прибрати фото",
     "viewPfp": "Переглянути фото",
     "viewPfpOf": "Фото: {{name}}",
@@ -1002,6 +1026,8 @@
     "selectSpeaker": "Обрати мовця",
     "searchSpeaker": "Пошук мовця…",
     "noMessages": "Повідомлень ще немає.",
+    "editingHeader": "Редагування повідомлення",
+    "editPlaceholder": "Редагувати повідомлення…",
     "typeMessage": "Введіть повідомлення…",
     "imageFailed": "Помилка зображення"
   },

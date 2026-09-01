@@ -48,7 +48,11 @@
     "facets": "Fasetter",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "System"
+    "system": "System",
+    "tierHint": "Gi nytt navn til frontnivåene. Ordet ditt erstatter standardordet overalt. Tomt bruker standard.",
+    "tierPrimary": "Primær Front",
+    "tierCoFront": "Co-Front",
+    "tierCoConscious": "Co-Bevisst"
   },
   "planner": {
     "title": "Dagsplanlegger",
@@ -222,6 +226,15 @@
     "clearTitle": "Tømme tavlen?",
     "clearMsg": "Dette sletter alt på tavlen permanent.",
     "brushSize": "Penselstørrelse",
+    "shapeLine": "Linje",
+    "shapeRect": "Rektangel",
+    "shapeEllipse": "Ellipse",
+    "shapePoly": "Polygon",
+    "voPlaceShape": "Plasser {{shape}} her",
+    "voPlacedShape": "{{shape}} plassert",
+    "voPolyPoint": "Legg til et hjørne her",
+    "voPolyFinish": "Fullfør polygonet",
+    "voPolyPointAdded": "Hjørne lagt til",
     "bucket": "Malingsspann",
     "penColor": "Pennefarge"
   },
@@ -242,6 +255,8 @@
     "addRelationship": "+ Legg til relasjon",
     "deleteRelationship": "Slett relasjon",
     "deleteRelationshipMsg": "Fjerne denne relasjonen?",
+    "deleteType": "Slett type",
+    "deleteTypeMsg": "Dette fjerner også alle relasjoner som bruker denne typen.",
     "duplicate": "Disse medlemmene har allerede denne relasjonen.",
     "noRelationships": "Ingen relasjoner ennå. Trykk + Legg til relasjon for å begynne å bygge kartet ditt.",
     "relationships": "{{count}} relasjoner",
@@ -428,6 +443,10 @@
     "clone": "Klon",
     "cloneFields": "Kopier hvilke felt?",
     "displayFields": "Vis felter",
+    "cardBackground": "Kortbakgrunn",
+    "bgPlain": "Enkel",
+    "bgMemberColor": "Medlemsfarge",
+    "bgBanner": "Banner",
     "fieldPronouns": "Pronomen",
     "fieldRoles": "Roller",
     "fieldGroups": "Grupper",
@@ -753,6 +772,7 @@
     "archive": "Arkiv"
   },
   "markdown": {
+    "brokenImage": "[ødelagt bilde]",
     "imageUnavailable": "[bilde utilgjengelig]"
   },
   "modal": {
@@ -831,6 +851,9 @@
     "palPreviewMid": "Midt",
     "paletteSlots": "{{used}} / {{max}} egne paletter",
     "pfpFailed": "Bilde feilet",
+    "imagePickHow": "Hvordan vil du legge til dette bildet?",
+    "imageAuto": "Auto",
+    "cropImage": "Beskjær bilde",
     "removePfp": "Fjern bilde",
     "viewPfp": "Se bilde",
     "viewPfpOf": "Bilde av {{name}}",
@@ -848,6 +871,7 @@
     "descriptionLabel": "Beskrivelse",
     "editFrontDetails": "Rediger front-detaljer",
     "headmateName": "Medlemsnavn",
+    "nickname": "Kallenavn",
     "noteOptional": "Notat (valgfritt)",
     "updateFront": "Oppdater front"
   },
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Velg taler",
     "searchSpeaker": "Søk taler…",
     "noMessages": "Ingen meldinger ennå.",
+    "editingHeader": "Redigerer melding",
+    "editPlaceholder": "Rediger melding…",
     "typeMessage": "Skriv en melding…",
     "imageFailed": "Bilde feilet"
   },

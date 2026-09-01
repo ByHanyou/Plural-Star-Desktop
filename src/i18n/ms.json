@@ -48,7 +48,11 @@
     "facets": "Facet",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "Sistem"
+    "system": "Sistem",
+    "tierHint": "Namakan semula tahap fronting. Perkataan anda menggantikan yang lalai di mana-mana sahaja. Kosong menggunakan lalai.",
+    "tierPrimary": "Front Utama",
+    "tierCoFront": "Ko-Front",
+    "tierCoConscious": "Ko-Sedar"
   },
   "planner": {
     "title": "Perancang Hari",
@@ -354,6 +358,10 @@
     "removeFromFront": "Keluarkan dari front",
     "removeFromFrontMsg": "Keluarkan {{name}} dari front?",
     "displayFields": "Medan Paparan",
+    "cardBackground": "Latar Kad",
+    "bgPlain": "Biasa",
+    "bgMemberColor": "Warna Ahli",
+    "bgBanner": "Sepanduk",
     "fieldGroups": "Kumpulan",
     "fieldDescriptions": "Penerangan",
     "fieldPronouns": "Kata Ganti",
@@ -662,6 +670,7 @@
     "supportPS": "Sokong PS"
   },
   "markdown": {
+    "brokenImage": "[imej rosak]",
     "imageUnavailable": "[imej tidak tersedia]"
   },
   "modal": {
@@ -684,6 +693,7 @@
     "member": "Ahli",
     "name": "Nama *",
     "headmateName": "Nama headmate",
+    "nickname": "Nama panggilan",
     "pronouns": "Ganti nama",
     "pronounsPlaceholder": "cth. dia/mereka",
     "role": "Peranan / Arketip",
@@ -746,6 +756,9 @@
     "palPreviewMid": "Tengah",
     "paletteSlots": "{{used}} / {{max}} palet tersuai",
     "pfpFailed": "Imej Gagal",
+    "imagePickHow": "Bagaimana anda mahu menambah imej ini?",
+    "imageAuto": "Auto",
+    "cropImage": "Pangkas imej",
     "removePfp": "Buang Foto",
     "viewPfp": "Lihat Foto",
     "viewPfpOf": "Foto {{name}}",
@@ -900,6 +913,8 @@
     "selectSpeaker": "Pilih Penutur",
     "searchSpeaker": "Cari penutur…",
     "noMessages": "Tiada mesej lagi.",
+    "editingHeader": "Menyunting mesej",
+    "editPlaceholder": "Sunting mesej…",
     "typeMessage": "Taip mesej…",
     "imageFailed": "Imej Gagal"
   },
@@ -972,6 +987,15 @@
     "clearTitle": "Kosongkan papan putih?",
     "clearMsg": "Ini memadam segala-galanya di papan secara kekal.",
     "brushSize": "Saiz berus",
+    "shapeLine": "Garis",
+    "shapeRect": "Segi empat",
+    "shapeEllipse": "Elips",
+    "shapePoly": "Poligon",
+    "voPlaceShape": "Letak {{shape}} di sini",
+    "voPlacedShape": "{{shape}} diletakkan",
+    "voPolyPoint": "Tambah bucu di sini",
+    "voPolyFinish": "Selesaikan poligon",
+    "voPolyPointAdded": "Bucu ditambah",
     "bucket": "Baldi cat",
     "penColor": "Warna pen"
   },
@@ -992,6 +1016,8 @@
     "addRelationship": "+ Tambah Hubungan",
     "deleteRelationship": "Padam Hubungan",
     "deleteRelationshipMsg": "Buang hubungan ini?",
+    "deleteType": "Padam Jenis",
+    "deleteTypeMsg": "Ini juga akan membuang semua hubungan yang menggunakan jenis ini.",
     "duplicate": "Ahli-ahli ini sudah mempunyai hubungan ini.",
     "noRelationships": "Tiada hubungan lagi. Ketik + Tambah Hubungan untuk mula membina peta anda.",
     "relationships": "{{count}} hubungan",

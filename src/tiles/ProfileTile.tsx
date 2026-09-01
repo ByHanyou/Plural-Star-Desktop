@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, getInitials } from '../utils';
+import { initialOn } from '../theme';
 
 interface Props { member?: Member; statuses: Member[]; onClick: () => void; }
 
@@ -12,7 +13,7 @@ export default function ProfileTile({ member, statuses, onClick }: Props) {
       <div className="tile__body">
         {member ? (
           <div className="tile__member-row">
-            <div className="tile__avatar" style={!member.avatar ? { backgroundColor: member.color } : { overflow: 'hidden' }}>
+            <div className="tile__avatar" style={!member.avatar ? { backgroundColor: member.color, color: initialOn(member.color) } : { overflow: 'hidden' }}>
               {member.avatar ? <img src={member.avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(member.name)}
             </div>
             <span className="tile__member-name">{member.name}</span>

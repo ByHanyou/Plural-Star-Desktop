@@ -52,6 +52,12 @@ const luminance = (hex: string): number => {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 };
 
+/** Ink for an initial/glyph sitting ON an arbitrary member colour: dark on
+ *  light fills, near-white on dark fills. The CSS default (var(--bg)) went
+ *  invisible on member colours near the theme background. */
+export const initialOn = (bg: string): string =>
+  luminance(bg) > 0.35 ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.92)';
+
 // Private copy rather than an import from utils.ts, so theme.ts keeps zero
 // imports and no circular-dependency risk.
 const wcagContrast = (hexA: string, hexB: string): number => {

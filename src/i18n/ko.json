@@ -167,6 +167,10 @@
     "title": "멤버",
     "add": "+ 추가",
     "displayFields": "표시 항목",
+    "cardBackground": "카드 배경",
+    "bgPlain": "기본",
+    "bgMemberColor": "멤버 색상",
+    "bgBanner": "배너",
     "fieldPronouns": "호칭",
     "fieldRoles": "역할",
     "fieldGroups": "그룹",
@@ -492,6 +496,7 @@
     "archive": "보관함"
   },
   "markdown": {
+    "brokenImage": "[깨진 이미지]",
     "imageUnavailable": "[이미지를 사용할 수 없음]"
   },
   "modal": {
@@ -513,6 +518,7 @@
     "read": "읽기",
     "name": "이름 *",
     "headmateName": "헤드메이트 이름",
+    "nickname": "별명",
     "pronouns": "호칭",
     "pronounsPlaceholder": "예: 그들",
     "role": "역할 / 아키타입",
@@ -578,6 +584,9 @@
     "palPreviewMid": "중간",
     "paletteSlots": "커스텀 팔레트 {{used}} / {{max}}",
     "pfpFailed": "이미지 실패",
+    "imagePickHow": "이 이미지를 어떻게 추가할까요?",
+    "imageAuto": "자동",
+    "cropImage": "이미지 자르기",
     "removePfp": "사진 삭제",
     "viewPfp": "사진 보기",
     "viewPfpOf": "{{name}} 님의 사진",
@@ -680,7 +689,11 @@
     "facets": "패싯",
     "front": "프런트",
     "fronting": "프런팅",
-    "system": "시스템"
+    "system": "시스템",
+    "tierHint": "프런팅 단계의 이름을 바꿔 보세요. 입력한 단어가 기본 용어를 어디서나 대체해요. 비워 두면 기본값을 사용해요.",
+    "tierPrimary": "메인 프런트",
+    "tierCoFront": "코프런트",
+    "tierCoConscious": "코컨셔스"
   },
   "planner": {
     "title": "하루 플래너",
@@ -853,6 +866,15 @@
     "clearTitle": "화이트보드를 지울까요?",
     "clearMsg": "보드의 모든 것이 영구히 지워져요.",
     "brushSize": "브러시 크기",
+    "shapeLine": "직선",
+    "shapeRect": "직사각형",
+    "shapeEllipse": "타원",
+    "shapePoly": "다각형",
+    "voPlaceShape": "여기에 {{shape}} 배치",
+    "voPlacedShape": "{{shape}} 배치됨",
+    "voPolyPoint": "여기에 꼭짓점 추가",
+    "voPolyFinish": "다각형 완성",
+    "voPolyPointAdded": "꼭짓점 추가됨",
     "bucket": "채우기 버킷",
     "penColor": "펜 색상"
   },
@@ -881,6 +903,8 @@
     "type": "유형",
     "deleteRelationship": "관계 삭제",
     "deleteRelationshipMsg": "이 관계를 삭제할까요?",
+    "deleteType": "유형 삭제",
+    "deleteTypeMsg": "이 유형을 쓰는 모든 관계도 함께 삭제돼요.",
     "duplicate": "이 멤버들 사이에 이미 이 관계가 있어요.",
     "relationships": "관계 {{count}}개",
     "relationshipOne": "관계 1개",
@@ -997,6 +1021,8 @@
     "selectSpeaker": "화자 선택",
     "searchSpeaker": "화자 검색…",
     "noMessages": "아직 메시지가 없어요.",
+    "editingHeader": "메시지 편집 중",
+    "editPlaceholder": "메시지 편집…",
     "typeMessage": "메시지 입력…",
     "imageFailed": "이미지 실패"
   },

@@ -6,18 +6,20 @@ import { useNetwork } from '../network/useNetwork';
 import { NetworkManager } from '../network/NetworkManager';
 import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY, MirrorFeature, MAX_NOTIF_FRIENDS, friendNotifyLevel } from '../network/types';
 import { MirrorView } from './MirrorView';
-import { fmtDur, fmtTime, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES } from '../utils';
+import { fmtDur, fmtTime, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES, memberMatchesSearch } from '../utils';
 import { store, KEYS } from '../storage';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
 
 type Kind = 'friend' | 'device';
-type BucketFeature = 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections' | 'systemProfile';
+type BucketFeature = 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections' | 'systemProfile' | 'whiteboard' | 'facets';
 
-// systemProfile is optional on the stored record (buckets written before it
-// existed do not have it), so the view works with a normalized shape where
-// every feature is present and indexing by BucketFeature always yields a scope.
-type Bucket = PrivacyBucket & { systemProfile: PrivacyScope };
+// systemProfile/whiteboard/facets are optional on the stored record (buckets
+// written before they existed do not have them), so the view works with a
+// normalized shape where every feature is present and indexing by
+// BucketFeature always yields a scope. Facets normalize to a COPY of the
+// bucket's members scope — the exact behavior before the field existed.
+type Bucket = PrivacyBucket & { systemProfile: PrivacyScope; whiteboard: PrivacyScope; facets: PrivacyScope };
 
 const emptyScope = (): PrivacyScope => ({ mode: 'none', ids: [] });
 const newBucket = (): Bucket => ({
@@ -31,6 +33,8 @@ const newBucket = (): Bucket => ({
   medical: emptyScope(),
   connections: emptyScope(),
   systemProfile: emptyScope(),
+  whiteboard: emptyScope(),
+  facets: emptyScope(),
   friendPeerIds: [],
   createdAt: Date.now(),
 });
@@ -45,6 +49,10 @@ const normalizeBucket = (b: PrivacyBucket): Bucket => ({
   medical: b.medical || emptyScope(),
   connections: b.connections || emptyScope(),
   systemProfile: b.systemProfile || emptyScope(),
+  whiteboard: b.whiteboard || emptyScope(),
+  // Seeded from members, not empty: absent has always MEANT "same as
+  // members", and the editor must show (and re-save) exactly that.
+  facets: b.facets || (b.members ? { mode: b.members.mode, ids: [...(b.members.ids || [])] } : emptyScope()),
   friendPeerIds: b.friendPeerIds || [],
 });
 
@@ -105,7 +113,7 @@ export default function NetworkView() {
   };
 
   const featureLabel = (f: BucketFeature): string =>
-    f === 'members' ? t('tabs.members') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : t('systemMap.title', { defaultValue: 'Connections' });
+    f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : t('systemMap.title', { defaultValue: 'Connections' });
   const scopeSummary = (s: PrivacyScope): string =>
     s.mode === 'all' ? t('network.scopeAll') : s.mode === 'none' ? t('network.scopeNone') : `${s.ids.length}`;
   const setScopeMode = (f: BucketFeature, mode: PrivacyScopeMode) => {
@@ -140,6 +148,8 @@ export default function NetworkView() {
       medical: { mode: b.medical.mode, ids: [...b.medical.ids] },
       connections: { mode: b.connections.mode, ids: [...b.connections.ids] },
       systemProfile: { mode: b.systemProfile.mode, ids: [...b.systemProfile.ids] },
+      whiteboard: { mode: b.whiteboard.mode, ids: [...b.whiteboard.ids] },
+      facets: { mode: b.facets.mode, ids: [...b.facets.ids] },
       friendPeerIds: [],
       createdAt: Date.now(),
     });
@@ -169,8 +179,12 @@ export default function NetworkView() {
     ? relationships
         .map(r => ({ id: r.id, name: relLabel(r) }))
         .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+    : pickerFeature === 'facets'
+    ? pickableFacets
+        .filter(m => memberMatchesSearch(m, pickerSearch))
+        .map(m => ({ id: m.id, name: m.name }))
     : [...pickableMembers, ...pickableFacets]
-        .filter(m => !pickerSearch.trim() || m.name.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+        .filter(m => memberMatchesSearch(m, pickerSearch))
         .map(m => ({ id: m.id, name: m.name }))
   );
   const allPickedChecked = !!editBucket && !!pickerFeature && pickerItems.length > 0 && pickerItems.every(i => editBucket[pickerFeature].ids.includes(i.id));
@@ -185,6 +199,10 @@ export default function NetworkView() {
   const [copiedKind, setCopiedKind] = useState<Kind | null>(null);
   const [directionFor, setDirectionFor] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<Friend | null>(null);
+  // Second stop, friends only: one warning still got blown through by a stray
+  // click plus a habit-click, and removal is mutual — both sides lose the
+  // friendship and their cached mirrors.
+  const [removeArmed, setRemoveArmed] = useState(false);
   const [, setNowTick] = useState(0);
 
   useEffect(() => {
@@ -302,7 +320,7 @@ export default function NetworkView() {
     return net.onlinePeers.includes(f.peerId) ? t('network.online') : t('network.offline');
   };
 
-  const renderRow = (f: Friend, lines: string[]) => {
+  const renderRow = (f: Friend, lines: string[], orderIdx?: number, orderCount?: number) => {
     const online = f.status === 'accepted' && net.onlinePeers.includes(f.peerId);
     return (
       <div key={f.peerId} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
@@ -313,6 +331,14 @@ export default function NetworkView() {
             <div key={i} style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{line}</div>
           ))}
         </div>
+        {orderIdx !== undefined && orderCount !== undefined && orderCount > 1 && ([
+          [-1, orderIdx === 0, '▲', t('members.moveUp')],
+          [1, orderIdx === orderCount - 1, '▼', t('members.moveDown')],
+        ] as [(-1 | 1), boolean, string, string][]).map(([dir, atEnd, glyph, label]) => (
+          <button key={glyph} className="icon-btn" aria-label={`${label}, ${f.displayName}`} title={label} disabled={atEnd}
+            onClick={() => { if (!atEnd) NetworkManager.moveFriend(f.peerId, dir); }}
+            style={{ background: 'none', border: 'none', color: 'var(--muted)', opacity: atEnd ? 0.3 : 1, fontSize: 13, cursor: atEnd ? 'default' : 'pointer', padding: 8 }}>{glyph}</button>
+        ))}
         {f.kind !== 'device' && f.status === 'accepted' && (
           <button
             className="icon-btn"
@@ -395,7 +421,7 @@ export default function NetworkView() {
         {net.friends.length === 0 ? (
           <p style={{ fontSize: 12, color: 'var(--muted)' }}>{t('network.noFriends')}</p>
         ) : (
-          net.friends.map(f => renderRow(f, friendStatusLines(f)))
+          net.friends.map((f, i) => renderRow(f, friendStatusLines(f), i, net.friends.length))
         )}
       </div>
 
@@ -436,10 +462,10 @@ export default function NetworkView() {
               <div role="button" tabIndex={0} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                 onClick={() => setEditBucket({ ...b })}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditBucket({ ...b }); } }}
-                aria-label={`${b.name}. ${(['members', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
+                aria-label={`${b.name}. ${(['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  {(['members', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
+                  {(['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
                 </div>
               </div>
               <Btn variant="ghost" aria-label={`${t('network.cloneBucket')} — ${b.name}`} onClick={() => cloneBucket(b)}>⧉</Btn>
@@ -460,12 +486,13 @@ export default function NetworkView() {
           </div>
         }>
         <Field label={t('network.bucketName')} value={editBucket?.name || ''} onChange={v => editBucket && setEditBucket({ ...editBucket, name: v })} placeholder={t('network.bucketName')} />
-        {editBucket && (['members', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile'] as BucketFeature[]).map(f => (
+        {editBucket && (['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[]).map(f => (
           <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
             <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{featureLabel(f)}</span>
-            {/* history and systemProfile have nothing to pick WITHIN them —
-                one timeline, one profile — so they are all or nothing. */}
-            {((f === 'history' || f === 'systemProfile' ? ['all', 'none'] : ['all', 'select', 'none']) as PrivacyScopeMode[]).map(mode => {
+            {/* history, systemProfile and whiteboard have nothing to pick
+                WITHIN them — one timeline, one profile, one board — so they
+                are all or nothing. */}
+            {((f === 'history' || f === 'systemProfile' || f === 'whiteboard' ? ['all', 'none'] : ['all', 'select', 'none']) as PrivacyScopeMode[]).map(mode => {
               const sel = editBucket[f].mode === mode;
               const label = mode === 'all' ? t('network.scopeAll') : mode === 'select' ? t('network.scopeSelect') : t('network.scopeNone');
               return (
@@ -561,7 +588,7 @@ export default function NetworkView() {
       </Modal>
 
       <ConfirmDialog
-        open={!!removeTarget}
+        open={!!removeTarget && !removeArmed}
         title={t('network.remove')}
         message={
           // Name alone never said that removal is mutual: it sends a
@@ -571,8 +598,21 @@ export default function NetworkView() {
             : t('network.removeFriendWarn', { name: removeTarget.displayName })
         }
         danger
-        onConfirm={() => { const f = removeTarget!; setRemoveTarget(null); guard(() => NetworkManager.removeFriend(f.peerId)); }}
+        onConfirm={() => {
+          const f = removeTarget!;
+          if (f.kind === 'device') { setRemoveTarget(null); guard(() => NetworkManager.removeFriend(f.peerId)); return; }
+          setRemoveArmed(true);
+        }}
         onCancel={() => setRemoveTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!removeTarget && removeArmed}
+        title={t('journal.areYouSure')}
+        message={removeTarget ? t('network.removeFriendWarn', { name: removeTarget.displayName }) : ''}
+        danger
+        onConfirm={() => { const f = removeTarget!; setRemoveTarget(null); setRemoveArmed(false); guard(() => NetworkManager.removeFriend(f.peerId)); }}
+        onCancel={() => { setRemoveTarget(null); setRemoveArmed(false); }}
       />
 
       <Modal
@@ -581,7 +621,7 @@ export default function NetworkView() {
         onClose={() => setMirrorMenuFor(null)}>
         {mirrorMenuFor && (
           <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 0 }}>
-            {(['members', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile'] as BucketFeature[])
+            {(['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[])
               .map(f => `${featureLabel(f)}: ${scopeSummary(effectiveShare(mirrorMenuFor.peerId, f))}`)
               .join('  ·  ')}
           </p>
@@ -592,6 +632,7 @@ export default function NetworkView() {
           { feature: 'groups' as MirrorFeature, label: t('memberGroups.title') },
           { feature: 'history' as MirrorFeature, label: t('tabs.history') },
           { feature: 'journal' as MirrorFeature, label: t('tabs.journal') },
+          { feature: 'whiteboard' as MirrorFeature, label: t('whiteboard.title') },
         ]).map(opt => (
           <button
             key={opt.feature}

@@ -167,6 +167,10 @@
     "title": "सदस्य",
     "add": "+ जोड़ें",
     "displayFields": "दिखाए जाने वाले फ़ील्ड",
+    "cardBackground": "कार्ड की पृष्ठभूमि",
+    "bgPlain": "सादा",
+    "bgMemberColor": "सदस्य का रंग",
+    "bgBanner": "बैनर",
     "fieldPronouns": "सर्वनाम",
     "fieldRoles": "भूमिकाएँ",
     "fieldGroups": "समूह",
@@ -492,6 +496,7 @@
     "archive": "आर्काइव"
   },
   "markdown": {
+    "brokenImage": "[टूटी छवि]",
     "imageUnavailable": "[छवि उपलब्ध नहीं]"
   },
   "modal": {
@@ -513,6 +518,7 @@
     "read": "पढ़ें",
     "name": "नाम *",
     "headmateName": "हेडमेट का नाम",
+    "nickname": "उपनाम",
     "pronouns": "सर्वनाम",
     "pronounsPlaceholder": "जैसे: they/them",
     "role": "भूमिका / आर्कटाइप",
@@ -578,6 +584,9 @@
     "palPreviewMid": "मिड",
     "paletteSlots": "{{used}} / {{max}} कस्टम पैलेट",
     "pfpFailed": "छवि विफल",
+    "imagePickHow": "आप यह छवि कैसे जोड़ना चाहते हैं?",
+    "imageAuto": "ऑटो",
+    "cropImage": "छवि क्रॉप करें",
     "removePfp": "फ़ोटो हटाएँ",
     "viewPfp": "फ़ोटो देखें",
     "viewPfpOf": "{{name}} की फ़ोटो",
@@ -680,7 +689,11 @@
     "facets": "फ़ेसेट",
     "front": "फ्रंट",
     "fronting": "फ्रंटिंग",
-    "system": "सिस्टम"
+    "system": "सिस्टम",
+    "tierHint": "फ्रंटिंग स्तरों के नाम बदलें। आपका शब्द हर जगह डिफ़ॉल्ट की जगह लेगा। खाली छोड़ने पर डिफ़ॉल्ट उपयोग होगा।",
+    "tierPrimary": "प्राइमरी फ्रंट",
+    "tierCoFront": "को-फ्रंट",
+    "tierCoConscious": "को-कॉन्शियस"
   },
   "planner": {
     "title": "दिन योजनाकार",
@@ -854,6 +867,15 @@
     "clearTitle": "व्हाइटबोर्ड साफ़ करें?",
     "clearMsg": "इससे बोर्ड पर बना सब कुछ हमेशा के लिए मिट जाएगा।",
     "brushSize": "ब्रश आकार",
+    "shapeLine": "रेखा",
+    "shapeRect": "आयत",
+    "shapeEllipse": "दीर्घवृत्त",
+    "shapePoly": "बहुभुज",
+    "voPlaceShape": "{{shape}} यहाँ रखें",
+    "voPlacedShape": "{{shape}} रख दिया गया",
+    "voPolyPoint": "यहाँ कोना जोड़ें",
+    "voPolyFinish": "बहुभुज पूरा करें",
+    "voPolyPointAdded": "कोना जोड़ा गया",
     "bucket": "फ़िल बकेट",
     "penColor": "पेन रंग"
   },
@@ -882,6 +904,8 @@
     "type": "प्रकार",
     "deleteRelationship": "रिश्ता हटाएँ",
     "deleteRelationshipMsg": "यह रिश्ता हटाएँ?",
+    "deleteType": "प्रकार हटाएँ",
+    "deleteTypeMsg": "इस प्रकार वाले सभी रिश्ते भी हट जाएँगे।",
     "duplicate": "इन सदस्यों के बीच यह रिश्ता पहले से है।",
     "relationships": "{{count}} रिश्ते",
     "relationshipOne": "1 रिश्ता",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "वक्ता चुनें",
     "searchSpeaker": "वक्ता खोजें…",
     "noMessages": "अभी कोई संदेश नहीं।",
+    "editingHeader": "संदेश एडिट हो रहा है",
+    "editPlaceholder": "संदेश एडिट करें…",
     "typeMessage": "संदेश लिखें…",
     "imageFailed": "छवि विफल"
   },

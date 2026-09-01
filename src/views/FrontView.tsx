@@ -4,10 +4,11 @@ import {
   Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
-  parseMoodList, toggleMoodInList, serializeMoodList,
+  parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch,
 } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
+import { initialOn } from '../theme';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
 import { useMinuteTick } from '../useMinuteTick';
@@ -160,7 +161,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
                   <div className="tile__avatar" style={{
                     width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
                     fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
-                    ...(!m.avatar ? { backgroundColor: m.color } : {}),
+                    ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
                   }}>
                     {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
                   </div>
@@ -436,7 +437,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         ? t('members.searchHintKind', { kind: kindLabel, defaultValue: `Type a name or select a tag to find ${kindLabel}` })
         : t('members.searchHint');
       const ql = q.toLowerCase();
-      const filtered = ql ? pool.filter(m => !selectedIds.has(m.id) && m.name.toLowerCase().includes(ql)) : [];
+      const filtered = ql ? pool.filter(m => !selectedIds.has(m.id) && memberMatchesSearch(m, ql)) : [];
       const poolSelected = pool.filter(m => selectedIds.has(m.id));
       return (
         <>

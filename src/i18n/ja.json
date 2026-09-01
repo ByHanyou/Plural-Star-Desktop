@@ -48,7 +48,11 @@
     "facets": "側面",
     "front": "フロント",
     "fronting": "フロント中",
-    "system": "システム"
+    "system": "システム",
+    "tierHint": "フロントの段階の呼び方を変更できます。入力した語がデフォルトの語をどこでも置き換えます。空欄ならデフォルトを使用します。",
+    "tierPrimary": "プライマリフロント",
+    "tierCoFront": "コフロント",
+    "tierCoConscious": "コーコンシャス"
   },
   "planner": {
     "title": "デイプランナー",
@@ -221,6 +225,15 @@
     "clearTitle": "ホワイトボードをクリアしますか？",
     "clearMsg": "ボード上のすべてが完全に消去されます。",
     "brushSize": "ブラシサイズ",
+    "shapeLine": "直線",
+    "shapeRect": "長方形",
+    "shapeEllipse": "楕円",
+    "shapePoly": "多角形",
+    "voPlaceShape": "ここに{{shape}}を配置",
+    "voPlacedShape": "{{shape}}を配置しました",
+    "voPolyPoint": "ここに頂点を追加",
+    "voPolyFinish": "多角形を完成",
+    "voPolyPointAdded": "頂点を追加しました",
     "bucket": "塗りつぶし",
     "penColor": "ペンの色"
   },
@@ -241,6 +254,8 @@
     "addRelationship": "+ 関係を追加",
     "deleteRelationship": "関係を削除",
     "deleteRelationshipMsg": "この関係を削除しますか？",
+    "deleteType": "種類を削除",
+    "deleteTypeMsg": "この種類を使うすべての関係も削除されます。",
     "duplicate": "この2人にはすでにこの関係があります。",
     "noRelationships": "まだ関係がありません。「+ 関係を追加」をタップしてマップを作り始めましょう。",
     "relationships": "{{count}} 件の関係",
@@ -425,6 +440,10 @@
   },
   "members": {
     "displayFields": "表示する項目",
+    "cardBackground": "カードの背景",
+    "bgPlain": "プレーン",
+    "bgMemberColor": "メンバーカラー",
+    "bgBanner": "バナー",
     "fieldPronouns": "代名詞",
     "fieldRoles": "役割",
     "fieldGroups": "グループ",
@@ -752,6 +771,7 @@
     "archive": "アーカイブ"
   },
   "markdown": {
+    "brokenImage": "[画像が壊れています]",
     "imageUnavailable": "[画像は利用できません]"
   },
   "modal": {
@@ -773,6 +793,7 @@
     "editMember": "メンバーを編集",
     "name": "名前 *",
     "headmateName": "メンバー名",
+    "nickname": "ニックネーム",
     "pronouns": "代名詞",
     "pronounsPlaceholder": "例：彼/彼女",
     "role": "役割/アーキタイプ",
@@ -838,6 +859,9 @@
     "palPreviewMid": "ミッド",
     "paletteSlots": "{{used}} / {{max}} カスタムパレット",
     "pfpFailed": "画像の読み込みに失敗",
+    "imagePickHow": "この画像をどのように追加しますか？",
+    "imageAuto": "自動",
+    "cropImage": "画像をトリミング",
     "removePfp": "写真を削除",
     "viewPfp": "写真を表示",
     "viewPfpOf": "{{name}} の写真",
@@ -997,6 +1021,8 @@
     "selectSpeaker": "発言者を選択",
     "searchSpeaker": "発言者を検索…",
     "noMessages": "まだメッセージがありません。",
+    "editingHeader": "メッセージを編集中",
+    "editPlaceholder": "メッセージを編集…",
     "typeMessage": "メッセージを入力…",
     "imageFailed": "画像の読み込みに失敗"
   },

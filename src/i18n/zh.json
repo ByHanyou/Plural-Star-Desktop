@@ -48,7 +48,11 @@
     "facets": "侧面",
     "front": "前台",
     "fronting": "前台中",
-    "system": "系统"
+    "system": "系统",
+    "tierHint": "自定义前台层级的叫法。你的用词将在所有位置替换默认用词。留空则使用默认。",
+    "tierPrimary": "主前台",
+    "tierCoFront": "共同前台",
+    "tierCoConscious": "共同意识"
   },
   "planner": {
     "title": "日程规划",
@@ -221,6 +225,15 @@
     "clearTitle": "清空白板？",
     "clearMsg": "这将永久删除白板上的所有内容。",
     "brushSize": "画笔大小",
+    "shapeLine": "直线",
+    "shapeRect": "矩形",
+    "shapeEllipse": "椭圆",
+    "shapePoly": "多边形",
+    "voPlaceShape": "在此放置{{shape}}",
+    "voPlacedShape": "已放置{{shape}}",
+    "voPolyPoint": "在此添加顶点",
+    "voPolyFinish": "完成多边形",
+    "voPolyPointAdded": "已添加顶点",
     "bucket": "油漆桶",
     "penColor": "画笔颜色"
   },
@@ -241,6 +254,8 @@
     "addRelationship": "+ 添加关系",
     "deleteRelationship": "删除关系",
     "deleteRelationshipMsg": "要移除这条关系吗？",
+    "deleteType": "删除类型",
+    "deleteTypeMsg": "这也会移除使用该类型的所有关系。",
     "duplicate": "这两位成员已有此关系。",
     "noRelationships": "还没有关系。点击「+ 添加关系」开始绘制你的地图。",
     "relationships": "{{count}} 条关系",
@@ -425,6 +440,10 @@
   },
   "members": {
     "displayFields": "显示字段",
+    "cardBackground": "卡片背景",
+    "bgPlain": "纯色",
+    "bgMemberColor": "成员颜色",
+    "bgBanner": "横幅",
     "fieldPronouns": "代词",
     "fieldRoles": "角色",
     "fieldGroups": "群组",
@@ -752,6 +771,7 @@
     "archive": "归档"
   },
   "markdown": {
+    "brokenImage": "[图片损坏]",
     "imageUnavailable": "[图片不可用]"
   },
   "modal": {
@@ -773,6 +793,7 @@
     "editMember": "编辑成员",
     "name": "名称 *",
     "headmateName": "伙伴名称",
+    "nickname": "昵称",
     "pronouns": "代词",
     "pronounsPlaceholder": "例如 他/她/ta",
     "role": "角色/原型",
@@ -838,6 +859,9 @@
     "palPreviewMid": "中间",
     "paletteSlots": "{{used}} / {{max}} 自定义调色板",
     "pfpFailed": "图片失败",
+    "imagePickHow": "要如何添加这张图片？",
+    "imageAuto": "自动",
+    "cropImage": "裁剪图片",
     "removePfp": "移除照片",
     "viewPfp": "查看照片",
     "viewPfpOf": "{{name}} 的照片",
@@ -997,6 +1021,8 @@
     "selectSpeaker": "选择发言者",
     "searchSpeaker": "搜索发言者…",
     "noMessages": "还没有消息。",
+    "editingHeader": "正在编辑消息",
+    "editPlaceholder": "编辑消息…",
     "typeMessage": "输入消息…",
     "imageFailed": "图片失败"
   },

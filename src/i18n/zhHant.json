@@ -48,7 +48,11 @@
     "facets": "側面",
     "front": "前台",
     "fronting": "前台中",
-    "system": "系統"
+    "system": "系統",
+    "tierHint": "自訂前台層級的稱呼。你的用詞將在所有位置取代預設用詞。留空則使用預設。",
+    "tierPrimary": "主要前台",
+    "tierCoFront": "共同前台",
+    "tierCoConscious": "共同意識"
   },
   "planner": {
     "title": "日程規劃",
@@ -352,6 +356,10 @@
     "removeFromFront": "從前台移除",
     "removeFromFrontMsg": "將 {{name}} 從前台移除？",
     "displayFields": "顯示欄位",
+    "cardBackground": "卡片背景",
+    "bgPlain": "純色",
+    "bgMemberColor": "成員顏色",
+    "bgBanner": "橫幅",
     "fieldGroups": "群組",
     "fieldDescriptions": "描述",
     "fieldPronouns": "代詞",
@@ -662,6 +670,7 @@
     "supportPS": "支持 PS"
   },
   "markdown": {
+    "brokenImage": "[圖片損毀]",
     "imageUnavailable": "[圖片無法使用]"
   },
   "modal": {
@@ -684,6 +693,7 @@
     "member": "成員",
     "name": "名字 *",
     "headmateName": "腦內夥伴的名字",
+    "nickname": "暱稱",
     "pronouns": "代名詞",
     "pronounsPlaceholder": "例如 她/他們",
     "role": "角色 / 原型",
@@ -746,6 +756,9 @@
     "palPreviewMid": "中間",
     "paletteSlots": "{{used}} / {{max}} 個自訂調色盤",
     "pfpFailed": "圖片載入失敗",
+    "imagePickHow": "要如何加入這張圖片？",
+    "imageAuto": "自動",
+    "cropImage": "裁剪圖片",
     "removePfp": "移除照片",
     "viewPfp": "檢視照片",
     "viewPfpOf": "{{name}} 的照片",
@@ -900,6 +913,8 @@
     "selectSpeaker": "選擇發言者",
     "searchSpeaker": "搜尋發言者…",
     "noMessages": "尚無訊息。",
+    "editingHeader": "編輯訊息中",
+    "editPlaceholder": "編輯訊息…",
     "typeMessage": "輸入訊息…",
     "imageFailed": "圖片載入失敗"
   },
@@ -972,6 +987,15 @@
     "clearTitle": "清空白板？",
     "clearMsg": "這將永久刪除白板上的所有內容。",
     "brushSize": "畫筆大小",
+    "shapeLine": "直線",
+    "shapeRect": "矩形",
+    "shapeEllipse": "橢圓",
+    "shapePoly": "多邊形",
+    "voPlaceShape": "在此放置{{shape}}",
+    "voPlacedShape": "已放置{{shape}}",
+    "voPolyPoint": "在此加入頂點",
+    "voPolyFinish": "完成多邊形",
+    "voPolyPointAdded": "已加入頂點",
     "bucket": "油漆桶",
     "penColor": "畫筆顏色"
   },
@@ -992,6 +1016,8 @@
     "addRelationship": "+ 新增關係",
     "deleteRelationship": "刪除關係",
     "deleteRelationshipMsg": "移除這段關係？",
+    "deleteType": "刪除類型",
+    "deleteTypeMsg": "這也會移除使用此類型的所有關係。",
     "duplicate": "這兩位成員已有此關係。",
     "noRelationships": "尚無關係。點按「+ 新增關係」開始繪製你的地圖。",
     "relationships": "{{count}} 段關係",

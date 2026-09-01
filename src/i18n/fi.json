@@ -48,7 +48,11 @@
     "facets": "Puolet",
     "front": "Edessä",
     "fronting": "Edustaminen",
-    "system": "Järjestelmä"
+    "system": "Järjestelmä",
+    "tierHint": "Nimeä edustamisen tasot uudelleen. Sanasi korvaa oletussanan kaikkialla. Tyhjä käyttää oletusta.",
+    "tierPrimary": "Ensisijainen",
+    "tierCoFront": "Rinnakkais-Front",
+    "tierCoConscious": "Rinnakkais-Tietoinen"
   },
   "planner": {
     "title": "Päiväsuunnittelija",
@@ -222,6 +226,15 @@
     "clearTitle": "Tyhjennetäänkö piirtotaulu?",
     "clearMsg": "Tämä poistaa kaiken taululta pysyvästi.",
     "brushSize": "Siveltimen koko",
+    "shapeLine": "Viiva",
+    "shapeRect": "Suorakulmio",
+    "shapeEllipse": "Ellipsi",
+    "shapePoly": "Monikulmio",
+    "voPlaceShape": "Sijoita {{shape}} tähän",
+    "voPlacedShape": "{{shape}} sijoitettu",
+    "voPolyPoint": "Lisää kulmapiste tähän",
+    "voPolyFinish": "Viimeistele monikulmio",
+    "voPolyPointAdded": "Kulmapiste lisätty",
     "bucket": "Täyttötyökalu",
     "penColor": "Kynän väri"
   },
@@ -242,6 +255,8 @@
     "addRelationship": "+ Lisää suhde",
     "deleteRelationship": "Poista suhde",
     "deleteRelationshipMsg": "Poistetaanko tämä suhde?",
+    "deleteType": "Poista tyyppi",
+    "deleteTypeMsg": "Tämä poistaa myös kaikki tätä tyyppiä käyttävät suhteet.",
     "duplicate": "Näillä jäsenillä on jo tämä suhde.",
     "noRelationships": "Ei vielä suhteita. Napauta + Lisää suhde aloittaaksesi kartan rakentamisen.",
     "relationships": "{{count}} suhdetta",
@@ -428,6 +443,10 @@
     "clone": "Kloonaa",
     "cloneFields": "Mitkä kentät kopioidaan?",
     "displayFields": "Näytettävät kentät",
+    "cardBackground": "Kortin tausta",
+    "bgPlain": "Pelkistetty",
+    "bgMemberColor": "Jäsenen väri",
+    "bgBanner": "Banneri",
     "fieldPronouns": "Pronominit",
     "fieldRoles": "Roolit",
     "fieldGroups": "Ryhmät",
@@ -753,6 +772,7 @@
     "archive": "Arkisto"
   },
   "markdown": {
+    "brokenImage": "[rikkinäinen kuva]",
     "imageUnavailable": "[kuva ei saatavilla]"
   },
   "modal": {
@@ -831,6 +851,9 @@
     "palPreviewMid": "Keski",
     "paletteSlots": "{{used}} / {{max}} mukautettua palettia",
     "pfpFailed": "Kuva epäonnistui",
+    "imagePickHow": "Miten haluat lisätä tämän kuvan?",
+    "imageAuto": "Automaattinen",
+    "cropImage": "Rajaa kuva",
     "removePfp": "Poista kuva",
     "viewPfp": "Katso kuva",
     "viewPfpOf": "Kuva: {{name}}",
@@ -848,6 +871,7 @@
     "descriptionLabel": "Kuvaus",
     "editFrontDetails": "Muokkaa frontin tietoja",
     "headmateName": "Jäsenen nimi",
+    "nickname": "Lempinimi",
     "noteOptional": "Muistiinpano (valinnainen)",
     "updateFront": "Päivitä front"
   },
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Valitse puhuja",
     "searchSpeaker": "Hae puhuja…",
     "noMessages": "Ei viestejä vielä.",
+    "editingHeader": "Muokataan viestiä",
+    "editPlaceholder": "Muokkaa viestiä…",
     "typeMessage": "Kirjoita viesti…",
     "imageFailed": "Kuva epäonnistui"
   },

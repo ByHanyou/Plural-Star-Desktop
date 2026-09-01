@@ -48,7 +48,11 @@
     "facets": "Facetas",
     "front": "Frente",
     "fronting": "Fronting",
-    "system": "Sistema"
+    "system": "Sistema",
+    "tierHint": "Renomeie os níveis de fronting. Sua palavra substitui a padrão em todo o app. Em branco usa a padrão.",
+    "tierPrimary": "Frente Principal",
+    "tierCoFront": "Co-Frente",
+    "tierCoConscious": "Co-Consciente"
   },
   "planner": {
     "title": "Planejador Diário",
@@ -222,6 +226,15 @@
     "clearTitle": "Limpar o quadro branco?",
     "clearMsg": "Isto apaga tudo no quadro permanentemente.",
     "brushSize": "Tamanho do pincel",
+    "shapeLine": "Linha",
+    "shapeRect": "Retângulo",
+    "shapeEllipse": "Elipse",
+    "shapePoly": "Polígono",
+    "voPlaceShape": "Colocar {{shape}} aqui",
+    "voPlacedShape": "{{shape}} colocado",
+    "voPolyPoint": "Adicionar um vértice aqui",
+    "voPolyFinish": "Concluir o polígono",
+    "voPolyPointAdded": "Vértice adicionado",
     "bucket": "Balde de tinta",
     "penColor": "Cor da caneta"
   },
@@ -242,6 +255,8 @@
     "addRelationship": "+ Adicionar relação",
     "deleteRelationship": "Excluir relação",
     "deleteRelationshipMsg": "Remover esta relação?",
+    "deleteType": "Excluir tipo",
+    "deleteTypeMsg": "Isso também removerá todas as relações que usam este tipo.",
     "duplicate": "Esses membros já têm esta relação.",
     "noRelationships": "Nenhuma relação ainda. Toque em + Adicionar relação para começar a montar seu mapa.",
     "relationships": "{{count}} relações",
@@ -428,6 +443,10 @@
     "clone": "Clonar",
     "cloneFields": "Copiar quais campos?",
     "displayFields": "Campos exibidos",
+    "cardBackground": "Fundo do cartão",
+    "bgPlain": "Simples",
+    "bgMemberColor": "Cor do membro",
+    "bgBanner": "Banner",
     "fieldPronouns": "Pronomes",
     "fieldRoles": "Funções",
     "fieldGroups": "Grupos",
@@ -753,6 +772,7 @@
     "archive": "Arquivo"
   },
   "markdown": {
+    "brokenImage": "[imagem quebrada]",
     "imageUnavailable": "[imagem indisponível]"
   },
   "modal": {
@@ -774,6 +794,7 @@
     "read": "Ler",
     "name": "Nome *",
     "headmateName": "Nome do colega de sistema",
+    "nickname": "Apelido",
     "pronouns": "Pronomes",
     "pronounsPlaceholder": "ex. ele/dele, ela/dela",
     "role": "Função / Arquétipo",
@@ -839,6 +860,9 @@
     "palPreviewMid": "Médio",
     "paletteSlots": "{{used}} / {{max}} paletas personalizadas",
     "pfpFailed": "Erro na Imagem",
+    "imagePickHow": "Como você quer adicionar esta imagem?",
+    "imageAuto": "Auto",
+    "cropImage": "Recortar imagem",
     "removePfp": "Remover Foto",
     "viewPfp": "Ver Foto",
     "viewPfpOf": "Foto de {{name}}",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Selecionar",
     "searchSpeaker": "Buscar…",
     "noMessages": "Sem mensagens ainda.",
+    "editingHeader": "Editando mensagem",
+    "editPlaceholder": "Editar mensagem…",
     "typeMessage": "Digite uma mensagem…",
     "imageFailed": "Erro na Imagem"
   },

@@ -48,7 +48,11 @@
     "facets": "Facetten",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "System"
+    "system": "System",
+    "tierHint": "Benenne die Front-Ebenen um. Dein Wort ersetzt überall das Standardwort. Leer = Standard.",
+    "tierPrimary": "Primärer Front",
+    "tierCoFront": "Co-Front",
+    "tierCoConscious": "Co-Bewusst"
   },
   "planner": {
     "title": "Tagesplaner",
@@ -222,6 +226,15 @@
     "clearTitle": "Whiteboard leeren?",
     "clearMsg": "Das löscht alles auf der Tafel unwiderruflich.",
     "brushSize": "Pinselgröße",
+    "shapeLine": "Linie",
+    "shapeRect": "Rechteck",
+    "shapeEllipse": "Ellipse",
+    "shapePoly": "Polygon",
+    "voPlaceShape": "{{shape}} hier platzieren",
+    "voPlacedShape": "{{shape}} platziert",
+    "voPolyPoint": "Ecke hier hinzufügen",
+    "voPolyFinish": "Polygon abschließen",
+    "voPolyPointAdded": "Ecke hinzugefügt",
     "bucket": "Farbeimer",
     "penColor": "Stiftfarbe"
   },
@@ -242,6 +255,8 @@
     "addRelationship": "+ Beziehung hinzufügen",
     "deleteRelationship": "Beziehung löschen",
     "deleteRelationshipMsg": "Diese Beziehung entfernen?",
+    "deleteType": "Typ löschen",
+    "deleteTypeMsg": "Dadurch werden auch alle Beziehungen mit diesem Typ entfernt.",
     "duplicate": "Diese Mitglieder haben diese Beziehung bereits.",
     "noRelationships": "Noch keine Beziehungen. Tippe auf + Beziehung hinzufügen, um deine Karte aufzubauen.",
     "relationships": "{{count}} Beziehungen",
@@ -426,6 +441,10 @@
   },
   "members": {
     "displayFields": "Felder anzeigen",
+    "cardBackground": "Kartenhintergrund",
+    "bgPlain": "Schlicht",
+    "bgMemberColor": "Memberfarbe",
+    "bgBanner": "Banner",
     "fieldPronouns": "Pronomen",
     "fieldRoles": "Rollen",
     "fieldGroups": "Gruppen",
@@ -716,6 +735,7 @@
     "banners": "Mitglied-Banner"
   },
   "markdown": {
+    "brokenImage": "[defektes Bild]",
     "imageUnavailable": "[Bild nicht verfügbar]"
   },
   "modal": {
@@ -737,6 +757,7 @@
     "read": "Lesen",
     "name": "Name *",
     "headmateName": "Name des Kopfbewohners",
+    "nickname": "Spitzname",
     "pronouns": "Pronomen",
     "pronounsPlaceholder": "z.B. they/them",
     "role": "Rolle / Archetyp",
@@ -802,6 +823,9 @@
     "palPreviewMid": "Mittel",
     "paletteSlots": "{{used}} / {{max}} benutzerdefinierte Paletten",
     "pfpFailed": "Bild Fehlgeschlagen",
+    "imagePickHow": "Wie soll dieses Bild eingefügt werden?",
+    "imageAuto": "Auto",
+    "cropImage": "Bild zuschneiden",
     "removePfp": "Foto Entfernen",
     "viewPfp": "Foto Ansehen",
     "viewPfpOf": "Foto von {{name}}",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Sprecher",
     "searchSpeaker": "Suchen…",
     "noMessages": "Noch keine Nachrichten.",
+    "editingHeader": "Nachricht bearbeiten",
+    "editPlaceholder": "Nachricht bearbeiten…",
     "typeMessage": "Nachricht schreiben…",
     "imageFailed": "Bild Fehlgeschlagen"
   },

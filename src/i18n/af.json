@@ -167,6 +167,10 @@
     "title": "Lede",
     "add": "+ Voeg by",
     "displayFields": "Vertoonvelde",
+    "cardBackground": "Kaartagtergrond",
+    "bgPlain": "Gewoon",
+    "bgMemberColor": "Lidkleur",
+    "bgBanner": "Banier",
     "fieldPronouns": "Voornaamwoorde",
     "fieldRoles": "Rolle",
     "fieldGroups": "Groepe",
@@ -492,6 +496,7 @@
     "archive": "Argief"
   },
   "markdown": {
+    "brokenImage": "[gebroke prent]",
     "imageUnavailable": "[prent nie beskikbaar nie]"
   },
   "modal": {
@@ -513,6 +518,7 @@
     "read": "Lees",
     "name": "Naam *",
     "headmateName": "Headmate-naam",
+    "nickname": "Bynaam",
     "pronouns": "Voornaamwoorde",
     "pronounsPlaceholder": "bv. hulle",
     "role": "Rol / argetipe",
@@ -578,6 +584,9 @@
     "palPreviewMid": "Middel",
     "paletteSlots": "{{used}} / {{max}} pasgemaakte palette",
     "pfpFailed": "Prent het misluk",
+    "imagePickHow": "Hoe wil jy hierdie prent byvoeg?",
+    "imageAuto": "Outomaties",
+    "cropImage": "Sny prent",
     "removePfp": "Verwyder foto",
     "viewPfp": "Bekyk foto",
     "viewPfpOf": "Foto van {{name}}",
@@ -680,7 +689,11 @@
     "facets": "Fasette",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "Sisteem"
+    "system": "Sisteem",
+    "tierHint": "Hernoem die frontvlakke. Jou woord vervang die verstek oral. Leeg gebruik die verstek.",
+    "tierPrimary": "Primêre front",
+    "tierCoFront": "Co-front",
+    "tierCoConscious": "Co-bewus"
   },
   "planner": {
     "title": "Dagbeplanner",
@@ -854,6 +867,15 @@
     "clearTitle": "Maak witbord skoon?",
     "clearMsg": "Dit vee alles op die bord permanent uit.",
     "brushSize": "Kwasgrootte",
+    "shapeLine": "Lyn",
+    "shapeRect": "Reghoek",
+    "shapeEllipse": "Ellips",
+    "shapePoly": "Veelhoek",
+    "voPlaceShape": "Plaas {{shape}} hier",
+    "voPlacedShape": "{{shape}} geplaas",
+    "voPolyPoint": "Voeg 'n hoekpunt hier by",
+    "voPolyFinish": "Voltooi die veelhoek",
+    "voPolyPointAdded": "Hoekpunt bygevoeg",
     "bucket": "Vulemmer",
     "penColor": "Penkleur"
   },
@@ -882,6 +904,8 @@
     "type": "Tipe",
     "deleteRelationship": "Skrap verhouding",
     "deleteRelationshipMsg": "Verwyder hierdie verhouding?",
+    "deleteType": "Skrap tipe",
+    "deleteTypeMsg": "Dit sal ook alle verhoudings verwyder wat hierdie tipe gebruik.",
     "duplicate": "Hierdie lede het reeds hierdie verhouding.",
     "relationships": "{{count}} verhoudings",
     "relationshipOne": "1 verhouding",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Kies spreker",
     "searchSpeaker": "Soek spreker…",
     "noMessages": "Nog geen boodskappe nie.",
+    "editingHeader": "Wysig boodskap",
+    "editPlaceholder": "Wysig boodskap…",
     "typeMessage": "Tik 'n boodskap…",
     "imageFailed": "Prent het misluk"
   },

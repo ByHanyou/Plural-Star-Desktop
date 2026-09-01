@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChatChannel, ChatCategory, ChatMessage, DEFAULT_CHANNELS, Member,
-  uid, getInitials, fmtTime, frontersFirst, sortChatCategories, chatChannelsIn, isRosterMember,
+  uid, getInitials, fmtTime, frontersFirst, sortChatCategories, chatChannelsIn, isRosterMember, memberMatchesSearch,
 } from '../utils';
 import { store, KEYS, chatMsgKey } from '../storage';
 import { Btn, Field, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { MarkdownText } from '../components/MarkdownText';
+import { initialOn } from '../theme';
 import { useAppStore } from '../store/appStore';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -30,6 +32,7 @@ export default function ChatView({ onUpdate }: Props) {
   const [memberSearch, setMemberSearch] = useState('');
   const [showMemberPicker, setShowMemberPicker] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [showEmojiFor, setShowEmojiFor] = useState<string | null>(null);
   const [showNewChannel, setShowNewChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -89,6 +92,31 @@ export default function ChatView({ onUpdate }: Props) {
     };
     await saveMessages(activeChannelId, [...messages, msg]);
     setInput(''); setReplyTo(null);
+  };
+
+  // Same flow as mobile: editing borrows the composer, so the format buttons
+  // and paste handling work on edits for free.
+  const startEditMessage = (msg: ChatMessage) => {
+    if (msg.type !== 'text' && msg.type !== 'reply') return;
+    setEditingMessageId(msg.id);
+    setInput(msg.content);
+    setReplyTo(null);
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setInput('');
+  };
+
+  const saveEditedMessage = async () => {
+    if (!editingMessageId || !activeChannelId) return;
+    const next = input.trim();
+    if (!next) { cancelEditMessage(); return; }
+    const updated = messages.map(m =>
+      m.id === editingMessageId ? { ...m, content: next } : m
+    );
+    await saveMessages(activeChannelId, updated);
+    cancelEditMessage();
   };
 
   const sendImage = async () => {
@@ -376,7 +404,7 @@ export default function ChatView({ onUpdate }: Props) {
               <>
                 <div className="tile__avatar" aria-hidden style={{
                   width: 22, height: 22, fontSize: 9, overflow: 'hidden',
-                  ...(!activeMember.avatar ? { backgroundColor: activeMember.color } : {}),
+                  ...(!activeMember.avatar ? { backgroundColor: activeMember.color, color: initialOn(activeMember.color) } : {}),
                 }}>
                   {activeMember.avatar ? <img src={activeMember.avatar} alt="" style={{ width: 22, height: 22, borderRadius: 11, objectFit: 'cover' }} /> : getInitials(activeMember.name)}
                 </div>
@@ -392,7 +420,7 @@ export default function ChatView({ onUpdate }: Props) {
                 aria-label={t('common.search', {defaultValue: 'Search…'})} placeholder={t('common.search', {defaultValue: 'Search…'})} style={{ fontSize: 11, padding: '6px 8px', borderRadius: 0, border: 'none', borderBottom: '1px solid var(--border)' }} />
               {(() => {
                 const q = memberSearch.toLowerCase();
-                const match = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && (!memberSearch || m.name.toLowerCase().includes(q));
+                const match = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && (!memberSearch || memberMatchesSearch(m, q));
                 const row = (m: Member) => (
                   <button key={m.id} style={{
                     display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '6px 8px',
@@ -463,7 +491,7 @@ export default function ChatView({ onUpdate }: Props) {
                 <div key={msg.id} style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
                   <div className="tile__avatar" style={{
                     width: 32, height: 32, fontSize: 12, flexShrink: 0, marginTop: 2, overflow: 'hidden',
-                    ...(!author?.avatar ? { backgroundColor: author?.color || 'var(--muted)' } : {}),
+                    ...(!author?.avatar ? { backgroundColor: author?.color || 'var(--muted)', color: initialOn(author?.color || '#888888') } : {}),
                   }}>
                     {author?.avatar ? <img src={author.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(author?.name || '?')}
                   </div>
@@ -484,9 +512,7 @@ export default function ChatView({ onUpdate }: Props) {
                     {msg.type === 'image' ? (
                       <img src={msg.content} alt="" style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8, marginTop: 4 }} />
                     ) : (
-                      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginTop: 2, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                        {msg.content}
-                      </div>
+                      <MarkdownText text={msg.content} members={members} />
                     )}
 
                     {msg.reactions && Object.keys(msg.reactions).length > 0 && (
@@ -508,6 +534,10 @@ export default function ChatView({ onUpdate }: Props) {
                       onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}>
                       <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
                         onClick={() => setReplyTo(msg)}><span aria-hidden>↩ </span>{t('chat.reply', {defaultValue: 'Reply'})}</button>
+                      {(msg.type === 'text' || msg.type === 'reply') && (
+                        <button style={{ background: 'none', border: 'none', fontSize: 11, color: editingMessageId === msg.id ? 'var(--accent)' : 'var(--dim)', cursor: 'pointer' }}
+                          onClick={() => startEditMessage(msg)}><span aria-hidden>✎ </span>{t('common.edit')}</button>
+                      )}
                       <button aria-label={t('chat.addReaction', {defaultValue: 'Add reaction'})} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
                         onClick={() => setShowEmojiFor(showEmojiFor === msg.id ? null : msg.id)}>😊</button>
                     </div>
@@ -530,11 +560,18 @@ export default function ChatView({ onUpdate }: Props) {
 
         {activeChannelId && !activeChannel?.archived && (
           <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
-            {replyTo && (
+            {replyTo && !editingMessageId && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11, color: 'var(--muted)' }}>
                 <span>{t('chat.replyingTo', {defaultValue: 'Replying to'})} <strong style={{ color: getMember(replyTo.authorId)?.color }}>{getMember(replyTo.authorId)?.name}</strong></span>
                 <button aria-label={t('common.cancel')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
                   onClick={() => setReplyTo(null)}>✕</button>
+              </div>
+            )}
+            {editingMessageId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11 }}>
+                <span style={{ color: 'var(--accent)', fontWeight: 500 }}>✎ {t('chat.editingHeader')}</span>
+                <button aria-label={t('common.cancel')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
+                  onClick={cancelEditMessage}>✕</button>
               </div>
             )}
 
@@ -557,8 +594,8 @@ export default function ChatView({ onUpdate }: Props) {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <textarea className="field__input" value={input} onChange={e => setInput(e.target.value)}
-                aria-label={t('chat.messagePlaceholder', {name: activeChannel?.name || '', defaultValue: 'Message #{{name}}...'})}
-                placeholder={t('chat.messagePlaceholder', {name: activeChannel?.name || '', defaultValue: 'Message #{{name}}...'})}
+                aria-label={editingMessageId ? t('chat.editPlaceholder') : t('chat.messagePlaceholder', {name: activeChannel?.name || '', defaultValue: 'Message #{{name}}...'})}
+                placeholder={editingMessageId ? t('chat.editPlaceholder') : t('chat.messagePlaceholder', {name: activeChannel?.name || '', defaultValue: 'Message #{{name}}...'})}
                 style={{ flex: 1, minHeight: 36, maxHeight: 120, resize: 'vertical', fontSize: 13 }}
                 onPaste={e => {
                   if (!activeChannelId || !activeMemberId) return;
@@ -577,8 +614,11 @@ export default function ChatView({ onUpdate }: Props) {
                   };
                   reader.readAsDataURL(file);
                 }}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} />
-              <Btn variant="solid" onClick={sendMessage}>{t('chat.send', {defaultValue: 'Send'})}</Btn>
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (editingMessageId) { saveEditedMessage(); } else { sendMessage(); } }
+                  if (e.key === 'Escape' && editingMessageId) { e.preventDefault(); cancelEditMessage(); }
+                }} />
+              <Btn variant="solid" onClick={editingMessageId ? saveEditedMessage : sendMessage}>{editingMessageId ? t('common.save') : t('chat.send', {defaultValue: 'Send'})}</Btn>
             </div>
           </div>
         )}

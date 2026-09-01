@@ -167,6 +167,10 @@
     "title": "Meðlimir",
     "add": "+ Bæta við",
     "displayFields": "Birtingarreitir",
+    "cardBackground": "Bakgrunnur korts",
+    "bgPlain": "Einfaldur",
+    "bgMemberColor": "Litur meðlims",
+    "bgBanner": "Borði",
     "fieldPronouns": "Fornöfn",
     "fieldRoles": "Hlutverk",
     "fieldGroups": "Hópar",
@@ -492,6 +496,7 @@
     "archive": "Safn"
   },
   "markdown": {
+    "brokenImage": "[biluð mynd]",
     "imageUnavailable": "[mynd ekki tiltæk]"
   },
   "modal": {
@@ -513,6 +518,7 @@
     "read": "Lesa",
     "name": "Nafn *",
     "headmateName": "Nafn headmate",
+    "nickname": "Gælunafn",
     "pronouns": "Fornöfn",
     "pronounsPlaceholder": "t.d. hán/þau",
     "role": "Hlutverk / erkitýpa",
@@ -578,6 +584,9 @@
     "palPreviewMid": "Milli",
     "paletteSlots": "{{used}} / {{max}} sérsniðin litasett",
     "pfpFailed": "Mynd mistókst",
+    "imagePickHow": "Hvernig viltu bæta þessari mynd við?",
+    "imageAuto": "Sjálfvirkt",
+    "cropImage": "Sníða mynd",
     "removePfp": "Fjarlægja mynd",
     "viewPfp": "Skoða mynd",
     "viewPfpOf": "Mynd af {{name}}",
@@ -680,7 +689,11 @@
     "facets": "Hliðar",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "Kerfi"
+    "system": "Kerfi",
+    "tierHint": "Endurnefndu frontstigin. Orðið þitt kemur í stað sjálfgefna orðsins alls staðar. Tómt notar sjálfgefið.",
+    "tierPrimary": "Aðalfront",
+    "tierCoFront": "Sam-front",
+    "tierCoConscious": "Sam-meðvitund"
   },
   "planner": {
     "title": "Dagsskipuleggjari",
@@ -854,6 +867,15 @@
     "clearTitle": "Hreinsa töfluna?",
     "clearMsg": "Þetta eyðir öllu á töflunni fyrir fullt og allt.",
     "brushSize": "Pensilstærð",
+    "shapeLine": "Lína",
+    "shapeRect": "Rétthyrningur",
+    "shapeEllipse": "Sporbaugur",
+    "shapePoly": "Marghyrningur",
+    "voPlaceShape": "Setja {{shape}} hér",
+    "voPlacedShape": "{{shape}} sett",
+    "voPolyPoint": "Bæta horni við hér",
+    "voPolyFinish": "Ljúka marghyrningi",
+    "voPolyPointAdded": "Horni bætt við",
     "bucket": "Fyllifata",
     "penColor": "Pennalitur"
   },
@@ -882,6 +904,8 @@
     "type": "Tegund",
     "deleteRelationship": "Eyða tengslum",
     "deleteRelationshipMsg": "Fjarlægja þessi tengsl?",
+    "deleteType": "Eyða tegund",
+    "deleteTypeMsg": "Þetta fjarlægir líka öll tengsl sem nota þessa tegund.",
     "duplicate": "Þessir meðlimir hafa nú þegar þessi tengsl.",
     "relationships": "{{count}} tengsl",
     "relationshipOne": "1 tengsl",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Veldu mælanda",
     "searchSpeaker": "Leita að mælanda…",
     "noMessages": "Engin skilaboð enn.",
+    "editingHeader": "Breyti skilaboðum",
+    "editPlaceholder": "Breyta skilaboðum…",
     "typeMessage": "Skrifaðu skilaboð…",
     "imageFailed": "Mynd mistókst"
   },

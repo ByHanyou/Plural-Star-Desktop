@@ -48,7 +48,11 @@
     "facets": "Diện",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "Hệ thống"
+    "system": "Hệ thống",
+    "tierHint": "Đổi tên các cấp độ front. Từ của bạn sẽ thay thế từ mặc định ở mọi nơi. Để trống sẽ dùng mặc định.",
+    "tierPrimary": "Front Chính",
+    "tierCoFront": "Đồng Front",
+    "tierCoConscious": "Đồng Ý thức"
   },
   "planner": {
     "title": "Sổ Kế hoạch Ngày",
@@ -354,6 +358,10 @@
     "removeFromFront": "Gỡ khỏi front",
     "removeFromFrontMsg": "Gỡ {{name}} khỏi front?",
     "displayFields": "Trường hiển thị",
+    "cardBackground": "Nền thẻ",
+    "bgPlain": "Trơn",
+    "bgMemberColor": "Màu của thành viên",
+    "bgBanner": "Ảnh bìa",
     "fieldGroups": "Nhóm",
     "fieldDescriptions": "Mô tả",
     "fieldPronouns": "Đại từ",
@@ -662,6 +670,7 @@
     "supportPS": "Ủng hộ PS"
   },
   "markdown": {
+    "brokenImage": "[ảnh hỏng]",
     "imageUnavailable": "[ảnh không khả dụng]"
   },
   "modal": {
@@ -684,6 +693,7 @@
     "member": "Thành viên",
     "name": "Tên *",
     "headmateName": "Tên headmate",
+    "nickname": "Biệt danh",
     "pronouns": "Đại từ",
     "pronounsPlaceholder": "vd. cô ấy/họ",
     "role": "Vai trò / Hình mẫu",
@@ -746,6 +756,9 @@
     "palPreviewMid": "Giữa",
     "paletteSlots": "{{used}} / {{max}} bảng màu tùy chỉnh",
     "pfpFailed": "Ảnh Lỗi",
+    "imagePickHow": "Bạn muốn thêm ảnh này như thế nào?",
+    "imageAuto": "Tự động",
+    "cropImage": "Cắt ảnh",
     "removePfp": "Gỡ Ảnh",
     "viewPfp": "Xem Ảnh",
     "viewPfpOf": "Ảnh của {{name}}",
@@ -900,6 +913,8 @@
     "selectSpeaker": "Chọn Người nói",
     "searchSpeaker": "Tìm người nói…",
     "noMessages": "Chưa có tin nhắn nào.",
+    "editingHeader": "Đang sửa tin nhắn",
+    "editPlaceholder": "Sửa tin nhắn…",
     "typeMessage": "Nhập tin nhắn…",
     "imageFailed": "Ảnh Lỗi"
   },
@@ -972,6 +987,15 @@
     "clearTitle": "Xóa bảng trắng?",
     "clearMsg": "Thao tác này xóa vĩnh viễn mọi thứ trên bảng.",
     "brushSize": "Cỡ cọ",
+    "shapeLine": "Đường thẳng",
+    "shapeRect": "Hình chữ nhật",
+    "shapeEllipse": "Hình elip",
+    "shapePoly": "Đa giác",
+    "voPlaceShape": "Đặt {{shape}} ở đây",
+    "voPlacedShape": "Đã đặt {{shape}}",
+    "voPolyPoint": "Thêm đỉnh ở đây",
+    "voPolyFinish": "Hoàn thành đa giác",
+    "voPolyPointAdded": "Đã thêm đỉnh",
     "bucket": "Thùng sơn",
     "penColor": "Màu bút"
   },
@@ -992,6 +1016,8 @@
     "addRelationship": "+ Thêm Mối quan hệ",
     "deleteRelationship": "Xóa Mối quan hệ",
     "deleteRelationshipMsg": "Gỡ mối quan hệ này?",
+    "deleteType": "Xóa Loại",
+    "deleteTypeMsg": "Thao tác này cũng sẽ gỡ tất cả mối quan hệ dùng loại này.",
     "duplicate": "Hai thành viên này đã có mối quan hệ này.",
     "noRelationships": "Chưa có mối quan hệ nào. Nhấn + Thêm Mối quan hệ để bắt đầu xây dựng bản đồ của bạn.",
     "relationships": "{{count}} mối quan hệ",

@@ -75,9 +75,9 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     NetworkManager.loadMirror(peerId, feature)
       .then(e => setEntry(e))
       .catch(e => logError('mirror', e));
-    // The system profile stands alone — it never resolves member ids, so
-    // loading the roster mirror for it is a read for nothing.
-    if (feature !== 'members' && feature !== 'systemProfile') {
+    // The system profile and whiteboard stand alone — they never resolve
+    // member ids, so loading the roster mirror for them is a read for nothing.
+    if (feature !== 'members' && feature !== 'systemProfile' && feature !== 'whiteboard') {
       NetworkManager.loadMirror(peerId, 'members')
         .then(e => setMemberCache(Array.isArray(e?.data) ? (e!.data as MirrorMember[]) : []))
         .catch(() => {});
@@ -107,6 +107,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     : feature === 'groups' ? t('memberGroups.title')
     : feature === 'history' ? t('tabs.history')
     : feature === 'systemProfile' ? t('systemProfile.title')
+    : feature === 'whiteboard' ? t('whiteboard.title')
     : t('tabs.journal');
 
   const dim: React.CSSProperties = { fontSize: 12, color: 'var(--muted)' };
@@ -317,6 +318,50 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
       return <p style={dim}>{online ? t('network.mirrorLoading') : t('network.mirrorEmptyOffline')}</p>;
     }
     if (entry.none) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+    if (feature === 'whiteboard') {
+      const strokes: {id: string; c: string; w: number; pts: number[]}[] = Array.isArray(entry.data) ? entry.data : [];
+      if (strokes.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+      // World half-size matches WhiteboardView's HALF: a w === -1 stroke is a
+      // whole-board fill and needs the full board box to mean anything.
+      const HALF_W = 2000;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      let boardFill = false;
+      for (const s of strokes) {
+        if (!s || !Array.isArray(s.pts)) continue;
+        if (s.w === -1) { boardFill = true; continue; }
+        for (let i = 0; i + 1 < s.pts.length; i += 2) {
+          if (s.pts[i] < minX) minX = s.pts[i];
+          if (s.pts[i] > maxX) maxX = s.pts[i];
+          if (s.pts[i + 1] < minY) minY = s.pts[i + 1];
+          if (s.pts[i + 1] > maxY) maxY = s.pts[i + 1];
+        }
+      }
+      if (!Number.isFinite(minX) || boardFill) { minX = -HALF_W; minY = -HALF_W; maxX = HALF_W; maxY = HALF_W; }
+      const pad = 40;
+      const vw = Math.max(1, maxX - minX + pad * 2);
+      const vh = Math.max(1, maxY - minY + pad * 2);
+      const sp = (pts: number[]): string => {
+        if (pts.length < 2) return '';
+        let d = `M ${pts[0]} ${pts[1]}`;
+        if (pts.length === 2) d += ` L ${pts[0] + 0.1} ${pts[1] + 0.1}`;
+        for (let i = 2; i < pts.length; i += 2) d += ` L ${pts[i]} ${pts[i + 1]}`;
+        return d;
+      };
+      return (
+        <div role="img" aria-label={t('whiteboard.title')}
+          style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <svg width="100%" viewBox={`${minX - pad} ${minY - pad} ${vw} ${vh}`} style={{ display: 'block', maxHeight: '60vh' }}>
+            {strokes.map(s => !s || !Array.isArray(s.pts) ? null : s.w === -1 ? (
+              <path key={s.id} d={`M ${-HALF_W} ${-HALF_W} H ${HALF_W} V ${HALF_W} H ${-HALF_W} Z`} fill={s.c} stroke="none" />
+            ) : s.w === -2 ? (
+              <path key={s.id} d={`${sp(s.pts)} Z`} fill={s.c} stroke="none" />
+            ) : (
+              <path key={s.id} d={sp(s.pts)} stroke={s.c} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            ))}
+          </svg>
+        </div>
+      );
+    }
     if (feature === 'systemProfile') {
       const sp = (entry.data && typeof entry.data === 'object' && !Array.isArray(entry.data)
         ? entry.data

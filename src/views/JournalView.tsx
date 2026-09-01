@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime } from '../utils';
+import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMatchesSearch } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
 import { useAppStore } from '../store/appStore';
@@ -177,7 +177,7 @@ export default function JournalView({ onUpdate }: Props) {
     setEditingTemplate(null);
   };
 
-  const authorMatch = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && (!authorSearch || m.name.toLowerCase().includes(authorSearch.toLowerCase()));
+  const authorMatch = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && memberMatchesSearch(m, authorSearch);
   const filteredAuthors = members.filter(m => !m.isFacet && authorMatch(m));
   // Facets keep their own section: out of the member list, still selectable.
   const filteredFacetAuthors = members.filter(m => m.isFacet && authorMatch(m));

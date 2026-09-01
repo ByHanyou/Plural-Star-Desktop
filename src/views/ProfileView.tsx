@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl } from '../utils';
-import { PALETTE } from '../theme';
+import { PALETTE, initialOn } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
+import { chooseImageTreatment } from '../components/ImageCropModal';
 import { CustomHexEntry } from '../components/CustomHexEntry';
 
 type SubTab = 'profile' | 'statuses';
@@ -80,7 +81,9 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (dataUrl) set('avatar', dataUrl);
+    if (!dataUrl) return;
+    const chosen = await chooseImageTreatment(dataUrl);
+    if (chosen) set('avatar', chosen);
   };
 
   const pickBanner = async () => {
@@ -90,10 +93,12 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
     if (!dataUrl) return;
+    const chosen = await chooseImageTreatment(dataUrl);
+    if (!chosen) return;
     try {
-      const resized = await resizeBannerDataUrl(dataUrl);
+      const resized = await resizeBannerDataUrl(chosen);
       set('banner', resized);
-    } catch { set('banner', dataUrl); }
+    } catch { set('banner', chosen); }
   };
 
   return (
@@ -200,8 +205,8 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
           <div className="tile__avatar" style={{
             width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
             border: `2px solid ${f.color}`, overflow: 'hidden',
-            ...(!f.avatar ? { backgroundColor: f.color } : {}),
-          }} {...clickable(pickAvatar, 'Change profile picture')}>
+            ...(!f.avatar ? { backgroundColor: f.color, color: initialOn(f.color) } : {}),
+          }} {...clickable(pickAvatar, t('modal.changePfp'))}>
             {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
           </div>
           <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
@@ -219,7 +224,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
             backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
             backgroundColor: f.banner ? undefined : 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,
-          }} {...clickable(pickBanner, 'Change banner')}>
+          }} {...clickable(pickBanner, t('memberProfile.changeBanner'))}>
             {!f.banner && t('memberProfile.changeBanner')}
           </div>
           {f.banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}

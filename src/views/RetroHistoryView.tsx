@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontState, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses } from '../utils';
+import { Member, HistoryEntry, FrontState, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Field, Toggle, useEscapeKey } from '../components/ui';
@@ -195,13 +195,17 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     finish();
   };
 
-  const TierMemberPicker = ({ tierKey, poolKey, label, color, selected, setSelected, pool }: {
+  const TierMemberPicker = ({ tierKey, poolKey, label, color, selected, setSelected, pool, searchKind }: {
     tierKey: FrontTierKey; poolKey: string; label: string; color: string;
     selected: string[]; setSelected: (ids: string[]) => void; pool: Member[];
+    /** What this picker lists, for the search placeholder. Every box said
+     *  "Type to search alters…" under headers naming facets and custom fronts.
+     *  Omitted for the plain members picker, which keeps its own wording. */
+    searchKind?: string;
   }) => {
     const q = search[poolKey] || '';
     const ql = q.toLowerCase();
-    const filtered = ql ? pool.filter(m => !selected.includes(m.id) && m.name.toLowerCase().includes(ql)) : [];
+    const filtered = ql ? pool.filter(m => !selected.includes(m.id) && memberMatchesSearch(m, ql)) : [];
     const poolSelected = pool.filter(m => selected.includes(m.id));
     const toggle = (id: string) => {
       setSelected(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
@@ -227,7 +231,9 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         )}
         <input className="field__input" value={q}
           onChange={e => setSearch({ ...search, [poolKey]: e.target.value })}
-          aria-label={t('members.searchToAdd')} placeholder={t('members.searchToAdd')} style={{ marginBottom: 6, fontSize: 12 }} />
+          aria-label={searchKind ? t('members.searchToAddKind', { kind: searchKind, defaultValue: `Type to search ${searchKind}…` }) : t('members.searchToAdd')}
+          placeholder={searchKind ? t('members.searchToAddKind', { kind: searchKind, defaultValue: `Type to search ${searchKind}…` }) : t('members.searchToAdd')}
+          style={{ marginBottom: 6, fontSize: 12 }} />
         {ql && filtered.length > 0 && (
           <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 4 }}>
             {filtered.slice(0, 20).map(m => {
@@ -273,17 +279,22 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         <TierMemberPicker tierKey="primary" poolKey="primary" label={t('status.statuses')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={statusPool} />
       ) : (<>
         <TierMemberPicker tierKey="primary" poolKey="primary" label={TIER_LABELS.primary} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={regularMembers} />
-        <TierMemberPicker tierKey="primary" poolKey="primaryFacet" label={t('members.facets')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={facetMembers} />
+        <TierMemberPicker tierKey="primary" poolKey="primaryFacet" label={t('members.facets')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={facetMembers} searchKind={t('members.facets')} />
         {customFronts.length > 0 && (
-          <TierMemberPicker tierKey="primary" poolKey="primaryCf" label={t('members.customFronts')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={customFronts} />
+          <TierMemberPicker tierKey="primary" poolKey="primaryCf" label={t('members.customFronts')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={customFronts} searchKind={t('members.customFronts')} />
         )}
         <TierMemberPicker tierKey="coFront" poolKey="coFront" label={TIER_LABELS.coFront} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={regularMembers} />
-        <TierMemberPicker tierKey="coFront" poolKey="coFrontFacet" label={t('members.facets')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={facetMembers} />
+        <TierMemberPicker tierKey="coFront" poolKey="coFrontFacet" label={t('members.facets')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={facetMembers} searchKind={t('members.facets')} />
         {customFronts.length > 0 && (
-          <TierMemberPicker tierKey="coFront" poolKey="coFrontCf" label={t('members.customFronts')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={customFronts} />
+          <TierMemberPicker tierKey="coFront" poolKey="coFrontCf" label={t('members.customFronts')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={customFronts} searchKind={t('members.customFronts')} />
         )}
         <TierMemberPicker tierKey="coConscious" poolKey="coConscious" label={TIER_LABELS.coConscious} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={regularMembers} />
-        <TierMemberPicker tierKey="coConscious" poolKey="coConsciousFacet" label={t('members.facets')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={facetMembers} />
+        <TierMemberPicker tierKey="coConscious" poolKey="coConsciousFacet" label={t('members.facets')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={facetMembers} searchKind={t('members.facets')} />
+        {/* Custom fronts were pickable for primary and co-front but ABSENT
+            here — "custom front is missing from co con". */}
+        {customFronts.length > 0 && (
+          <TierMemberPicker tierKey="coConscious" poolKey="coConsciousCf" label={t('members.customFronts')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={customFronts} searchKind={t('members.customFronts')} />
+        )}
       </>)}
 
       <Field label={t('modal.mood')} value={mood} onChange={setMood} placeholder={t('modal.enterMood')} />

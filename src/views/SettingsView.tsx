@@ -7,7 +7,7 @@ import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
 import type { SupportedLanguage } from '../i18n/i18n';
-import { setTerminologyOverrides } from '../i18n/terminology';
+import { setTerminologyOverrides, setTierNameOverrides } from '../i18n/terminology';
 
 interface Props {
   onUpdate: () => void;
@@ -60,6 +60,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   const [lang, setLang] = useState<SupportedLanguage>(settings.language);
   const [notif, setNotif] = useState(settings.notificationsEnabled);
   const [termMap, setTermMap] = useState<Record<string, string>>(settings.terminology || {});
+  const [tierMap, setTierMap] = useState<Record<string, string>>(settings.tierNames || {});
   const [textScale, setTextScale] = useState<TextScale>(settings.textScale);
   const [activePaletteId, setActivePaletteId] = useState(settings.activePaletteId);
   const [fontChoice, setFontChoice] = useState<FontChoice>(settings.fontChoice ?? (settings.useDyslexicFont === true ? 'opendyslexic' : 'default'));
@@ -150,8 +151,10 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
         ...settings, accountMode: singletMode ? 'singlet' : 'system', locations: locs, customMoods: moods, language: lang,
         notificationsEnabled: notif, textScale, activePaletteId, fontChoice, useDyslexicFont: fontChoice === 'opendyslexic',
         terminology: termMap,
+        tierNames: tierMap,
       });
       setTerminologyOverrides(termMap);
+      setTierNameOverrides(tierMap);
       changeLanguage(lang);
       applyTextScale(textScale);
       applyFontChoice(fontChoice);
@@ -298,6 +301,15 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
         {(['member', 'members', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system'] as const).map(term => (
           <Field key={term} label={t(`terminology.${term}`)} value={termMap[term] || ''}
             onChange={v => setTermMap(m => ({ ...m, [term]: v }))} placeholder={t(`terminology.${term}`)} />
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{t('terminology.tierHint')}</div>
+      {/* terminology.* label keys: exempt from both override passes, so the
+          defaults stay visible for resetting, same as the fields above. */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+        {([['primary', 'tierPrimary'], ['coFront', 'tierCoFront'], ['coConscious', 'tierCoConscious']] as const).map(([tier, labelKey]) => (
+          <Field key={tier} label={t(`terminology.${labelKey}`)} value={tierMap[tier] || ''}
+            onChange={v => setTierMap(m => ({ ...m, [tier]: v }))} placeholder={t(`terminology.${labelKey}`)} />
         ))}
       </div>
 

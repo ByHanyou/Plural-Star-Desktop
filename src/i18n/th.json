@@ -48,7 +48,11 @@
     "facets": "แง่มุม",
     "front": "ฟรอนต์",
     "fronting": "การฟรอนต์",
-    "system": "ระบบ"
+    "system": "ระบบ",
+    "tierHint": "เปลี่ยนชื่อระดับการฟรอนต์ คำของคุณจะแทนที่คำเริ่มต้นทุกที่ เว้นว่างเพื่อใช้ค่าเริ่มต้น",
+    "tierPrimary": "ฟรอนต์หลัก",
+    "tierCoFront": "โค-ฟรอนต์",
+    "tierCoConscious": "โค-คอนเชียส"
   },
   "planner": {
     "title": "ตัววางแผนประจำวัน",
@@ -354,6 +358,10 @@
     "removeFromFront": "นำออกจากฟรอนต์",
     "removeFromFrontMsg": "นำ {{name}} ออกจากฟรอนต์หรือไม่?",
     "displayFields": "ฟิลด์ที่แสดง",
+    "cardBackground": "พื้นหลังการ์ด",
+    "bgPlain": "เรียบ",
+    "bgMemberColor": "สีของสมาชิก",
+    "bgBanner": "แบนเนอร์",
     "fieldGroups": "กลุ่ม",
     "fieldDescriptions": "คำอธิบาย",
     "fieldPronouns": "สรรพนาม",
@@ -662,6 +670,7 @@
     "supportPS": "สนับสนุน PS"
   },
   "markdown": {
+    "brokenImage": "[รูปภาพเสีย]",
     "imageUnavailable": "[รูปภาพไม่พร้อมใช้งาน]"
   },
   "modal": {
@@ -684,6 +693,7 @@
     "member": "สมาชิก",
     "name": "ชื่อ *",
     "headmateName": "ชื่อเฮดเมท",
+    "nickname": "ชื่อเล่น",
     "pronouns": "สรรพนาม",
     "pronounsPlaceholder": "เช่น เธอ/พวกเขา",
     "role": "บทบาท / อาร์คีไทป์",
@@ -746,6 +756,9 @@
     "palPreviewMid": "กลาง",
     "paletteSlots": "{{used}} / {{max}} ชุดสีกำหนดเอง",
     "pfpFailed": "รูปภาพล้มเหลว",
+    "imagePickHow": "ต้องการเพิ่มรูปภาพนี้อย่างไร",
+    "imageAuto": "อัตโนมัติ",
+    "cropImage": "ครอบตัดรูปภาพ",
     "removePfp": "นำรูปออก",
     "viewPfp": "ดูรูป",
     "viewPfpOf": "รูปของ {{name}}",
@@ -900,6 +913,8 @@
     "selectSpeaker": "เลือกผู้พูด",
     "searchSpeaker": "ค้นหาผู้พูด…",
     "noMessages": "ยังไม่มีข้อความ",
+    "editingHeader": "กำลังแก้ไขข้อความ",
+    "editPlaceholder": "แก้ไขข้อความ…",
     "typeMessage": "พิมพ์ข้อความ…",
     "imageFailed": "รูปภาพล้มเหลว"
   },
@@ -972,6 +987,15 @@
     "clearTitle": "ล้างไวท์บอร์ด?",
     "clearMsg": "การดำเนินการนี้จะลบทุกอย่างบนกระดานอย่างถาวร",
     "brushSize": "ขนาดพู่กัน",
+    "shapeLine": "เส้น",
+    "shapeRect": "สี่เหลี่ยมผืนผ้า",
+    "shapeEllipse": "วงรี",
+    "shapePoly": "รูปหลายเหลี่ยม",
+    "voPlaceShape": "วาง{{shape}}ที่นี่",
+    "voPlacedShape": "วาง{{shape}}แล้ว",
+    "voPolyPoint": "เพิ่มจุดมุมที่นี่",
+    "voPolyFinish": "จบรูปหลายเหลี่ยม",
+    "voPolyPointAdded": "เพิ่มจุดมุมแล้ว",
     "bucket": "ถังสี",
     "penColor": "สีปากกา"
   },
@@ -992,6 +1016,8 @@
     "addRelationship": "+ เพิ่มความสัมพันธ์",
     "deleteRelationship": "ลบความสัมพันธ์",
     "deleteRelationshipMsg": "นำความสัมพันธ์นี้ออก?",
+    "deleteType": "ลบประเภท",
+    "deleteTypeMsg": "การดำเนินการนี้จะนำความสัมพันธ์ทั้งหมดที่ใช้ประเภทนี้ออกด้วย",
     "duplicate": "สมาชิกคู่นี้มีความสัมพันธ์นี้อยู่แล้ว",
     "noRelationships": "ยังไม่มีความสัมพันธ์ แตะ + เพิ่มความสัมพันธ์เพื่อเริ่มสร้างแผนที่ของคุณ",
     "relationships": "{{count}} ความสัมพันธ์",

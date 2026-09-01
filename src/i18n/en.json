@@ -167,6 +167,10 @@
     "title": "Members",
     "add": "+ Add",
     "displayFields": "Display Fields",
+    "cardBackground": "Card Background",
+    "bgPlain": "Plain",
+    "bgMemberColor": "Member Color",
+    "bgBanner": "Banner",
     "fieldPronouns": "Pronouns",
     "fieldRoles": "Roles",
     "fieldGroups": "Groups",
@@ -492,6 +496,7 @@
     "archive": "Archive"
   },
   "markdown": {
+    "brokenImage": "[broken image]",
     "imageUnavailable": "[image unavailable]"
   },
   "modal": {
@@ -513,6 +518,7 @@
     "read": "Read",
     "name": "Name *",
     "headmateName": "Headmate name",
+    "nickname": "Nickname",
     "pronouns": "Pronouns",
     "pronounsPlaceholder": "e.g. they/them",
     "role": "Role / Archetype",
@@ -578,6 +584,9 @@
     "palPreviewMid": "Mid",
     "paletteSlots": "{{used}} / {{max}} custom palettes",
     "pfpFailed": "Image Failed",
+    "imagePickHow": "How do you want to add this picture?",
+    "imageAuto": "Auto",
+    "cropImage": "Crop Picture",
     "removePfp": "Remove Photo",
     "viewPfp": "View Photo",
     "viewPfpOf": "Photo of {{name}}",
@@ -680,7 +689,11 @@
     "facets": "Facets",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "System"
+    "system": "System",
+    "tierHint": "Rename the fronting levels. Your word replaces the default everywhere. Blank uses the default.",
+    "tierPrimary": "Primary Front",
+    "tierCoFront": "Co-Front",
+    "tierCoConscious": "Co-Conscious"
   },
   "planner": {
     "title": "Day Planner",
@@ -854,6 +867,15 @@
     "clearTitle": "Clear whiteboard?",
     "clearMsg": "This erases everything on the board for good.",
     "brushSize": "Brush size",
+    "shapeLine": "Line",
+    "shapeRect": "Rectangle",
+    "shapeEllipse": "Ellipse",
+    "shapePoly": "Polygon",
+    "voPlaceShape": "Place {{shape}} here",
+    "voPlacedShape": "{{shape}} placed",
+    "voPolyPoint": "Add a corner here",
+    "voPolyFinish": "Finish the polygon",
+    "voPolyPointAdded": "Corner added",
     "bucket": "Fill bucket",
     "penColor": "Pen color"
   },
@@ -882,6 +904,8 @@
     "type": "Type",
     "deleteRelationship": "Delete Relationship",
     "deleteRelationshipMsg": "Remove this relationship?",
+    "deleteType": "Delete Type",
+    "deleteTypeMsg": "This will also remove all relationships using this type.",
     "duplicate": "These members already have this relationship.",
     "relationships": "{{count}} relationships",
     "relationshipOne": "1 relationship",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Select Speaker",
     "searchSpeaker": "Search speaker…",
     "noMessages": "No messages yet.",
+    "editingHeader": "Editing message",
+    "editPlaceholder": "Edit message…",
     "typeMessage": "Type a message…",
     "imageFailed": "Image Failed"
   },

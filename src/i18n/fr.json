@@ -48,7 +48,11 @@
     "facets": "Facettes",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "Système"
+    "system": "Système",
+    "tierHint": "Renomme les niveaux de front. Ton mot remplace le mot par défaut partout. Vide = mot par défaut.",
+    "tierPrimary": "Front Principal",
+    "tierCoFront": "Co-Front",
+    "tierCoConscious": "Co-Conscient"
   },
   "planner": {
     "title": "Agenda du Jour",
@@ -222,6 +226,15 @@
     "clearTitle": "Vider le tableau blanc ?",
     "clearMsg": "Cela efface définitivement tout le contenu du tableau.",
     "brushSize": "Taille du pinceau",
+    "shapeLine": "Ligne",
+    "shapeRect": "Rectangle",
+    "shapeEllipse": "Ellipse",
+    "shapePoly": "Polygone",
+    "voPlaceShape": "Placer {{shape}} ici",
+    "voPlacedShape": "{{shape}} placé",
+    "voPolyPoint": "Ajouter un sommet ici",
+    "voPolyFinish": "Terminer le polygone",
+    "voPolyPointAdded": "Sommet ajouté",
     "bucket": "Pot de peinture",
     "penColor": "Couleur du stylo"
   },
@@ -242,6 +255,8 @@
     "addRelationship": "+ Ajouter une relation",
     "deleteRelationship": "Supprimer la relation",
     "deleteRelationshipMsg": "Supprimer cette relation ?",
+    "deleteType": "Supprimer le type",
+    "deleteTypeMsg": "Cela supprimera aussi toutes les relations utilisant ce type.",
     "duplicate": "Ces membres ont déjà cette relation.",
     "noRelationships": "Aucune relation pour l'instant. Touchez + Ajouter une relation pour commencer votre carte.",
     "relationships": "{{count}} relations",
@@ -426,6 +441,10 @@
   },
   "members": {
     "displayFields": "Champs affichés",
+    "cardBackground": "Fond de carte",
+    "bgPlain": "Uni",
+    "bgMemberColor": "Couleur du membre",
+    "bgBanner": "Bannière",
     "fieldPronouns": "Pronoms",
     "fieldRoles": "Rôles",
     "fieldGroups": "Groupes",
@@ -716,6 +735,7 @@
     "banners": "Bannières des Membres"
   },
   "markdown": {
+    "brokenImage": "[image corrompue]",
     "imageUnavailable": "[image indisponible]"
   },
   "modal": {
@@ -737,6 +757,7 @@
     "read": "Lire",
     "name": "Nom *",
     "headmateName": "Nom du compagnon",
+    "nickname": "Surnom",
     "pronouns": "Pronoms",
     "pronounsPlaceholder": "p. ex. iel",
     "role": "Rôle / Archétype",
@@ -802,6 +823,9 @@
     "palPreviewMid": "Moyen",
     "paletteSlots": "{{used}} / {{max}} palettes personnalisées",
     "pfpFailed": "Erreur d'Image",
+    "imagePickHow": "Comment ajouter cette image ?",
+    "imageAuto": "Auto",
+    "cropImage": "Recadrer l'image",
     "removePfp": "Supprimer la Photo",
     "viewPfp": "Voir la Photo",
     "viewPfpOf": "Photo de {{name}}",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Sélectionner",
     "searchSpeaker": "Rechercher…",
     "noMessages": "Pas encore de messages.",
+    "editingHeader": "Modification du message",
+    "editPlaceholder": "Modifier le message…",
     "typeMessage": "Écrire un message…",
     "imageFailed": "Erreur d'Image"
   },

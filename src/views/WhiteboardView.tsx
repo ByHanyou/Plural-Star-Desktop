@@ -20,7 +20,31 @@ interface Stroke {
   pts: number[];
 }
 
-type Tool = 'draw' | 'move' | 'erase' | 'bucket';
+type ShapeTool = 'line' | 'rect' | 'ellipse';
+type Tool = 'draw' | 'move' | 'erase' | 'bucket' | 'poly' | ShapeTool;
+
+const isShapeTool = (tl: Tool): tl is ShapeTool => tl === 'line' || tl === 'rect' || tl === 'ellipse';
+
+/** Shape outlines as plain polyline points, so a committed shape IS an
+ *  ordinary stroke: mirrors, sync and older builds render it with no format
+ *  change. Closed shapes repeat their first point; the ellipse is a
+ *  48-segment approximation. (The polygon tool builds its points click by
+ *  click instead — see addPolyVertex.) */
+const shapePts = (shape: ShapeTool, x0: number, y0: number, x1: number, y1: number): number[] => {
+  if (shape === 'line') return [x0, y0, x1, y1];
+  if (shape === 'rect') return [x0, y0, x1, y0, x1, y1, x0, y1, x0, y0];
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  const rx = Math.abs(x1 - x0) / 2;
+  const ry = Math.abs(y1 - y0) / 2;
+  const pts: number[] = [];
+  const N = 48;
+  for (let i = 0; i <= N; i++) {
+    const a = (i / N) * Math.PI * 2;
+    pts.push(Math.round(cx + rx * Math.cos(a)), Math.round(cy + ry * Math.sin(a)));
+  }
+  return pts;
+};
 
 const WIDTHS = [1, 3, 6, 12, 15];
 
@@ -55,6 +79,14 @@ export default function WhiteboardView() {
   const widthRef = useRef(width);
   widthRef.current = width;
   const panStartRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
+  // Polygon tool (Paint-style): each click adds a corner, lines connect them.
+  // Clicking the first corner again (3+ corners) or double-clicking finishes;
+  // the shape commits closed, exactly two corners commit as a line. The
+  // in-progress polygon lives in `current` as the preview, with a rubber
+  // band to the hovered point.
+  const polyPtsRef = useRef<number[] | null>(null);
+  const polyIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     store.get<Stroke[]>(KEYS.whiteboard, []).then(saved => {
@@ -78,6 +110,56 @@ export default function WhiteboardView() {
   };
 
   const clampWorld = (v: number) => Math.max(-HALF + 20, Math.min(HALF - 20, Math.round(v)));
+
+  const cancelPoly = useCallback(() => {
+    polyPtsRef.current = null;
+    polyIdRef.current = null;
+    currentRef.current = null;
+    setCurrent(null);
+  }, []);
+
+  const finishPoly = () => {
+    const pts = polyPtsRef.current;
+    polyPtsRef.current = null;
+    polyIdRef.current = null;
+    currentRef.current = null;
+    setCurrent(null);
+    if (!pts || pts.length < 4) return;
+    // 3+ corners close back to the first; exactly two commit as a line.
+    const closed = pts.length >= 6 ? [...pts, pts[0], pts[1]] : pts;
+    const s: Stroke = { id: uid(), c: colorRef.current, w: widthRef.current, pts: closed };
+    const next = [...strokesRef.current, s];
+    setStrokes(next);
+    persist(next);
+  };
+
+  const addPolyVertex = (wx: number, wy: number, dblClick: boolean): void => {
+    const cx = clampWorld(wx);
+    const cy = clampWorld(wy);
+    const pts = polyPtsRef.current;
+    if (!pts) {
+      polyPtsRef.current = [cx, cy];
+      polyIdRef.current = uid();
+      currentRef.current = { id: polyIdRef.current, c: colorRef.current, w: widthRef.current, pts: [cx, cy] };
+      setCurrent(currentRef.current);
+      return;
+    }
+    const closeThresh = Math.max(12, 16 / viewRef.current.scale);
+    const nearFirst = Math.hypot(cx - pts[0], cy - pts[1]) <= closeThresh;
+    if ((nearFirst && pts.length >= 6) || (dblClick && pts.length >= 4)) {
+      finishPoly();
+      return;
+    }
+    if (Math.hypot(cx - pts[pts.length - 2], cy - pts[pts.length - 1]) < 1) return;
+    polyPtsRef.current = [...pts, cx, cy];
+    currentRef.current = { id: polyIdRef.current || uid(), c: colorRef.current, w: widthRef.current, pts: polyPtsRef.current };
+    setCurrent(currentRef.current);
+  };
+
+  // Leaving the polygon tool abandons the unfinished polygon.
+  useEffect(() => {
+    if (tool !== 'poly' && polyPtsRef.current) cancelPoly();
+  }, [tool, cancelPoly]);
 
   const eraseAt = (wx: number, wy: number) => {
     const radius = widthRef.current;
@@ -123,6 +205,14 @@ export default function WhiteboardView() {
       persist(next);
       return;
     }
+    if (toolRef.current === 'poly') {
+      addPolyVertex(wx, wy, e.detail >= 2);
+      return;
+    }
+    if (isShapeTool(toolRef.current)) {
+      // Anchor corner; the preview stroke is rebuilt from it on every move.
+      shapeStartRef.current = { x: clampWorld(wx), y: clampWorld(wy) };
+    }
     currentRef.current = { id: uid(), c: colorRef.current, w: widthRef.current, pts: [clampWorld(wx), clampWorld(wy)] };
     setCurrent(currentRef.current);
   };
@@ -131,6 +221,16 @@ export default function WhiteboardView() {
     if (panStartRef.current) {
       const p = panStartRef.current;
       setView(v => ({ ...v, tx: p.tx + (e.clientX - p.x), ty: p.ty + (e.clientY - p.y) }));
+      return;
+    }
+    // Polygon rubber band: preview the placed corners plus a segment to the
+    // hovered point. Never mutates polyPtsRef — corners are added on click.
+    if (toolRef.current === 'poly') {
+      const pts = polyPtsRef.current;
+      if (!pts) return;
+      const [hx, hy] = toWorld(e.clientX, e.clientY);
+      currentRef.current = { id: polyIdRef.current || uid(), c: colorRef.current, w: widthRef.current, pts: [...pts, clampWorld(hx), clampWorld(hy)] };
+      setCurrent(currentRef.current);
       return;
     }
     const cur = currentRef.current;
@@ -142,6 +242,12 @@ export default function WhiteboardView() {
     }
     const cx = clampWorld(wx);
     const cy = clampWorld(wy);
+    const start = shapeStartRef.current;
+    if (start && isShapeTool(toolRef.current)) {
+      currentRef.current = { ...cur, pts: shapePts(toolRef.current, start.x, start.y, cx, cy) };
+      setCurrent(currentRef.current);
+      return;
+    }
     const n = cur.pts.length;
     const minStep = Math.max(1, 1.5 / viewRef.current.scale);
     if (Math.hypot(cx - cur.pts[n - 2], cy - cur.pts[n - 1]) >= minStep) {
@@ -155,13 +261,20 @@ export default function WhiteboardView() {
       panStartRef.current = null;
       return;
     }
+    // The polygon preview lives in `current` between clicks; falling through
+    // would commit it on every click (and onPointerLeave routes here too).
+    if (toolRef.current === 'poly') return;
     const cur = currentRef.current;
     currentRef.current = null;
     if (cur && cur.id === '__erasing__') {
       persist(strokesRef.current);
       return;
     }
-    if (cur && cur.pts.length >= 2) {
+    // A shape that was never dragged out is a click, not a shape: committing
+    // it would leave an invisible dot the eraser then has to hunt down.
+    const shapeTap = shapeStartRef.current !== null && cur !== null && cur.pts.length <= 2;
+    shapeStartRef.current = null;
+    if (cur && cur.pts.length >= 2 && !shapeTap) {
       const next = [...strokesRef.current, cur];
       setStrokes(next);
       setCurrent(null);
@@ -206,6 +319,11 @@ export default function WhiteboardView() {
         {toolBtn('draw', '✎', t('whiteboard.draw'))}
         {toolBtn('move', '✥', t('whiteboard.move'))}
         {toolBtn('erase', '⌫', t('whiteboard.erase'))}
+        <span style={{ width: 1, height: 22, background: 'var(--border)' }} aria-hidden />
+        {toolBtn('line', '╱', t('whiteboard.shapeLine'))}
+        {toolBtn('rect', '▭', t('whiteboard.shapeRect'))}
+        {toolBtn('ellipse', '◯', t('whiteboard.shapeEllipse'))}
+        {toolBtn('poly', '⬠', t('whiteboard.shapePoly'))}
         <span style={{ width: 1, height: 22, background: 'var(--border)' }} aria-hidden />
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', alignItems: 'center', flexShrink: 1 }}>
         {WIDTHS.map(wd => (

@@ -48,7 +48,11 @@
     "facets": "Yönler",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "Sistem"
+    "system": "Sistem",
+    "tierHint": "Front seviyelerinin adlarını değiştir. Senin sözcüğün varsayılanın yerine her yerde geçer. Boş bırakılırsa varsayılan kullanılır.",
+    "tierPrimary": "Birincil Front",
+    "tierCoFront": "Eş-Front",
+    "tierCoConscious": "Eş-Bilinç"
   },
   "planner": {
     "title": "Gün Planlayıcı",
@@ -355,6 +359,10 @@
     "removeFromFront": "Fronttan çıkar",
     "removeFromFrontMsg": "{{name}} fronttan çıkarılsın mı?",
     "displayFields": "Görüntülenen Alanlar",
+    "cardBackground": "Kart Arka Planı",
+    "bgPlain": "Sade",
+    "bgMemberColor": "Üye Rengi",
+    "bgBanner": "Afiş",
     "fieldGroups": "Gruplar",
     "fieldDescriptions": "Açıklamalar",
     "fieldPronouns": "Zamirler",
@@ -663,6 +671,7 @@
     "supportPS": "PS'yi Destekle"
   },
   "markdown": {
+    "brokenImage": "[bozuk görsel]",
     "imageUnavailable": "[görsel kullanılamıyor]"
   },
   "modal": {
@@ -685,6 +694,7 @@
     "member": "Üye",
     "name": "Ad *",
     "headmateName": "Headmate adı",
+    "nickname": "Takma ad",
     "pronouns": "Zamirler",
     "pronounsPlaceholder": "örn. o/onlar",
     "role": "Rol / Arketip",
@@ -747,6 +757,9 @@
     "palPreviewMid": "Orta",
     "paletteSlots": "{{used}} / {{max}} özel palet",
     "pfpFailed": "Görsel Yüklenemedi",
+    "imagePickHow": "Bu görseli nasıl eklemek istersin?",
+    "imageAuto": "Otomatik",
+    "cropImage": "Görseli kırp",
     "removePfp": "Fotoğrafı Kaldır",
     "viewPfp": "Fotoğrafı Gör",
     "viewPfpOf": "{{name}} fotoğrafı",
@@ -901,6 +914,8 @@
     "selectSpeaker": "Konuşmacı Seç",
     "searchSpeaker": "Konuşmacı ara…",
     "noMessages": "Henüz mesaj yok.",
+    "editingHeader": "Mesaj düzenleniyor",
+    "editPlaceholder": "Mesajı düzenle…",
     "typeMessage": "Bir mesaj yazın…",
     "imageFailed": "Görsel Yüklenemedi"
   },
@@ -973,6 +988,15 @@
     "clearTitle": "Beyaz tahta temizlensin mi?",
     "clearMsg": "Bu, tahtadaki her şeyi kalıcı olarak siler.",
     "brushSize": "Fırça boyutu",
+    "shapeLine": "Çizgi",
+    "shapeRect": "Dikdörtgen",
+    "shapeEllipse": "Elips",
+    "shapePoly": "Çokgen",
+    "voPlaceShape": "{{shape}} buraya yerleştir",
+    "voPlacedShape": "{{shape}} yerleştirildi",
+    "voPolyPoint": "Buraya köşe ekle",
+    "voPolyFinish": "Çokgeni bitir",
+    "voPolyPointAdded": "Köşe eklendi",
     "bucket": "Boya kovası",
     "penColor": "Kalem rengi"
   },
@@ -993,6 +1017,8 @@
     "addRelationship": "+ İlişki Ekle",
     "deleteRelationship": "İlişkiyi Sil",
     "deleteRelationshipMsg": "Bu ilişki kaldırılsın mı?",
+    "deleteType": "Türü Sil",
+    "deleteTypeMsg": "Bu, bu türü kullanan tüm ilişkileri de kaldıracak.",
     "duplicate": "Bu üyeler zaten bu ilişkiye sahip.",
     "noRelationships": "Henüz ilişki yok. Haritanızı oluşturmaya başlamak için + İlişki Ekle'ye dokunun.",
     "relationships": "{{count}} ilişki",

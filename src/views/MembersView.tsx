@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay } from '../utils';
-import { PALETTE } from '../theme';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch } from '../utils';
+import { chooseImageTreatment } from '../components/ImageCropModal';
+import { PALETTE, ensureReadable, initialOn } from '../theme';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
@@ -125,7 +126,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     sortMode,
   );
   const filtered = sorted.filter(m =>
-    !search || m.name.toLowerCase().includes(search.toLowerCase())
+    memberMatchesSearch(m, search)
   );
 
   // Never in Archive: manual order is the roster's own arrangement.
@@ -213,6 +214,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
       tags: [],
       groupIds: [],
       createdAt: Date.now(),
+      // Cloning a facet makes a facet. Without this the copy landed in the
+      // members roster as a full alter.
+      isFacet: f.isFacet || undefined,
     };
     setShowClone(false);
     await store.set(KEYS.members, [...members, clone]);
@@ -233,7 +237,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (dataUrl) set('avatar', dataUrl);
+    if (!dataUrl) return;
+    const chosen = await chooseImageTreatment(dataUrl);
+    if (chosen) set('avatar', chosen);
   };
 
   const pickBanner = async () => {
@@ -243,10 +249,12 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
     if (!dataUrl) return;
+    const chosen = await chooseImageTreatment(dataUrl);
+    if (!chosen) return;
     try {
-      const resized = await resizeBannerDataUrl(dataUrl);
+      const resized = await resizeBannerDataUrl(chosen);
       set('banner', resized);
-    } catch { set('banner', dataUrl); }
+    } catch { set('banner', chosen); }
   };
 
   return (
@@ -295,6 +303,21 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   value={listFields[k] ?? false}
                   onChange={v => saveListFields({ ...listFields, [k]: v })} />
               ))}
+              <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, margin: '10px 0 6px' }}>{t('members.cardBackground')}</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {([['plain', t('members.bgPlain')], ['color', t('members.bgMemberColor')], ['banner', t('members.bgBanner')]] as ['plain' | 'color' | 'banner', string][]).map(([mode, label]) => {
+                  const sel = (listFields.background || 'plain') === mode;
+                  return (
+                    <button key={mode} aria-pressed={sel}
+                      onClick={() => saveListFields({ ...listFields, background: mode })}
+                      style={{ flex: 1, padding: '7px 6px', borderRadius: 8, fontSize: 11, cursor: 'pointer',
+                        background: sel ? 'var(--accent-bg)' : 'var(--surface)', color: sel ? 'var(--accent)' : 'var(--dim)',
+                        border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`, fontWeight: sel ? 600 : 400 }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -305,12 +328,24 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {filtered.map(m => (
           <SortableCard key={m.id} id={m.id} label={m.name} disabled={!reorderActive}>
-          <div className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer' }}
+          {/* Card background per the display option: plain (default), a wash
+              of the member's colour, or their banner behind the row. Banner
+              falls back to the colour wash when the member has none; the
+              image rides under a card-colour scrim so text contrast holds. */}
+          <div className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer', position: 'relative', overflow: 'hidden',
+            ...((listFields.background === 'color' || (listFields.background === 'banner' && !m.banner)) ? { background: `linear-gradient(${m.color}26, ${m.color}26), var(--card)` } : {}) }}
             {...clickable(() => openEdit(m), m.name)}>
+            {listFields.background === 'banner' && m.banner && (
+              <>
+                <div aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: `url(${m.banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'var(--card)', opacity: 0.78 }} />
+              </>
+            )}
+            <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="tile__avatar" style={{
                 width: 40, height: 40, fontSize: 14, overflow: 'hidden',
-                ...(!m.avatar ? { backgroundColor: m.color } : {}),
+                ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
               }}>
                 {m.avatar ? <img src={m.avatar} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover' }} /> : getInitials(m.name)}
               </div>
@@ -369,6 +404,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                 )}
               </div>
             )}
+            </div>
           </div>
           </SortableCard>
         ))}
@@ -404,7 +440,11 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             <Btn variant="ghost" onClick={() => setReadMode(m => !m)}>{readMode ? t('common.edit') : t('modal.read')}</Btn>
           </div>
         )}
-        {!isNew && (
+        {/* No tabs in read mode: the profile reads as ONE page — banner, then
+            avatar beside the name/pronouns/role stack, then description,
+            custom fields and connections in that order down the page. Edit
+            mode keeps the tabbed editor untouched. */}
+        {!isNew && !readMode && (
           <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
             {(['main', 'fields', 'connections', 'noteboard'] as MemberTab[]).map(tab => (
               <button key={tab} style={{
@@ -421,6 +461,139 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           </div>
         )}
 
+        {readMode && !isNew && (() => {
+          // The read page is themed after the member's colour. Clamped against
+          // the live card background so a colour near the theme's own tone
+          // never renders unreadable text.
+          const cardHex = (getComputedStyle(document.documentElement).getPropertyValue('--card') || '').trim() || '#0A1F2E';
+          const mc = ensureReadable(f.color || '#DAA520', cardHex, 3);
+          const activeGroups = sortGroupsForDisplay(groups.filter(g => (f.groupIds || []).includes(g.id)), groups);
+          const visibleDefs = fieldDefs.filter(fd => {
+            const vv = (f.customFields || []).find(c => c.fieldId === fd.id)?.value;
+            return !(vv === undefined || vv === null || vv === '');
+          });
+          const allTypes = allRelationshipTypes(relTypes);
+          const relTypeById = new Map(allTypes.map(ty => [ty.id, ty]));
+          const relLabel = (id: string) => { const ty = relTypeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`, { defaultValue: ty.name }) : ty.name) : '?'; };
+          const mine = relationships.filter(r => r.fromId === f.id || r.toId === f.id);
+          const readVal = (fd: CustomFieldDef, val: string | number | boolean | null) => {
+            if (fd.type === 'toggle') return <span style={{ fontSize: 14, color: val ? 'var(--accent)' : 'var(--muted)' }}>{val ? '✓' : '—'}</span>;
+            if (fd.type === 'color') return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 22, height: 22, borderRadius: 6, background: String(val || '#333'), border: '1px solid var(--border)', display: 'inline-block' }} />
+                <span style={{ fontSize: 12, color: 'var(--dim)', fontFamily: 'monospace' }}>{String(val || '')}</span>
+              </span>
+            );
+            if (fd.type === 'image') return <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />;
+            if (fd.type === 'dateRange') { const [a, b] = String(val || '').split('|'); return <span style={{ fontSize: 13, color: 'var(--text)' }}>{[a, b].filter(Boolean).join(' – ')}</span>; }
+            return <span style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{String(val)}</span>;
+          };
+          return (
+            <div>
+              {f.banner && (
+                <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, overflow: 'hidden', marginBottom: 12,
+                  backgroundImage: `url(${f.banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
+                <div className="tile__avatar" style={{
+                  width: 72, height: 72, borderRadius: 36, fontSize: 24, flexShrink: 0,
+                  border: `2px solid ${f.color}`, overflow: 'hidden', cursor: f.avatar ? 'pointer' : 'default',
+                  ...(!f.avatar ? { backgroundColor: f.color, color: initialOn(f.color) } : {}),
+                }} {...(f.avatar ? clickable(() => setViewPfp(true), t('modal.viewPfp')) : {})}>
+                  {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
+                </div>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: mc }}>{f.name}</div>
+                  {f.pronouns ? <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 2 }}>{f.pronouns}</div> : null}
+                  {f.role ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginTop: 2 }}>{f.role}</div> : null}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+                <span aria-label={`${t('modal.color')}: ${f.color}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 999, border: `1px solid ${f.color}40`, background: 'var(--surface)' }}>
+                  <span aria-hidden style={{ width: 12, height: 12, borderRadius: 6, background: f.color, border: '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }} />
+                  <span aria-hidden style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'monospace' }}>{f.color}</span>
+                </span>
+              </div>
+
+              {/* Tag row, then Group row, directly above the Description. Tags
+                  take the member's colour — the whole read page is themed by
+                  it. */}
+              {(f.tags || []).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 10 }}>
+                  {(f.tags || []).map(tag => (
+                    <span key={tag} style={{ padding: '3px 9px', borderRadius: 999, background: `${f.color}18`, border: `1px solid ${f.color}40`, color: mc, fontSize: 11 }}>{tag}</span>
+                  ))}
+                </div>
+              )}
+              {activeGroups.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
+                  {activeGroups.map(g => (
+                    <span key={g.id} title={g.description || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999,
+                      border: `1px solid ${g.color || 'var(--accent)'}50`, background: `${g.color || 'var(--accent)'}20`, color: g.color || 'var(--accent)', fontSize: 11 }}>
+                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
+                      {g.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {f.description ? (
+                <>
+                  <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 6 }}>{t('modal.descriptionBio')}</div>
+                  <div style={{ padding: 12, background: 'var(--surface)', border: `1px solid ${f.color}40`, borderRadius: 8, marginBottom: 14 }}>
+                    <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{f.description}</p>
+                  </div>
+                </>
+              ) : null}
+
+              {visibleDefs.length > 0 && (
+                <>
+                  <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 8, borderTop: `1px solid ${f.color}40`, paddingTop: 14 }}>{t('customFields.title')}</div>
+                  {visibleDefs.map((fd, i) => {
+                    const val = (f.customFields || []).find(v => v.fieldId === fd.id)?.value ?? '';
+                    return (
+                      <div key={fd.id} style={{ marginBottom: 12, borderTop: i > 0 ? '1px solid var(--border)' : undefined, paddingTop: i > 0 ? 12 : undefined }}>
+                        <div className="field__label">{fd.name}</div>
+                        {readVal(fd, val)}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {(mine.length > 0 || onShowOnMap) && (
+                <>
+                  <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 8, borderTop: `1px solid ${f.color}40`, paddingTop: 14 }}>{t('systemMap.connections')}</div>
+                  {onShowOnMap && (
+                    <Btn variant="ghost" onClick={() => onShowOnMap(f.id)}>{t('systemMap.showOnMap')}</Btn>
+                  )}
+                  {mine.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      {mine.map(r => {
+                        const otherId = r.fromId === f.id ? r.toId : r.fromId;
+                        const other = members.find(m => m.id === otherId);
+                        return (
+                          <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                            <span style={{ width: 8, height: 8, borderRadius: 4, background: relTypeById.get(r.typeId)?.color || DEFAULT_REL_COLOR }} />
+                            <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{relLabel(r.typeId)}</span>
+                            <button onClick={() => other && openEdit(other)} disabled={!other}
+                              style={{ flex: 1, textAlign: 'left', fontSize: 13, color: 'var(--text)', background: 'none', border: 'none', cursor: other ? 'pointer' : 'default' }}>
+                              {other?.name || '?'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
+
+        {!readMode && (
         <fieldset disabled={readMode} style={{ border: 'none', margin: 0, padding: 0, minInlineSize: 'auto' }}>
         {/*
           Facets shipped after people had already been using ordinary members as
@@ -454,8 +627,8 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             <div className="tile__avatar" style={{
               width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
               border: `2px solid ${f.color}`, overflow: 'hidden',
-              ...(!f.avatar ? { backgroundColor: f.color } : {}),
-            }} {...(readMode ? (f.avatar ? clickable(() => setViewPfp(true), t('modal.viewPfp')) : {}) : clickable(pickAvatar, 'Change profile picture'))}>
+              ...(!f.avatar ? { backgroundColor: f.color, color: initialOn(f.color) } : {}),
+            }} {...(readMode ? (f.avatar ? clickable(() => setViewPfp(true), t('modal.viewPfp')) : {}) : clickable(pickAvatar, t('modal.changePfp')))}>
               {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
             </div>
             <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
@@ -477,7 +650,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
               backgroundColor: f.banner ? undefined : 'var(--surface)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,
-            }} {...(readMode ? {} : clickable(pickBanner, 'Change banner'))}>
+            }} {...(readMode ? {} : clickable(pickBanner, t('memberProfile.changeBanner')))}>
               {!f.banner && t('memberProfile.changeBanner')}
             </div>
             {f.banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
@@ -485,6 +658,10 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           </div>
 
           <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} placeholder={t('modal.headmateName')} />
+          {/* Search-only alias: shown here in EDIT, never on the read view.
+              Lets someone whose name is symbols or a styled font be found by
+              typing. */}
+          <Field label={t('modal.nickname')} value={f.nickname || ''} onChange={v => set('nickname' as any, v || undefined)} placeholder={t('modal.nickname')} />
           <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
           <Field label={t('modal.role')} value={f.role} onChange={v => set('role', v)} placeholder={t('modal.rolePlaceholder')} />
 
@@ -549,7 +726,16 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                     {fd.type === 'toggle' ? (
                       <Toggle label={fd.name} value={!!val} onChange={v => setFieldVal(v)} />
                     ) : fd.type === 'number' ? (
-                      <Field label={fd.name} value={String(val || '')} onChange={v => setFieldVal(v === '' ? null : Number(v))} placeholder="0" />
+                      // Strip instead of Number(): typing a letter made the
+                      // whole value NaN, which stringified back to empty — the
+                      // input silently ate keystrokes. Mobile already does it
+                      // this way.
+                      <Field label={fd.name} value={String(val ?? '')} onChange={v => {
+                        const cleaned = v.replace(/[^0-9.\-]/g, '');
+                        if (cleaned === '' || cleaned === '-' || cleaned === '.') { setFieldVal(null); return; }
+                        const n = Number(cleaned);
+                        if (Number.isFinite(n)) setFieldVal(n);
+                      }} placeholder="0" />
                     ) : fd.type === 'color' ? (
                       <div>
                         <label className="field__label">{fd.name}</label>
@@ -611,7 +797,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                             <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />
                             <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
                               <label style={{ fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }}>{t('common.change', { defaultValue: 'Change' })}
-                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setFieldVal(typeof reader.result === 'string' ? reader.result : null); reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
+                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
                               </label>
                               <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }} onClick={() => setFieldVal(null)}>{t('common.clear', { defaultValue: 'Clear' })}</button>
                             </div>
@@ -620,7 +806,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                           <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--surface)', cursor: 'pointer' }}>
                             <span style={{ fontSize: 20, color: 'var(--dim)' }}>＋</span>
                             <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.addImage', { defaultValue: 'Add image' })}</span>
-                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setFieldVal(typeof reader.result === 'string' ? reader.result : null); reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
+                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
                           </label>
                         )}
                       </div>
@@ -732,6 +918,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           </div>
         )}
         </fieldset>
+        )}
       </Modal>
 
       <ConfirmDialog open={!!confirmDelete}

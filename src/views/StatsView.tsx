@@ -116,9 +116,18 @@ export default function StatsView({ singlet = false, selfId }: Props) {
   }, [filtered]);
 
   const locationTotals = useMemo(() => {
+    // "Home" and "Home " and "home" are one place. GPS-written locations and
+    // hand-typed ones differ in whitespace and case, which split a location
+    // into duplicate leaderboard rows. Count under a normalized key; display
+    // the first spelling seen.
     const map: Record<string, number> = {};
+    const display: Record<string, string> = {};
     for (const entry of filtered) {
-      if (entry.location) map[entry.location] = (map[entry.location] || 0) + 1;
+      const trimmed = (entry.location || '').trim();
+      if (!trimmed) continue;
+      const norm = trimmed.toLocaleLowerCase();
+      const disp = display[norm] || (display[norm] = trimmed);
+      map[disp] = (map[disp] || 0) + 1;
     }
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [filtered]);

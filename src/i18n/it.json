@@ -48,7 +48,11 @@
     "facets": "Sfaccettature",
     "front": "Front",
     "fronting": "Fronting",
-    "system": "Sistema"
+    "system": "Sistema",
+    "tierHint": "Rinomina i livelli di fronting. La tua parola sostituisce quella predefinita ovunque. Vuoto usa la predefinita.",
+    "tierPrimary": "Front Primario",
+    "tierCoFront": "Co-Front",
+    "tierCoConscious": "Co-Cosciente"
   },
   "planner": {
     "title": "Agenda Giornaliera",
@@ -355,6 +359,10 @@
     "removeFromFront": "Rimuovi dal front",
     "removeFromFrontMsg": "Togliere {{name}} dal front?",
     "displayFields": "Campi visualizzati",
+    "cardBackground": "Sfondo della scheda",
+    "bgPlain": "Semplice",
+    "bgMemberColor": "Colore del membro",
+    "bgBanner": "Banner",
     "fieldGroups": "Gruppi",
     "fieldDescriptions": "Descrizioni",
     "fieldPronouns": "Pronomi",
@@ -663,6 +671,7 @@
     "supportPS": "Sostieni PS"
   },
   "markdown": {
+    "brokenImage": "[immagine danneggiata]",
     "imageUnavailable": "[immagine non disponibile]"
   },
   "modal": {
@@ -685,6 +694,7 @@
     "member": "Membro",
     "name": "Nome *",
     "headmateName": "Nome dell'headmate",
+    "nickname": "Soprannome",
     "pronouns": "Pronomi",
     "pronounsPlaceholder": "es. lei/loro",
     "role": "Ruolo / Archetipo",
@@ -747,6 +757,9 @@
     "palPreviewMid": "Medio",
     "paletteSlots": "{{used}} / {{max}} palette personalizzate",
     "pfpFailed": "Immagine Fallita",
+    "imagePickHow": "Come vuoi aggiungere questa immagine?",
+    "imageAuto": "Auto",
+    "cropImage": "Ritaglia immagine",
     "removePfp": "Rimuovi Foto",
     "viewPfp": "Vedi Foto",
     "viewPfpOf": "Foto di {{name}}",
@@ -901,6 +914,8 @@
     "selectSpeaker": "Seleziona Parlante",
     "searchSpeaker": "Cerca parlante…",
     "noMessages": "Nessun messaggio ancora.",
+    "editingHeader": "Modifica messaggio",
+    "editPlaceholder": "Modifica messaggio…",
     "typeMessage": "Scrivi un messaggio…",
     "imageFailed": "Immagine Fallita"
   },
@@ -973,6 +988,15 @@
     "clearTitle": "Svuotare la lavagna?",
     "clearMsg": "Questo cancella per sempre tutto il contenuto della lavagna.",
     "brushSize": "Dimensione pennello",
+    "shapeLine": "Linea",
+    "shapeRect": "Rettangolo",
+    "shapeEllipse": "Ellisse",
+    "shapePoly": "Poligono",
+    "voPlaceShape": "Posiziona {{shape}} qui",
+    "voPlacedShape": "{{shape}} posizionato",
+    "voPolyPoint": "Aggiungi un vertice qui",
+    "voPolyFinish": "Completa il poligono",
+    "voPolyPointAdded": "Vertice aggiunto",
     "bucket": "Secchiello",
     "penColor": "Colore penna"
   },
@@ -993,6 +1017,8 @@
     "addRelationship": "+ Aggiungi Relazione",
     "deleteRelationship": "Elimina Relazione",
     "deleteRelationshipMsg": "Rimuovere questa relazione?",
+    "deleteType": "Elimina Tipo",
+    "deleteTypeMsg": "Questo rimuoverà anche tutte le relazioni che usano questo tipo.",
     "duplicate": "Questi membri hanno già questa relazione.",
     "noRelationships": "Nessuna relazione ancora. Tocca + Aggiungi Relazione per iniziare a costruire la tua mappa.",
     "relationships": "{{count}} relazioni",

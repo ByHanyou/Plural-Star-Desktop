@@ -167,6 +167,10 @@
     "title": "Medlemmar",
     "add": "+ Lägg till",
     "displayFields": "Visningsfält",
+    "cardBackground": "Kortbakgrund",
+    "bgPlain": "Enkel",
+    "bgMemberColor": "Medlemsfärg",
+    "bgBanner": "Banner",
     "fieldPronouns": "Pronomen",
     "fieldRoles": "Roller",
     "fieldGroups": "Grupper",
@@ -492,6 +496,7 @@
     "archive": "Arkiv"
   },
   "markdown": {
+    "brokenImage": "[trasig bild]",
     "imageUnavailable": "[bilden är inte tillgänglig]"
   },
   "modal": {
@@ -513,6 +518,7 @@
     "read": "Läs",
     "name": "Namn *",
     "headmateName": "Headmate-namn",
+    "nickname": "Smeknamn",
     "pronouns": "Pronomen",
     "pronounsPlaceholder": "t.ex. hen/hen",
     "role": "Roll / arketyp",
@@ -578,6 +584,9 @@
     "palPreviewMid": "Mellan",
     "paletteSlots": "{{used}} / {{max}} anpassade paletter",
     "pfpFailed": "Bilden misslyckades",
+    "imagePickHow": "Hur vill du lägga till den här bilden?",
+    "imageAuto": "Auto",
+    "cropImage": "Beskär bild",
     "removePfp": "Ta bort foto",
     "viewPfp": "Visa bild",
     "viewPfpOf": "Bild på {{name}}",
@@ -680,7 +689,11 @@
     "facets": "Fasetter",
     "front": "Front",
     "fronting": "Frontning",
-    "system": "System"
+    "system": "System",
+    "tierHint": "Byt namn på frontnivåerna. Ditt ord ersätter standardordet överallt. Tomt använder standard.",
+    "tierPrimary": "Primär front",
+    "tierCoFront": "Co-front",
+    "tierCoConscious": "Co-medveten"
   },
   "planner": {
     "title": "Dagsplanerare",
@@ -854,6 +867,15 @@
     "clearTitle": "Rensa whiteboarden?",
     "clearMsg": "Det här raderar allt på tavlan för gott.",
     "brushSize": "Penselstorlek",
+    "shapeLine": "Linje",
+    "shapeRect": "Rektangel",
+    "shapeEllipse": "Ellips",
+    "shapePoly": "Polygon",
+    "voPlaceShape": "Placera {{shape}} här",
+    "voPlacedShape": "{{shape}} placerad",
+    "voPolyPoint": "Lägg till ett hörn här",
+    "voPolyFinish": "Slutför polygonen",
+    "voPolyPointAdded": "Hörn tillagt",
     "bucket": "Fyllhink",
     "penColor": "Pennfärg"
   },
@@ -882,6 +904,8 @@
     "type": "Typ",
     "deleteRelationship": "Radera relation",
     "deleteRelationshipMsg": "Ta bort den här relationen?",
+    "deleteType": "Radera typ",
+    "deleteTypeMsg": "Detta tar också bort alla relationer som använder typen.",
     "duplicate": "De här medlemmarna har redan den här relationen.",
     "relationships": "{{count}} relationer",
     "relationshipOne": "1 relation",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Välj talare",
     "searchSpeaker": "Sök talare…",
     "noMessages": "Inga meddelanden än.",
+    "editingHeader": "Redigerar meddelande",
+    "editPlaceholder": "Redigera meddelande…",
     "typeMessage": "Skriv ett meddelande…",
     "imageFailed": "Bilden misslyckades"
   },

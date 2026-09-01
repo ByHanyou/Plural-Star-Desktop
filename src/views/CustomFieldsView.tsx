@@ -100,9 +100,19 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 )}
               </div>
 
-              <span style={{ fontSize: 11, color: 'var(--muted)', background: 'var(--surface)', padding: '3px 10px', borderRadius: 6, whiteSpace: 'nowrap' }}>
-                {typeLabel(fd.type)}
-              </span>
+              {/* Editable, not a badge. A field created as the wrong type —
+                  "Favorite Color" made as Number, which then refused hex
+                  codes on every device — was stuck that way forever: the only
+                  way out was deleting the field and its values. The stored
+                  values are plain scalars, so re-typing just changes how they
+                  are edited and shown; nothing is converted or lost. */}
+              <select aria-label={`${t('customFields.fieldType')} — ${fd.name}`} value={fd.type}
+                onChange={e => save(fields.map(f => f.id === fd.id ? { ...f, type: e.target.value as CustomFieldType } : f))}
+                style={{ fontSize: 11, color: 'var(--muted)', background: 'var(--surface)', border: '1px solid var(--border)', padding: '3px 6px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                {FIELD_TYPES.map(t2 => (
+                  <option key={t2} value={t2}>{typeLabel(t2)}</option>
+                ))}
+              </select>
 
               <button disabled={i === 0} onClick={() => moveField(i, i - 1)}
                 aria-label={i === 0 ? `${t('members.moveUp')}, ${fd.name}` : `${t('members.moveUp')}, ${fd.name}, ${t('members.moveAbove', { name: fields[i - 1].name })}`}

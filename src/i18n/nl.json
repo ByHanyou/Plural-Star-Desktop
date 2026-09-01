@@ -167,6 +167,10 @@
     "title": "Leden",
     "add": "+ Toevoegen",
     "displayFields": "Weergavevelden",
+    "cardBackground": "Kaartachtergrond",
+    "bgPlain": "Effen",
+    "bgMemberColor": "Kleur van lid",
+    "bgBanner": "Banner",
     "fieldPronouns": "Voornaamwoorden",
     "fieldRoles": "Rollen",
     "fieldGroups": "Groepen",
@@ -492,6 +496,7 @@
     "archive": "Archief"
   },
   "markdown": {
+    "brokenImage": "[kapotte afbeelding]",
     "imageUnavailable": "[afbeelding niet beschikbaar]"
   },
   "modal": {
@@ -513,6 +518,7 @@
     "read": "Lezen",
     "name": "Naam *",
     "headmateName": "Naam van headmate",
+    "nickname": "Bijnaam",
     "pronouns": "Voornaamwoorden",
     "pronounsPlaceholder": "bijv. die/hen",
     "role": "Rol / archetype",
@@ -578,6 +584,9 @@
     "palPreviewMid": "Midden",
     "paletteSlots": "{{used}} / {{max}} aangepaste paletten",
     "pfpFailed": "Afbeelding mislukt",
+    "imagePickHow": "Hoe wil je deze afbeelding toevoegen?",
+    "imageAuto": "Automatisch",
+    "cropImage": "Afbeelding bijsnijden",
     "removePfp": "Foto verwijderen",
     "viewPfp": "Foto bekijken",
     "viewPfpOf": "Foto van {{name}}",
@@ -680,7 +689,11 @@
     "facets": "Facetten",
     "front": "Front",
     "fronting": "Fronten",
-    "system": "Systeem"
+    "system": "Systeem",
+    "tierHint": "Hernoem de frontniveaus. Jouw woord vervangt overal het standaardwoord. Leeg gebruikt de standaard.",
+    "tierPrimary": "Primaire front",
+    "tierCoFront": "Co-front",
+    "tierCoConscious": "Co-bewust"
   },
   "planner": {
     "title": "Dagplanner",
@@ -854,6 +867,15 @@
     "clearTitle": "Whiteboard wissen?",
     "clearMsg": "Dit wist alles op het bord voorgoed.",
     "brushSize": "Penseelgrootte",
+    "shapeLine": "Lijn",
+    "shapeRect": "Rechthoek",
+    "shapeEllipse": "Ellips",
+    "shapePoly": "Veelhoek",
+    "voPlaceShape": "Plaats {{shape}} hier",
+    "voPlacedShape": "{{shape}} geplaatst",
+    "voPolyPoint": "Voeg hier een hoekpunt toe",
+    "voPolyFinish": "Veelhoek voltooien",
+    "voPolyPointAdded": "Hoekpunt toegevoegd",
     "bucket": "Vulemmer",
     "penColor": "Penkleur"
   },
@@ -882,6 +904,8 @@
     "type": "Type",
     "deleteRelationship": "Relatie verwijderen",
     "deleteRelationshipMsg": "Deze relatie verwijderen?",
+    "deleteType": "Type verwijderen",
+    "deleteTypeMsg": "Dit verwijdert ook alle relaties met dit type.",
     "duplicate": "Deze leden hebben deze relatie al.",
     "relationships": "{{count}} relaties",
     "relationshipOne": "1 relatie",
@@ -998,6 +1022,8 @@
     "selectSpeaker": "Kies spreker",
     "searchSpeaker": "Spreker zoeken…",
     "noMessages": "Nog geen berichten.",
+    "editingHeader": "Bericht bewerken",
+    "editPlaceholder": "Bericht bewerken…",
     "typeMessage": "Typ een bericht…",
     "imageFailed": "Afbeelding mislukt"
   },

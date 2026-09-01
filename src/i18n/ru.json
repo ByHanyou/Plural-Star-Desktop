@@ -48,7 +48,11 @@
     "facets": "Грани",
     "front": "Фронт",
     "fronting": "Фронтинг",
-    "system": "Система"
+    "system": "Система",
+    "tierHint": "Переименуйте уровни фронтинга. Ваше слово заменит стандартное везде. Пустое поле вернёт стандартное.",
+    "tierPrimary": "Основной фронт",
+    "tierCoFront": "Со-фронт",
+    "tierCoConscious": "Со-сознание"
   },
   "planner": {
     "title": "Планировщик дня",
@@ -226,6 +230,15 @@
     "clearTitle": "Очистить доску?",
     "clearMsg": "Это навсегда удалит всё содержимое доски.",
     "brushSize": "Размер кисти",
+    "shapeLine": "Линия",
+    "shapeRect": "Прямоугольник",
+    "shapeEllipse": "Эллипс",
+    "shapePoly": "Многоугольник",
+    "voPlaceShape": "Поставить {{shape}} здесь",
+    "voPlacedShape": "{{shape}} добавлен",
+    "voPolyPoint": "Добавить вершину здесь",
+    "voPolyFinish": "Завершить многоугольник",
+    "voPolyPointAdded": "Вершина добавлена",
     "bucket": "Заливка",
     "penColor": "Цвет пера"
   },
@@ -246,6 +259,8 @@
     "addRelationship": "+ Добавить связь",
     "deleteRelationship": "Удалить связь",
     "deleteRelationshipMsg": "Удалить эту связь?",
+    "deleteType": "Удалить тип",
+    "deleteTypeMsg": "Это также удалит все связи с этим типом.",
     "duplicate": "У этих участников уже есть такая связь.",
     "noRelationships": "Связей пока нет. Нажмите + Добавить связь, чтобы начать строить карту.",
     "relationships": "{{count}} связей",
@@ -430,6 +445,10 @@
   },
   "members": {
     "displayFields": "Отображаемые поля",
+    "cardBackground": "Фон карточки",
+    "bgPlain": "Обычный",
+    "bgMemberColor": "Цвет участника",
+    "bgBanner": "Баннер",
     "fieldPronouns": "Местоимения",
     "fieldRoles": "Роли",
     "fieldGroups": "Группы",
@@ -757,6 +776,7 @@
     "archive": "Архив"
   },
   "markdown": {
+    "brokenImage": "[повреждённое изображение]",
     "imageUnavailable": "[изображение недоступно]"
   },
   "modal": {
@@ -778,6 +798,7 @@
     "editMember": "Редактировать участника",
     "name": "Имя *",
     "headmateName": "Имя участника",
+    "nickname": "Прозвище",
     "pronouns": "Местоимения",
     "pronounsPlaceholder": "например, они/их",
     "role": "Роль / Архетип",
@@ -843,6 +864,9 @@
     "palPreviewMid": "Средний",
     "paletteSlots": "{{used}} / {{max}} своих палитр",
     "pfpFailed": "Ошибка изображения",
+    "imagePickHow": "Как добавить это изображение?",
+    "imageAuto": "Авто",
+    "cropImage": "Обрезать изображение",
     "removePfp": "Убрать фото",
     "viewPfp": "Посмотреть фото",
     "viewPfpOf": "Фото: {{name}}",
@@ -1002,6 +1026,8 @@
     "selectSpeaker": "Выбрать говорящего",
     "searchSpeaker": "Поиск говорящего…",
     "noMessages": "Сообщений пока нет.",
+    "editingHeader": "Редактирование сообщения",
+    "editPlaceholder": "Изменить сообщение…",
     "typeMessage": "Введите сообщение…",
     "imageFailed": "Ошибка изображения"
   },

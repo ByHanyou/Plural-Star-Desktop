@@ -36,6 +36,10 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const [showAddMember, setShowAddMember] = useState(false);
   const [showTypes, setShowTypes] = useState(false);
   const [showArchived, setShowArchived] = useState(() => localStorage.getItem('ps.mapShowArchived') === '1');
+  // Default ON: facets have always rendered once added, so the toggle only
+  // ever hides them on request. Hiding leaves mapIds untouched — toggling
+  // back restores every facet exactly where it was.
+  const [showFacets, setShowFacets] = useState(() => localStorage.getItem('ps.mapShowFacets') !== '0');
   const [colorAll, setColorAll] = useState(() => localStorage.getItem('ps.mapColorThreads') === '1');
   // `toIds` is a LIST: one pass can create the same relationship to several
   // members (poly relationships), mirroring the mobile editor.
@@ -45,6 +49,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   useEffect(() => { setRelDup(false); }, [relEditor]);
   const [typeDraft, setTypeDraft] = useState<TypeDraft | null>(null);
   const [confirmDelRel, setConfirmDelRel] = useState<string | null>(null);
+  const [confirmDelType, setConfirmDelType] = useState<RelationshipTypeDef | null>(null);
 
   const types = useMemo(() => allRelationshipTypes(customTypes), [customTypes]);
   const typeById = useMemo(() => new Map(types.map(ty => [ty.id, ty])), [types]);
@@ -91,7 +96,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   // Facets are out of every member LIST, but one that was deliberately added
   // through its own control still belongs on the map and still takes
   // relationships, so membership here is the explicit mapIds opt-in.
-  const mapMembers = useMemo(() => (mapIds.map(id => memberById.get(id)).filter(Boolean) as Member[]).filter(m => showArchived || !m.archived), [mapIds, memberById, showArchived]);
+  const mapMembers = useMemo(() => (mapIds.map(id => memberById.get(id)).filter(Boolean) as Member[]).filter(m => (showArchived || !m.archived) && (showFacets || !m.isFacet)), [mapIds, memberById, showArchived, showFacets]);
   const mapIdSet = useMemo(() => new Set(mapIds), [mapIds]);
   const mapRels = useMemo(() => relationships.filter(r => mapIdSet.has(r.fromId) && mapIdSet.has(r.toId)), [relationships, mapIdSet]);
 
@@ -196,6 +201,12 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     const nowTs = Date.now();
     const entries: Relationship[] = fresh.map(to => ({ id: uid(), fromId: from, toId: to, typeId, note: note || undefined, createdAt: nowTs }));
     saveRelationships([...relationships, ...entries]);
+    // Every endpoint lands on the map, so the new thread is visible at once.
+    // The pickers now offer off-map people (facets included) — without this,
+    // creating a relationship between two facets required adding both to the
+    // map by hand first, which is the reported dead end.
+    const mapAdds = [from, ...fresh].filter(id => !mapIdSet.has(id));
+    if (mapAdds.length > 0) saveMapIds([...mapIds, ...mapAdds]);
     setRelEditor(null);
   };
 
@@ -212,9 +223,18 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     setTypeDraft(null);
   };
 
-  const deleteCustomType = (id: string) => {
-    saveCustomTypes(customTypes.filter(ct => ct.id !== id));
-    if (relationships.some(r => r.typeId === id)) saveRelationships(relationships.filter(r => r.typeId !== id));
+  // Runs AFTER the ConfirmDialog: removing a type also removes every
+  // relationship using it. A preset cannot be removed from the constant, so
+  // its deletion is stored as a tombstoned override on the same id;
+  // allRelationshipTypes drops it. Any prior rename/recolor override is
+  // replaced by the tombstone.
+  const performDeleteType = (ty: RelationshipTypeDef) => {
+    if (ty.preset) {
+      saveCustomTypes([...customTypes.filter(ct => ct.id !== ty.id), { id: ty.id, name: ty.name, directional: !!ty.directional, preset: true, deleted: true }]);
+    } else {
+      saveCustomTypes(customTypes.filter(ct => ct.id !== ty.id));
+    }
+    if (relationships.some(r => r.typeId === ty.id)) saveRelationships(relationships.filter(r => r.typeId !== ty.id));
   };
 
   // Tombstoned members (deleted) stay in storage only so history, chat and map
@@ -241,6 +261,12 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
           aria-pressed={showArchived}
           onClick={() => { const v = !showArchived; setShowArchived(v); localStorage.setItem('ps.mapShowArchived', v ? '1' : '0'); }}>
           {t('members.archived')}
+        </button>
+        <button
+          className={showFacets ? 'btn btn--solid' : 'btn btn--ghost'}
+          aria-pressed={showFacets}
+          onClick={() => { const v = !showFacets; setShowFacets(v); localStorage.setItem('ps.mapShowFacets', v ? '1' : '0'); }}>
+          {t('members.facets')}
         </button>
         <button
           className={colorAll ? 'btn btn--solid' : 'btn btn--ghost'}
@@ -363,12 +389,15 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label className="field__label">{t('systemMap.from')}</label>
-              <Dropdown<string> value={relEditor.from} options={mapIds} onChange={v => setRelEditor({ ...relEditor, from: v })} renderOption={id => memberById.get(id)?.name || '?'} />
+              {/* Off-map people too, facets included: a relationship between
+                  two facets could not be CREATED until both were added to the
+                  map by hand. Saving now puts every endpoint on the map. */}
+              <Dropdown<string> value={relEditor.from} options={[...mapIds, ...off.map(m => m.id), ...offFacets.map(m => m.id)]} onChange={v => setRelEditor({ ...relEditor, from: v })} renderOption={id => memberById.get(id)?.name || '?'} />
             </div>
             <div>
               <label className="field__label">{t('systemMap.to')}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {mapIds.filter(id => id !== relEditor.from).map(id => {
+                {[...mapIds, ...off.map(m => m.id)].filter(id => id !== relEditor.from).map(id => {
                   const m = memberById.get(id);
                   if (!m) return null;
                   const on = relEditor.toIds.includes(id);
@@ -383,6 +412,25 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
                   );
                 })}
               </div>
+              {offFacets.filter(m => m.id !== relEditor.from).length > 0 && (
+                <>
+                  <div className="field__label" style={{ marginTop: 8 }}>{t('members.facets')}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {offFacets.filter(m => m.id !== relEditor.from).map(m => {
+                      const on = relEditor.toIds.includes(m.id);
+                      return (
+                        <button key={m.id} className="chip" aria-pressed={on} style={{
+                          borderColor: on ? `${m.color}60` : 'var(--border)',
+                          background: on ? `${m.color}20` : 'var(--surface)',
+                        }} onClick={() => setRelEditor({ ...relEditor, toIds: on ? relEditor.toIds.filter(x => x !== m.id) : [...relEditor.toIds, m.id] })}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                          <span style={{ color: on ? m.color : 'var(--dim)', fontWeight: on ? 600 : 400 }}>{m.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
             <div>
               <label className="field__label">{t('systemMap.type')}</label>
@@ -401,7 +449,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
             <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{typeLabel(ty)}{ty.preset ? ` · ${t('systemMap.preset')}` : ''}</span>
             <button onClick={() => setTypeDraft({ id: ty.id, name: typeLabel(ty), inverseName: ty.inverseName || '', directional: !!ty.directional, color: ty.color || RELATIONSHIP_COLOR_CHOICES[0], preset: !!ty.preset })}
               style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>{t('common.edit')}</button>
-            {!ty.preset && <button onClick={() => deleteCustomType(ty.id)} aria-label={`${t('common.delete')} ${typeLabel(ty)}`} style={{ fontSize: 12, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>}
+            <button onClick={() => setConfirmDelType(ty)} aria-label={`${t('common.delete')} ${typeLabel(ty)}`} style={{ fontSize: 12, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
           </div>
         ))}
       </Modal>
@@ -423,6 +471,10 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
       <ConfirmDialog open={!!confirmDelRel} title={t('systemMap.deleteRelationship')} message={t('systemMap.deleteRelationshipMsg')}
         danger onConfirm={() => { if (confirmDelRel) saveRelationships(relationships.filter(r => r.id !== confirmDelRel)); setConfirmDelRel(null); }}
         onCancel={() => setConfirmDelRel(null)} />
+
+      <ConfirmDialog open={!!confirmDelType} title={t('systemMap.deleteType')} message={t('systemMap.deleteTypeMsg')}
+        danger onConfirm={() => { if (confirmDelType) performDeleteType(confirmDelType); setConfirmDelType(null); }}
+        onCancel={() => setConfirmDelType(null)} />
     </div>
   );
 }

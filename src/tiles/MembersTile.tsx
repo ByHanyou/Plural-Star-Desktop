@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { getInitials } from '../utils';
+import { initialOn } from '../theme';
 import { useAppStore } from '../store/appStore';
 
 interface Props { onClick: () => void; }
@@ -17,7 +18,7 @@ export default function MembersTile({ onClick }: Props) {
         {active.length === 0 ? <span className="tile__empty">{t('members.noMembers')}</span> : (<>
           {preview.map(m => (
             <div key={m.id} className="tile__member-row">
-              <div className="tile__avatar" style={!m.avatar ? { backgroundColor: m.color } : { overflow: "hidden" }}>{m.avatar ? <img src={m.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
+              <div className="tile__avatar" style={!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : { overflow: "hidden" }}>{m.avatar ? <img src={m.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
               <span className="tile__member-name">{m.name}</span>
               <span className="tile__member-role">{m.role}</span>
             </div>

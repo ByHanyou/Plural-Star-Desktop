@@ -10,7 +10,8 @@ import {
   uid, singletStatuses, readableAccent,
 } from './utils';
 import { changeLanguage } from './i18n/i18n';
-import { setTerminologyOverrides } from './i18n/terminology';
+import { setTerminologyOverrides, setTierNameOverrides } from './i18n/terminology';
+import { ImageCropHost } from './components/ImageCropModal';
 
 import FrontTile from './tiles/FrontTile';
 import MembersTile from './tiles/MembersTile';
@@ -157,6 +158,7 @@ function AppInner() {
     applyFontChoice(mergedSettings.fontChoice ?? (mergedSettings.useDyslexicFont === true ? 'opendyslexic' : 'default'));
     changeLanguage(mergedSettings.language);
     setTerminologyOverrides(mergedSettings.terminology);
+    setTierNameOverrides(mergedSettings.tierNames);
 
     setState({
       system: system || { name: '', description: '' },
@@ -522,6 +524,10 @@ function AppInner() {
           {t('network.syncRoleMismatchMsg', { device: roleMismatch?.deviceName || '' })}
         </p>
       </Modal>
+
+      {/* One Auto/Edit chooser + crop editor for every picture upload;
+          opened via chooseImageTreatment. */}
+      <ImageCropHost />
     </div>
   );
 }
