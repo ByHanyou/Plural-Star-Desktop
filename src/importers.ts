@@ -12,8 +12,6 @@ export interface ConvertedImport {
   systemDesc?: string;
   systemAvatar?: string;
   systemBanner?: string;
-  // Same loose shape PluralSpaceImport uses — id and hashtags are filled in at
-  // apply time, so a converter never has to know about local ids.
   journal?: { title: string; body: string; authorIds: string[]; timestamp: number; hashtags?: string[]; pinned?: boolean }[];
   chat?: { name: string; createdAt: number; messages: { authorId: string; content: string; timestamp: number }[] }[];
 }
@@ -39,11 +37,7 @@ export type ForeignFormat = 'ourcana' | 'multiplicity' | 'octocon' | 'parallax';
 export const detectForeignFormat = (text: string): ForeignFormat | null => {
   try {
     const d = JSON.parse(text);
-    // Parallax: flat tables keyed off a Supabase-style account. fronting_log
-    // is its unique marker — nothing else exports one.
     if (!d._meta && typeof d.user_id === 'string' && Array.isArray(d.members) && Array.isArray(d.fronting_log)) return 'parallax';
-    // v3 is a graph with no top-level members array, so match the format tag
-    // and the graph shape as well as the old flat layout.
     if (d.format === 'ourcana' || (d.graph && Array.isArray(d.graph.nodes)) || (!d._meta && Array.isArray(d.members) && Array.isArray(d.frontHistory) && d.members[0]?.id !== undefined)) return 'ourcana';
     if (d.app === 'multiplicity' || (Array.isArray(d.alters) && Array.isArray(d.front_entries))) return 'multiplicity';
     if (!d._meta && d.user && typeof d.user === 'object' && Array.isArray(d.alters)) return 'octocon';
@@ -51,15 +45,6 @@ export const detectForeignFormat = (text: string): ForeignFormat | null => {
   return null;
 };
 
-/**
- * Ourcana v3 replaced the flat members/frontHistory arrays with a graph:
- * `graph.nodes` of type member | customField | system, plus `graph.edges`
- * (hasMember, system -> member). Custom fields are global definitions and each
- * member carries a { fieldId: value } map against them. Unknown node and edge
- * types are ignored on purpose so a future Ourcana release adds data rather
- * than breaking the import.
- */
-/** The database json inside an .our archive — never image_assets/index.json. */
 export const findOurcanaJsonEntry = (files: Record<string, Uint8Array>): string | undefined => {
   const names = Object.keys(files);
   return names.find(n => /(^|\/)ourcana[^/]*\.json$/i.test(n))
@@ -67,7 +52,6 @@ export const findOurcanaJsonEntry = (files: Record<string, Uint8Array>): string 
     || names.find(n => n.toLowerCase().endsWith('.json') && !n.toLowerCase().endsWith('index.json'));
 };
 
-/** Pick the bytes of `avatars/<ownerId>.<ext>` out of an .our archive. */
 const ourZipAvatarFor = (zipFiles: Record<string, Uint8Array>, ownerId: string): { name: string; bytes: Uint8Array } | null => {
   if (!ownerId) return null;
   const name = Object.keys(zipFiles).find(n => {
@@ -78,7 +62,6 @@ const ourZipAvatarFor = (zipFiles: Record<string, Uint8Array>, ownerId: string):
   return name ? { name, bytes: zipFiles[name] } : null;
 };
 
-/** Resolve an image_assets entry by owner + role (system banner etc.). */
 const ourAssetFor = (zipFiles: Record<string, Uint8Array>, ownerId: string, role: string): { name: string; bytes: Uint8Array } | null => {
   if (!ownerId) return null;
   const idxName = Object.keys(zipFiles).find(n => n.endsWith('image_assets/index.json'));
@@ -102,7 +85,6 @@ const convertOurcanaGraph = (d: any, zipFiles?: Record<string, Uint8Array>): Con
   const sysNode = byType('system')[0];
   const sys = sysNode?.properties || {};
 
-  // Field definitions first: members reference them by node id.
   const cfDefs: CustomFieldDef[] = [];
   const cfIdMap: Record<string, string> = {};
   byType('customField')
@@ -113,14 +95,10 @@ const convertOurcanaGraph = (d: any, zipFiles?: Record<string, Uint8Array>): Con
       const id = uid();
       cfIdMap[String(n.id)] = id;
       const raw = String(p.type || 'text').toLowerCase();
-      // Ours has no plain 'boolean' — the equivalent is 'toggle'.
       const type: CustomFieldType = raw === 'number' ? 'number' : raw === 'boolean' || raw === 'toggle' ? 'toggle' : raw === 'date' ? 'date' : 'text';
       cfDefs.push({ id, name: String(p.label || `Field ${i + 1}`).trim() || `Field ${i + 1}`, type, sortOrder: p.order ?? i });
     });
 
-  // Ourcana mints a personal tag per member (id tag_default_<memberId>, labelled
-  // with the member's own name); importing those would create one junk
-  // single-member group per member, so only the real organizational tags survive.
   const tagNodes = byType('tag').filter((n: any) => !String(n.id).startsWith('tag_default_'));
   const groups: MemberGroup[] = [];
   const gmap: Record<string, string> = {};
@@ -156,9 +134,6 @@ const convertOurcanaGraph = (d: any, zipFiles?: Record<string, Uint8Array>): Con
     const id = uid();
     idMap[String(n.id)] = id;
     const useDisplay = p.showOnlyDisplayName && p.displayName;
-    // The archive bundles the pictures as avatars/<memberId>.<ext>; members
-    // without one fall back to a real http(s) avatarUrl (localAvatarPath is a
-    // path on THEIR device — never portable).
     const zipAv = zipFiles ? ourZipAvatarFor(zipFiles, String(n.id)) : null;
     const avatar = zipAv
       ? (() => { try { return bytesToDataUri(zipAv.bytes, zipAv.name.split('/').pop() || 'a.png'); } catch { return undefined; } })()
@@ -187,8 +162,6 @@ const convertOurcanaGraph = (d: any, zipFiles?: Record<string, Uint8Array>): Con
     } as Member;
   });
 
-  // v3 splits fronting into raw ourcanaSwitchAtom records and the frontEvent
-  // rows aggregated from them — read the events only, or every span doubles.
   const fronts = byType('frontEvent').concat(byType('front')).concat(byType('frontEntry'));
   const history = buildHistory(
     fronts.map((n: any) => {
@@ -250,18 +223,6 @@ export const convertOurcana = (d: any, zipFiles?: Record<string, Uint8Array>): C
   return { sourceLabel: 'Ourcana', members, history, groups, systemName: sys.name, systemDesc: sys.desc };
 };
 
-/**
- * Parallax export (single .json), reversed from a real 272-member export — the
- * Tupperbox rule: match the file the app actually writes. Tables: members,
- * fronting_log (ONE fronter per row, part_id null = unknown fronter, ISO
- * times), messages (chat_id groups them; the export names no chats), plus
- * notes/polls/timeline/reminders which were all empty in the reference file
- * and stay dropped until a real populated export shows their shape. Member
- * profile_picture is a storage KEY relative to their host, not a URL —
- * nothing fetchable. sp_id is the Simply Plural id and doubles as Ourcana's
- * member id, so it is the sourceId: a Parallax import lands on the same
- * members an SP or Ourcana import already created.
- */
 export const convertParallax = (d: any): ConvertedImport => {
   const mem: any[] = Array.isArray(d?.members) ? d.members : [];
   const idMap: Record<string, string> = {};
@@ -306,7 +267,6 @@ export const convertParallax = (d: any): ConvertedImport => {
     if (!byChat[chatId]) byChat[chatId] = [];
     byChat[chatId].push({ authorId, content, timestamp });
   });
-  // The export carries no chat names — number them by first-message date.
   const chat = Object.values(byChat)
     .map(messages => messages.sort((a, b) => a.timestamp - b.timestamp))
     .sort((a, b) => a[0].timestamp - b[0].timestamp)
@@ -363,22 +323,6 @@ export interface PluralSpaceImport extends ConvertedImport {
 export const detectPluralSpace = (d: any): boolean =>
   !!d && !d._meta && d.system && typeof d.system === 'object' && Array.isArray(d.members) && Array.isArray(d.fronts);
 
-/**
- * PluralSpace replaced its flat `data.json` export with an account-scoped
- * bundle in the OpenPlural interchange format:
- *
- *   manifest.json                            { format: "openplural", systems: [...] }
- *   account/account.json
- *   systems/<slug>/openplural.json           <- the actual system
- *   systems/<slug>/media/...
- *
- * Nothing about it matches the old shape — every collection was renamed, media
- * moved behind an asset table, and member role/status became a taxonomy. Rather
- * than fork the whole importer, normalise an OpenPlural system back into the
- * legacy shape the rest of the PS path already consumes, so old exports and new
- * ones travel the same code. Kept byte-identical to the mobile copy in
- * src/import/convert.ts — diff the two before changing either.
- */
 export const isOpenPluralSystem = (o: any): boolean =>
   !!o && typeof o === 'object' && typeof o.openplural_version === 'string'
   && Array.isArray(o.members) && Array.isArray(o.front_periods);
@@ -388,8 +332,6 @@ export const normalizeOpenPlural = (root: any, mediaPrefix = ''): any | null => 
   const sys = (Array.isArray(root.systems) ? root.systems : [])[0] || {};
   const assets = new Map<string, any>();
   for (const a of Array.isArray(root.assets) ? root.assets : []) if (a && a.id) assets.set(String(a.id), a);
-  // asset.uri is relative to the system folder ("media/x.jpg"), but zip entries
-  // are keyed from the archive root, so re-attach the prefix we found it under.
   const assetPath = (id: any): string => {
     const a = id ? assets.get(String(id)) : null;
     const uri = a && a.uri ? String(a.uri) : '';
@@ -398,8 +340,6 @@ export const normalizeOpenPlural = (root: any, mediaPrefix = ''): any | null => 
 
   const terms = new Map<string, any>();
   for (const t of Array.isArray(root.taxonomy_terms) ? root.taxonomy_terms : []) if (t && t.id) terms.set(String(t.id), t);
-  // Member "role" is no longer a column — it is a taxonomy term of kind 'role'
-  // assigned to the member. Terms of kind 'status' hang off front periods.
   const rolesByMember = new Map<string, string[]>();
   for (const a of Array.isArray(root.taxonomy_assignments) ? root.taxonomy_assignments : []) {
     if (!a || a.subject_type !== 'member') continue;
@@ -448,15 +388,6 @@ export const normalizeOpenPlural = (root: any, mediaPrefix = ''): any | null => 
   const periods = Array.isArray(root.front_periods) ? root.front_periods : [];
   const at = (v: any): number => { if (!v) return 0; const ms = new Date(String(v)).getTime(); return isNaN(ms) ? 0 : ms; };
 
-  /**
-   * OpenPlural dropped `is_live`, and PluralSpace CLOSES the fronting period
-   * when it writes the export — so read literally, every import ends with
-   * nobody fronting. Reopen the newest period, but only when it ends flush
-   * against the export, which is unambiguous in practice: in the reference
-   * export the newest period ends 26s before `exported_at` and the one before
-   * it ends 3 hours before. A front the user genuinely ended earlier stays
-   * ended — silently resurrecting those is the bug class fixed on 08-03.
-   */
   const LIVE_AT_EXPORT_MS = 5 * 60 * 1000;
   const exportedAt = at(root.exported_at);
   let liveEnd = 0;
@@ -466,14 +397,9 @@ export const normalizeOpenPlural = (root: any, mediaPrefix = ''): any | null => 
     if (!(liveEnd > 0 && gap >= 0 && gap <= LIVE_AT_EXPORT_MS)) liveEnd = 0;
   }
 
-  // One period can name several members at different tiers; the legacy shape is
-  // one row per member, so flatten. 'member' is PluralSpace's plain fronting
-  // role and maps to primary front, same as 'primary'.
   const fronts: any[] = [];
   for (const p of periods) {
     if (!p) continue;
-    // Co-fronters share the period's end instant, so compare on the value and
-    // every row of that final group reopens together.
     const live = !p.ended_at || (liveEnd > 0 && at(p.ended_at) === liveEnd);
     const assignments = Array.isArray(p.assignments) && p.assignments.length ? p.assignments : [{member_id: p.member_id, front_role: 'primary'}];
     for (const a of assignments) {
@@ -689,26 +615,6 @@ export const convertPluralSpace = (d: any): PluralSpaceImport => {
   };
 };
 
-/**
- * Ampersand's JSON export (DatabaseJSON). Their dev considers the binary .ampdb
- * unstable — it changes shape every few releases — and points at this instead,
- * so this is the path we want people on.
- *
- * Same entity model as the old .ampar tables, but as plain JSON, which lets us
- * carry things the binary path never did: avatars, covers, roles and tags.
- */
-/**
- * Tupperbox `tul!export` JSON: `{ tuppers: [], groups: [] }`. Field list
- * verified against PluralKit's TupperboxImport.cs and /plu/ral's porting model
- * (both open source): tupper = id, name, brackets (flat prefix/suffix PAIRS),
- * avatar_url, avatar, banner, posts, show_brackets, birthday, tag, nick,
- * created_at, group_id, last_used; group = id, name, avatar, description, tag.
- * No system meta, fronting, custom fields, or colors. Brackets/avatar_url are
- * preserved as pkProxyTags/pkAvatarUrl (our PK round-trip policy); the
- * Discord-proxy leftovers (tag, nick, show_brackets, posts) and birthday are
- * dropped. avatar_url also rides `avatar`, which inlineRemoteAvatars fetches
- * into a data URI at apply time.
- */
 export const detectTupperbox = (d: any): boolean =>
   !!d && typeof d === 'object' && Array.isArray(d.tuppers);
 
@@ -752,22 +658,6 @@ export const convertTupperbox = (d: any): ConvertedImport => {
   return { sourceLabel: 'Tupperbox', members, history: [], groups };
 };
 
-/**
- * .ampar reader.
- *
- * Verified against a real 37 MB archive (2026-08-02), not guessed:
- *
- *   "AMPAR\0"            6-byte magic
- *   u16 be               format version (1)
- *   u16 be               reserved, 0
- *   <msgpack stream>     concatenated {table, data} maps, NOT length-prefixed
- *
- * Decoded here rather than via a dependency: it is a small, frozen subset of
- * MessagePack, and the mobile side would otherwise have to bundle a decoder for
- * one importer. Handles exactly what the format uses — maps, arrays, str, bin,
- * ints, floats, bool, nil, and ext -1 timestamps. Kept byte-identical to the
- * mobile copy in src/import/ampersand.ts — diff the two before changing either.
- */
 const AMPAR_MAGIC = [0x41, 0x4d, 0x50, 0x41, 0x52, 0x00];
 
 export const isAmparBytes = (b: Uint8Array): boolean =>
@@ -797,11 +687,8 @@ const utf8 = (b: Uint8Array, start: number, len: number): string => {
 
 export const decodeAmpar = (bytes: Uint8Array): {table: string; data: any}[] => {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  let p = 10; // magic + version + reserved
+  let p = 10;
 
-  // ext -1: the standard MessagePack timestamp. Emitted as epoch milliseconds
-  // because convertSPSwitches takes a number or a date string, and a number
-  // cannot be misparsed by a locale.
   const timestamp = (len: number): number => {
     if (len === 4) { const s = dv.getUint32(p); p += 4; return s * 1000; }
     if (len === 8) {
@@ -820,8 +707,8 @@ export const decodeAmpar = (bytes: Uint8Array): {table: string; data: any}[] => 
 
   const read = (): any => {
     const c = bytes[p++];
-    if (c <= 0x7f) return c;                       // positive fixint
-    if (c >= 0xe0) return c - 256;                 // negative fixint
+    if (c <= 0x7f) return c;
+    if (c >= 0xe0) return c - 256;
     if (c >= 0x80 && c <= 0x8f) return map(c & 0x0f);
     if (c >= 0x90 && c <= 0x9f) return arr(c & 0x0f);
     if (c >= 0xa0 && c <= 0xbf) return str(c & 0x1f);
@@ -882,20 +769,9 @@ export const decodeAmpar = (bytes: Uint8Array): {table: string; data: any}[] => 
   return out;
 };
 
-/**
- * Re-shape a decoded archive into the DatabaseJSON layout their JSON export
- * uses, so detectAmpersandJson/convertAmpersandJson stay a single code path.
- * The only difference between the two formats is member custom fields: JSON has
- * { fieldUuid: value }, the archive has a { _meta:{type:'map'}, value:[[k,v]] }
- * envelope. Flatten that one field and everything else lines up.
- */
 export const amparToDatabaseJson = (bytes: Uint8Array): any => {
   const byTable: Record<string, any[]> = {};
   for (const r of decodeAmpar(bytes)) (byTable[r.table] = byTable[r.table] || []).push(r.data);
-  // Images ride inline as {_meta:{type:'file', name}, value:<bin>}. Turning
-  // them into data URIs here means convertAmpersandJson's existing
-  // dataUri(a.image) / dataUri(a.cover) picks up avatars and banners with no
-  // change at all.
   const fileUri = (v: any): any => {
     const raw = v?.value;
     if (!raw || typeof raw.length !== 'number' || !v?._meta || v._meta.type !== 'file') return v;
@@ -936,7 +812,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
   const tags: any[] = Array.isArray(db.tags) ? db.tags : [];
   const fieldDefs: any[] = Array.isArray(db.customFields) ? db.customFields : [];
 
-  // They support several systems; appConfig.defaultSystem names the active one.
   const defaultId = String(d?.config?.appConfig?.defaultSystem || '');
   const sys = systems.find((s: any) => String(s?.uuid) === defaultId) || systems[0] || {};
 
@@ -949,10 +824,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
   const cfIdMap: Record<string, string> = {};
   fieldDefs.forEach((f: any, i: number) => { cfIdMap[String(f?.uuid)] = cfDefs[i].id; });
 
-  // Ampersand keeps `age` on the member; we have no native age, so it becomes
-  // an "Age" custom field instead of being dropped. Deliberately NOT localized:
-  // defs sync across devices and dedupe by name — a translated name on one
-  // platform and a plain one on the other would double the field.
   let ageFieldId = '';
   if (mem.some((a: any) => a?.age != null && String(a.age).trim() !== '')
       && !cfDefs.some(f => f.name.toLowerCase() === 'age')) {
@@ -960,11 +831,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     cfDefs.push({ id: ageFieldId, name: 'Age', type: 'text' as CustomFieldType, sortOrder: cfDefs.length });
   }
 
-  // Only member-type tags become groups; journal and asset tags are theirs alone.
-  // Archived, unnamed, and unused tags are skipped so the import does not land
-  // a pile of empty groups — the reference archive has 22 tags nobody carries.
-  // Mobile applies the same three guards; keep them in step or the same file
-  // imports differently on each platform.
   const usedTags = new Set<string>();
   mem.forEach((a: any) => (Array.isArray(a?.tags) ? a.tags : []).forEach((t: any) => usedTags.add(String(t))));
   const groups: MemberGroup[] = [];
@@ -977,9 +843,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     groups.push({ id: gid, name, color: tg.color ? hex(tg.color) : undefined, sourceId: 'amp:' + String(tg.uuid) });
   });
 
-  // Every Ampersand system becomes a group when the export holds more than
-  // one, so multi-system rosters stay tellable-apart instead of merging into
-  // one indistinguishable pile. A single system needs no group.
   const sysGroupMap: Record<string, string> = {};
   if (systems.length > 1) {
     systems.forEach((sy: any, i: number) => {
@@ -995,9 +858,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     return s.startsWith('data:') ? s : undefined;
   };
   const members: Member[] = mem
-    // ALL systems are kept. Filtering to defaultSystem silently DROPPED every
-    // other system's members — real data loss for multi-system users. Each
-    // system becomes a group (above) so nothing merges indistinguishably.
     .filter((a: any) => !!a)
     .map((a: any) => {
       const id = uid();
@@ -1022,9 +882,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
         color: hex(a.color),
         description: String(a.description || ''),
         archived: !!a.isArchived,
-        // Ampersand 0.3.0 (AMPAR v2 / current JSON) renamed isCustomFront →
-        // isDissociativeState; read both so old and new exports import
-        // identically.
         isCustomFront: !!(a.isCustomFront || a.isDissociativeState),
         avatar: dataUri(a.image),
         banner: dataUri(a.cover),
@@ -1038,9 +895,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
       } as Member;
     });
 
-  // Their fronting entries are ONE ROW PER MEMBER, so members sharing a span are
-  // one switch to us. isMainFronter picks the primary tier; everyone else on that
-  // span is a co-fronter.
   const spans = new Map<string, { start: any; end: any; main: string[]; co: string[]; notes: string[] }>();
   fronting.forEach((f: any) => {
     if (!f || !f.member) return;
@@ -1048,7 +902,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     let s = spans.get(key);
     if (!s) { s = { start: f.startTime, end: f.endTime ?? null, main: [], co: [], notes: [] }; spans.set(key, s); }
     (f.isMainFronter ? s.main : s.co).push(String(f.member));
-    // 0.3.0 renamed the fronting `comment` to `summary`; read all spellings.
     const note = String(f.comment || f.summary || f.customStatus || '').trim();
     if (note) s.notes.push(note);
   });
@@ -1058,7 +911,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
     const co = s.co.map(u => idMap[u]).filter(Boolean) as string[];
     const startTime = toMs(s.start);
     if (startTime <= 0 || (main.length === 0 && co.length === 0)) return;
-    // With no main fronter flagged, the co-fronters ARE the front.
     const primary = main.length > 0 ? main : co;
     const others = main.length > 0 ? co : [];
     history.push({
@@ -1071,11 +923,6 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
   });
   history.sort((a, b) => a.startTime - b.startTime);
 
-  // Journal posts AND the system message board both become journal entries —
-  // they are the only two things Ampersand has that are dated, titled, authored
-  // prose. A board poll has no equivalent of ours (ours target one member,
-  // theirs are system-wide), so the results are rendered into the body rather
-  // than forced into a shape that would misrepresent them.
   const tagName: Record<string, string> = {};
   tags.forEach((tg: any) => { if (tg?.uuid != null) tagName[String(tg.uuid)] = String(tg.name || ''); });
   const memberName: Record<string, string> = {};

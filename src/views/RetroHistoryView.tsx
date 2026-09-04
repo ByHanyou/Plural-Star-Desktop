@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontState, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch } from '../utils';
+import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Field, Toggle, useEscapeKey } from '../components/ui';
@@ -34,8 +34,6 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const history = useAppStore(s => s.state.history);
   const front = useAppStore(s => s.state.front);
   const { t } = useTranslation();
-  // Facets can front, so they belong in the retro picker — as their own pool,
-  // never folded into the member list.
   const regularMembers = members.filter(m => !m.isCustomFront && !m.isFacet && !m.archived);
   const facetMembers = members.filter(m => m.isFacet && !m.isCustomFront && !m.archived);
   const customFronts = members.filter(m => m.isCustomFront && !m.archived);
@@ -48,6 +46,14 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const [note, setNote] = useState('');
   const [location, setLocation] = useState('');
   const [energy, setEnergy] = useState<number | undefined>(undefined);
+  const [coFrontMood, setCoFrontMood] = useState('');
+  const [coFrontLocation, setCoFrontLocation] = useState('');
+  const [coFrontNote, setCoFrontNote] = useState('');
+  const [coFrontEnergy, setCoFrontEnergy] = useState<number | undefined>(undefined);
+  const [coConMood, setCoConMood] = useState('');
+  const [coConLocation, setCoConLocation] = useState('');
+  const [coConNote, setCoConNote] = useState('');
+  const [coConEnergy, setCoConEnergy] = useState<number | undefined>(undefined);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [isCurrent, setIsCurrent] = useState(false);
@@ -60,10 +66,6 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const findOverlaps = (start: number, end: number | null): HistoryEntry[] => {
     const effectiveEnd = end ?? Date.now();
     return history.filter(e => {
-      // Mood, location and note rows are point-in-time markers. Nothing ever
-      // closes them, so their endTime stays null for good, and reading that as
-      // "still running" made every one of them overlap everything recorded
-      // after it. Only real front spans can overlap.
       if (!e.startTime) return false;
       if (e.changeType && e.changeType !== 'front') return false;
       const eEnd = e.endTime ?? Date.now();
@@ -83,9 +85,20 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     location: location || undefined,
     energyLevel: energy,
     coFrontIds: coFrontIds.length > 0 ? coFrontIds : undefined,
+    coFrontMood: coFrontMood || undefined,
+    coFrontNote: coFrontNote || undefined,
+    coFrontLocation: coFrontLocation || undefined,
+    coFrontEnergy: coFrontEnergy,
     coConsciousIds: coConIds.length > 0 ? coConIds : undefined,
+    coConsciousMood: coConMood || undefined,
+    coConsciousNote: coConNote || undefined,
+    coConsciousLocation: coConLocation || undefined,
+    coConsciousEnergy: coConEnergy,
     changeType: 'front',
   });
+
+  const coFrontTier = (): FrontTier => ({ memberIds: coFrontIds, note: coFrontNote, mood: coFrontMood || undefined, location: coFrontLocation || undefined, energyLevel: coFrontEnergy });
+  const coConTier = (): FrontTier => ({ memberIds: coConIds, note: coConNote, mood: coConMood || undefined, location: coConLocation || undefined, energyLevel: coConEnergy });
 
   const saveHistory = async (h: HistoryEntry[]) => {
     await store.set(KEYS.history, h);
@@ -137,8 +150,8 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
             );
             const newFront: FrontState = {
               primary: { memberIds: effectivePrimary(), mood: mood || undefined, note, location: location || undefined, energyLevel: energy },
-              coFront: { memberIds: coFrontIds, note: '' },
-              coConscious: { memberIds: coConIds, note: '' },
+              coFront: coFrontTier(),
+              coConscious: coConTier(),
               startTime: startDate.getTime(),
             };
             await setFrontState(newFront);
@@ -148,8 +161,8 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
           { label: t('hub.addTo'), onClick: async () => {
             const newFront: FrontState = {
               primary: { memberIds: [...(front?.primary.memberIds || []), ...effectivePrimary().filter(id => !front?.primary.memberIds.includes(id))], mood: mood || front?.primary.mood, note: note || front?.primary.note || '', location: location || front?.primary.location },
-              coFront: { memberIds: [...(front?.coFront.memberIds || []), ...coFrontIds.filter(id => !front?.coFront.memberIds.includes(id))], note: front?.coFront.note || '' },
-              coConscious: { memberIds: [...(front?.coConscious.memberIds || []), ...coConIds.filter(id => !front?.coConscious.memberIds.includes(id))], note: front?.coConscious.note || '' },
+              coFront: { memberIds: [...(front?.coFront.memberIds || []), ...coFrontIds.filter(id => !front?.coFront.memberIds.includes(id))], mood: coFrontMood || front?.coFront.mood, note: coFrontNote || front?.coFront.note || '', location: coFrontLocation || front?.coFront.location, energyLevel: coFrontEnergy ?? front?.coFront.energyLevel },
+              coConscious: { memberIds: [...(front?.coConscious.memberIds || []), ...coConIds.filter(id => !front?.coConscious.memberIds.includes(id))], mood: coConMood || front?.coConscious.mood, note: coConNote || front?.coConscious.note || '', location: coConLocation || front?.coConscious.location, energyLevel: coConEnergy ?? front?.coConscious.energyLevel },
               startTime: front?.startTime || startDate.getTime(),
             };
             await setFrontState(newFront);
@@ -185,8 +198,8 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     if (isCurrent) {
       const newFront: FrontState = {
         primary: { memberIds: effectivePrimary(), mood: mood || undefined, note, location: location || undefined, energyLevel: energy },
-        coFront: { memberIds: coFrontIds, note: '' },
-        coConscious: { memberIds: coConIds, note: '' },
+        coFront: coFrontTier(),
+        coConscious: coConTier(),
         startTime: startDate.getTime(),
       };
       await setFrontState(newFront);
@@ -198,9 +211,6 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const TierMemberPicker = ({ tierKey, poolKey, label, color, selected, setSelected, pool, searchKind }: {
     tierKey: FrontTierKey; poolKey: string; label: string; color: string;
     selected: string[]; setSelected: (ids: string[]) => void; pool: Member[];
-    /** What this picker lists, for the search placeholder. Every box said
-     *  "Type to search alters…" under headers naming facets and custom fronts.
-     *  Omitted for the plain members picker, which keeps its own wording. */
     searchKind?: string;
   }) => {
     const q = search[poolKey] || '';
@@ -256,6 +266,42 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     );
   };
 
+  const tierDetails = (
+    tierLabel: string, color: string,
+    moodVal: string, setMoodVal: (v: string) => void,
+    locVal: string, setLocVal: (v: string) => void,
+    energyVal: number | undefined, setEnergyVal: (v: number | undefined) => void,
+    noteVal: string, setNoteVal: (v: string) => void,
+  ) => (
+    <div key={tierLabel || 'primary'}>
+      {tierLabel ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
+          <span aria-hidden style={{ width: 8, height: 8, borderRadius: 4, background: color, display: 'inline-block' }} />
+          <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 600, color }}>{tierLabel}</span>
+        </div>
+      ) : null}
+      <Field label={t('modal.mood')} value={moodVal} onChange={setMoodVal} placeholder={t('modal.enterMood')} />
+      <Field label={t('modal.location')} value={locVal} onChange={setLocVal} placeholder={t('modal.typeLocation')} />
+
+      <label className="field__label">{t('energy.level')}</label>
+      <div style={{ display: 'flex', gap: 3, marginBottom: 14, alignItems: 'center' }}>
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+          <button key={n} onClick={() => setEnergyVal(energyVal === n ? undefined : n)}
+            aria-label={`${tierLabel ? `${tierLabel}, ` : ''}${t('energy.level')} ${n}/10`} aria-pressed={energyVal === n}
+            style={{
+              flex: 1, padding: '6px 0', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              background: energyVal === n ? 'var(--accent-bg)' : 'var(--surface)',
+              border: `1px solid ${energyVal !== undefined && n <= energyVal ? color : 'var(--border)'}`,
+              color: energyVal !== undefined && n <= energyVal ? color : 'var(--dim)',
+            }}>{n}</button>
+        ))}
+      </div>
+
+      <Field label={t('modal.note')} value={noteVal} onChange={setNoteVal} placeholder={t('modal.whatHappening')} multiline />
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0 14px' }} />
+    </div>
+  );
+
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <label className="field__label">{t('hub.startTime')}</label>
@@ -290,31 +336,14 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         )}
         <TierMemberPicker tierKey="coConscious" poolKey="coConscious" label={TIER_LABELS.coConscious} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={regularMembers} />
         <TierMemberPicker tierKey="coConscious" poolKey="coConsciousFacet" label={t('members.facets')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={facetMembers} searchKind={t('members.facets')} />
-        {/* Custom fronts were pickable for primary and co-front but ABSENT
-            here — "custom front is missing from co con". */}
         {customFronts.length > 0 && (
           <TierMemberPicker tierKey="coConscious" poolKey="coConsciousCf" label={t('members.customFronts')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={customFronts} searchKind={t('members.customFronts')} />
         )}
       </>)}
 
-      <Field label={t('modal.mood')} value={mood} onChange={setMood} placeholder={t('modal.enterMood')} />
-      <Field label={t('modal.location')} value={location} onChange={setLocation} placeholder={t('modal.typeLocation')} />
-
-      <label className="field__label">{t('energy.level')}</label>
-      <div style={{ display: 'flex', gap: 3, marginBottom: 14, alignItems: 'center' }}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-          <button key={n} onClick={() => setEnergy(energy === n ? undefined : n)}
-            aria-label={`${t('energy.level')} ${n}/10`} aria-pressed={energy === n}
-            style={{
-              flex: 1, padding: '6px 0', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 600,
-              background: energy === n ? 'var(--accent-bg)' : 'var(--surface)',
-              border: `1px solid ${energy !== undefined && n <= energy ? 'var(--accent)' : 'var(--border)'}`,
-              color: energy !== undefined && n <= energy ? 'var(--accent)' : 'var(--dim)',
-            }}>{n}</button>
-        ))}
-      </div>
-
-      <Field label={t('modal.note')} value={note} onChange={setNote} placeholder={t('modal.whatHappening')} multiline />
+      {tierDetails(singlet ? '' : TIER_LABELS.primary, 'var(--accent)', mood, setMood, location, setLocation, energy, setEnergy, note, setNote)}
+      {!singlet && coFrontIds.length > 0 && tierDetails(TIER_LABELS.coFront, 'var(--info)', coFrontMood, setCoFrontMood, coFrontLocation, setCoFrontLocation, coFrontEnergy, setCoFrontEnergy, coFrontNote, setCoFrontNote)}
+      {!singlet && coConIds.length > 0 && tierDetails(TIER_LABELS.coConscious, 'var(--success)', coConMood, setCoConMood, coConLocation, setCoConLocation, coConEnergy, setCoConEnergy, coConNote, setCoConNote)}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 16, marginBottom: 30 }}>
         <Btn variant="ghost" onClick={onDone}>{t('common.cancel')}</Btn>

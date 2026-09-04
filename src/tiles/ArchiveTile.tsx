@@ -7,8 +7,6 @@ interface Props { onClick: () => void; }
 export default function ArchiveTile({ onClick }: Props) {
   const { t } = useTranslation();
   const members = useAppStore(s => s.state.members);
-  // Archive holds anything archived, so the tile counts the same set the view
-  // shows: members, facets and custom fronts alike.
   const archived = members.filter(m => m.archived && !m.deleted);
   return (
     <div className="tile tile--center" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>

@@ -179,7 +179,6 @@ export default function JournalView({ onUpdate }: Props) {
 
   const authorMatch = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && memberMatchesSearch(m, authorSearch);
   const filteredAuthors = members.filter(m => !m.isFacet && authorMatch(m));
-  // Facets keep their own section: out of the member list, still selectable.
   const filteredFacetAuthors = members.filter(m => m.isFacet && authorMatch(m));
 
   return (
@@ -215,7 +214,6 @@ export default function JournalView({ onUpdate }: Props) {
           }} aria-label={t('common.filterByAuthor')} value={authorFilter} onChange={e => setAuthorFilter(e.target.value)}>
             <option value="">{t('common.allAuthors')}</option>
             {members.filter(m => !m.archived && !m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            {/* Facets keep their own group: out of the member list, still selectable. */}
             {members.some(m => !m.archived && m.isFacet) && (
               <optgroup label={t('members.facets')}>
                 {members.filter(m => !m.archived && m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}

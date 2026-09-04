@@ -49,8 +49,6 @@ export async function applyFrontUpdate(current: FrontState | null, primary: any,
 }
 
 export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed }: Props) {
-  // Fronting durations are computed at render; without this they freeze until
-  // the user "wiggles" the app (Devon's report).
   useMinuteTick();
   const front = useAppStore(s => s.state.front);
   const members = useAppStore(s => s.state.members);
@@ -75,15 +73,10 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
   }, []);
 
   const getMember = (id: string) => members.find(m => m.id === id);
-  // Feeds SetFrontModal, which splits this into its own roster / facets /
-  // custom-front sections. Filtering facets out HERE would leave that Facets
-  // section permanently empty, which is the opposite of keeping them addable.
   const activeMembers = members.filter(m => !m.archived);
   const allMoods = [...DEFAULT_MOODS, ...(settings.customMoods || [])];
 
 
-  // Quick Remove: one click takes a member out of the front without opening
-  // the full editor; saveFront keeps every history behavior identical.
   const quickRemove = (memberId: string) => {
     if (!front) return;
     const strip = (tier: any) => ({ ...tier, memberIds: (tier.memberIds || []).filter((x: string) => x !== memberId) });
@@ -426,9 +419,6 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
     energy?: number; setEnergy: (v: number | undefined) => void;
     location: string; setLocation: (v: string) => void;
   }) => {
-    // kindLabel: what THIS pool lists. The same renderer runs three times per
-    // tier and every one of them said "search members", so the section headers
-    // named one thing and the box under them another.
     const renderPool = (pool: Member[], q: string, setQ: (v: string) => void, showHint: boolean, kindLabel?: string) => {
       const searchLabel = kindLabel
         ? t('members.searchToAddKind', { kind: kindLabel, defaultValue: `Type to search ${kindLabel}…` })
@@ -495,8 +485,6 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
 
         {renderPool(regularPool, search[tierKey], v => setSearch({ ...search, [tierKey]: v }), true)}
 
-        {/* Never gate this on facetPool.length: an empty section is how you add
-            your first facet to a front. Hiding it looks like the feature is missing. */}
         <label className="field__label">{t('members.facets')}</label>
         {renderPool(facetPool, searchFacet[tierKey], v => setSearchFacet({ ...searchFacet, [tierKey]: v }), false, t('members.facets'))}
 
@@ -529,8 +517,6 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             aria-label={t('modal.enterMood')} placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
         )}
 
-        {/* Every tier gets Mood, Energy, Location and Note — they were inconsistent,
-            with Location on the primary tier only. */}
         <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
           {(settings.locations || []).map(l => (

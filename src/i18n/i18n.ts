@@ -78,9 +78,6 @@ i18n
     postProcess: ['terminology'],
   });
 
-// index.html ships lang="en" and nothing ever changed it, so a screen reader
-// read all 23 other languages with an English voice. Keep the document tag in
-// step with i18n (zhHant needs the script subtag to be a valid BCP 47 code).
 const htmlLang = (lang: SupportedLanguage): string => (lang === 'zhHant' ? 'zh-Hant' : lang);
 
 export const applyDocumentLanguage = (lang: SupportedLanguage): void => {

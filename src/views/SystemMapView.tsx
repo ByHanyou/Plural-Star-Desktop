@@ -36,15 +36,9 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const [showAddMember, setShowAddMember] = useState(false);
   const [showTypes, setShowTypes] = useState(false);
   const [showArchived, setShowArchived] = useState(() => localStorage.getItem('ps.mapShowArchived') === '1');
-  // Default ON: facets have always rendered once added, so the toggle only
-  // ever hides them on request. Hiding leaves mapIds untouched — toggling
-  // back restores every facet exactly where it was.
   const [showFacets, setShowFacets] = useState(() => localStorage.getItem('ps.mapShowFacets') !== '0');
   const [colorAll, setColorAll] = useState(() => localStorage.getItem('ps.mapColorThreads') === '1');
-  // `toIds` is a LIST: one pass can create the same relationship to several
-  // members (poly relationships), mirroring the mobile editor.
   const [relEditor, setRelEditor] = useState<{ from: string; toIds: string[]; typeId: string; note: string } | null>(null);
-  // Duplicate notice for the relationship editor; any edit clears it.
   const [relDup, setRelDup] = useState(false);
   useEffect(() => { setRelDup(false); }, [relEditor]);
   const [typeDraft, setTypeDraft] = useState<TypeDraft | null>(null);
@@ -93,9 +87,6 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const saveCustomTypes = async (next: RelationshipTypeDef[]) => { setCustomTypes(next); await store.set(KEYS.relationshipTypes, next); };
   const saveMapIds = async (next: string[]) => { setMapIds(next); await store.set(KEYS.systemMapMembers, next); };
 
-  // Facets are out of every member LIST, but one that was deliberately added
-  // through its own control still belongs on the map and still takes
-  // relationships, so membership here is the explicit mapIds opt-in.
   const mapMembers = useMemo(() => (mapIds.map(id => memberById.get(id)).filter(Boolean) as Member[]).filter(m => (showArchived || !m.archived) && (showFacets || !m.isFacet)), [mapIds, memberById, showArchived, showFacets]);
   const mapIdSet = useMemo(() => new Set(mapIds), [mapIds]);
   const mapRels = useMemo(() => relationships.filter(r => mapIdSet.has(r.fromId) && mapIdSet.has(r.toId)), [relationships, mapIdSet]);
@@ -188,12 +179,6 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     const { from, toIds, typeId, note } = relEditor;
     const targets = [...new Set(toIds)].filter(id => id && id !== from);
     if (!from || targets.length === 0) { setRelEditor(null); return; }
-    // Reversed pairs only count as duplicates for NON-directional types
-    // (mobile parity — A→B Rival must not block B→A Rival). Multi-select To:
-    // pairs that already have this relationship are skipped rather than
-    // refused; only an all-duplicates save keeps the editor open with the
-    // visible notice, instead of silently closing it, which read as "it says
-    // I've already added relationships I haven't."
     const td = typeById.get(typeId);
     const isDup = (to: string) => relationships.some(r => r.typeId === typeId && ((r.fromId === from && r.toId === to) || (!td?.directional && r.fromId === to && r.toId === from)));
     const fresh = targets.filter(to => !isDup(to));
@@ -201,10 +186,6 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     const nowTs = Date.now();
     const entries: Relationship[] = fresh.map(to => ({ id: uid(), fromId: from, toId: to, typeId, note: note || undefined, createdAt: nowTs }));
     saveRelationships([...relationships, ...entries]);
-    // Every endpoint lands on the map, so the new thread is visible at once.
-    // The pickers now offer off-map people (facets included) — without this,
-    // creating a relationship between two facets required adding both to the
-    // map by hand first, which is the reported dead end.
     const mapAdds = [from, ...fresh].filter(id => !mapIdSet.has(id));
     if (mapAdds.length > 0) saveMapIds([...mapIds, ...mapAdds]);
     setRelEditor(null);
@@ -223,11 +204,6 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     setTypeDraft(null);
   };
 
-  // Runs AFTER the ConfirmDialog: removing a type also removes every
-  // relationship using it. A preset cannot be removed from the constant, so
-  // its deletion is stored as a tombstoned override on the same id;
-  // allRelationshipTypes drops it. Any prior rename/recolor override is
-  // replaced by the tombstone.
   const performDeleteType = (ty: RelationshipTypeDef) => {
     if (ty.preset) {
       saveCustomTypes([...customTypes.filter(ct => ct.id !== ty.id), { id: ty.id, name: ty.name, directional: !!ty.directional, preset: true, deleted: true }]);
@@ -237,15 +213,13 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     if (relationships.some(r => r.typeId === ty.id)) saveRelationships(relationships.filter(r => r.typeId !== ty.id));
   };
 
-  // Tombstoned members (deleted) stay in storage only so history, chat and map
-  // links keep resolving to a name. They must never be offered for selection,
-  // including when Archived is switched on.
   const offAll = members.filter(m => !mapIdSet.has(m.id) && !m.deleted && (showArchived || !m.archived));
   const off = offAll.filter(m => !m.isFacet);
-  // Facets get their own section: out of the member list, still addable on purpose.
   const offFacets = offAll.filter(m => m.isFacet);
   const selected = selectedId ? memberById.get(selectedId) : null;
-  const selRels = selectedId ? mapRels.filter(r => r.fromId === selectedId || r.toId === selectedId) : [];
+  const selRels = selectedId
+    ? mapRels.filter(r => (r.fromId === selectedId || r.toId === selectedId) && pos.has(r.fromId === selectedId ? r.toId : r.fromId))
+    : [];
 
   return (
     <div style={{ maxWidth: 980, margin: '0 auto' }}>
@@ -286,11 +260,6 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
             {mapRels.map(r => {
               const a = pos.get(r.fromId), b = pos.get(r.toId);
               if (!a || !b) return null;
-              // Both ends being reachable is not enough: that also lights the
-              // relationships BETWEEN two of the selected member's neighbours,
-              // which are not the selected member's relationships at all
-              // ("more than the 1st ring is highlighted"). A lit edge steps
-              // outward exactly one ring.
               const da = dist?.get(r.fromId);
               const db = dist?.get(r.toId);
               const active = da !== undefined && db !== undefined && Math.abs(da - db) === 1;
@@ -389,9 +358,6 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label className="field__label">{t('systemMap.from')}</label>
-              {/* Off-map people too, facets included: a relationship between
-                  two facets could not be CREATED until both were added to the
-                  map by hand. Saving now puts every endpoint on the map. */}
               <Dropdown<string> value={relEditor.from} options={[...mapIds, ...off.map(m => m.id), ...offFacets.map(m => m.id)]} onChange={v => setRelEditor({ ...relEditor, from: v })} renderOption={id => memberById.get(id)?.name || '?'} />
             </div>
             <div>

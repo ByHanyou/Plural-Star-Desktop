@@ -40,8 +40,6 @@ export default function ImportExportView({ onUpdate }: Props) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
-  // Progress for the wait overlay. Importers announce phases through
-  // ctx.setProgress; the controller counts them and carries the stop request.
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const importControlRef = useRef<ImportControl | null>(null);
   const beginImport = (phases: number) => {
@@ -52,7 +50,6 @@ export default function ImportExportView({ onUpdate }: Props) {
     return control;
   };
   useEffect(() => {
-    // Never leave a blocking overlay behind if a run ends any which way.
     if (!importing) {
       importControlRef.current = null;
       setImportProgress(null);
@@ -81,16 +78,11 @@ export default function ImportExportView({ onUpdate }: Props) {
     setTimeout(() => setStatus(null), 4000);
   };
 
-  // PluralKit is the only token importer now — the Simply Plural token path was
-  // removed, and leaving the default at 'sp' would have fetched from Simply
-  // Plural behind PluralKit's copy.
   const [extSource] = useState<'sp' | 'pk'>('pk');
   const [extToken, setExtToken] = useState('');
   const [extLoading, setExtLoading] = useState(false);
   const [extPreview, setExtPreview] = useState<{members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[]} | null>(null);
   const [extSel, setExtSel] = useState({system: true, members: true, avatars: true, frontHistory: true, customFields: true, groups: true, displayNames: true, pronouns: true});
-  // Governs EVERY import path incl. backup restore. Overwrite = the standing
-  // replace semantics; Update = refresh matches and add, never remove local.
   const [importMode, setImportMode] = useState<'overwrite' | 'update'>('overwrite');
   const togE = (k: string) => setExtSel(s => ({...s, [k]: !s[k as keyof typeof s]}));
 
@@ -99,7 +91,6 @@ export default function ImportExportView({ onUpdate }: Props) {
       const res = await window.electronAPI.net.fetch(url, { headers }).catch(() => null);
       if (res && res.ok) { try { return JSON.parse(res.text); } catch { return null; } }
       if (res && (res.status === 401 || res.status === 403)) return null;
-      console.log(`[SP-FETCH] ${url} -> ${res ? res.status : 'network error'} (attempt ${attempt + 1})`);
       if (attempt < 2) await new Promise<void>(r => setTimeout(() => r(), 700 * (attempt + 1)));
     }
     return null;

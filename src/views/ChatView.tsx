@@ -94,8 +94,6 @@ export default function ChatView({ onUpdate }: Props) {
     setInput(''); setReplyTo(null);
   };
 
-  // Same flow as mobile: editing borrows the composer, so the format buttons
-  // and paste handling work on edits for free.
   const startEditMessage = (msg: ChatMessage) => {
     if (msg.type !== 'text' && msg.type !== 'reply') return;
     setEditingMessageId(msg.id);
@@ -179,8 +177,6 @@ export default function ChatView({ onUpdate }: Props) {
     const current = channels.find(c => c.id === id);
     const nextCat = editChannelCategory === '__none__' ? undefined : editChannelCategory;
     const movedCategory = (current?.categoryId || undefined) !== nextCat;
-    // Landing in a new category means landing at the END of it, so the channel
-    // never inherits a position that belongs to a row already sitting there.
     const tail = movedCategory ? channelsOf(nextCat || null).filter(c => c.id !== id).length : 0;
     await saveChannels(channels.map(c => c.id === id
       ? { ...c, name, categoryId: nextCat, ...(movedCategory ? { sortOrder: tail } : {}) }
@@ -226,8 +222,6 @@ export default function ChatView({ onUpdate }: Props) {
   };
 
   const deleteCategory = async (id: string) => {
-    // Deleting a category never deletes a channel. Its channels move to the
-    // uncategorized list, appended after whatever is already there.
     const inside = channels.filter(c => c.categoryId === id);
     if (inside.length > 0) {
       let next = uncategorized.length;
@@ -239,12 +233,6 @@ export default function ChatView({ onUpdate }: Props) {
   };
 
 
-  /**
-   * One DndContext holds the category list and every category's channel list,
-   * so the drop has to be resolved against the dragged row's OWN list. A drop
-   * onto a different list is ignored: moving a channel between categories is
-   * the picker's job, which is also the only version of it a keyboard can do.
-   */
   const onDragEnd = async (e: DragEndEvent) => {
     const { active: dragged, over } = e;
     if (!over || dragged.id === over.id) return;
@@ -431,7 +419,6 @@ export default function ChatView({ onUpdate }: Props) {
                     <span style={{ fontSize: 12, color: m.id === activeMemberId ? m.color : 'var(--dim)' }}>{m.name}</span>
                   </button>
                 );
-                // Facets keep their own section: out of the member list, still pickable.
                 const facets = members.filter(m => m.isFacet && match(m));
                 return (
                   <>
@@ -578,8 +565,9 @@ export default function ChatView({ onUpdate }: Props) {
             <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
               {[['**', '**'], ['*', '*'], ['~~', '~~'], ['`', '`'], ['> ', ''], ['- ', ''], ['# ', '']].map(([b, a], i) => {
                 const labels = ['B', 'I', 'S', '<>', '❝', '•', 'H'];
+                const names = ['markdown.toolBold', 'markdown.toolItalic', 'markdown.toolStrike', 'markdown.toolCode', 'markdown.toolQuote', 'markdown.toolBullets', 'markdown.toolH1'];
                 return (
-                  <button key={i} style={{
+                  <button key={i} aria-label={t(names[i])} title={t(names[i])} style={{
                     padding: '2px 8px', fontSize: 12, background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: 4, color: 'var(--dim)', cursor: 'pointer',
                     fontWeight: i === 0 ? 700 : 400, fontStyle: i === 1 ? 'italic' : 'normal',

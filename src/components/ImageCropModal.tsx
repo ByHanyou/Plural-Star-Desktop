@@ -1,15 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import i18n from '../i18n/i18n';
 
-// The picture upload choice and its Edit half. Every upload site funnels the
-// picked data URL through chooseImageTreatment: Auto returns it untouched
-// (exactly what the site got before this existed), Edit opens a freeform
-// crop over a canvas and returns the cropped data URL. Either result then
-// rides the site's own save/resize path, so storage stays identical.
-//
-// Promise bridge instead of per-call-site modals: one host mounted in App
-// serves MembersView, ProfileView and SystemProfileView.
-
 interface UploadRequest {
   dataUrl: string;
   resolve: (r: string | null) => void;
@@ -17,9 +8,6 @@ interface UploadRequest {
 
 let hostOpen: ((req: UploadRequest) => void) | null = null;
 
-/** Resolves with the data URL to store (original for Auto, cropped for Edit),
- *  or null if the user backs out (or the host is not mounted, which callers
- *  must treat as cancel). */
 export const chooseImageTreatment = (dataUrl: string): Promise<string | null> =>
   new Promise(resolve => {
     if (!hostOpen) { resolve(null); return; }
@@ -56,7 +44,6 @@ export const ImageCropHost = () => {
     return () => { hostOpen = null; };
   }, []);
 
-  // Measure the crop area once the crop stage renders.
   useEffect(() => {
     if (stage !== 'crop') return;
     const el = boxRef.current;
@@ -151,8 +138,6 @@ export const ImageCropHost = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) { finish(null); return; }
       ctx.drawImage(img, ox, oy, cw, ch, 0, 0, cw, ch);
-      // Keep the source format where it matters: jpeg stays jpeg (size),
-      // everything else goes png (alpha survives).
       const jpeg = req.dataUrl.startsWith('data:image/jpeg');
       finish(canvas.toDataURL(jpeg ? 'image/jpeg' : 'image/png', 0.92));
     };
@@ -168,7 +153,7 @@ export const ImageCropHost = () => {
   if (stage === 'choose') {
     return (
       <div style={overlay} role="dialog" aria-label={i18n.t('modal.imagePickHow')} onClick={() => finish(null)}>
-        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, minWidth: 300 }} onClick={e => e.stopPropagation()}>
+        <div role="presentation" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, minWidth: 300 }} onClick={e => e.stopPropagation()}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>{i18n.t('modal.imagePickHow')}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button style={btn} onClick={() => finish(null)}>{i18n.t('common.cancel')}</button>

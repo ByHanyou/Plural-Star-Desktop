@@ -16,7 +16,6 @@ interface Props {
 type TimeRange = 'all' | '7d' | '30d' | '90d';
 
 export default function HistoryView({ onUpdate, singlet = false, selfId }: Props) {
-  // The open entry's live duration freezes without a tick.
   useMinuteTick();
   const { t } = useTranslation();
   const history = useAppStore(s => s.state.history);
@@ -147,7 +146,6 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
         }} value={memberFilter} onChange={e => setMemberFilter(e.target.value)}>
           <option value="">{singlet ? t('history.byStatus') : t('history.allMembers')}</option>
           {members.filter(m => !m.archived && !m.isFacet && (!singlet || (m.isCustomFront && m.id !== selfId))).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          {/* Facets keep their own group: out of the member list, still selectable. */}
           {members.some(m => !m.archived && m.isFacet && !singlet) && (
             <optgroup label={t('members.facets')}>
               {members.filter(m => !m.archived && m.isFacet && !singlet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -211,8 +209,6 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
                       <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coFront')}:</span>
                       {(entry.coFrontIds || []).map(id => <MemberChip key={id} id={id} />)}
                     </div>
-                    {/* Co-tiers record Mood, Energy, Location and Note too — history
-                        used to show only who was there. */}
                     {(entry.coFrontMood || entry.coFrontLocation || entry.coFrontEnergy || entry.coFrontNote) && (
                       <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
                         {entry.coFrontMood && <span>😊 {translateMood(entry.coFrontMood, t)}</span>}

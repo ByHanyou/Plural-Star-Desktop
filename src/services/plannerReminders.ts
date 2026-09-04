@@ -3,10 +3,6 @@ import { store, KEYS } from '../storage';
 import { PlannerData, AppSettings, plannerOccursOnDay, plannerNextOccurrence } from '../utils';
 import { logError } from '../log';
 
-// Same 30-second tick pattern as medicalReminders: poll the store, fire OS
-// notifications through the electron bridge, dedupe in memory. Cadences come
-// from the shared planner engine in utils, so an every-other-week reminder
-// fires only on its weeks and a Jan 31 monthly appointment clamps to Feb 28.
 const fired = new Set<string>();
 
 const notify = (title: string, body: string) => {
@@ -48,9 +44,6 @@ const tick = async () => {
   for (const appt of data.appointments || []) {
     if (appt.reminderMinutesBefore == null) continue;
     const offsetMs = appt.reminderMinutesBefore * 60000;
-    // The occurrence whose reminder window could contain "now": the next one
-    // after a minute ago, so an at-time reminder still matches during its
-    // own minute.
     const occ = plannerNextOccurrence(appt.time, appt.repeat, now.getTime() - 61000 - offsetMs);
     if (occ == null) continue;
     const trigger = occ - offsetMs;

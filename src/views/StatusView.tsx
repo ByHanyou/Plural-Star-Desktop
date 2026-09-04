@@ -157,7 +157,6 @@ interface Props {
 }
 
 export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSelf }: Props) {
-  // The current status duration freezes without a tick.
   useMinuteTick();
   const front = useAppStore(s => s.state.front);
   const members = useAppStore(s => s.state.members);

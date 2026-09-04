@@ -7,15 +7,9 @@ interface Props {
   description?: string;
   avatar?: string;
   banner?: string;
-  /** Extra content under the description, e.g. the Edit switch's own notes. */
   children?: React.ReactNode;
 }
 
-/**
- * The read side of a system profile, laid out like the singlet Profile so the
- * two feel like the same object. Shared deliberately: this renders both our own
- * profile and a friend's mirrored copy, so the friend sees what we see.
- */
 export default function SystemProfileCard({ name, description, avatar, banner, children }: Props) {
   const { t } = useTranslation();
   return (

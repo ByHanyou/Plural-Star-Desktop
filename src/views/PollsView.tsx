@@ -12,18 +12,27 @@ interface Props {
 export default function PollsView({ onUpdate }: Props) {
   const { t } = useTranslation();
   const members = useAppStore(s => s.state.members);
+  const front = useAppStore(s => s.state.front);
+  const defaultVoter = () => {
+    const votable = new Set(members.filter(m => !m.archived && !m.isCustomFront && !m.deleted).map(m => m.id));
+    const fronting = [
+      ...(front?.primary?.memberIds || []),
+      ...(front?.coFront?.memberIds || []),
+      ...(front?.coConscious?.memberIds || []),
+    ].find(id => votable.has(id));
+    return fronting || members.find(m => !m.archived)?.id || '';
+  };
   const [polls, setPolls] = useState<MemberPoll[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [hideVoters, setHideVoters] = useState(false);
-  const [creatorId, setCreatorId] = useState<string>(members.find(m => !m.archived)?.id || '');
-  const [targetId, setTargetId] = useState<string>(members.find(m => !m.archived)?.id || '');
-  const [voterId, setVoterId] = useState<string>(members.find(m => !m.archived)?.id || '');
+  const [creatorId, setCreatorId] = useState<string>(defaultVoter);
+  const [targetId, setTargetId] = useState<string>(defaultVoter);
+  const [voterId, setVoterId] = useState<string>(defaultVoter);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const activeMembers = members.filter(m => !m.archived && isRosterMember(m));
-  // Facets keep their own group: out of the member list, still selectable.
   const activeFacets = members.filter(m => !m.archived && m.isFacet && !m.isCustomFront && !m.deleted);
 
   useEffect(() => {
@@ -51,9 +60,10 @@ export default function PollsView({ onUpdate }: Props) {
     if (!voterId) return;
     savePolls(polls.map(p => {
       if (p.id !== pollId) return p;
+      const alreadyVoted = p.options.some(o => o.id === optionId && o.votes.includes(voterId));
       const opts = p.options.map(o => {
         const without = o.votes.filter(v => v !== voterId);
-        return o.id === optionId ? { ...o, votes: [...without, voterId] } : { ...o, votes: without };
+        return o.id === optionId && !alreadyVoted ? { ...o, votes: [...without, voterId] } : { ...o, votes: without };
       });
       return { ...p, options: opts };
     }));
@@ -100,7 +110,7 @@ export default function PollsView({ onUpdate }: Props) {
                   {isClosed && <span style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 600, textTransform: 'uppercase' }}>{t('polls.closed')}</span>}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
-                  {t('noteboard.by', { name: getName(poll.createdBy) })} · {fmtTime(poll.createdAt)} · {t('polls.votes', { count: totalVotes })}
+                  {poll.hideVoterNames ? '' : `${t('noteboard.by', { name: getName(poll.createdBy) })} · `}{fmtTime(poll.createdAt)} · {t('polls.votes', { count: totalVotes })}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
@@ -119,7 +129,8 @@ export default function PollsView({ onUpdate }: Props) {
                         disabled={isClosed}>
                         <div style={{
                           position: 'absolute', left: 0, top: 0, bottom: 0,
-                          width: `${pct}%`, background: voted ? 'var(--accent)15' : 'var(--border)30',
+                          width: `${pct}%`,
+                          background: voted ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'color-mix(in srgb, var(--muted) 28%, transparent)',
                           transition: 'width 0.3s ease',
                         }} />
                         <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

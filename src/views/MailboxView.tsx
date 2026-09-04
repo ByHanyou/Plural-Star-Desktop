@@ -8,7 +8,6 @@ import { useAppStore } from '../store/appStore';
 
 interface Props { onUpdate?: () => void; }
 
-// Recipient sentinel for "send to everyone". Not a member id, never stored.
 const ALL_RECIPIENTS = '*';
 
 export default function MailboxView({ onUpdate }: Props) {
@@ -107,9 +106,6 @@ export default function MailboxView({ onUpdate }: Props) {
 
   const sendMessage = async () => {
     if (!composeTo || !composeFrom || !composeBody.trim()) return;
-    // "Everyone" fans out a real message per member rather than inventing a
-    // broadcast row: each inbox keeps its own unread flag, pin and delete, and
-    // every existing count, lock, sync and export path works untouched.
     const targets = composeTo === ALL_RECIPIENTS ? activeMembers.map(m => m.id) : [composeTo];
     if (targets.length === 0) return;
     const body = composeBody.trim();
@@ -155,8 +151,6 @@ export default function MailboxView({ onUpdate }: Props) {
     [notes, openId],
   );
 
-  // Facets follow the roster rather than being mixed into it, and stay pickable
-  // as a sender or a recipient. "Everyone" deliberately still means the roster.
   const memberOptions = [...activeMembers.map(m => m.id), ...activeFacets.map(m => m.id)];
   const recipientOptions = activeMembers.length > 0 ? [ALL_RECIPIENTS, ...memberOptions] : memberOptions;
   const renderMemberOption = (id: string) => nameOf(id);

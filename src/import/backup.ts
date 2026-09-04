@@ -67,7 +67,6 @@ export const handleExport = async (ctx: ImportCtx) => {
       systemMapMembers: cat.groups ? (await store.get(KEYS.systemMapMembers) || []) : [],
       medical: (await store.get(KEYS.medical)) || undefined,
       planner: (cat as any).planner !== false ? ((await store.get(KEYS.planner)) || undefined) : undefined,
-      // Map layout rides with the map; the rest are system-wide settings.
       systemMapPositions: cat.groups ? ((await store.get(KEYS.systemMapPositions)) || undefined) : undefined,
       whiteboard: cat.settings ? ((await store.get(KEYS.whiteboard)) || undefined) : undefined,
       customColors: cat.settings ? ((await store.get(KEYS.customColors)) || undefined) : undefined,
@@ -165,8 +164,6 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
     }
 };
 
-/** Update-mode list merge: incoming rows refresh matches (by id, then by the
- *  optional key) and append; nothing local is removed. */
 const restoreMergeById = <T extends { id?: any }>(existing: T[] | null | undefined, incoming: T[], sameKey?: (a: T, b: T) => boolean): T[] => {
   const out = [...(existing || [])];
   incoming.forEach(inc => {
@@ -184,15 +181,10 @@ export const handleRestore = async (ctx: ImportCtx) => {
     setImporting(true);
     try {
       const batch: Record<string, unknown> = {};
-      // Update mode = merge-don't-delete for record lists; singletons behave as
-      // before. Overwrite keeps the strict per-category replace.
       const upd = importMode === 'update';
 
       if (restoreSel.system && restoreData.system) batch[KEYS.system] = restoreData.system;
 
-      // Phase boundaries: the overlay advances here and a stop request is
-      // honoured here. Desktop buffers everything into `batch` and applies it at
-      // the end, so stopping before the apply leaves the data untouched.
       ctx.control?.begin(t('share.progressSavingMembers', { defaultValue: 'Restoring members…' }));
       if (restoreSel.members && restoreData.members) {
         const avatarMap: Record<string, string> = { ...(restoreData.avatars || {}) };
@@ -361,9 +353,6 @@ export const handleRestore = async (ctx: ImportCtx) => {
       setRestoreFile(null);
       onUpdate();
     } catch (e: any) {
-      // A user-requested stop is not an error. Desktop buffers every write into
-      // `batch` and applies it in one go at the end, so stopping before that
-      // point genuinely leaves the existing data untouched — say so plainly.
       if (isImportStopped(e)) {
         showStatus(t('share.importStopped', {
           defaultValue: 'Import stopped. Nothing was changed.',

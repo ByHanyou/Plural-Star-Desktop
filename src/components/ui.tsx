@@ -24,10 +24,6 @@ export function useEscapeKey(active: boolean, onEscape: () => void) {
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** Dialog focus handling: move focus into the dialog when it opens, keep Tab
- *  inside it while it is open, and hand focus back to whatever opened it on
- *  close. Without this a keyboard user tabs straight out of an open modal into
- *  the page behind it and never finds their way back. */
 export function useDialogFocus(open: boolean, ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     if (!open) return;
@@ -114,9 +110,10 @@ export function Section({ label, color }: { label: string; color?: string }) {
 }
 
 
-export function Dropdown<T extends string>({ value, options, onChange, label, renderOption }: {
+export function Dropdown<T extends string>({ value, options, onChange, label, renderOption, optionStyle }: {
   value: T; options: T[]; onChange: (v: T) => void; label?: string;
   renderOption?: (v: T) => string;
+  optionStyle?: (v: T) => React.CSSProperties | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -142,6 +139,7 @@ export function Dropdown<T extends string>({ value, options, onChange, label, re
         <div className="dropdown__menu">
           {options.map(opt => (
             <button key={opt} className={`dropdown__item ${opt === value ? 'dropdown__item--active' : ''}`}
+              style={optionStyle ? optionStyle(opt) : undefined}
               onClick={() => { onChange(opt); setOpen(false); }}>
               {display(opt)}
             </button>
@@ -160,7 +158,6 @@ export function ChipList({ items, onRemove, color = 'var(--info)' }: {
   return (
     <div className="chip-list">
       {items.map(item => (
-        // Named "Remove X", not just "X ✕": the chip's only action is removal.
         <button key={item} className="chip" aria-label={`${t('common.remove')} ${item}`} style={{ borderColor: `${color}50`, background: `${color}18` }} onClick={() => onRemove(item)}>
           <span style={{ color }}>{item}</span>
           <span className="chip__x" aria-hidden>✕</span>
@@ -171,13 +168,13 @@ export function ChipList({ items, onRemove, color = 'var(--info)' }: {
 }
 
 
-export function AddRow({ value, onChange, onAdd, placeholder }: {
-  value: string; onChange: (v: string) => void; onAdd: () => void; placeholder?: string;
+export function AddRow({ value, onChange, onAdd, placeholder, label }: {
+  value: string; onChange: (v: string) => void; onAdd: () => void; placeholder?: string; label?: string;
 }) {
   const { t } = useTranslation();
   return (
     <div className="add-row">
-      <input className="field__input" value={value} onChange={e => onChange(e.target.value)} aria-label={placeholder}
+      <input className="field__input" value={value} onChange={e => onChange(e.target.value)} aria-label={label || placeholder}
         placeholder={placeholder} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAdd(); } }} />
       <Btn onClick={onAdd}>{t('common.add')}</Btn>
     </div>
@@ -378,8 +375,6 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, dange
   if (!open) return null;
   return (
     <div className="modal-overlay" role="presentation" onClick={onCancel}>
-      {/* alertdialog + describedby so the destructive question itself is read,
-          not just its title. Focus lands on Cancel, never on Confirm. */}
       <div ref={dialogRef} className="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} tabIndex={-1} onClick={e => e.stopPropagation()}>
         <div className="modal__header">
           <span className="modal__title" id={titleId} role="heading" aria-level={2}>{title}</span>

@@ -29,9 +29,6 @@ export interface CustomPalette {
 }
 
 const hexToRgb = (hex: string): [number, number, number] => {
-  // Guarded like wcagContrast below: a stored palette holding a non-string (or
-  // missing) colour would otherwise throw on .replace here, and this runs at
-  // module scope and on every palette change, taking the whole app down.
   const raw = String(hex ?? '').replace('#', '');
   const h = (raw.length === 3 ? raw.split('').map(c => c + c).join('') : raw).padEnd(6, '0');
   const n = (s: string) => { const v = parseInt(s, 16); return Number.isFinite(v) ? v : 0; };
@@ -52,14 +49,9 @@ const luminance = (hex: string): number => {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 };
 
-/** Ink for an initial/glyph sitting ON an arbitrary member colour: dark on
- *  light fills, near-white on dark fills. The CSS default (var(--bg)) went
- *  invisible on member colours near the theme background. */
 export const initialOn = (bg: string): string =>
   luminance(bg) > 0.35 ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.92)';
 
-// Private copy rather than an import from utils.ts, so theme.ts keeps zero
-// imports and no circular-dependency risk.
 const wcagContrast = (hexA: string, hexB: string): number => {
   const lum = (hex: string): number => {
     const h = (hex || '').replace('#', '');
@@ -78,19 +70,8 @@ const wcagContrast = (hexA: string, hexB: string): number => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-// Nothing ever validated that a palette's text can be read on its background,
-// so a bright bg with light text (bg #EDB5C7 + text #8D8AB8 is the reported
-// pair, 1.86:1) made the titlebar name and most labels vanish — and
-// readableAccent made it worse, because its fallback IS that text. This nudges
-// a failing colour toward black or white, keeping as much of the chosen hue
-// as the floor allows; palettes that already pass come back untouched.
 export const ensureReadable = (color: string, bg: string, min: number): string => {
   if (wcagContrast(color, bg) >= min) return color;
-  // Nudge toward the pole the CHOSEN COLOUR is already heading for: dark text
-  // gets darker, light text gets lighter. Picking the hardest-contrasting pole
-  // instead flipped a near-black purple to #FCFCFD on bg #7170A1, where the two
-  // poles sit 4.53 vs 4.63 apart — the reported "text is always white-ish".
-  // Only when the chosen direction cannot reach the floor do we cross over.
   const preferred = luminance(color) <= luminance(bg) ? '#000000' : '#FFFFFF';
   const other = preferred === '#000000' ? '#FFFFFF' : '#000000';
   const pole = wcagContrast(preferred, bg) >= min
@@ -98,7 +79,7 @@ export const ensureReadable = (color: string, bg: string, min: number): string =
     : wcagContrast(other, bg) >= min
       ? other
       : (wcagContrast(preferred, bg) >= wcagContrast(other, bg) ? preferred : other);
-  if (wcagContrast(pole, bg) < min) return pole; // mid-grey bg: closest possible
+  if (wcagContrast(pole, bg) < min) return pole;
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 8; i++) {
@@ -123,8 +104,6 @@ export const deriveTheme = (bg: string, accent: string, text: string, mid: strin
   const border = mix(bg, mid, borderT);
   const borderLt = mix(bg, mid, borderLtT);
 
-  // 4.5:1 is WCAG AA for body text; muted is placeholder/tertiary and gets
-  // the large-text floor of 3:1 so it still reads as quieter than dim.
   const effText = ensureReadable(text, bg, 4.5);
   const dim = ensureReadable(mix(effText, mid, 0.12), bg, 4.5);
   const muted = ensureReadable(mix(effText, mid, 0.30), bg, 3);

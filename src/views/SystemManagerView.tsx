@@ -21,9 +21,6 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
   const front = useAppStore(s => s.state.front);
   const settings = useAppStore(s => s.state.settings);
   const { t } = useTranslation();
-  // Same sort options the Members list offers, applied to the members shown
-  // inside the open group; 'manual' = the roster's own order, which is what
-  // this list always showed.
   const groupSortMode: MemberSortMode = settings.groupSortMode || 'manual';
   const saveGroupSortMode = async (mode: MemberSortMode) => {
     await store.set(KEYS.settings, { ...settings, groupSortMode: mode });
@@ -216,8 +213,6 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
         const folder = browseId ? groups.find(g => g.id === browseId) : null;
         const subFolders = childrenOf(groups, browseId);
         const folderMembers = sortMembers(browseId
-          // Facets are their own category with their own tab; they must not turn
-          // up mixed into a plain list of members when picking for groups.
           ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && isRosterMember(m))
           : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && isRosterMember(m)), groupSortMode);
         const addMatch = (m: Member) => !!folder && !m.archived && !m.isCustomFront && !m.deleted
@@ -226,15 +221,12 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
         const addCandidates = folder
           ? members.filter(m => !m.isFacet && addMatch(m)).sort((a, b) => nameCompare(a.name, b.name))
           : [];
-        // Facets keep their own section: out of the member list, still addable.
         const addFacetCandidates = folder
           ? members.filter(m => m.isFacet && addMatch(m)).sort((a, b) => nameCompare(a.name, b.name))
           : [];
         const folderFacets = sortMembers(browseId
           ? members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && m.isFacet && !m.isCustomFront && !m.deleted)
           : members.filter(m => (m.groupIds || []).length === 0 && !m.archived && m.isFacet && !m.isCustomFront && !m.deleted), groupSortMode);
-        // Custom fronts appear only INSIDE a group they were put in — never in
-        // the root listing, which stays the members-without-a-group view.
         const folderCustomFronts = browseId
           ? sortMembers(members.filter(m => (m.groupIds || []).includes(browseId) && !m.archived && m.isCustomFront && !m.deleted), groupSortMode)
           : [];
@@ -252,8 +244,6 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 <button onClick={() => goBrowseTo(folder?.parentId ?? null)} aria-label={t('common.back')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 14, cursor: 'pointer' }}>←</button>
               )}
               <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{folder ? folder.name : t('systemManager.title')}</span>
-              {/* Always visible, same as the Members list's sort dropdown —
-                  never gated on how many members happen to be in view. */}
               <Dropdown<MemberSortMode>
                 value={groupSortMode}
                 options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}

@@ -192,9 +192,6 @@ function AppInner() {
 
   const systemName = state.system.name || 'Plural Star';
   const titlePalette = [...BUILTIN_PALETTES, ...(state.palettes || [])].find(p => p.id === state.settings.activePaletteId) || DARK_PALETTE;
-  // Fall back to the DERIVED text, not the palette's raw one: the derived
-  // theme guarantees contrast, the raw value is whatever the user typed and
-  // is exactly what vanished on bright backgrounds.
   const titleColor = readableAccent(titlePalette.accent, titlePalette.bg, state.theme.text);
 
   const isSinglet = state.settings.accountMode === 'singlet';
@@ -317,8 +314,6 @@ function AppInner() {
     <div className="app-shell">
       <div className="titlebar">
         <span className="titlebar__title" style={{ color: titleColor }}>
-          {/* Singlets have no system profile — their profile is the Profile
-              view — so for them the name is plain text with nothing to press. */}
           {isSinglet ? systemName : (
             <button className="titlebar__name" onClick={() => setView('system-profile')}
               aria-label={systemName} title={t('systemProfile.openHint')}>
@@ -384,8 +379,6 @@ function AppInner() {
             {view === 'settings' && (
               <SettingsView onUpdate={loadData} onOpenProfile={() => setView('system-profile')} />
             )}
-            {/* Systems only. A singlet's profile is the Profile view, and their
-                name and goals stay in Settings where they were. */}
             {view === 'system-profile' && !isSinglet && (
               <SystemProfileView onUpdate={loadData} />
             )}
@@ -525,8 +518,6 @@ function AppInner() {
         </p>
       </Modal>
 
-      {/* One Auto/Edit chooser + crop editor for every picture upload;
-          opened via chooseImageTreatment. */}
       <ImageCropHost />
     </div>
   );

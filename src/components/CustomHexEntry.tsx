@@ -3,9 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { isValidHex, normalizeHex } from '../utils';
 import { Btn } from './ui';
 
-// Custom Color for profile editors: free hex entry writing straight to the
-// member's color. Never touches the Colors tile's permanent custom slots; the
-// carousel shows an off-palette value as its leading stray swatch.
 export function CustomHexEntry({ value, onApply }: { value: string; onApply: (hex: string) => void }) {
   const { t } = useTranslation();
   const errId = useId();

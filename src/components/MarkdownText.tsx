@@ -2,12 +2,6 @@ import React from 'react';
 import i18n from '../i18n/i18n';
 import type { Member } from '../utils';
 
-// Desktop twin of mobile's MarkdownRenderer, scoped to what chat messages
-// contain: markdown lines, @[name](member:id) mention tokens, image links.
-// Messages sync between devices, so everything the mobile composer can
-// produce has to render here — including <img>/<br> tags from rich inserts,
-// which the pre-pass below converts to markdown before line parsing.
-
 const MENTION_RE = /@\[([^\]]+)\]\(member:([a-zA-Z0-9_-]+)\)/;
 const IMAGE_URL_RE = /https?:\/\/\S+\.(?:gif|png|pnj|jpe?g|webp|bmp|svg)(?:[?#]\S*)?/i;
 const MD_IMAGE_RE = /!\[([^\]]*)\]\(([^)]+)\)/;
@@ -82,8 +76,6 @@ const renderLine = (line: string, i: number, members?: Member[]): React.ReactNod
 
 export const MarkdownText = ({ text, members }: { text: string; members?: Member[] }) => {
   if (!text) return null;
-  // Pre-pass mirrors mobile: rich-insert tags become markdown so one line
-  // parser covers both origins. Any other tags are stripped to their text.
   const mdText = text
     .replace(/<img\s[^>]*>/gi, tag => {
       const src = (tag.match(/src=["']([^"']+)["']/) || [])[1] || '';
@@ -91,8 +83,6 @@ export const MarkdownText = ({ text, members }: { text: string; members?: Member
     })
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '');
-  // Built with fromCharCode like mobile: literal U+2028/U+2029 in source are
-  // invisible and one formatter pass away from being mangled.
   const lineSeparators = new RegExp('\\r\\n?|' + String.fromCharCode(0x2028) + '|' + String.fromCharCode(0x2029), 'g');
   const lines = mdText.replace(lineSeparators, '\n').split('\n');
   const elements: React.ReactNode[] = [];

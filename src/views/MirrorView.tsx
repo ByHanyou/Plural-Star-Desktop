@@ -49,6 +49,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
   const { t } = useTranslation();
   const [entry, setEntry] = useState<MirrorCacheEntry | null>(null);
   const [memberCache, setMemberCache] = useState<MirrorMember[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [groupPath, setGroupPath] = useState<string[]>([]);
@@ -75,9 +76,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     NetworkManager.loadMirror(peerId, feature)
       .then(e => setEntry(e))
       .catch(e => logError('mirror', e));
-    // The system profile and whiteboard stand alone — they never resolve
-    // member ids, so loading the roster mirror for them is a read for nothing.
-    if (feature !== 'members' && feature !== 'systemProfile' && feature !== 'whiteboard') {
+    if (feature !== 'members' && feature !== 'systemProfile' && feature !== 'whiteboard' && feature !== 'planner') {
       NetworkManager.loadMirror(peerId, 'members')
         .then(e => setMemberCache(Array.isArray(e?.data) ? (e!.data as MirrorMember[]) : []))
         .catch(() => {});
@@ -108,16 +107,21 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     : feature === 'history' ? t('tabs.history')
     : feature === 'systemProfile' ? t('systemProfile.title')
     : feature === 'whiteboard' ? t('whiteboard.title')
+    : feature === 'planner' ? t('planner.title')
     : t('tabs.journal');
 
   const dim: React.CSSProperties = { fontSize: 12, color: 'var(--muted)' };
   const avatarFor = (id: string): string | undefined => entry?.media?.[id];
 
   const renderMembers = () => {
-    const list: MirrorMember[] = Array.isArray(entry?.data) ? (entry!.data as MirrorMember[]) : [];
-    if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+    const all: MirrorMember[] = Array.isArray(entry?.data) ? (entry!.data as MirrorMember[]) : [];
+    if (all.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+    const q = memberSearch.trim().toLowerCase();
+    const list = q ? all.filter(m => [m.name, m.pronouns, m.role].some(v => (v || '').toLowerCase().includes(q))) : all;
     return (
       <div>
+        <input className="field__input" type="search" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
+          placeholder={t('history.searchMember')} aria-label={t('history.searchMember')} style={{ marginBottom: 8 }} />
         {list.map(m => {
           const isOpen = expanded === m.id;
           const av = avatarFor(m.id);
@@ -143,6 +147,9 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
               </button>
               {isOpen && (
                 <div style={{ paddingLeft: 46, paddingTop: 6 }}>
+                  {entry?.media?.[`${m.id}#banner`] && (
+                    <img src={entry.media[`${m.id}#banner`]} alt="" style={{ display: 'block', width: '100%', maxHeight: 180, borderRadius: 8, objectFit: 'cover', marginBottom: 6 }} />
+                  )}
                   {m.description && (
                     <p style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', margin: '4px 0' }}>{m.description}</p>
                   )}
@@ -167,8 +174,6 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                       </p>
                     );
                   })}
-                  {/* Connections are a member subtab in the real member view, so
-                      the mirror shows them the same way instead of omitting them. */}
                   {(m.connections || []).length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 4 }}>
@@ -227,8 +232,6 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     );
   };
 
-  // Read-only mirror of the History tab: same row shape, same per-tier detail
-  // lines, no editing and no delete.
   const renderHistory = () => {
     const list: MirrorHistoryEntry[] = Array.isArray(entry?.data) ? (entry!.data as MirrorHistoryEntry[]) : [];
     if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
@@ -318,11 +321,48 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
       return <p style={dim}>{online ? t('network.mirrorLoading') : t('network.mirrorEmptyOffline')}</p>;
     }
     if (entry.none) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+    if (feature === 'planner') {
+      const pd: any = entry.data && typeof entry.data === 'object' ? entry.data : {};
+      const appts: any[] = Array.isArray(pd.appointments) ? pd.appointments : [];
+      const rems: any[] = Array.isArray(pd.reminders) ? pd.reminders : [];
+      const sortedAppts = [...appts].sort((a, b) => (Number(a?.time) || 0) - (Number(b?.time) || 0));
+      if (sortedAppts.length === 0 && rems.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
+      const card: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 8 };
+      return (
+        <div>
+          {sortedAppts.length > 0 && (
+            <>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: 'var(--dim)', margin: '0 0 8px' }}>{t('planner.appt')}</h3>
+              {sortedAppts.map((a: any) => (
+                <div key={String(a?.id || a?.time)} style={card}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: a?.color || 'var(--text)' }}>{String(a?.title || '')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{fmtTime(Number(a?.time) || 0)}</div>
+                  {a?.location && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{String(a.location)}</div>}
+                  {a?.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{String(a.notes)}</div>}
+                </div>
+              ))}
+            </>
+          )}
+          {rems.length > 0 && (
+            <>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: 'var(--dim)', margin: `${sortedAppts.length > 0 ? 12 : 0}px 0 8px` }}>{t('planner.reminders')}</h3>
+              {rems.map((r: any) => (
+                <div key={String(r?.id || r?.title)} style={{ ...card, opacity: r?.enabled === false ? 0.5 : 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{String(r?.title || '')}</div>
+                  {Array.isArray(r?.times) && r.times.length > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{r.times.join('  ·  ')}</div>
+                  )}
+                  {r?.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{String(r.notes)}</div>}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      );
+    }
     if (feature === 'whiteboard') {
       const strokes: {id: string; c: string; w: number; pts: number[]}[] = Array.isArray(entry.data) ? entry.data : [];
       if (strokes.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-      // World half-size matches WhiteboardView's HALF: a w === -1 stroke is a
-      // whole-board fill and needs the full board box to mean anything.
       const HALF_W = 2000;
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       let boardFill = false;

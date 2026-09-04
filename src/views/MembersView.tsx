@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch } from '../utils';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch, groupKind } from '../utils';
 import { chooseImageTreatment } from '../components/ImageCropModal';
 import { PALETTE, ensureReadable, initialOn } from '../theme';
 import { store, KEYS } from '../storage';
@@ -22,12 +22,6 @@ interface Props {
   onRemoveFromFront?: (memberId: string) => void;
 }
 
-// Blank and whitespace-only lines eat the clamped card preview (a "\n\n"
-// description rendered a card with a bare gap in it), so drop them here; the
-// edit modal shows the description untouched.
-// String(), not `|| ''`: a truthy NON-STRING description (imported or synced
-// data has carried numbers and objects) sails through `||` and then .split does
-// not exist on it, which takes down the whole Members view on render.
 const descPreview = (d?: unknown) => String(d ?? '').split('\n').filter(l => l.trim()).join('\n');
 
 export default function MembersView({ onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, onQuickFront, onRemoveFromFront }: Props) {
@@ -45,9 +39,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
-  // The tab picks the CATEGORY; `archiveOnly` picks the state. Archive is the
-  // same view with the same three tabs, showing what is archived, so an
-  // archived facet is found where a facet is expected.
   const [listView, setListView] = useState<'active' | 'customFronts' | 'facets'>('active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
@@ -114,9 +105,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const deleteNote = (id: string) => saveNotes(allNotes.filter(n => n.id !== id));
   const togglePin = (id: string) => saveNotes(allNotes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
 
-  // State first, category second, so one set of lists serves both screens.
-  // Archiving a custom front or a facet used to make it vanish from Archive
-  // while still sitting in its own list looking active.
   const inState = (m: Member) => !m.deleted && archiveOnly === !!m.archived;
   const active = members.filter(m => inState(m) && !m.isCustomFront && !m.isFacet);
   const customFronts = members.filter(m => inState(m) && m.isCustomFront);
@@ -129,7 +117,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     memberMatchesSearch(m, search)
   );
 
-  // Never in Archive: manual order is the roster's own arrangement.
   const canReorder = !archiveOnly && sortMode === 'manual' && !search;
   const reorderActive = canReorder && !reorderLocked;
 
@@ -214,8 +201,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
       tags: [],
       groupIds: [],
       createdAt: Date.now(),
-      // Cloning a facet makes a facet. Without this the copy landed in the
-      // members roster as a full alter.
       isFacet: f.isFacet || undefined,
     };
     setShowClone(false);
@@ -280,8 +265,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             🤏
           </button>
         )}
-        {/* Archive gets the SAME three tabs, filtered to what is archived. Only
-            the Add button is withheld: you do not create things into Archive. */}
         <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
           {t('members.title')} ({active.length})
         </Btn>
@@ -328,10 +311,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {filtered.map(m => (
           <SortableCard key={m.id} id={m.id} label={m.name} disabled={!reorderActive}>
-          {/* Card background per the display option: plain (default), a wash
-              of the member's colour, or their banner behind the row. Banner
-              falls back to the colour wash when the member has none; the
-              image rides under a card-colour scrim so text contrast holds. */}
           <div className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer', position: 'relative', overflow: 'hidden',
             ...((listFields.background === 'color' || (listFields.background === 'banner' && !m.banner)) ? { background: `linear-gradient(${m.color}26, ${m.color}26), var(--card)` } : {}) }}
             {...clickable(() => openEdit(m), m.name)}>
@@ -440,10 +419,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             <Btn variant="ghost" onClick={() => setReadMode(m => !m)}>{readMode ? t('common.edit') : t('modal.read')}</Btn>
           </div>
         )}
-        {/* No tabs in read mode: the profile reads as ONE page — banner, then
-            avatar beside the name/pronouns/role stack, then description,
-            custom fields and connections in that order down the page. Edit
-            mode keeps the tabbed editor untouched. */}
         {!isNew && !readMode && (
           <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
             {(['main', 'fields', 'connections', 'noteboard'] as MemberTab[]).map(tab => (
@@ -462,9 +437,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         )}
 
         {readMode && !isNew && (() => {
-          // The read page is themed after the member's colour. Clamped against
-          // the live card background so a colour near the theme's own tone
-          // never renders unreadable text.
           const cardHex = (getComputedStyle(document.documentElement).getPropertyValue('--card') || '').trim() || '#0A1F2E';
           const mc = ensureReadable(f.color || '#DAA520', cardHex, 3);
           const activeGroups = sortGroupsForDisplay(groups.filter(g => (f.groupIds || []).includes(g.id)), groups);
@@ -517,9 +489,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                 </span>
               </div>
 
-              {/* Tag row, then Group row, directly above the Description. Tags
-                  take the member's colour — the whole read page is themed by
-                  it. */}
               {(f.tags || []).length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 10 }}>
                   {(f.tags || []).map(tag => (
@@ -532,7 +501,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   {activeGroups.map(g => (
                     <span key={g.id} title={g.description || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999,
                       border: `1px solid ${g.color || 'var(--accent)'}50`, background: `${g.color || 'var(--accent)'}20`, color: g.color || 'var(--accent)', fontSize: 11 }}>
-                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
+                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
                       {g.name}
                     </span>
                   ))}
@@ -595,14 +564,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
         {!readMode && (
         <fieldset disabled={readMode} style={{ border: 'none', margin: 0, padding: 0, minInlineSize: 'auto' }}>
-        {/*
-          Facets shipped after people had already been using ordinary members as
-          them, so the category has to be changeable in place. Nothing else about
-          the record moves — fields, groups, connections and avatar all stay.
-          isFacet and isCustomFront are mutually exclusive, so setting one clears
-          the other. Not offered for the system's own member: self is a roster
-          member by definition.
-        */}
         {!isNew && !readMode && settings?.selfMemberId !== f.id && memberTab === 'main' && (
           <button
             onClick={() => {
@@ -657,10 +618,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               onClick={() => set('banner', undefined)}>{t('memberProfile.removeBanner')}</button>}
           </div>
 
-          <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} placeholder={t('modal.headmateName')} />
-          {/* Search-only alias: shown here in EDIT, never on the read view.
-              Lets someone whose name is symbols or a styled font be found by
-              typing. */}
+          <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} placeholder={f.isFacet ? t('modal.facetName') : t('modal.headmateName')} />
           <Field label={t('modal.nickname')} value={f.nickname || ''} onChange={v => set('nickname' as any, v || undefined)} placeholder={t('modal.nickname')} />
           <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
           <Field label={t('modal.role')} value={f.role} onChange={v => set('role', v)} placeholder={t('modal.rolePlaceholder')} />
@@ -685,7 +643,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                         color: active ? (g.color || 'var(--accent)') : 'var(--dim)',
                       }}
                       onClick={() => toggleGroup(g.id)}>
-                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
+                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
                       {g.name}
                       {active && <span aria-hidden style={{ fontWeight: 700 }}>✓</span>}
                     </button>
@@ -726,10 +684,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                     {fd.type === 'toggle' ? (
                       <Toggle label={fd.name} value={!!val} onChange={v => setFieldVal(v)} />
                     ) : fd.type === 'number' ? (
-                      // Strip instead of Number(): typing a letter made the
-                      // whole value NaN, which stringified back to empty — the
-                      // input silently ate keystrokes. Mobile already does it
-                      // this way.
                       <Field label={fd.name} value={String(val ?? '')} onChange={v => {
                         const cleaned = v.replace(/[^0-9.\-]/g, '');
                         if (cleaned === '' || cleaned === '-' || cleaned === '.') { setFieldVal(null); return; }
@@ -900,7 +854,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                 <select style={{ background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 12 }}
                   aria-label={t('noteboard.writingAs')} value={noteAuthorId || ''} onChange={e => setNoteAuthorId(e.target.value)}>
                   {members.filter(m => !m.archived && !m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  {/* Facets keep their own group: out of the member list, still selectable. */}
                   {members.some(m => !m.archived && m.isFacet) && (
                     <optgroup label={t('members.facets')}>
                       {members.filter(m => !m.archived && m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -928,8 +881,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         onConfirm={() => confirmDelete && deleteMember(confirmDelete)}
         onCancel={() => setConfirmDelete(null)} />
 
-      {/* A look at the picture, not a change to it: nothing here resizes the
-          avatar anywhere else, and it closes on any click. */}
       <Modal open={viewPfp && !!f.avatar} title={t('modal.viewPfpOf', { name: f.name || '?' })} onClose={() => setViewPfp(false)}>
         <div {...clickable(() => setViewPfp(false), t('common.close'))} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
           <img src={f.avatar} alt={t('modal.viewPfpOf', { name: f.name || '?' })}

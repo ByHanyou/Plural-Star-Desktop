@@ -5,11 +5,6 @@ import { base58Encode, base58Decode, peerIdFromEd25519PublicKey } from './peerid
 
 export const IDENTITY_STORAGE_KEY = 'ps:networkIdentity';
 
-/**
- * Per-device sub-id. DOT prefix on purpose: `ps.` keys never match the sync
- * sweep's `startsWith('ps:')`, so this stays unique to this device even when
- * linked devices share one network identity. Generated once, silently.
- */
 export const DEVICE_SUB_ID_KEY = 'ps.deviceSubId';
 
 let cachedSubId: string | null = null;
@@ -95,7 +90,6 @@ export const _clearIdentityCache = (): void => {
   cached = null;
 };
 
-/** Drop the in-memory identity so the next load re-reads storage (used after adoption). */
 export const resetIdentityCache = (): void => {
   cached = null;
 };

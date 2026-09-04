@@ -27,11 +27,6 @@ const statusBody = (f: Friend): string => {
 
 const signature = (f: Friend): string => JSON.stringify(f.lastStatus ?? null);
 
-/**
- * Read the toggle at alert time, not once at startup. It used to be captured in a
- * closure, so turning notifications off in Settings did nothing until the app was
- * restarted — alerts kept arriving for something the user had switched off.
- */
 const notificationsAllowed = async (): Promise<boolean> => {
   try {
     const s = await store.get<AppSettings>(KEYS.settings, null);

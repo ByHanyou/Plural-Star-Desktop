@@ -8,12 +8,6 @@ interface Props {
   onCancel?: () => void;
 }
 
-/**
- * Blocking "please wait" screen for imports — the Desktop twin of the mobile
- * overlay. Not dismissible: an import is mid-run and quietly handing the window
- * back would leave the user in a half-populated app with no sign anything is
- * still happening. Cancel asks for a stop at the next phase boundary.
- */
 export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
   const { t } = useTranslation();
   if (!visible) return null;

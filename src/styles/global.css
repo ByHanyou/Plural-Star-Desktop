@@ -133,8 +133,6 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* The system name opens the system profile. Only the name itself opts out of
-   the window drag region, so the rest of the bar still drags the window. */
 .titlebar__name {
   font: inherit;
   color: inherit;
@@ -214,8 +212,6 @@ body {
   transform: translateY(0);
 }
 
-/* Dashboard reordering. The grip is a sibling of .tile (not a child) so the tile's
-   overflow:hidden can't clip it, and so dragging never fights the tile's own click. */
 .tile-sortable {
   position: relative;
   display: flex;
@@ -253,8 +249,6 @@ body {
   opacity: 1;
 }
 
-/* Chat sidebar rows are narrow, stacked and inside a scroller, so the dashboard's
-   corner grip would sit outside the visible area. Centre it in the row instead. */
 .chan-list .tile__grip {
   top: 50%;
   right: 4px;

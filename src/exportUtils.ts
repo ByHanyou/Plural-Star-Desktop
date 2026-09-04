@@ -23,8 +23,6 @@ export const pkUuid = (): string =>
     return v.toString(16);
   });
 export const buildPluralKitExport = (system: any, members: Member[], history: any[]): Record<string, any> => {
-  // Neither custom fronts nor facets are members — they must never inflate a
-  // count in an export any more than they do in the app.
   const realMembers = members.filter(m => !(m as any).isCustomFront && !(m as any).isFacet && !(m as any).deleted);
   const idMap: Record<string, string> = {};
   realMembers.forEach((m, i) => { idMap[m.id] = pkShortId(i); });

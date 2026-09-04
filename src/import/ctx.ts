@@ -29,11 +29,7 @@ export type ImportCtx = {
   extPreview: { members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[] } | null;
   setExtPreview: any;
   extSel: Record<string, boolean>;
-  /** Overwrite = the file is the whole roster (absent locals tombstoned);
-   *  Update = refresh matches and add, never remove anything local. */
   importMode: 'overwrite' | 'update';
-  /** Drives the wait overlay and carries the stop request. Optional so existing
-   *  call sites keep compiling; absent means no progress is reported. */
   control?: ImportControl;
   spGet: (url: string, headers: Record<string, string>) => Promise<any | null>;
 };

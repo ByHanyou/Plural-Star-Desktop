@@ -25,11 +25,6 @@ type Tool = 'draw' | 'move' | 'erase' | 'bucket' | 'poly' | ShapeTool;
 
 const isShapeTool = (tl: Tool): tl is ShapeTool => tl === 'line' || tl === 'rect' || tl === 'ellipse';
 
-/** Shape outlines as plain polyline points, so a committed shape IS an
- *  ordinary stroke: mirrors, sync and older builds render it with no format
- *  change. Closed shapes repeat their first point; the ellipse is a
- *  48-segment approximation. (The polygon tool builds its points click by
- *  click instead — see addPolyVertex.) */
 const shapePts = (shape: ShapeTool, x0: number, y0: number, x1: number, y1: number): number[] => {
   if (shape === 'line') return [x0, y0, x1, y1];
   if (shape === 'rect') return [x0, y0, x1, y0, x1, y1, x0, y1, x0, y0];
@@ -80,11 +75,6 @@ export default function WhiteboardView() {
   widthRef.current = width;
   const panStartRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
-  // Polygon tool (Paint-style): each click adds a corner, lines connect them.
-  // Clicking the first corner again (3+ corners) or double-clicking finishes;
-  // the shape commits closed, exactly two corners commit as a line. The
-  // in-progress polygon lives in `current` as the preview, with a rubber
-  // band to the hovered point.
   const polyPtsRef = useRef<number[] | null>(null);
   const polyIdRef = useRef<string | null>(null);
 
@@ -125,7 +115,6 @@ export default function WhiteboardView() {
     currentRef.current = null;
     setCurrent(null);
     if (!pts || pts.length < 4) return;
-    // 3+ corners close back to the first; exactly two commit as a line.
     const closed = pts.length >= 6 ? [...pts, pts[0], pts[1]] : pts;
     const s: Stroke = { id: uid(), c: colorRef.current, w: widthRef.current, pts: closed };
     const next = [...strokesRef.current, s];
@@ -156,7 +145,6 @@ export default function WhiteboardView() {
     setCurrent(currentRef.current);
   };
 
-  // Leaving the polygon tool abandons the unfinished polygon.
   useEffect(() => {
     if (tool !== 'poly' && polyPtsRef.current) cancelPoly();
   }, [tool, cancelPoly]);
@@ -189,12 +177,6 @@ export default function WhiteboardView() {
       return;
     }
     if (toolRef.current === 'bucket') {
-      // Real enclosure detection: all strokes' segments are walls, flood from
-      // the tap. Enclosed → fill exactly that region (works across multiple
-      // strokes and un-touching endpoints — the old single-stroke polygon
-      // test missed those and fell through to painting the whole board).
-      // Open → the deliberate background fill, which now only happens when
-      // the click genuinely isn't enclosed. On a wall → do nothing.
       const region = traceEnclosedRegion(wx, wy, strokesRef.current);
       if (region === null) return;
       const fill: Stroke = Array.isArray(region)
@@ -210,7 +192,6 @@ export default function WhiteboardView() {
       return;
     }
     if (isShapeTool(toolRef.current)) {
-      // Anchor corner; the preview stroke is rebuilt from it on every move.
       shapeStartRef.current = { x: clampWorld(wx), y: clampWorld(wy) };
     }
     currentRef.current = { id: uid(), c: colorRef.current, w: widthRef.current, pts: [clampWorld(wx), clampWorld(wy)] };
@@ -223,8 +204,6 @@ export default function WhiteboardView() {
       setView(v => ({ ...v, tx: p.tx + (e.clientX - p.x), ty: p.ty + (e.clientY - p.y) }));
       return;
     }
-    // Polygon rubber band: preview the placed corners plus a segment to the
-    // hovered point. Never mutates polyPtsRef — corners are added on click.
     if (toolRef.current === 'poly') {
       const pts = polyPtsRef.current;
       if (!pts) return;
@@ -261,8 +240,6 @@ export default function WhiteboardView() {
       panStartRef.current = null;
       return;
     }
-    // The polygon preview lives in `current` between clicks; falling through
-    // would commit it on every click (and onPointerLeave routes here too).
     if (toolRef.current === 'poly') return;
     const cur = currentRef.current;
     currentRef.current = null;
@@ -270,8 +247,6 @@ export default function WhiteboardView() {
       persist(strokesRef.current);
       return;
     }
-    // A shape that was never dragged out is a click, not a shape: committing
-    // it would leave an invisible dot the eraser then has to hunt down.
     const shapeTap = shapeStartRef.current !== null && cur !== null && cur.pts.length <= 2;
     shapeStartRef.current = null;
     if (cur && cur.pts.length >= 2 && !shapeTap) {

@@ -100,12 +100,6 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 )}
               </div>
 
-              {/* Editable, not a badge. A field created as the wrong type —
-                  "Favorite Color" made as Number, which then refused hex
-                  codes on every device — was stuck that way forever: the only
-                  way out was deleting the field and its values. The stored
-                  values are plain scalars, so re-typing just changes how they
-                  are edited and shown; nothing is converted or lost. */}
               <select aria-label={`${t('customFields.fieldType')} — ${fd.name}`} value={fd.type}
                 onChange={e => save(fields.map(f => f.id === fd.id ? { ...f, type: e.target.value as CustomFieldType } : f))}
                 style={{ fontSize: 11, color: 'var(--muted)', background: 'var(--surface)', border: '1px solid var(--border)', padding: '3px 6px', borderRadius: 6, whiteSpace: 'nowrap' }}>

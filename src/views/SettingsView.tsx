@@ -47,8 +47,6 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   const [singletMode, setSingletMode] = useState(settings.accountMode === 'singlet');
 
   const [journalPw, setJournalPw] = useState(system.journalPassword || '');
-  // Singlets have no System Profile — they have the Profile view. Their name
-  // and goals stay here, where they have always been.
   const [sysName, setSysName] = useState(system.name || '');
   const [sysDesc, setSysDesc] = useState(system.description || '');
   const [showPw, setShowPw] = useState(!!system.journalPassword);
@@ -139,9 +137,6 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
 
   const save = async () => {
     try {
-      // Merged onto the live record, not written wholesale: the profile fields
-      // are edited elsewhere now, and a wholesale write would erase whatever
-      // was set there since this view mounted.
       await store.set(KEYS.system, {
         ...system,
         ...(singletMode ? { name: sysName.trim(), description: sysDesc.trim() } : {}),
@@ -171,9 +166,6 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      {/* Name, description, avatar and banner moved to the System Profile,
-          reached by clicking the system name in the title bar. A profile is not
-          a setting. */}
       {singletMode ? (
         <>
           <Section label={t('modal.name')} />
@@ -228,10 +220,6 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
             <HexField label={t('modal.palMid')} value={palMid} onChange={setPalMid} />
           </div>
           {isValidHex(normalizeHex(palBg)) && isValidHex(normalizeHex(palAccent)) && (
-            // Preview labels are clamped against the bg strip they sit on; the
-            // raw values went invisible whenever two palette colours shared a
-            // luminance, and the text span now mirrors the readable text the
-            // app will really derive.
             <div style={{ marginTop: 10, padding: 12, borderRadius: 8, background: normalizeHex(palBg), border: '1px solid var(--border)' }}>
               <span style={{ fontSize: 13, color: ensureReadable(normalizeHex(palAccent), normalizeHex(palBg), 3), fontWeight: 600 }}>{t('modal.palPreviewAccent')} </span>
               <span style={{ fontSize: 13, color: isValidHex(normalizeHex(palText)) ? ensureReadable(normalizeHex(palText), normalizeHex(palBg), 4.5) : normalizeHex(palText) }}>{t('modal.palPreviewText')}</span>
@@ -265,6 +253,12 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
         options={FONT_OPTIONS.map(o => o.value)}
         onChange={setFontChoice}
         renderOption={v => FONT_OPTIONS.find(o => o.value === v)?.label || v}
+        optionStyle={v => {
+          if (v === 'default') return { fontFamily: 'var(--font-body-fallback)' };
+          if (v === 'opendyslexic') return { fontFamily: "'OpenDyslexic', var(--font-body-fallback)" };
+          const css = FONT_OPTIONS.find(o => o.value === v)?.css;
+          return css ? { fontFamily: css } : undefined;
+        }}
       />
 
       <Section label={t('modal.language')} />
@@ -304,8 +298,6 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
         ))}
       </div>
       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{t('terminology.tierHint')}</div>
-      {/* terminology.* label keys: exempt from both override passes, so the
-          defaults stay visible for resetting, same as the fields above. */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         {([['primary', 'tierPrimary'], ['coFront', 'tierCoFront'], ['coConscious', 'tierCoConscious']] as const).map(([tier, labelKey]) => (
           <Field key={tier} label={t(`terminology.${labelKey}`)} value={tierMap[tier] || ''}

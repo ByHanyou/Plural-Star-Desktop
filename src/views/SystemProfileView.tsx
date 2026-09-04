@@ -13,12 +13,6 @@ interface Props {
   onUpdate: () => void;
 }
 
-/**
- * The system's own profile, reached by clicking the system name in the title
- * bar. These fields used to live inside Settings; a profile is not a setting,
- * so it reads like one — the singlet Profile with a Read/Edit switch instead of
- * a separate editor screen.
- */
 export default function SystemProfileView({ onUpdate }: Props) {
   const system = useAppStore(s => s.state.system);
   const { t } = useTranslation();
@@ -58,8 +52,6 @@ export default function SystemProfileView({ onUpdate }: Props) {
   };
 
   const commit = async () => {
-    // Merged onto the live record so the journal password, which lives on the
-    // same object and is edited in Settings, is never dropped by a profile save.
     await store.set(KEYS.system, {
       ...system,
       name: name.trim(),
@@ -89,8 +81,6 @@ export default function SystemProfileView({ onUpdate }: Props) {
       setMode('read');
       return;
     }
-    // Seed the edit buffer at the moment editing starts, so it can never open
-    // on top of a record that changed while the read view was up.
     setName(system.name || '');
     setDesc(system.description || '');
     setAvatar(system.avatar || '');
@@ -107,9 +97,6 @@ export default function SystemProfileView({ onUpdate }: Props) {
       </div>
 
       {mode === 'read' ? (
-        // Reads straight off the live record, never off the edit buffer: a sync
-        // or an import landing while this is open should show, and after a save
-        // the buffer and the record say the same thing anyway.
         <SystemProfileCard name={system.name} description={system.description} avatar={system.avatar} banner={system.banner} />
       ) : (
         <>

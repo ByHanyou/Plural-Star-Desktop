@@ -13,8 +13,6 @@ export const handleImportSP = async (ctx: ImportCtx) => {
   const { setImporting, extSel, showStatus, onUpdate, t } = ctx;
     setImporting(true);
     try {
-      // Announce a phase so the wait overlay has something to count and Cancel
-      // has a boundary to land on; without this the bar and button are inert.
       ctx.control?.begin(t('share.importing'));
       const input = document.createElement('input');
       input.type = 'file';
@@ -68,8 +66,6 @@ export const handleImportSP = async (ctx: ImportCtx) => {
           const newMembersRaw = importedMembers.filter(m => !existingIds.has(m.id));
           const newMembers = extSel.avatars ? await inlineRemoteAvatars(newMembersRaw) : newMembersRaw;
 
-          // Overwrite treats the file as the whole roster: locals it doesn't
-          // carry are soft-tombstoned (custom fronts and facets exempt).
           const importedIds = new Set(importedMembers.map(m => m.id));
           const keptExisting = ctx.importMode === 'overwrite'
             ? existing.map(m => (importedIds.has(m.id) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true })
@@ -108,18 +104,10 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         ctx.control?.begin(t('share.importing'));
         let conv: ConvertedImport | null = null;
         {
-          // An Ourcana .our is a plain zip holding a single ourcana.json. Sniff
-          // the PK zip magic instead of trusting the extension, since users
-          // rename these.
           const buf = new Uint8Array(await file.arrayBuffer());
-          // Ampersand's binary archive is not text at all, so it has to be
-          // caught by its magic before anything tries to decode it as a string.
           if (isAmparBytes(buf)) {
             conv = convertAmpersandJson(amparToDatabaseJson(buf));
           }
-          // Everything below decodes the file as TEXT, which would mangle a
-          // binary archive, so it only runs when the magic check did not
-          // already produce a conversion.
           if (!conv) {
             const isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b && (buf[2] === 3 || buf[2] === 5 || buf[2] === 7);
             let text: string;
@@ -135,13 +123,9 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
             }
             const fmt = detectForeignFormat(text);
             const parsedJson = (() => { try { return JSON.parse(text); } catch { return null; } })();
-            // Ampersand's JSON export is the format their dev recommends over the
-            // binary one, so check it before the generic sniffers.
             if (parsedJson && detectAmpersandJson(parsedJson)) {
               conv = convertAmpersandJson(parsedJson);
             } else if (parsedJson && detectTupperbox(parsedJson)) {
-              // Tupperbox `tul!export` — PluralKit's own sniffer for these files
-              // is simply "has a tuppers array".
               conv = convertTupperbox(parsedJson);
             } else {
               if (!fmt) { showStatus(t('share.statusUnrecognized')); setImporting(false); return; }
@@ -170,8 +154,6 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
           } else { idRemap[nm.id] = nm.id; toAdd.push(nm); }
         });
         const toAddInlined = await inlineRemoteAvatars(toAdd);
-        // Overwrite treats the file as the whole roster: unmatched locals are
-        // soft-tombstoned (custom fronts and facets exempt). Update keeps them.
         const claimedIds = new Set(Object.values(idRemap));
         const mergedFinal = ctx.importMode === 'overwrite'
           ? merged.map(m => (claimedIds.has(m.id) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true })
@@ -184,8 +166,6 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         }
         if (conv.journal && conv.journal.length > 0) {
           const existingJournal = await store.getStrict<any[]>(KEYS.journal, []) || [];
-          // Dedupe on title+timestamp so re-importing the same archive does not
-          // stack duplicates.
           const sig = (e: any) => `${e?.timestamp}|${e?.title}`;
           const seen = new Set(existingJournal.map(sig));
           const addJournal = conv.journal
@@ -203,9 +183,6 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         if (conv.groups && conv.groups.length > 0) {
           const existingGroups = await store.getStrict<any[]>(KEYS.groups, []) || [];
           const mergedGroupList = [...existingGroups];
-          // When a converter group dedupes into an EXISTING group, imported
-          // members still carry the converter's group id — remap those to the
-          // surviving local id, or their groupIds dangle at nothing.
           const groupIdRemap: Record<string, string> = {};
           conv.groups.forEach(g => {
             const srcId = g.sourceId || `ext:${String(g.id)}`;
@@ -219,8 +196,6 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
               mergedGroupList.push({ ...g, sourceId: srcId });
             }
           });
-          // A deduped group changes id, so children pointing at the converter's
-          // id must follow it or their nesting dangles.
           if (Object.keys(groupIdRemap).length > 0) {
             for (let i = 0; i < mergedGroupList.length; i++) {
               const p = (mergedGroupList[i] as any).parentId;
@@ -297,10 +272,6 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
       let openPluralPrefix = '';
       if (/\.zip$/i.test(filePath)) {
         zipFiles = unzipSync(bytes);
-        // Newer PluralSpace exports are OpenPlural bundles with no data.json at
-        // the root — the system lives at systems/<slug>/openplural.json. Look
-        // for that BEFORE the "any .json" fallback, which would otherwise grab
-        // manifest.json or account.json and report a valid export as garbage.
         const openPlural = Object.keys(zipFiles).find(k => /(^|\/)openplural\.json$/i.test(k));
         const jsonEntry = zipFiles['data.json']
           ? 'data.json'
@@ -376,9 +347,6 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
           merged[di] = {
             ...dup, name: fixed.name, pronouns: fixed.pronouns, role: fixed.role, color: fixed.color,
             description: fixed.description, archived: fixed.archived,
-            // Category stays local on a name match. An outside app has no idea
-            // this record is a facet or a custom front here, and letting it
-            // decide would quietly turn one into a counted member.
             isCustomFront: dup.isCustomFront, isFacet: dup.isFacet,
             sourceId: nm.sourceId, customFields: mergedCF,
             groupIds: [...new Set([...(dup.groupIds || []), ...(fixed.groupIds || [])])],
@@ -389,8 +357,6 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
           toAdd.push(fixed);
         }
       });
-      // Overwrite treats the export as the whole roster: unmatched locals are
-      // soft-tombstoned (custom fronts and facets exempt). Update keeps them.
       const psClaimed = new Set(Object.values(idRemap));
       const psMerged = ctx.importMode === 'overwrite'
         ? merged.map(m => (psClaimed.has(m.id) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true })
@@ -492,16 +458,6 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
     }
 };
 
-/**
- * PluralLog export bundle (com.arcadearmor.plurallog), reversed from a real
- * export — the Tupperbox rule: match the file the app actually writes, not a
- * doc. Zip layout: manifest.json {generatedAt, exportJson, mediaCount, files[]},
- * plurallog_export_<stamp>.json (the database), stored_media/(pfp_|headspace_)*.png.
- * Same field notes as the mobile importer (src/import/plurallog.ts there);
- * their polls are system-wide questions with no target member and headspaces
- * have no home here, so both are dropped like every importer drops what does
- * not fit.
- */
 const PL_ARGB_MASK = 0xffffff;
 const plArgbToHex = (n: unknown): string => {
   const num = typeof n === 'number' && Number.isFinite(n) ? n : NaN;
@@ -529,8 +485,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const files = unzipSync(bytes);
-    // The database file name carries an export timestamp; find it rather than
-    // hardcode it. manifest.exportJson names it too when present.
     let manifest: any = null;
     if (files['manifest.json']) { try { manifest = JSON.parse(strFromU8(files['manifest.json'])); } catch {} }
     const dbName = (manifest && typeof manifest.exportJson === 'string' && files[manifest.exportJson])
@@ -548,9 +502,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       batch[KEYS.system] = { ...system, name: String(db.config.systemName) || system.name };
     }
 
-    // Members — same replace semantics as the mobile importer: match by
-    // sourceId, then by claimable name; anything of ours left unmatched is
-    // soft-tombstoned, because a member import replaces the roster.
     const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
     const merged = [...existing];
     plMembers.forEach((m: any) => {
@@ -563,8 +514,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
         color: plArgbToHex(m.color),
         description: String(m.description || m.profileMarkdown || ''),
         archived: !!m.archived,
-        // PluralLog sub-members (parentMemberId) are the closest thing to our
-        // facets: profiles that belong to another member.
         ...(m.parentMemberId ? { isFacet: true } : {}),
       };
       const claimed = new Set(Object.values(idMap));
@@ -588,8 +537,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
           (m.isCustomFront || m.isFacet || m.deleted || keptIds.has(m.id)) ? m : { ...m, archived: true, deleted: true })
       : merged;
 
-    // Avatars ship in the bundle under stored_media/; profileImagePath is an
-    // absolute app path, so only its basename matches the zip entries.
     let avatarsLoaded = 0;
     plMembers.forEach((m: any) => {
       const localId = idMap[String(m?.id)];
@@ -600,7 +547,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       avatarsLoaded++;
     });
 
-    // Folders are their groups; parentFolderId nests, memberIds is CSV.
     if (Array.isArray(db.folders) && db.folders.length > 0) {
       const existingGroups = await store.getStrict<MemberGroup[]>(KEYS.groups, []) || [];
       const groups = [...existingGroups];
@@ -612,7 +558,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
         if (!found) groups.push({ id: localId, name, color: plArgbToHex(f.colorValue), sortOrder: f.sortOrder ?? i });
         folderIdMap[String(f.id)] = localId;
       });
-      // Second pass for nesting: parents may appear after children.
       db.folders.forEach((f: any) => {
         const localId = folderIdMap[String(f.id)];
         const parent = f.parentFolderId ? folderIdMap[String(f.parentFolderId)] : null;
@@ -639,8 +584,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
     }
     batch[KEYS.members] = allMembers;
 
-    // Switch events: memberId + cofronterIds CSV; endTime null = still open.
-    // Dedupe-merge by signature so a re-import cannot stack duplicates.
     let historyAdded = 0;
     if (Array.isArray(db.switchEvents) && db.switchEvents.length > 0) {
       const entries: HistoryEntry[] = [];
@@ -665,8 +608,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       if (fresh.length > 0) batch[KEYS.history] = [...fresh, ...history].sort((a, b) => b.startTime - a.startTime);
     }
 
-    // Journal: text-only entries; the first line becomes the title, the tags
-    // CSV plus the emotion land as hashtags.
     if (Array.isArray(db.journal) && db.journal.length > 0) {
       const existingJ = await store.getStrict<JournalEntry[]>(KEYS.journal, []) || [];
       const jSig = (e: JournalEntry) => `${e.timestamp}|${e.body}`;
@@ -691,8 +632,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       if (added.length) batch[KEYS.journal] = [...added, ...existingJ].sort((a, b) => b.timestamp - a.timestamp);
     }
 
-    // Chat: channels matched by name, messages deduped on
-    // timestamp|author|content.
     if (Array.isArray(db.channels) && Array.isArray(db.messages) && db.messages.length > 0) {
       const existingCh = await store.getStrict<ChatChannel[]>(KEYS.chatChannels, []) || [];
       const channels = [...existingCh];
@@ -722,7 +661,6 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       }
     }
 
-    // frontMessages are their member-to-member mail — our Mailbox.
     if (Array.isArray(db.frontMessages) && db.frontMessages.length > 0) {
       const existingN = await store.getStrict<NoteboardEntry[]>(KEYS.noteboards, []) || [];
       const seenN = new Set(existingN.map(n => `${n.timestamp}|${n.authorId}|${n.content}`));
@@ -786,11 +724,8 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
           netFetch('https://api.pluralkit.me/v2/systems/@me', headers),
           netFetch('https://api.pluralkit.me/v2/systems/@me/members', headers),
         ]);
-        // PluralKit caps this endpoint at 100 rows regardless of `limit` and
-        // expects you to page backwards with `before`. Asking for 500 once threw
-        // away every switch older than the newest 100.
         const PK_PAGE = 100;
-        const PK_MAX_PAGES = 200; // 20k switches — stops a broken cursor looping
+        const PK_MAX_PAGES = 200;
         const swData: any[] = [];
         const seenSwitch = new Set<string>();
         let before: string | undefined;
@@ -837,8 +772,6 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       let newM: Member[] = extSel.members && extPreview.members.length > 0
         ? extPreview.members.map((m: any) => ({
             id: uid(), name: isPK ? ((extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) || 'Unknown') : (m.content?.name || m.name || 'Unknown'),
-            // With the pronouns toggle off, PK members arrive blank here and
-            // hand-written pronouns on existing members stay untouched.
             pronouns: isPK ? (extSel.pronouns !== false ? (m.pronouns || '') : '') : (m.content?.pronouns || ''),
             role: isPK ? '' : (m.content?.role || ''),
             color: isPK ? (m.color ? `#${m.color}` : '#DAA520') : (m.content?.color || '#DAA520'),
@@ -858,9 +791,6 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
         membersAfter = [...members, ...newM.filter(nm => !members.find(em => em.name.toLowerCase() === nm.name.toLowerCase()))];
         membersDirty = true;
       }
-      // Overwrite treats the fetch as the whole roster: locals whose name the
-      // import doesn't carry are soft-tombstoned (custom fronts and facets
-      // exempt). Update keeps everything local.
       if (ctx.importMode === 'overwrite' && extSel.members && extPreview.members.length > 0) {
         const importNames = new Set(extPreview.members.map((m: any) => String((isPK ? (extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) : (m.content?.name || m.name)) || 'Unknown').trim().toLowerCase()));
         membersAfter = membersAfter.map(m => (importNames.has(String(m.name || '').trim().toLowerCase()) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true });
@@ -1003,8 +933,6 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       setExtPreview(null); setExtToken('');
       onUpdate();
     } catch (e: any) {
-      // A user stop is not a failure. This path buffers into `batch` and writes
-      // once at the end, so stopping before that leaves the data untouched.
       if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
       else showStatus(t('share.statusImportErrorSafe', {msg: e.message}));
     }

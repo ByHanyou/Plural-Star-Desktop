@@ -133,14 +133,8 @@ export interface Member {
   customFields?: CustomFieldValue[];
   sortOrder?: number;
   createdAt?: number;
-  // Search-only alias. Shown nowhere in Read views; exists so someone whose
-  // NAME is symbols, emoji or a styled font can still be found by typing.
   nickname?: string;
   isCustomFront?: boolean;
-  /**
-   * A facet of the system rather than a member of it. Same profile depth as a
-   * member, but never counted as one. Mutually exclusive with isCustomFront.
-   */
   isFacet?: boolean;
   sourceId?: string;
   mailboxPassword?: string;
@@ -238,11 +232,6 @@ export type TextScale = 1.0 | 1.25 | 1.5;
 
 export type AccountMode = 'system' | 'singlet';
 
-/**
- * A member of the system for COUNTING purposes. Custom fronts and facets are
- * neither: they get member-shaped profiles but must never inflate a member
- * count, in the app or in any export.
- */
 export const isRosterMember = (m: Member): boolean =>
   !m.isCustomFront && !m.isFacet && !m.deleted;
 
@@ -265,21 +254,13 @@ export interface AppSettings {
   activePaletteId: string;
   textScale: TextScale;
   memberSortMode?: MemberSortMode;
-  // Sort for member lists inside group browses (System Manager, mirror
-  // viewer) — same options as the Members list, remembered separately.
   groupSortMode?: MemberSortMode;
   frontCheckInterval?: number;
   useDyslexicFont?: boolean;
   fontChoice?: import('./theme').FontChoice;
   customFrontsSeeded?: boolean;
   memberListFields?: { groups?: boolean; descriptions?: boolean; pronouns?: boolean; roles?: boolean; count?: boolean; background?: 'plain' | 'color' | 'banner' };
-  /** Terminology Picker: user's own word per core term ('member', 'members',
-   *  'group', 'groups', 'facet', 'facets', 'front', 'system'). Blank/absent =
-   *  the app's default word. Swapped at translation time. */
   terminology?: Record<string, string>;
-  /** Custom fronting level names ('primary', 'coFront', 'coConscious').
-   *  Blank/absent = the app's default label. Applied at translation time to
-   *  every tier label, badge and notification line. */
   tierNames?: Record<string, string>;
 }
 
@@ -333,13 +314,7 @@ export const DEFAULT_MEDICAL: MedicalData = {
   emergency: { showOnNotification: false },
 };
 
-// Day Planner. Same shapes as the parked Medical machinery on purpose: the
-// field names and semantics were already proven there. Lives in its OWN store
-// (ps:planner) and syncs normally; nothing is migrated out of the medical
-// store, which stays local-only.
 export type PlannerRepeat = 'daily' | 'everyOtherDay' | 'weekly' | 'everyOtherWeek' | 'monthly' | 'everyOtherMonth' | 'annually';
-/** Reminders additionally support 'once': fire on one chosen day, then done.
- *  Appointments express one-time as an absent repeat instead. */
 export type PlannerReminderRepeat = PlannerRepeat | 'once';
 
 export interface PlannerAppointment {
@@ -349,8 +324,8 @@ export interface PlannerAppointment {
   location?: string;
   notes?: string;
   reminderMinutesBefore?: number;
-  /** Absent = one-time. Set = repeats on this cadence, anchored at `time`. */
   repeat?: PlannerRepeat;
+  color?: string;
   createdAt: number;
 }
 
@@ -360,10 +335,7 @@ export interface PlannerReminder {
   times: string[];
   enabled: boolean;
   notes?: string;
-  /** Absent = daily (the original behavior). */
   repeat?: PlannerReminderRepeat;
-  /** Cadence anchor day for non-daily repeats and the day a 'once' reminder
-   *  fires; absent = createdAt's day. */
   startDate?: number;
   createdAt: number;
 }
@@ -371,6 +343,7 @@ export interface PlannerReminder {
 export interface PlannerData {
   appointments: PlannerAppointment[];
   reminders: PlannerReminder[];
+  markColor?: string;
 }
 
 export const DEFAULT_PLANNER: PlannerData = {
@@ -378,11 +351,6 @@ export const DEFAULT_PLANNER: PlannerData = {
   reminders: [],
 };
 
-// --- Planner cadence maths ---------------------------------------------------
-// Byte-matched with the mobile implementation. Day arithmetic runs on UTC day
-// numbers so DST transitions can't produce off-by-one days; day-of-month
-// cadences clamp (31st -> last day of shorter months, Feb 29 -> Feb 28 off
-// leap years) instead of skipping months.
 const plannerDayNumber = (d: Date): number => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
 
 export const daysInMonth = (year: number, monthZeroIndexed: number): number =>
@@ -416,9 +384,6 @@ export const plannerOccursOnDay = (anchorTs: number, repeat: PlannerReminderRepe
   return false;
 };
 
-/** Next occurrence strictly after `after`, carrying the anchor's local
- *  time-of-day. A bounded day-walk beats seven closed forms: 800 days spans
- *  two annual cycles including the leap-clamp edge, and the scan is trivial. */
 export const plannerNextOccurrence = (anchorTs: number, repeat: PlannerReminderRepeat | undefined, after: number): number | null => {
   if (repeat == null || repeat === 'once') return anchorTs > after ? anchorTs : null;
   const a = new Date(anchorTs);
@@ -465,9 +430,6 @@ export interface RelationshipTypeDef {
   color?: string;
   preset?: boolean;
   overridden?: boolean;
-  /** Preset tombstone: a preset cannot be removed from the constant, so its
-   *  deletion is stored as an override row with this flag and
-   *  allRelationshipTypes drops the preset entirely. */
   deleted?: boolean;
 }
 
@@ -683,11 +645,6 @@ export interface ExportPayload {
   systemMapMembers?: string[];
   medical?: MedicalData;
   planner?: PlannerData;
-  /**
-   * These four were being silently left out of every backup: map layout, the
-   * whiteboard, custom colour slots and share settings. A "full export" that
-   * loses them is not a full export.
-   */
   systemMapPositions?: Record<string, {x: number; y: number}>;
   whiteboard?: any;
   customColors?: string[];
@@ -710,7 +667,6 @@ export interface ChatMessage {
 export interface ChatChannel {
   id: string;
   name: string;
-  /** Undefined, or an id no category owns, means the channel sits above every category. */
   categoryId?: string;
   sortOrder?: number;
   archived?: boolean;
@@ -726,12 +682,6 @@ export interface ChatCategory {
   createdAt: number;
 }
 
-/**
- * Ordering for both chat lists. sortOrder is optional because every channel
- * that existed before categories has none, and an import can hand us rows with
- * gaps or duplicates; falling back to createdAt keeps those in the order they
- * were made rather than collapsing them all to position zero.
- */
 const byOrderThenAge = <T extends {sortOrder?: number; createdAt?: number; name?: string}>(a: T, b: T): number => {
   const ao = typeof a.sortOrder === 'number' ? a.sortOrder : Number.MAX_SAFE_INTEGER;
   const bo = typeof b.sortOrder === 'number' ? b.sortOrder : Number.MAX_SAFE_INTEGER;
@@ -745,11 +695,6 @@ const byOrderThenAge = <T extends {sortOrder?: number; createdAt?: number; name?
 export const sortChatCategories = (cats: ChatCategory[]): ChatCategory[] =>
   [...(cats || [])].sort(byOrderThenAge);
 
-/**
- * Channels of one category, in order. `categoryId` null/undefined asks for the
- * uncategorized ones, which includes channels pointing at a category that has
- * been deleted — an orphan must never become invisible.
- */
 export const chatChannelsIn = (
   channels: ChatChannel[],
   categoryId: string | null | undefined,
@@ -875,14 +820,6 @@ export const isFrontEmpty = (f: FrontState | null): boolean =>
 export const allFrontMemberIds = (f: FrontState | null): string[] =>
   f ? [...f.primary.memberIds, ...f.coFront.memberIds, ...f.coConscious.memberIds] : [];
 
-/**
- * Picker ordering: whoever is in front floats to the top, in tier order
- * (primary, then co-front, then co-conscious); everyone else keeps the order
- * the caller already chose. Membership is matched by id against the list it is
- * given, so anyone the caller filtered out (archived, custom fronts) stays out.
- * The tiers are read defensively rather than through allFrontMemberIds because
- * a stored or synced front can be missing one, and this runs inside a render.
- */
 export const frontersFirst = <T extends {id: string}>(items: T[], front: FrontState | null): T[] => {
   const tier = (x: any): string[] => (x && Array.isArray(x.memberIds) ? x.memberIds : []);
   const f = front as any;
@@ -936,12 +873,6 @@ export const uid = (): string =>
 
 const LOCALE_OVERRIDES: Record<string, string> = {en: 'en-US', pt: 'pt-BR', zh: 'zh-Hans', zhHant: 'zh-Hant'};
 
-/**
- * Memoised per language. The validity probe below formats a Date, and this is
- * called once per rendered timestamp and once per comparison in every sorted
- * list — doing that work again for an answer that only changes when the user
- * switches language was pure waste on the hottest paths in the app.
- */
 let localeCache: {lang: string; tag: string} | null = null;
 
 export const getLocale = (): string => {
@@ -959,13 +890,6 @@ export const getLocale = (): string => {
   return tag;
 };
 
-/**
- * Sort display text in the APP's language rather than the device's. A Swedish
- * system on an English machine was getting English collation, so å sorted next
- * to a instead of after z. Only for human-readable text: time strings and hex
- * colours are deliberately left on plain comparison, where locale rules would
- * be meaningless at best.
- */
 export const nameCompare = (a: unknown, b: unknown): number =>
   String(a ?? '').localeCompare(String(b ?? ''), getLocale());
 
@@ -992,11 +916,6 @@ export const fmtDur = (start: number, end?: number | null): string => {
 export const getInitials = (name: string): string =>
   name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-/**
- * One predicate for every member search box: matches the visible name OR the
- * nickname. The nickname exists exactly for this — a member named "🕷" or in
- * a fancy font is unfindable by typing otherwise.
- */
 export const memberMatchesSearch = (m: { name: string; nickname?: string }, search: string): boolean => {
   const q = String(search ?? '').trim().toLowerCase();
   if (!q) return true;
@@ -1009,9 +928,6 @@ export const isValidHex = (hex: string): boolean =>
 export const normalizeHex = (input: string): string =>
   (input.startsWith('#') ? input : `#${input}`).toUpperCase();
 
-// String() everywhere: imported or synced records can carry a non-string name
-// or a missing color, and (42).localeCompare is "undefined is not a function"
-// at render time — the whole Members view dies on one bad record.
 const memberSortStr = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v));
 
 export const sortMembers = (members: Member[], mode: MemberSortMode = 'alphabetical'): Member[] => {
@@ -1020,7 +936,6 @@ export const sortMembers = (members: Member[], mode: MemberSortMode = 'alphabeti
     case 'alphabetical': return sorted.sort((a, b) => nameCompare(a.name, b.name));
     case 'reverse-alphabetical': return sorted.sort((a, b) => nameCompare(b.name, a.name));
     case 'age': return sorted.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-    // Colours stay on plain comparison: these are hex codes, not language.
     case 'color': return sorted.sort((a, b) => memberSortStr(a.color).localeCompare(memberSortStr(b.color)));
     case 'role': return sorted.sort((a, b) => nameCompare(a.role, b.role));
     case 'manual': return sorted.sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));

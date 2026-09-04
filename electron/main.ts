@@ -233,9 +233,6 @@ ipcMain.handle('net:fetch', async (_e, url: string, options?: { method?: string;
   }
 });
 
-// Fetch a remote image in the main process (no renderer CSP restriction) and return it
-// as a self-contained base64 data URI, so imported avatars work like the mobile app
-// (downloaded + inlined) instead of depending on a live remote URL.
 ipcMain.handle('net:fetchImage', async (_e, url: string) => {
   try {
     if (!/^https?:\/\//i.test(String(url || ''))) return null;

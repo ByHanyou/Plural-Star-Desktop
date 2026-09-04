@@ -12,14 +12,10 @@ import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
 
 type Kind = 'friend' | 'device';
-type BucketFeature = 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections' | 'systemProfile' | 'whiteboard' | 'facets';
+type BucketFeature = 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections' | 'systemProfile' | 'whiteboard' | 'planner' | 'facets' | 'customFronts';
+const BUCKET_ROWS: BucketFeature[] = ['members', 'facets', 'customFronts', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard', 'planner'];
 
-// systemProfile/whiteboard/facets are optional on the stored record (buckets
-// written before they existed do not have them), so the view works with a
-// normalized shape where every feature is present and indexing by
-// BucketFeature always yields a scope. Facets normalize to a COPY of the
-// bucket's members scope — the exact behavior before the field existed.
-type Bucket = PrivacyBucket & { systemProfile: PrivacyScope; whiteboard: PrivacyScope; facets: PrivacyScope };
+type Bucket = PrivacyBucket & { systemProfile: PrivacyScope; whiteboard: PrivacyScope; planner: PrivacyScope; facets: PrivacyScope; customFronts: PrivacyScope };
 
 const emptyScope = (): PrivacyScope => ({ mode: 'none', ids: [] });
 const newBucket = (): Bucket => ({
@@ -34,7 +30,9 @@ const newBucket = (): Bucket => ({
   connections: emptyScope(),
   systemProfile: emptyScope(),
   whiteboard: emptyScope(),
+  planner: emptyScope(),
   facets: emptyScope(),
+  customFronts: emptyScope(),
   friendPeerIds: [],
   createdAt: Date.now(),
 });
@@ -50,14 +48,13 @@ const normalizeBucket = (b: PrivacyBucket): Bucket => ({
   connections: b.connections || emptyScope(),
   systemProfile: b.systemProfile || emptyScope(),
   whiteboard: b.whiteboard || emptyScope(),
-  // Seeded from members, not empty: absent has always MEANT "same as
-  // members", and the editor must show (and re-save) exactly that.
+  planner: b.planner || emptyScope(),
   facets: b.facets || (b.members ? { mode: b.members.mode, ids: [...(b.members.ids || [])] } : emptyScope()),
+  customFronts: b.customFronts || (b.members ? { mode: b.members.mode, ids: [...(b.members.ids || [])] } : emptyScope()),
   friendPeerIds: b.friendPeerIds || [],
 });
 
 export default function NetworkView() {
-  // Friend fronting durations freeze between incoming updates otherwise.
   useMinuteTick();
   const { t } = useTranslation();
   const net = useNetwork();
@@ -113,7 +110,7 @@ export default function NetworkView() {
   };
 
   const featureLabel = (f: BucketFeature): string =>
-    f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : t('systemMap.title', { defaultValue: 'Connections' });
+    f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'customFronts' ? t('members.customFronts') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : f === 'planner' ? t('planner.title') : t('systemMap.title', { defaultValue: 'Connections' });
   const scopeSummary = (s: PrivacyScope): string =>
     s.mode === 'all' ? t('network.scopeAll') : s.mode === 'none' ? t('network.scopeNone') : `${s.ids.length}`;
   const setScopeMode = (f: BucketFeature, mode: PrivacyScopeMode) => {
@@ -149,15 +146,26 @@ export default function NetworkView() {
       connections: { mode: b.connections.mode, ids: [...b.connections.ids] },
       systemProfile: { mode: b.systemProfile.mode, ids: [...b.systemProfile.ids] },
       whiteboard: { mode: b.whiteboard.mode, ids: [...b.whiteboard.ids] },
+      planner: { mode: b.planner.mode, ids: [...b.planner.ids] },
       facets: { mode: b.facets.mode, ids: [...b.facets.ids] },
+      customFronts: { mode: b.customFronts.mode, ids: [...b.customFronts.ids] },
       friendPeerIds: [],
       createdAt: Date.now(),
     });
   };
   const pickableMembers = members.filter(m => !m.deleted && !m.isCustomFront && !m.isFacet);
-  // Facets follow the roster rather than being mixed into it, but they ARE
-  // selectable: a facet can front, so a bucket has to be able to scope it.
   const pickableFacets = members.filter(m => !m.deleted && !m.isCustomFront && m.isFacet);
+  const pickableCustomFronts = members.filter(m => !m.deleted && m.isCustomFront);
+  const splitKinds = (b: Bucket): Bucket => {
+    const facetIds = new Set(pickableFacets.map(m => m.id));
+    const cfIds = new Set(pickableCustomFronts.map(m => m.id));
+    return {
+      ...b,
+      members: { ...b.members, ids: b.members.ids.filter(id => !facetIds.has(id) && !cfIds.has(id)) },
+      facets: { ...b.facets, ids: b.facets.ids.filter(id => facetIds.has(id)) },
+      customFronts: { ...b.customFronts, ids: b.customFronts.ids.filter(id => cfIds.has(id)) },
+    };
+  };
   const memberName = (id: string) => members.find(m => m.id === id)?.name || '?';
   const relLabel = (r: Relationship): string => {
     const rt = relTypes.find(x => x.id === r.typeId) || PRESET_RELATIONSHIP_TYPES.find(x => x.id === r.typeId);
@@ -183,7 +191,11 @@ export default function NetworkView() {
     ? pickableFacets
         .filter(m => memberMatchesSearch(m, pickerSearch))
         .map(m => ({ id: m.id, name: m.name }))
-    : [...pickableMembers, ...pickableFacets]
+    : pickerFeature === 'customFronts'
+    ? pickableCustomFronts
+        .filter(m => memberMatchesSearch(m, pickerSearch))
+        .map(m => ({ id: m.id, name: m.name }))
+    : pickableMembers
         .filter(m => memberMatchesSearch(m, pickerSearch))
         .map(m => ({ id: m.id, name: m.name }))
   );
@@ -199,9 +211,6 @@ export default function NetworkView() {
   const [copiedKind, setCopiedKind] = useState<Kind | null>(null);
   const [directionFor, setDirectionFor] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<Friend | null>(null);
-  // Second stop, friends only: one warning still got blown through by a stray
-  // click plus a habit-click, and removal is mutual — both sides lose the
-  // friendship and their cached mirrors.
   const [removeArmed, setRemoveArmed] = useState(false);
   const [, setNowTick] = useState(0);
 
@@ -288,8 +297,6 @@ export default function NetworkView() {
   const friendStatusLines = (f: Friend): string[] => {
     if (f.status === 'entered_theirs') return [t('network.waitingThem')];
     if (f.status === 'entered_mine') return [t('network.waitingYou')];
-    // Their side told us this friendship is gone. Anything below would be a
-    // frozen copy presented as live, so say the truth instead.
     if (f.needsRefriend) return [t('network.needsRefriend')];
     const online = net.onlinePeers.includes(f.peerId);
     const s = f.lastStatus;
@@ -357,7 +364,7 @@ export default function NetworkView() {
               aria-label={`${levelLabel}, ${f.displayName}`}
               title={levelLabel}
               onClick={() => NetworkManager.setFriendNotifyLevel(f.peerId, nextLevel)}
-              style={{ background: 'none', border: 'none', color: level === 'full' ? 'var(--accent)' : 'var(--muted)', opacity: level === 'off' ? 0.45 : 1, fontSize: 15, cursor: 'pointer', padding: 8 }}>{/* Three states need three glyphs: 'full' and 'alerts' were both a bell, so one tap off 'full' looked muted and still alerted. */}{level === 'full' ? '🔔' : level === 'alerts' ? '📳' : '🔕'}</button>
+              style={{ background: 'none', border: 'none', color: level === 'full' ? 'var(--accent)' : 'var(--muted)', opacity: level === 'off' ? 0.45 : 1, fontSize: 15, cursor: 'pointer', padding: 8 }}>{level === 'full' ? '🔔' : level === 'alerts' ? '📳' : '🔕'}</button>
           );
         })()}
         <button className="icon-btn" aria-label={`${t('network.remove')}, ${f.displayName}`} onClick={() => setRemoveTarget(f)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
@@ -460,12 +467,12 @@ export default function NetworkView() {
           ) : buckets.map(b => (
             <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8, background: 'var(--card)' }}>
               <div role="button" tabIndex={0} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                onClick={() => setEditBucket({ ...b })}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditBucket({ ...b }); } }}
-                aria-label={`${b.name}. ${(['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
+                onClick={() => setEditBucket(splitKinds({ ...b }))}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditBucket(splitKinds({ ...b })); } }}
+                aria-label={`${b.name}. ${BUCKET_ROWS.map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  {(['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[]).map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
+                  {BUCKET_ROWS.map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
                 </div>
               </div>
               <Btn variant="ghost" aria-label={`${t('network.cloneBucket')} — ${b.name}`} onClick={() => cloneBucket(b)}>⧉</Btn>
@@ -486,13 +493,10 @@ export default function NetworkView() {
           </div>
         }>
         <Field label={t('network.bucketName')} value={editBucket?.name || ''} onChange={v => editBucket && setEditBucket({ ...editBucket, name: v })} placeholder={t('network.bucketName')} />
-        {editBucket && (['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[]).map(f => (
+        {editBucket && BUCKET_ROWS.map(f => (
           <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
             <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{featureLabel(f)}</span>
-            {/* history, systemProfile and whiteboard have nothing to pick
-                WITHIN them — one timeline, one profile, one board — so they
-                are all or nothing. */}
-            {((f === 'history' || f === 'systemProfile' || f === 'whiteboard' ? ['all', 'none'] : ['all', 'select', 'none']) as PrivacyScopeMode[]).map(mode => {
+            {((f === 'history' || f === 'systemProfile' || f === 'whiteboard' || f === 'planner' ? ['all', 'none'] : ['all', 'select', 'none']) as PrivacyScopeMode[]).map(mode => {
               const sel = editBucket[f].mode === mode;
               const label = mode === 'all' ? t('network.scopeAll') : mode === 'select' ? t('network.scopeSelect') : t('network.scopeNone');
               return (
@@ -591,8 +595,6 @@ export default function NetworkView() {
         open={!!removeTarget && !removeArmed}
         title={t('network.remove')}
         message={
-          // Name alone never said that removal is mutual: it sends a
-          // disconnect, so they lose you too and both sides' mirrors go.
           !removeTarget ? ''
             : removeTarget.kind === 'device' ? removeTarget.displayName
             : t('network.removeFriendWarn', { name: removeTarget.displayName })
@@ -621,7 +623,7 @@ export default function NetworkView() {
         onClose={() => setMirrorMenuFor(null)}>
         {mirrorMenuFor && (
           <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 0 }}>
-            {(['members', 'facets', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard'] as BucketFeature[])
+            {BUCKET_ROWS
               .map(f => `${featureLabel(f)}: ${scopeSummary(effectiveShare(mirrorMenuFor.peerId, f))}`)
               .join('  ·  ')}
           </p>
@@ -633,6 +635,7 @@ export default function NetworkView() {
           { feature: 'history' as MirrorFeature, label: t('tabs.history') },
           { feature: 'journal' as MirrorFeature, label: t('tabs.journal') },
           { feature: 'whiteboard' as MirrorFeature, label: t('whiteboard.title') },
+          { feature: 'planner' as MirrorFeature, label: t('planner.title') },
         ]).map(opt => (
           <button
             key={opt.feature}

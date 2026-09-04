@@ -239,10 +239,6 @@
   border-top: 1px solid var(--border);
 }
 
-/* Keyboard focus has to be visible (WCAG 2.4.7). Inputs explicitly set
-   outline: none above, and most buttons here carry inline styles, so state
-   the ring once for everything interactive instead of relying on the UA's.
-   :focus-visible keeps it off mouse clicks. */
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible,

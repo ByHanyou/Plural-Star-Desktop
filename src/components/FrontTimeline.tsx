@@ -2,15 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HistoryEntry, Member, FrontTierKey, fmtTime, fmtDur, getLocale, getInitials, nameCompare, buildEffectiveEnd } from '../utils';
 
-/**
- * SP-style front history graph: one row per member, colored spans on a shared
- * time axis. The window is a fixed range ending "now" until the user pages
- * back — buttons, not gestures, and every bar carries its own label (hover
- * title + aria-label). Open entries take their effective end from
- * buildEffectiveEnd (the next switch closes them), matching the list view, and
- * a truly-current entry runs to the live now edge. Mirrors the mobile
- * component in src/components/FrontTimeline.tsx there.
- */
 type RangeKey = 'day' | 'week' | 'month' | 'quarter';
 const RANGE_MS: Record<RangeKey, number> = {
   day: 86400000,
@@ -27,8 +18,6 @@ type Row = { member: Member; spans: Span[]; total: number };
 const LABEL_W = 130;
 const ROW_H = 34;
 
-// Visual weight per tier: primary solid, co-front slightly lighter, and
-// co-conscious a thin faint strip — same member color throughout.
 const TIER_BAR: Record<FrontTierKey, { height: number; opacity: number }> = {
   primary: { height: 16, opacity: 1 },
   coFront: { height: 16, opacity: 0.75 },
@@ -73,7 +62,6 @@ const buildTimelineRows = (
   const rows: Row[] = [];
   for (const [id, spans] of byMember) {
     const member = memberMap.get(id)!;
-    // Co-conscious time is presence, not front time; it does not decide rank.
     const total = spans.reduce((acc, sp) => acc + (sp.tier === 'coConscious' ? 0 : sp.end - sp.start), 0);
     rows.push({ member, spans, total });
   }
@@ -88,7 +76,6 @@ export default function FrontTimeline({ history, members, singlet = false }: {
 }) {
   const { t } = useTranslation();
   const [range, setRange] = useState<RangeKey>('week');
-  // null anchor = the window ends at the live "now"; paging back pins it.
   const [endAnchor, setEndAnchor] = useState<number | null>(null);
 
   const now = Date.now();
@@ -99,7 +86,6 @@ export default function FrontTimeline({ history, members, singlet = false }: {
 
   const rows = useMemo(
     () => buildTimelineRows(history, members, start, end, now),
-    // `now` moves every render; the window bounds are what matter for rebuild.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [history, members, start, end],
   );

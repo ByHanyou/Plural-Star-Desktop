@@ -4,6 +4,8 @@ import { HistoryEntry, ChatMessage, fmtDur, getInitials, translateMood, buildEff
 import { Section } from '../components/ui';
 import { store, chatMsgKey, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
+import { getTierNameOverride } from '../i18n/terminology';
+import type { TierNameKey } from '../i18n/terminology';
 
 interface Props {
   singlet?: boolean;
@@ -17,6 +19,10 @@ const nextBoardLimit = (cur: number) => (cur < 10 ? 10 : MAX_BOARD);
 
 export default function StatsView({ singlet = false, selfId }: Props) {
   const { t } = useTranslation();
+  const tierHeading = (tier: TierNameKey, stock: string): string => {
+    const custom = getTierNameOverride(tier);
+    return custom ? t('stats.topTier', { tier: custom }) : stock;
+  };
   const history = useAppStore(s => s.state.history);
   const members = useAppStore(s => s.state.members);
   const channels = useAppStore(s => s.state.channels);
@@ -116,10 +122,6 @@ export default function StatsView({ singlet = false, selfId }: Props) {
   }, [filtered]);
 
   const locationTotals = useMemo(() => {
-    // "Home" and "Home " and "home" are one place. GPS-written locations and
-    // hand-typed ones differ in whitespace and case, which split a location
-    // into duplicate leaderboard rows. Count under a normalized key; display
-    // the first spelling seen.
     const map: Record<string, number> = {};
     const display: Record<string, string> = {};
     for (const entry of filtered) {
@@ -293,9 +295,9 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
-        <Leaderboard title={singlet ? t('stats.topStatuses') : t('stats.topFronters')} data={fronterTotals} mode="time" boardKey="fronters" />
-        {!singlet && <Leaderboard title={t('stats.topCoFronters')} data={coFrontTotals} mode="time" boardKey="cofronters" />}
-        {!singlet && <Leaderboard title={t('stats.topCoCon')} data={coConTotals} mode="time" boardKey="cocon" />}
+        <Leaderboard title={singlet ? t('stats.topStatuses') : tierHeading('primary', t('stats.topFronters'))} data={fronterTotals} mode="time" boardKey="fronters" />
+        {!singlet && <Leaderboard title={tierHeading('coFront', t('stats.topCoFronters'))} data={coFrontTotals} mode="time" boardKey="cofronters" />}
+        {!singlet && <Leaderboard title={tierHeading('coConscious', t('stats.topCoCon'))} data={coConTotals} mode="time" boardKey="cocon" />}
         {!singlet && <Leaderboard title={t('stats.topChatters')} data={chatSorted} mode="count" boardKey="chatters" />}
       </div>
 
@@ -369,7 +371,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.memberLeaderboard', { name: '' }).replace(/^\s+/, '') || 'Member Details'}</h3>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {members.filter(m => !m.archived && !m.isFacet && (!singlet || (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)))).map(m => (
+          {members.filter(m => !m.archived && !m.isFacet && (singlet ? (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)) : !m.isCustomFront)).map(m => (
             <button key={m.id} className={`chip`}
               style={{
                 borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
@@ -382,12 +384,14 @@ export default function StatsView({ singlet = false, selfId }: Props) {
             </button>
           ))}
         </div>
-        {/* Facets keep their own row: out of the member list, still selectable. */}
-        {!singlet && members.some(m => !m.archived && m.isFacet) && (
-          <>
-            <label className="field__label">{t('members.facets')}</label>
+        {!singlet && ([
+          [t('members.facets'), members.filter(m => !m.archived && m.isFacet)],
+          [t('members.customFronts'), members.filter(m => !m.archived && m.isCustomFront && !m.isFacet)],
+        ] as [string, typeof members][]).map(([label, list]) => list.length > 0 && (
+          <React.Fragment key={label}>
+            <label className="field__label">{label}</label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              {members.filter(m => !m.archived && m.isFacet).map(m => (
+              {list.map(m => (
                 <button key={m.id} className={`chip`}
                   style={{
                     borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
@@ -400,8 +404,8 @@ export default function StatsView({ singlet = false, selfId }: Props) {
                 </button>
               ))}
             </div>
-          </>
-        )}
+          </React.Fragment>
+        ))}
 
         {memberSpecific && selectedStatMember && (() => {
           const m = getMember(selectedStatMember);
