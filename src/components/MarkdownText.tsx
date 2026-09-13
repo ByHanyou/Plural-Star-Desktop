@@ -42,7 +42,13 @@ const renderInline = (text: string, members?: Member[]): React.ReactNode => {
       if (!isValidImageUri(url)) return <span key={key++} style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{i18n.t('markdown.brokenImage', { defaultValue: '[broken image]' })}</span>;
       return <Img key={key++} uri={url} />;
     }],
-    [/\[(.+?)\]\((.+?)\)/, m => <a key={key++} href={m[2]} target="_blank" rel="noreferrer" style={{ color: 'var(--info)', textDecoration: 'underline' }}>{m[1]}</a>],
+    [/\[(.+?)\]\((.+?)\)/, m => {
+      // Only web and mail links become links. Anything else (javascript:,
+      // file:, data:) is shown as text; descriptions can come from friends.
+      const href = m[2].trim();
+      if (!/^(https?:\/\/|mailto:)/i.test(href)) return <span key={key++}>{m[1]}</span>;
+      return <a key={key++} href={href} target="_blank" rel="noreferrer noopener" style={{ color: 'var(--info)', textDecoration: 'underline' }}>{m[1]}</a>;
+    }],
   ];
   while (remaining.length > 0) {
     let earliest: { idx: number; len: number; node: React.ReactNode } | null = null;

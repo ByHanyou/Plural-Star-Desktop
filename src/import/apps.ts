@@ -95,7 +95,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
   const { setImporting, showStatus, history, system, onUpdate, t } = ctx;
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,.our';
+    input.accept = '.json,.our,.ampar';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;

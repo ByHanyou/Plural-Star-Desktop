@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FrontTierKey, isFrontEmpty, fmtDur, getInitials } from '../utils';
+import { FrontTierKey, isFrontEmpty, fmtDur, frontSessionStart, getInitials } from '../utils';
 import { initialOn } from '../theme';
 import { useAppStore } from '../store/appStore';
 
@@ -26,7 +26,7 @@ export default function FrontTile({ onClick, onUpdateFront }: Props) {
           <div key={id} className="tile__member-row">
             <div className="tile__avatar" style={!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : { overflow: "hidden" }}>{m.avatar ? <img src={m.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
             <span className="tile__member-name">{m.name}</span>
-            {tierKey === 'primary' && <span className="tile__duration">{fmtDur(front.startTime)}</span>}
+            {tierKey === 'primary' && <span className="tile__duration">{fmtDur(front.memberSince?.[id] ?? frontSessionStart(front))}</span>}
           </div>
         ); })}
         {tier.mood && <div style={{ fontSize: 11, color: 'var(--muted)', paddingLeft: 36 }}>{tier.mood}</div>}

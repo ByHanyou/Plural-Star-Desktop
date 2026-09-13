@@ -22,7 +22,9 @@ export default function ColorsView() {
   const [confirmClear, setConfirmClear] = useState(false);
 
   useEffect(() => {
-    store.get<string[]>(KEYS.customColors, []).then(v => setCustomColors(normalizeCustomColors(v)));
+    const load = () => { store.get<string[]>(KEYS.customColors, []).then(v => setCustomColors(normalizeCustomColors(v))); };
+    load();
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const saveColors = async (next: string[]) => {

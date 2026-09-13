@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
-  fmtTime, fmtDur, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
+  fmtTime, fmtDur, frontSessionStart, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
   parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch,
 } from '../utils';
 import { store, KEYS } from '../storage';
@@ -173,8 +173,8 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
 
           {isPrimary && (
             <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0', marginBottom: 8, fontSize: 11, color: 'var(--muted)' }}>
-              {t('front.frontingFor')} <span style={{ color: 'var(--accent)' }}>{fmtDur(front.startTime)}</span>
-              {' · '}{t('front.since')} {fmtTime(front.startTime)}
+              {t('front.frontingFor')} <span style={{ color: 'var(--accent)' }}>{fmtDur(frontSessionStart(front))}</span>
+              {' · '}{t('front.since')} {fmtTime(frontSessionStart(front))}
             </div>
           )}
 
@@ -329,9 +329,15 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
   useEffect(() => {
     if (open && !prevOpen.current) {
       if (current) {
-        setPrimaryIds(new Set(current.primary.memberIds));
-        setCoFrontIds(new Set(current.coFront.memberIds));
-        setCoConsciousIds(new Set(current.coConscious.memberIds));
+        // Seed the tiers disjoint, highest tier wins. A saved state that
+        // already carries the same member twice used to be shown twice and
+        // written back out twice on the next save.
+        const seedP = new Set(current.primary.memberIds);
+        const seedCf = new Set(current.coFront.memberIds.filter(id => !seedP.has(id)));
+        const seedCc = new Set(current.coConscious.memberIds.filter(id => !seedP.has(id) && !seedCf.has(id)));
+        setPrimaryIds(seedP);
+        setCoFrontIds(seedCf);
+        setCoConsciousIds(seedCc);
         setPrimaryMood(current.primary.mood || '');
         setPrimaryLocation(current.primary.location || '');
         setPrimaryNote(current.primary.note || '');
@@ -368,25 +374,31 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
     return map;
   }, [primaryIds, coFrontIds, coConsciousIds]);
 
+  // The other two tiers drop everything this tier now holds, computed inside
+  // the updater from live state instead of the render-time snapshot. Reading
+  // the snapshot meant two clicks in one tick found nothing to remove and left
+  // the same member sitting in two tiers at once. Clearing against the whole
+  // new set rather than only the added id also heals a duplicate that was
+  // already in the saved state the moment either tier is touched.
   const toggleMember = (tier: FrontTierKey, id: string) => {
-    const setters: Record<FrontTierKey, [Set<string>, (s: Set<string>) => void]> = {
-      primary: [primaryIds, setPrimaryIds], coFront: [coFrontIds, setCoFrontIds], coConscious: [coConsciousIds, setCoConsciousIds],
+    const sets: Record<FrontTierKey, Set<string>> = {
+      primary: primaryIds, coFront: coFrontIds, coConscious: coConsciousIds,
     };
-    const [set, setter] = setters[tier];
-    const next = new Set(set);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-      for (const [key, [otherSet, otherSetter]] of Object.entries(setters)) {
-        if (key !== tier && otherSet.has(id)) {
-          const cleaned = new Set(otherSet);
-          cleaned.delete(id);
-          otherSetter(cleaned);
-        }
-      }
-    }
-    setter(next);
+    const setters: Record<FrontTierKey, React.Dispatch<React.SetStateAction<Set<string>>>> = {
+      primary: setPrimaryIds, coFront: setCoFrontIds, coConscious: setCoConsciousIds,
+    };
+    const next = new Set(sets[tier]);
+    if (next.has(id)) { next.delete(id); } else { next.add(id); }
+    (Object.keys(setters) as FrontTierKey[]).forEach(key => {
+      if (key === tier) return;
+      setters[key](prev => {
+        let changed = false;
+        const cleaned = new Set(prev);
+        next.forEach(x => { if (cleaned.delete(x)) changed = true; });
+        return changed ? cleaned : prev;
+      });
+    });
+    setters[tier](next);
   };
 
   const resolveMood = (tier: FrontTierKey, mood: string): string | undefined => {
@@ -562,7 +574,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         open={confirmClear}
         title={t('front.clearFrontTitle')}
         message={t('front.clearFrontMsg')}
-        danger
+        danger single
         onConfirm={handleConfirmClear}
         onCancel={() => setConfirmClear(false)}
       />

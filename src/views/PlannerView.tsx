@@ -85,9 +85,15 @@ export default function PlannerView({ onUpdate }: Props) {
   useEscapeKey(remOpen, () => setRemOpen(false));
 
   React.useEffect(() => {
-    store.get<PlannerData>(KEYS.planner, null).then(p => {
-      if (p) setPlannerState({ ...DEFAULT_PLANNER, ...p });
-    }).catch(e => logError('planner', e));
+    const load = () => {
+      store.get<PlannerData>(KEYS.planner, null).then(p => {
+        if (p) setPlannerState({ ...DEFAULT_PLANNER, ...p });
+      }).catch(e => logError('planner', e));
+    };
+    load();
+    // The planner lives here, not in the app store: a sync that changes it
+    // must reload it or the next save would write the stale copy over it.
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const save = async (next: PlannerData) => {

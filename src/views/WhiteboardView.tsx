@@ -79,9 +79,15 @@ export default function WhiteboardView() {
   const polyIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    store.get<Stroke[]>(KEYS.whiteboard, []).then(saved => {
-      if (saved && Array.isArray(saved)) setStrokes(saved.filter(s => s && Array.isArray(s.pts) && s.pts.length >= 2));
-    });
+    const load = () => {
+      store.get<Stroke[]>(KEYS.whiteboard, []).then(saved => {
+        if (saved && Array.isArray(saved)) setStrokes(saved.filter(s => s && Array.isArray(s.pts) && s.pts.length >= 2));
+      });
+    };
+    load();
+    // A sync that brought strokes from another device must land here, or
+    // the next stroke saved from this view's list would write over them.
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const persist = useCallback((next: Stroke[]) => {
@@ -353,7 +359,7 @@ export default function WhiteboardView() {
         open={confirmClear > 0}
         title={confirmClear >= 3 ? t('whiteboard.clearConfirm3Title', {defaultValue: 'Last chance'}) : confirmClear === 2 ? t('whiteboard.clearConfirm2Title', {defaultValue: 'Are you sure?'}) : t('whiteboard.clearTitle')}
         message={confirmClear >= 3 ? t('whiteboard.clearConfirm3Msg', {defaultValue: 'Really erase everything on the whiteboard?'}) : confirmClear === 2 ? t('whiteboard.clearConfirm2Msg', {defaultValue: "The whole board will be erased. This can't be undone."}) : t('whiteboard.clearMsg')}
-        danger
+        danger single
         onConfirm={() => {
           if (confirmClear < 3) { setConfirmClear(confirmClear + 1); return; }
           setConfirmClear(0);

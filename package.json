@@ -1,6 +1,6 @@
 {
   "name": "plural-space-desktop",
-  "version": "1.14.2",
+  "version": "1.15.0",
   "description": "Plural Star — Desktop",
   "author": {
     "name": "The Hanyou System",
@@ -23,6 +23,7 @@
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
+    "@noble/hashes": "^2.2.0",
     "electron-store": "^11.0.2",
     "fflate": "^0.8.3",
     "i18next": "^26.3.6",

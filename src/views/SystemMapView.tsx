@@ -50,7 +50,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const typeById = useMemo(() => new Map(types.map(ty => [ty.id, ty])), [types]);
 
   useEffect(() => {
-    (async () => {
+    const load = async () => {
       const [rels, savedTypes, savedMapIds, savedPos] = await Promise.all([
         store.get<Relationship[]>(KEYS.relationships, []),
         store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []),
@@ -78,7 +78,11 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         setMapIds(seeded);
         if (seeded.length) await store.set(KEYS.systemMapMembers, seeded);
       }
-    })();
+    };
+    load().catch(e => logError('systemMap', e));
+    // Relationships, types, map membership and positions live here, not in
+    // the app store: a sync that changes them must reload them.
+    return NetworkManager.onSyncApplied(() => { load().catch(e => logError('systemMap', e)); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -229,7 +233,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         <h2 style={{ fontSize: 18, fontFamily: 'var(--font-display)', color: 'var(--text)', margin: 0 }}>{t('systemMap.title')}</h2>
         <span style={{ fontSize: 12, color: 'var(--muted)' }}>{mapRels.length === 1 ? t('systemMap.relationshipOne') : t('systemMap.relationships', { count: mapRels.length })}</span>
         <div style={{ flex: 1 }} />
-        <Btn variant="solid" onClick={() => setShowAddMember(true)}>{t('systemMap.addMember')}</Btn>
+        <Btn variant="solid" disabled={off.length === 0 && offFacets.length === 0} onClick={() => setShowAddMember(true)}>{t('systemMap.addMember')}</Btn>
         <Btn variant="ghost" onClick={() => setRelEditor({ from: selectedId || mapIds[0] || '', toIds: [], typeId: types[0]?.id || 'friend', note: '' })}>{t('systemMap.addRelationship')}</Btn>
         <Btn variant="ghost" onClick={() => setShowTypes(true)}>{t('systemMap.manageTypes')}</Btn>
         <button

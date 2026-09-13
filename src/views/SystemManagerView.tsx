@@ -137,7 +137,10 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
     seen.add(g.id);
     const isEditing = editId === g.id;
     const isSub = groupKind(g) === 'subsystem';
-    const memberCount = members.filter(m => isRosterMember(m) && (m.groupIds || []).includes(g.id)).length;
+    // Counts everything the group actually holds and that browsing it shows:
+    // members, facets and custom fronts. Roster-only meant a group of facets
+    // read as 0.
+    const memberCount = members.filter(m => !m.deleted && !m.archived && (m.groupIds || []).includes(g.id)).length;
     const moving = movingId;
     const canDrop = !!moving && moving !== g.id && !isDescendant(groups, g.id, moving);
     return (
@@ -412,7 +415,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
             <ConfirmDialog open={!!confirmRemoveFront}
               title={t('members.removeFromFront')}
               message={confirmRemoveFront ? t('members.removeFromFrontMsg', { name: confirmRemoveFront.name }) : ''}
-              danger
+              danger single
               onConfirm={() => { if (confirmRemoveFront) onRemoveFromFront?.(confirmRemoveFront.id); setConfirmRemoveFront(null); }}
               onCancel={() => setConfirmRemoveFront(null)} />
 

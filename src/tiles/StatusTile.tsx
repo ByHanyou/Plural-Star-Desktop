@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, isFrontEmpty, fmtDur, translateMood } from '../utils';
+import { Member, isFrontEmpty, fmtDur, frontSessionStart, translateMood } from '../utils';
 import { useAppStore } from '../store/appStore';
 
 interface Props { selfId?: string; onClick: () => void; onUpdateStatus: () => void; }
@@ -46,7 +46,7 @@ export default function StatusTile({ selfId, onClick, onUpdateStatus }: Props) {
               <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{t('status.noStatuses')}</span>
             )}
             {tier?.mood && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{translateMood(tier.mood, t)}</div>}
-            {front && <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>{fmtDur(front.startTime)}</div>}
+            {front && <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>{fmtDur(frontSessionStart(front))}</div>}
           </>
         )}
       </div>

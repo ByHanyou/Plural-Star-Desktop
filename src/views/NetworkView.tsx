@@ -10,6 +10,9 @@ import { fmtDur, fmtTime, uid, CustomFieldDef, Relationship, RelationshipTypeDef
 import { store, KEYS } from '../storage';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
+import { CloudServices } from '../cloud/cloudPlatform';
+import { useCloud } from '../cloud/useCloud';
+import { passwordRuleFailing } from '../cloud/cloudCrypto';
 
 type Kind = 'friend' | 'device';
 type BucketFeature = 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections' | 'systemProfile' | 'whiteboard' | 'planner' | 'facets' | 'customFronts';
@@ -67,6 +70,16 @@ export default function NetworkView() {
   const [relayUrl, setRelayUrl] = useState('');
   const [relayToken, setRelayToken] = useState('');
   const [busy, setBusy] = useState(false);
+  const cloud = useCloud();
+  const [cloudOn, setCloudOn] = useState(false);
+  const [cloudPw, setCloudPw] = useState('');
+  const [cloudMedia, setCloudMedia] = useState(false);
+  const [cloudError, setCloudError] = useState<string | null>(null);
+  const [cloudExists, setCloudExists] = useState(false);
+  const [cloudImportConfirm, setCloudImportConfirm] = useState(false);
+  const [cloudUnlinkStep, setCloudUnlinkStep] = useState<0 | 1 | 2>(0);
+  const cloudRule = passwordRuleFailing(cloudPw);
+  const cloudBusy = cloud.phase !== 'idle';
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [editBucket, setEditBucket] = useState<Bucket | null>(null);
   const [pickerFeature, setPickerFeature] = useState<BucketFeature | null>(null);
@@ -79,12 +92,18 @@ export default function NetworkView() {
   const [relTypes, setRelTypes] = useState<RelationshipTypeDef[]>([]);
 
   useEffect(() => {
-    store.get<PrivacyBucket[]>(PRIVACY_BUCKETS_KEY, []).then(saved => {
-      if (saved && Array.isArray(saved)) setBuckets(saved.map(normalizeBucket));
-    }).catch(e => logError('network', e));
-    store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(d => setFieldDefs(d || [])).catch(e => logError('network', e));
-    store.get<Relationship[]>(KEYS.relationships, []).then(r => setRelationships(r || [])).catch(e => logError('network', e));
-    store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(rt => setRelTypes(rt || [])).catch(e => logError('network', e));
+    const load = () => {
+      store.get<PrivacyBucket[]>(PRIVACY_BUCKETS_KEY, []).then(saved => {
+        if (saved && Array.isArray(saved)) setBuckets(saved.map(normalizeBucket));
+      }).catch(e => logError('network', e));
+      store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(d => setFieldDefs(d || [])).catch(e => logError('network', e));
+      store.get<Relationship[]>(KEYS.relationships, []).then(r => setRelationships(r || [])).catch(e => logError('network', e));
+      store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(rt => setRelTypes(rt || [])).catch(e => logError('network', e));
+    };
+    load();
+    // Buckets travel in the vault; a pulled change must land here or the
+    // next bucket save would write the stale list over it.
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const effectiveShare = (peerId: string, f: BucketFeature): PrivacyScope => {
@@ -219,6 +238,61 @@ export default function NetworkView() {
     return () => clearInterval(id);
   }, []);
 
+  // ---- Cloud Services (SPEC section 5) --------------------------------------
+  // The toggle refuses while device syncing is on and points at the warning;
+  // the two never run together. Submit derives the credentials and asks the
+  // node whether the vault exists: new = created and uploaded here, existing =
+  // an Import dialog with a second confirmation that names what is lost.
+  const cloudRuleText = (): string => {
+    switch (cloudRule) {
+      case 'length': return t('network.cloudRuleLength');
+      case 'upper': return t('network.cloudRuleUpper');
+      case 'lower': return t('network.cloudRuleLower');
+      case 'digit': return t('network.cloudRuleDigit');
+      case 'symbol': return t('network.cloudRuleSymbol');
+      default: return '';
+    }
+  };
+  const cloudPhaseText = (): string => {
+    switch (cloud.phase) {
+      case 'deriving': return t('network.cloudDeriving');
+      case 'uploading': return t('network.cloudUploading');
+      case 'importing': return t('network.cloudImporting');
+      case 'checking': return t('network.cloudChecking');
+      default: return '';
+    }
+  };
+  const onCloudToggle = (v: boolean) => {
+    if (v && net.devices.length > 0) {
+      setCloudError(t('network.cloudWarning'));
+      return;
+    }
+    setCloudError(null);
+    setCloudOn(v);
+    if (!v) { setCloudPw(''); CloudServices.cancelPendingLink(); }
+  };
+  const onCloudSubmit = async () => {
+    if (cloudRule || cloudBusy) return;
+    setCloudError(null);
+    try {
+      const outcome = await CloudServices.linkWithPassword(cloudPw, cloudMedia);
+      if (outcome.kind === 'created') { setCloudPw(''); return; }
+      setCloudExists(true);
+    } catch (e: any) {
+      setCloudError(String(e?.message || e));
+    }
+  };
+  const onCloudImportFinal = () => {
+    setCloudImportConfirm(false);
+    CloudServices.importExisting(cloudMedia)
+      .then(() => setCloudPw(''))
+      .catch((e: any) => setCloudError(String(e?.message || e)));
+  };
+  const onCloudUnlinkFinal = () => {
+    setCloudUnlinkStep(0);
+    CloudServices.unlink().then(() => setCloudOn(false)).catch((e: any) => setCloudError(String(e?.message || e)));
+  };
+
   const guard = async (fn: () => Promise<void>, kind?: Kind) => {
     setBusy(true);
     setError(null);
@@ -255,13 +329,36 @@ export default function NetworkView() {
     }
   };
 
-  const onGenerate = (kind: Kind) => guard(async () => {
-    try {
-      await NetworkManager.generateCode(kind);
-    } catch {
-      throw new Error(t('network.publishFailed'));
-    }
-  });
+  // Spec 5.1, both directions: the cloud toggle refuses while devices are
+  // paired, and device pairing refuses while the vault is linked.
+  const cloudBlocksSync = (kind: Kind): boolean => {
+    if (kind !== 'device' || !cloud.linked) return false;
+    setError(t('network.cloudBlocksSync'));
+    return true;
+  };
+  // The engine records failures in English for the log. Map the ones a person
+  // can act on to translated text, and fall back to the raw line otherwise.
+  const cloudErrorText = (raw: string): string => {
+    const s = raw.toLowerCase();
+    const m = raw.match(/^Left out, larger than \d+ MB: (.*)$/);
+    if (m) return t('network.cloudErrTooLarge', { keys: m[1] });
+    if (s.includes('object too large')) return t('network.cloudErrTooLarge', { keys: '' });
+    if (s.includes('rate limited') || s.includes('429')) return t('network.cloudErrRate');
+    if (s.includes('quota') || s.includes('watermark') || s.includes('507')) return t('network.cloudErrFull');
+    if (s.includes('undecryptable') || s.includes('malformed') || s.includes('hash mismatch') || s.includes('bad password')) return t('network.cloudErrCorrupt');
+    if (s.includes('conflict') || s.includes('network') || s.includes('timed out') || s.includes('failed') || s.includes('fetch') || s.includes('not connected') || s.includes('unreach') || /http 5\d\d/.test(s)) return t('network.cloudErrNetwork');
+    return raw;
+  };
+  const onGenerate = (kind: Kind) => {
+    if (cloudBlocksSync(kind)) return;
+    guard(async () => {
+      try {
+        await NetworkManager.generateCode(kind);
+      } catch {
+        throw new Error(t('network.publishFailed'));
+      }
+    });
+  };
 
   const onCopy = async (kind: Kind, code: string | null) => {
     if (!code) return;
@@ -281,6 +378,7 @@ export default function NetworkView() {
 
   const onEnter = (kind: Kind, value: string, clear: () => void) => {
     if (!value.trim()) return;
+    if (cloudBlocksSync(kind)) return;
     if (kind === 'device') {
       setDirectionFor(value.trim());
       return;
@@ -445,6 +543,77 @@ export default function NetworkView() {
           )}
         </div>
       </div>
+
+      {/* SPEC 5.1: directly under "Sync your devices", warning first. */}
+      <p style={{ fontSize: 12, color: 'var(--danger)', margin: '14px 0 0' }}>{t('network.cloudWarning')}</p>
+
+      <div style={{ marginTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1 }}><Section label={t('network.cloudTitle')} /></div>
+          <span style={{ fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: 700, color: 'var(--info)', border: '1px solid var(--info)', borderRadius: 999, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+            {t('network.cloudExperimental')}
+          </span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('network.cloudDesc')}</p>
+
+        {cloud.linked ? (
+          <>
+            <p style={{ fontSize: 12, color: 'var(--text)', margin: 0 }}>{t('network.cloudLinkedDevices', { n: cloud.deviceCount })}</p>
+            {cloud.lastSyncAt > 0 && <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 0' }}>{t('network.cloudLastSync', { time: fmtTime(cloud.lastSyncAt) })}</p>}
+            {cloud.pendingKeys > 0 && <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 0' }}>{t('network.cloudPending', { n: cloud.pendingKeys })}</p>}
+            {cloudBusy && (
+              <p style={{ fontSize: 11, color: 'var(--accent)', margin: '6px 0 0' }} aria-live="polite">
+                {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${Math.round(cloud.progress * 100)}%` : ''}
+              </p>
+            )}
+            {(cloud.lastError || cloudError) && (
+              <p style={{ fontSize: 11, color: 'var(--danger)', margin: '6px 0 0' }}>{t('network.cloudError', { error: cloudErrorText(cloudError || cloud.lastError || '') })}</p>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <Toggle value={cloud.mediaTier} onChange={v => CloudServices.setMediaTier(v).catch(() => {})} label={t('network.cloudMediaTier')} description={t('network.cloudMediaTierDesc')} />
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <Btn variant="danger" disabled={cloudBusy} onClick={() => setCloudUnlinkStep(1)}>{t('network.cloudUnlink')}</Btn>
+            </div>
+          </>
+        ) : (
+          <>
+            <Toggle value={cloudOn} onChange={onCloudToggle} label={t('network.cloudEnable')} description={cloud.available ? undefined : t('network.cloudUnavailable')} />
+            {cloudOn && (
+              <div style={{ marginTop: 12 }}>
+                <Field label={t('network.cloudPassword')} value={cloudPw} onChange={setCloudPw} type="password" placeholder={t('network.cloudPassword')} />
+                <p style={{ fontSize: 11, color: cloudPw && cloudRule ? 'var(--danger)' : 'var(--muted)', margin: '-6px 0 12px' }} aria-live="polite">
+                  {cloudPw && cloudRule ? cloudRuleText() : t('network.cloudPasswordHint')}
+                </p>
+                <Toggle value={cloudMedia} onChange={setCloudMedia} label={t('network.cloudMediaTier')} description={t('network.cloudMediaTierDesc')} />
+                <div style={{ marginTop: 12 }}>
+                  <Btn onClick={onCloudSubmit} disabled={!!cloudRule || cloudBusy || !cloud.available}>{t('network.cloudSubmit')}</Btn>
+                </div>
+                {cloudBusy && (
+                  <p style={{ fontSize: 11, color: 'var(--accent)', margin: '8px 0 0' }} aria-live="polite">
+                    {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${Math.round(cloud.progress * 100)}%` : ''}
+                  </p>
+                )}
+              </div>
+            )}
+            {(cloudError || cloud.lastError) && (
+              <p style={{ fontSize: 11, color: 'var(--danger)', margin: '8px 0 0' }}>{t('network.cloudError', { error: cloudErrorText(cloudError || cloud.lastError || '') })}</p>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* These four already stack their own second step, so they stay single. */}
+      <ConfirmDialog open={cloudExists} title={t('network.cloudExistsTitle')} message={t('network.cloudExistsMsg')} danger single
+        onConfirm={() => { setCloudExists(false); setCloudImportConfirm(true); }}
+        onCancel={() => { setCloudExists(false); CloudServices.cancelPendingLink(); }} />
+      <ConfirmDialog open={cloudImportConfirm} title={t('network.cloudImportConfirmTitle')} message={t('network.cloudImportConfirmMsg')} danger single
+        onConfirm={onCloudImportFinal}
+        onCancel={() => { setCloudImportConfirm(false); CloudServices.cancelPendingLink(); }} />
+      <ConfirmDialog open={cloudUnlinkStep === 1} title={t('network.cloudUnlink')} message={t('network.cloudUnlinkMsg')} danger single
+        onConfirm={() => setCloudUnlinkStep(2)} onCancel={() => setCloudUnlinkStep(0)} />
+      <ConfirmDialog open={cloudUnlinkStep === 2} title={t('network.cloudUnlink')} message={t('network.cloudUnlinkConfirm2')} danger single
+        onConfirm={onCloudUnlinkFinal} onCancel={() => setCloudUnlinkStep(0)} />
 
       <div style={{ marginTop: 24 }}>
         <Section label={t('network.customNetwork')} />

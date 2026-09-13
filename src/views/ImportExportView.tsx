@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Section } from '../components/ui';
+import { Btn, Section, ConfirmDialog } from '../components/ui';
 import { ImportWaitOverlay } from '../components/ImportWaitOverlay';
 import { ImportControl, ImportProgress } from '../import/progress';
 import { store, KEYS, chatMsgKey } from '../storage';
+import { CloudServices } from '../cloud/cloudPlatform';
 import {
   Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ChatMessage,
   ExportPayload, CustomFieldDef, CustomFieldType, MemberGroup, NoteboardEntry, MemberPoll, uid, DEFAULT_CHANNELS,
@@ -98,7 +99,20 @@ export default function ImportExportView({ onUpdate }: Props) {
 
   const [confirmClear, setConfirmClear] = useState(false);
 
+  // A restore or an import in Overwrite mode removes what the file does not
+  // contain (spec 5.4: "Replace-mode import; restore from backup"). It asks
+  // first and names what is lost; the danger dialog adds the second step
+  // while a vault is linked. Update mode removes nothing and just runs.
+  const [pendingOverwrite, setPendingOverwrite] = useState<{ title: string; run: () => void } | null>(null);
+  const confirmOverwrite = (title: string, run: () => void) => {
+    if (importMode !== 'overwrite') { run(); return; }
+    setPendingOverwrite({ title, run });
+  };
+
   const clearAllData = async () => {
+    // Leave the vault first. Wiping a linked device must never empty the
+    // vault or the other devices; unlinking never does (spec 5.3).
+    await CloudServices.unlink().catch(() => {});
     await store.clearAll();
     setConfirmClear(false);
     showStatus(t('share.statusAllCleared'));
@@ -246,7 +260,7 @@ export default function ImportExportView({ onUpdate }: Props) {
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => { setRestoreData(null); setRestoreFile(null); }}>{t('common.cancel')}</Btn>
-              <Btn variant="danger" onClick={() => handleRestore({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(Object.values(restoreSel).filter(Boolean).length) })} disabled={importing}>
+              <Btn variant="danger" onClick={() => confirmOverwrite(t('share.restoreSelectedData'), () => handleRestore({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(Object.values(restoreSel).filter(Boolean).length) }))} disabled={importing}>
                 {importing ? t('share.importing') : t('share.restoreSelectedData')}
               </Btn>
             </div>
@@ -259,7 +273,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.spMergeDesc')}
         </p>
-        <Btn onClick={() => handleImportSP({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(5) })} disabled={importing}>
+        <Btn onClick={() => confirmOverwrite(t('share.importSelected'), () => handleImportSP({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(5) }))} disabled={importing}>
           {importing ? t('share.importing') : t('share.importFromSP')}
         </Btn>
       </div>
@@ -267,10 +281,10 @@ export default function ImportExportView({ onUpdate }: Props) {
       <Section label={t('share.importOtherApps', { defaultValue: 'Import from another app' })} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
-          {t('share.importOtherAppsDesc', { defaultValue: 'Import members and fronting history from Ourcana (.our or .json), HiveMind or Octocon (.json), or Ampersand\'s JSON export. Ampersand\'s binary backup is not supported — its format changes between releases, which is why their developer recommends JSON.' })}
+          {t('share.importOtherAppsDesc', { defaultValue: 'Import members and fronting history from Ourcana (.our or .json), HiveMind or Octocon (.json), a Tupperbox export (tul!export), or either Ampersand export: the binary .ampar archive or their JSON file. The .ampar archive also brings profile pictures and banners.' })}
         </p>
-        <Btn onClick={() => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(4) })} disabled={importing}>
-          {importing ? t('share.importing') : t('share.importFromOtherApp', { defaultValue: 'Pick file (.our / .json)' })}
+        <Btn onClick={() => confirmOverwrite(t('share.importSelected'), () => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(4) }))} disabled={importing}>
+          {importing ? t('share.importing') : t('share.importFromOtherApp', { defaultValue: 'Pick file (.our / .json / .ampar)' })}
         </Btn>
       </div>
 
@@ -279,7 +293,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.psHint')}
         </p>
-        <Btn onClick={() => handleImportPluralSpace({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })} disabled={importing}>
+        <Btn onClick={() => confirmOverwrite(t('share.importSelected'), () => handleImportPluralSpace({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet }))} disabled={importing}>
           {importing ? t('share.importing') : t('share.pickPsFile')}
         </Btn>
       </div>
@@ -289,7 +303,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.plurallogHint')}
         </p>
-        <Btn onClick={() => handleImportPluralLog({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })} disabled={importing}>
+        <Btn onClick={() => confirmOverwrite(t('share.importSelected'), () => handleImportPluralLog({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet }))} disabled={importing}>
           {importing ? t('share.importing') : t('share.plurallogPick')}
         </Btn>
       </div>
@@ -328,7 +342,7 @@ export default function ImportExportView({ onUpdate }: Props) {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => { setExtPreview(null); setExtToken(''); }}>{t('common.cancel')}</Btn>
-              <Btn variant="solid" onClick={() => handleTokenImport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(Object.values(extSel).filter(Boolean).length) })} disabled={importing}>
+              <Btn variant="solid" onClick={() => confirmOverwrite(t('share.importSelected'), () => handleTokenImport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(Object.values(extSel).filter(Boolean).length) }))} disabled={importing}>
                 {importing ? t('share.importing') : t('share.importSelected')}
               </Btn>
             </div>
@@ -357,6 +371,10 @@ export default function ImportExportView({ onUpdate }: Props) {
           </>
         )}
       </div>
+
+      <ConfirmDialog open={!!pendingOverwrite} title={pendingOverwrite?.title || ''} message={t('share.importModeOverwriteHint')} danger
+        onConfirm={() => { const run = pendingOverwrite?.run; setPendingOverwrite(null); run?.(); }}
+        onCancel={() => setPendingOverwrite(null)} />
     </div>
   );
 }

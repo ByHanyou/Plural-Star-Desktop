@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMinuteTick } from '../useMinuteTick';
 import {
   Member, FrontState, AppSettings, DEFAULT_MOODS, EMPTY_TIER,
-  fmtTime, fmtDur, isFrontEmpty, translateMood,
+  fmtTime, fmtDur, frontSessionStart, isFrontEmpty, translateMood,
   parseMoodList, toggleMoodInList, serializeMoodList,
 } from '../utils';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
@@ -224,7 +224,7 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
           {tier?.note ? <Row label={t('modal.note')} value={tier.note} /> : null}
           {front ? (
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
-              {t('status.since', { time: fmtTime(front.startTime) })} · {fmtDur(front.startTime)}
+              {t('status.since', { time: fmtTime(frontSessionStart(front)) })} · {fmtDur(frontSessionStart(front))}
             </div>
           ) : null}
         </div>

@@ -66,6 +66,7 @@ import MailboxView from './views/MailboxView';
 import WhiteboardView from './views/WhiteboardView';
 import ColorsView from './views/ColorsView';
 import { NetworkManager } from './network/NetworkManager';
+import { CloudServices, bootCloudServices } from './cloud/cloudPlatform';
 import { Modal, Btn } from './components/ui';
 import { useAppStore, DEFAULT_SETTINGS } from './store/appStore';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -183,9 +184,17 @@ function AppInner() {
 
   const [syncConflict, setSyncConflict] = useState<{peerId: string; deviceName: string} | null>(null);
   const [roleMismatch, setRoleMismatch] = useState<{deviceName: string} | null>(null);
-  useEffect(() => { NetworkManager.init().catch(e => console.error('[NETWORK] init failed:', e)); }, []);
+  useEffect(() => {
+    NetworkManager.init()
+      .catch(e => console.error('[NETWORK] init failed:', e))
+      .finally(() => bootCloudServices());
+  }, []);
   useEffect(() => { if (state.loaded) NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.loaded, state.front, state.members]);
-  useEffect(() => { NetworkManager.notifyDataChanged(); }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.chatCategories, state.settings, state.palettes]);
+  useEffect(() => {
+    NetworkManager.notifyDataChanged();
+    // Spec 8.1: every save also saves to the cloud. Debounced inside.
+    CloudServices.schedulePush();
+  }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.chatCategories, state.settings, state.palettes]);
   useEffect(() => NetworkManager.onSyncApplied(() => { loadData(); }), [loadData]);
   useEffect(() => NetworkManager.onSyncConflict(c => setSyncConflict({peerId: c.peerId, deviceName: c.deviceName})), []);
   useEffect(() => NetworkManager.onSyncRoleMismatch(c => setRoleMismatch({deviceName: c.deviceName})), []);

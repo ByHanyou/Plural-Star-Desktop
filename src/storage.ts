@@ -23,6 +23,8 @@ declare global {
         fetch: (url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) =>
           Promise<{ ok: boolean; status: number; text: string }>;
         fetchImage: (url: string) => Promise<string | null>;
+        fetchRaw: (url: string, options?: { method?: string; headers?: Record<string, string>; bodyBase64?: string; timeoutMs?: number }) =>
+          Promise<{ status: number; headers: Record<string, string>; bodyBase64: string; error?: string }>;
       };
       notify: (title: string, body: string) => Promise<void>;
       window: {
@@ -75,6 +77,18 @@ const frontValueIsEmpty = (v: unknown): boolean => {
   return n(f.primary) + n(f.coFront) + n(f.coConscious) === 0;
 };
 
+// One listener for "something was saved", used by Cloud Services so that every
+// Save also saves to the cloud (SPEC 8.1) without each action knowing about
+// it. Applying data FROM the cloud writes the electron store directly, not
+// through here, so it cannot echo back into another upload. `removed` is true
+// for a removal (store.remove, or an undefined value in setBatch): the one
+// signal that a key left on purpose, as opposed to one that merely read back
+// missing and should be repaired from the vault.
+let writeListener: ((key: string, removed?: boolean) => void) | null = null;
+export const onStoreWrite = (fn: ((key: string, removed?: boolean) => void) | null): void => {
+  writeListener = fn;
+};
+
 export const store = {
   async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
     try {
@@ -101,10 +115,18 @@ export const store = {
     } catch (e) {
       console.error('Storage write error:', e);
     }
+    if (writeListener) {
+      try { writeListener(key); } catch {}
+    }
   },
 
   async setBatch(updates: Record<string, unknown>): Promise<void> {
     await window.electronAPI.store.setBatch(updates);
+    if (writeListener) {
+      for (const key in updates) {
+        try { writeListener(key, updates[key] === undefined); } catch {}
+      }
+    }
   },
 
   async remove(key: string): Promise<void> {
@@ -112,6 +134,9 @@ export const store = {
       await window.electronAPI.store.remove(key);
     } catch (e) {
       console.error('Storage remove error:', e);
+    }
+    if (writeListener) {
+      try { writeListener(key, true); } catch {}
     }
   },
 

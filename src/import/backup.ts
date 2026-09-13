@@ -124,39 +124,50 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.zip,.json,.txt';
+      // The handler runs later, on its own, so the try around input.click()
+      // never sees what it throws: a malformed file has to be caught here or
+      // the pick silently does nothing.
       input.onchange = async () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        let data: ExportPayload;
-        if (file.name.toLowerCase().endsWith('.zip')) {
-          const files = unzipSync(new Uint8Array(await file.arrayBuffer()));
-          const dj = files['data.json'];
-          if (!dj) { showStatus(t('share.statusBackupMissingData')); return; }
-          data = JSON.parse(strFromU8(dj)) as ExportPayload;
-          const avatars: Record<string, string> = { ...(data.avatars || {}) };
-          const banners: Record<string, string> = { ...(data.banners || {}) };
-          for (const m of (data.members || []) as any[]) {
-            if (m.avatar_media_path && files[m.avatar_media_path]) avatars[m.id] = bytesToDataUri(files[m.avatar_media_path], m.avatar_media_path);
-            if (m.banner_media_path && files[m.banner_media_path]) banners[m.id] = bytesToDataUri(files[m.banner_media_path], m.banner_media_path);
+        try {
+          const file = input.files?.[0];
+          if (!file) return;
+          let data: ExportPayload;
+          if (file.name.toLowerCase().endsWith('.zip')) {
+            const files = unzipSync(new Uint8Array(await file.arrayBuffer()));
+            const dj = files['data.json'];
+            if (!dj) { showStatus(t('share.statusBackupMissingData')); return; }
+            data = JSON.parse(strFromU8(dj)) as ExportPayload;
+            const avatars: Record<string, string> = { ...(data.avatars || {}) };
+            const banners: Record<string, string> = { ...(data.banners || {}) };
+            for (const m of (data.members || []) as any[]) {
+              if (m.avatar_media_path && files[m.avatar_media_path]) avatars[m.id] = bytesToDataUri(files[m.avatar_media_path], m.avatar_media_path);
+              if (m.banner_media_path && files[m.banner_media_path]) banners[m.id] = bytesToDataUri(files[m.banner_media_path], m.banner_media_path);
+            }
+            data.avatars = avatars;
+            data.banners = banners;
+          } else {
+            const text = await file.text();
+            data = JSON.parse(text) as ExportPayload;
           }
-          data.avatars = avatars;
-          data.banners = banners;
-        } else {
-          const text = await file.text();
-          data = JSON.parse(text) as ExportPayload;
-        }
+          if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            showStatus(t('share.statusNotBackup'));
+            return;
+          }
 
-        if (detectPluralSpace(data)) {
-          showStatus(t('share.statusError', {msg: t('share.psUseSection')}));
-          return;
-        }
-        if (!data._meta?.app?.includes('PluralSpace') && !data._meta?.app?.includes('Plural Space') && !data._meta?.app?.includes('PluralStar') && !data._meta?.app?.includes('Plural Star')) {
-          showStatus(t('share.statusNotBackup'));
-          return;
-        }
+          if (detectPluralSpace(data)) {
+            showStatus(t('share.statusError', {msg: t('share.psUseSection')}));
+            return;
+          }
+          if (!data._meta?.app?.includes('PluralSpace') && !data._meta?.app?.includes('Plural Space') && !data._meta?.app?.includes('PluralStar') && !data._meta?.app?.includes('Plural Star')) {
+            showStatus(t('share.statusNotBackup'));
+            return;
+          }
 
-        setRestoreData(data);
-        setRestoreFile(file.name);
+          setRestoreData(data);
+          setRestoreFile(file.name);
+        } catch (e: any) {
+          showStatus(t('share.statusImportError', {msg: e?.message || String(e)}));
+        }
       };
       input.click();
     } catch (e: any) {

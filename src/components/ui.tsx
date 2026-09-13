@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import './ui.css';
 import { colorName } from '../utils';
+import { CloudServices } from '../cloud/cloudPlatform';
 
 export const clickable = (onClick?: () => void, label?: string) => ({
   role: 'button' as const,
@@ -363,28 +364,43 @@ export function Modal({ open, title, onClose, footer, children }: {
 }
 
 
-export function ConfirmDialog({ open, title, message, onConfirm, onCancel, danger = false }: {
-  open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; danger?: boolean;
+// SPEC 5.4 (Cloud Services): with a vault linked, every destructive
+// confirmation gets a second step that repeats what is about to be lost and
+// says it happens on every linked device. Every danger dialog in the app goes
+// through this one component, so the rule lives here and nowhere else. A
+// caller that already stacks its own second dialog passes `single` to stay at
+// its own count (the Cloud Services dialogs, the whiteboard's triple clear).
+export function ConfirmDialog({ open, title, message, onConfirm, onCancel, danger = false, single = false }: {
+  open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; danger?: boolean; single?: boolean;
 }) {
   const { t } = useTranslation();
   const titleId = useId();
   const msgId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [second, setSecond] = useState(false);
   useEscapeKey(open, onCancel);
   useDialogFocus(open, dialogRef);
+  useEffect(() => { if (!open) setSecond(false); }, [open]);
   if (!open) return null;
+  const doubled = danger && !single && CloudServices.isLinked();
+  const confirm = () => {
+    if (doubled && !second) { setSecond(true); return; }
+    onConfirm();
+  };
+  const shownTitle = second ? t('network.cloudConfirmTitle') : title;
+  const shownMessage = second ? `${message}\n\n${t('network.cloudConfirmMsg')}` : message;
   return (
     <div className="modal-overlay" role="presentation" onClick={onCancel}>
       <div ref={dialogRef} className="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} tabIndex={-1} onClick={e => e.stopPropagation()}>
         <div className="modal__header">
-          <span className="modal__title" id={titleId} role="heading" aria-level={2}>{title}</span>
+          <span className="modal__title" id={titleId} role="heading" aria-level={2}>{shownTitle}</span>
         </div>
         <div className="modal__body">
-          <p id={msgId} style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5 }}>{message}</p>
+          <p id={msgId} style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-line' }}>{shownMessage}</p>
         </div>
         <div className="modal__footer">
           <Btn variant="ghost" onClick={onCancel}>{t('common.cancel')}</Btn>
-          <Btn variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>{t('common.confirm')}</Btn>
+          <Btn variant={danger ? 'danger' : 'primary'} onClick={confirm}>{t('common.confirm')}</Btn>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomFieldDef, CustomFieldType, uid } from '../utils';
 import { store, KEYS } from '../storage';
+import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
 
 interface Props {
@@ -24,8 +25,12 @@ export default function CustomFieldsView({ onUpdate }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
+  // Loaded here, not in the app store, so a sync that changes it must reload
+  // it or the next save here would write the stale list over it.
   useEffect(() => {
-    store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFields(defs || []));
+    const load = () => { store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFields(defs || [])); };
+    load();
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const save = async (updated: CustomFieldDef[]) => {

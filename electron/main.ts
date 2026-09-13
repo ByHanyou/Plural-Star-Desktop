@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Notification, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Notification, Tray, Menu, nativeImage, shell } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import Store from 'electron-store';
@@ -74,6 +74,22 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  // Links in markdown (a friend's mirrored description included) and the
+  // Discord / support tiles open in the system browser. Nothing ever opens
+  // as a second window of this app, which would carry the preload bridge to
+  // whatever page it loaded (Electron security checklist, items 13 and 14).
+  const externalOk = (url: string): boolean => /^(https?:|mailto:)/i.test(url);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (externalOk(url)) shell.openExternal(url).catch(() => {});
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const own = isDev ? url.startsWith('http://localhost:5173') : url.startsWith('file:');
+    if (own) return;
+    event.preventDefault();
+    if (externalOk(url)) shell.openExternal(url).catch(() => {});
   });
 
   if (isDev) {
@@ -230,6 +246,29 @@ ipcMain.handle('net:fetch', async (_e, url: string, options?: { method?: string;
     return { ok: res.ok, status: res.status, text };
   } catch (e: any) {
     return { ok: false, status: 0, text: e.message };
+  }
+});
+
+// Cloud Services moves ciphertext, which is not text. Bodies cross the IPC as
+// base64 both ways, and every response header comes back because the resumable
+// upload reads Upload-Offset from a HEAD.
+ipcMain.handle('net:fetchRaw', async (_e, url: string, options?: { method?: string; headers?: Record<string, string>; bodyBase64?: string; timeoutMs?: number }) => {
+  const timeoutMs = Math.max(1000, Number(options?.timeoutMs) || 30000);
+  const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('request timed out')), timeoutMs));
+  try {
+    if (!/^https?:\/\//i.test(String(url || ''))) return { status: 0, headers: {}, bodyBase64: '', error: 'unsupported url' };
+    const init: RequestInit = {
+      method: options?.method || 'GET',
+      headers: options?.headers || {},
+    };
+    if (typeof options?.bodyBase64 === 'string') init.body = Buffer.from(options.bodyBase64, 'base64');
+    const res = await Promise.race([fetch(url, init), timeout]);
+    const headers: Record<string, string> = {};
+    res.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+    const bodyBase64 = init.method === 'HEAD' ? '' : Buffer.from(await res.arrayBuffer()).toString('base64');
+    return { status: res.status, headers, bodyBase64 };
+  } catch (e: any) {
+    return { status: 0, headers: {}, bodyBase64: '', error: e?.message || String(e) };
   }
 });
 

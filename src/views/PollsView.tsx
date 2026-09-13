@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MemberPoll, PollOption, uid, fmtTime, isRosterMember } from '../utils';
 import { store, KEYS } from '../storage';
+import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 
@@ -35,8 +36,12 @@ export default function PollsView({ onUpdate }: Props) {
   const activeMembers = members.filter(m => !m.archived && isRosterMember(m));
   const activeFacets = members.filter(m => !m.archived && m.isFacet && !m.isCustomFront && !m.deleted);
 
+  // Loaded here, not in the app store, so a sync that changes it must reload
+  // it or the next save here would write the stale list over it.
   useEffect(() => {
-    store.get<MemberPoll[]>(KEYS.polls, []).then(p => setPolls(p || []));
+    const load = () => { store.get<MemberPoll[]>(KEYS.polls, []).then(p => setPolls(p || [])); };
+    load();
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const savePolls = async (updated: MemberPoll[]) => {

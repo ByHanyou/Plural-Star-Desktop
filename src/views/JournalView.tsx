@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMatchesSearch } from '../utils';
 import { store, KEYS } from '../storage';
+import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 
@@ -43,7 +44,9 @@ export default function JournalView({ onUpdate }: Props) {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   useEffect(() => {
-    store.get<JournalTemplate[]>(KEYS.journalTemplates, []).then(tpls => setTemplates(tpls || []));
+    const load = () => { store.get<JournalTemplate[]>(KEYS.journalTemplates, []).then(tpls => setTemplates(tpls || [])); };
+    load();
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const getMember = (id: string) => members.find(m => m.id === id);
@@ -420,7 +423,7 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {hashtags.map(tag => (
-            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'var(--info)40', background: 'var(--info-bg)' }}
+            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
               onClick={() => setHashtags(hashtags.filter(t => t !== tag))}>
               <span style={{ color: 'var(--info)' }}>{tag}</span>
               <span className="chip__x" aria-hidden>✕</span>
@@ -451,7 +454,7 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {tplTags.map(tag => (
-            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'var(--info)40', background: 'var(--info-bg)' }}
+            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
               onClick={() => setTplTags(tplTags.filter(t => t !== tag))}>
               <span style={{ color: 'var(--info)' }}>{tag}</span>
               <span className="chip__x" aria-hidden>✕</span>

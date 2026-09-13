@@ -38,7 +38,13 @@ export default function MailboxView({ onUpdate }: Props) {
   );
   const nameOf = (id: string) => members.find(m => m.id === id)?.name || '?';
 
-  useEffect(() => { store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setNotes(n || [])); }, []);
+  // Loaded here, not in the app store, so a sync that changes it must reload
+  // it or the next save here would write the stale list over it.
+  useEffect(() => {
+    const load = () => { store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setNotes(n || [])); };
+    load();
+    return NetworkManager.onSyncApplied(load);
+  }, []);
 
   const save = async (updated: NoteboardEntry[]) => {
     setNotes(updated);

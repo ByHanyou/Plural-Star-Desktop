@@ -4,6 +4,7 @@ import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, 
 import { chooseImageTreatment } from '../components/ImageCropModal';
 import { PALETTE, ensureReadable, initialOn } from '../theme';
 import { store, KEYS } from '../storage';
+import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { CustomHexEntry } from '../components/CustomHexEntry';
@@ -61,25 +62,26 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [tagInput, setTagInput] = useState('');
   const [fieldDefs, setFieldDefs] = useState<CustomFieldDef[]>([]);
 
-  useEffect(() => {
-    store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFieldDefs(defs || []));
-  }, []);
-
   type MemberTab = 'main' | 'fields' | 'connections' | 'noteboard';
   const [memberTab, setMemberTab] = useState<MemberTab>('main');
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [relTypes, setRelTypes] = useState<RelationshipTypeDef[]>([]);
-  useEffect(() => {
-    store.get<Relationship[]>(KEYS.relationships, []).then(r => setRelationships(r || []));
-    store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(r => setRelTypes(r || []));
-  }, []);
-
   const [allNotes, setAllNotes] = useState<NoteboardEntry[]>([]);
   const [noteText, setNoteText] = useState('');
   const [noteAuthorId, setNoteAuthorId] = useState<string | null>(null);
 
+  // Field definitions, connections and notes are loaded here, not in the app
+  // store, so a sync that changes them must reload them or the next save from
+  // this view would write the stale list over them.
   useEffect(() => {
-    store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setAllNotes(n || []));
+    const load = () => {
+      store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFieldDefs(defs || []));
+      store.get<Relationship[]>(KEYS.relationships, []).then(r => setRelationships(r || []));
+      store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(r => setRelTypes(r || []));
+      store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setAllNotes(n || []));
+    };
+    load();
+    return NetworkManager.onSyncApplied(load);
   }, []);
 
   const memberNotes = allNotes
@@ -909,7 +911,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
       <Modal open={!!quickFrontFor} title={quickFrontFor ? `${t('members.addToFront')} — ${quickFrontFor.name}` : t('members.addToFront')} onClose={() => setQuickFrontFor(null)}>
         {quickFrontFor && (['primary', 'coFront', 'coConscious'] as const)
-          .filter(tier => tier !== 'coConscious' || !quickFrontFor.isCustomFront)
           .map(tier => (
             <button key={tier}
               onClick={() => { onQuickFront?.(quickFrontFor.id, tier); setQuickFrontFor(null); }}
@@ -925,7 +926,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
       <ConfirmDialog open={!!confirmRemoveFront}
         title={t('members.removeFromFront')}
         message={confirmRemoveFront ? t('members.removeFromFrontMsg', { name: confirmRemoveFront.name }) : ''}
-        danger
+        danger single
         onConfirm={() => { if (confirmRemoveFront) onRemoveFromFront?.(confirmRemoveFront.id); setConfirmRemoveFront(null); }}
         onCancel={() => setConfirmRemoveFront(null)} />
     </div>
