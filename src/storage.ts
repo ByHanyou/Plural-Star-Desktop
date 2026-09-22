@@ -77,16 +77,22 @@ const frontValueIsEmpty = (v: unknown): boolean => {
   return n(f.primary) + n(f.coFront) + n(f.coConscious) === 0;
 };
 
-// One listener for "something was saved", used by Cloud Services so that every
-// Save also saves to the cloud (SPEC 8.1) without each action knowing about
-// it. Applying data FROM the cloud writes the electron store directly, not
-// through here, so it cannot echo back into another upload. `removed` is true
-// for a removal (store.remove, or an undefined value in setBatch): the one
-// signal that a key left on purpose, as opposed to one that merely read back
-// missing and should be repaired from the vault.
-let writeListener: ((key: string, removed?: boolean) => void) | null = null;
-export const onStoreWrite = (fn: ((key: string, removed?: boolean) => void) | null): void => {
-  writeListener = fn;
+type WriteListener = (key: string, removed?: boolean) => void;
+const writeListeners = new Set<WriteListener>();
+export const onStoreWrite = (fn: WriteListener | null): (() => void) => {
+  if (!fn) {
+    writeListeners.clear();
+    return () => {};
+  }
+  writeListeners.add(fn);
+  return () => {
+    writeListeners.delete(fn);
+  };
+};
+const emitWrite = (key: string, removed?: boolean): void => {
+  for (const fn of writeListeners) {
+    try { fn(key, removed); } catch {}
+  }
 };
 
 export const store = {
@@ -115,18 +121,12 @@ export const store = {
     } catch (e) {
       console.error('Storage write error:', e);
     }
-    if (writeListener) {
-      try { writeListener(key); } catch {}
-    }
+    emitWrite(key);
   },
 
   async setBatch(updates: Record<string, unknown>): Promise<void> {
     await window.electronAPI.store.setBatch(updates);
-    if (writeListener) {
-      for (const key in updates) {
-        try { writeListener(key, updates[key] === undefined); } catch {}
-      }
-    }
+    for (const key in updates) emitWrite(key, updates[key] === undefined);
   },
 
   async remove(key: string): Promise<void> {
@@ -135,9 +135,7 @@ export const store = {
     } catch (e) {
       console.error('Storage remove error:', e);
     }
-    if (writeListener) {
-      try { writeListener(key, true); } catch {}
-    }
+    emitWrite(key, true);
   },
 
   async clearAll(): Promise<void> {

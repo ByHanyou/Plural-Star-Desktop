@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMatchesSearch } from '../utils';
+import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMatchesSearch, tagKey, truncateRunes } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
@@ -52,10 +52,11 @@ export default function JournalView({ onUpdate }: Props) {
   const getMember = (id: string) => members.find(m => m.id === id);
 
   const allTags = useMemo(() => {
-    const set = new Set<string>();
-    journal.forEach(e => e.hashtags?.forEach(t => set.add(t)));
-    return [...set].sort();
+    const seen = new Map<string, string>();
+    journal.forEach(e => e.hashtags?.forEach(tag => { const k = tagKey(tag); if (!seen.has(k)) seen.set(k, tag); }));
+    return [...seen.values()].sort((a, b) => { const ka = tagKey(a), kb = tagKey(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
   }, [journal]);
+  const tagFilterKey = tagFilter ? tagKey(tagFilter) : '';
 
   const sorted = useMemo(() => {
     return [...journal]
@@ -63,11 +64,11 @@ export default function JournalView({ onUpdate }: Props) {
       .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
       .filter(e => {
         if (search && !e.title.toLowerCase().includes(search.toLowerCase()) && !e.body.toLowerCase().includes(search.toLowerCase())) return false;
-        if (tagFilter && !(e.hashtags || []).includes(tagFilter)) return false;
+        if (tagFilterKey && !(e.hashtags || []).some(tag => tagKey(tag) === tagFilterKey)) return false;
         if (authorFilter && !(e.authorIds || []).includes(authorFilter)) return false;
         return true;
       });
-  }, [journal, search, tagFilter, authorFilter]);
+  }, [journal, search, tagFilterKey, authorFilter]);
 
   const togglePin = async (entry: JournalEntry, ev: React.MouseEvent) => {
     ev.stopPropagation();
@@ -100,8 +101,9 @@ export default function JournalView({ onUpdate }: Props) {
   };
 
   const addTag = () => {
-    const raw = tagInput.trim().replace(/^#/, '').toLowerCase();
-    if (raw && !hashtags.includes(`#${raw}`)) setHashtags([...hashtags, `#${raw}`]);
+    const raw = tagInput.trim().replace(/^#/, '').normalize('NFC');
+    const next = `#${raw}`;
+    if (raw && !hashtags.some(v => tagKey(v) === tagKey(next))) setHashtags([...hashtags, next]);
     setTagInput('');
   };
 
@@ -149,8 +151,9 @@ export default function JournalView({ onUpdate }: Props) {
   };
 
   const addTplTag = () => {
-    const raw = tplTagInput.trim().replace(/^#/, '').toLowerCase();
-    if (raw && !tplTags.includes(`#${raw}`)) setTplTags([...tplTags, `#${raw}`]);
+    const raw = tplTagInput.trim().replace(/^#/, '').normalize('NFC');
+    const next = `#${raw}`;
+    if (raw && !tplTags.some(v => tagKey(v) === tagKey(next))) setTplTags([...tplTags, next]);
     setTplTagInput('');
   };
 
@@ -256,7 +259,7 @@ export default function JournalView({ onUpdate }: Props) {
               {entry.body && (
                 <p style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, marginBottom: 6,
                   overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  {entry.body.replace(/<[^>]+>/g, '').slice(0, 200)}
+                  {truncateRunes(entry.body.replace(/<[^>]+>/g, ''), 200)}
                 </p>
               )}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -306,7 +309,7 @@ export default function JournalView({ onUpdate }: Props) {
               {tpl.body && (
                 <p style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, marginBottom: 6,
                   overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  {tpl.body.replace(/<[^>]+>/g, '').slice(0, 200)}
+                  {truncateRunes(tpl.body.replace(/<[^>]+>/g, ''), 200)}
                 </p>
               )}
               <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>

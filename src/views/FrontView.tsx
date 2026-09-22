@@ -4,10 +4,11 @@ import {
   Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, frontSessionStart, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
-  parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch,
+  parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch, upperText,
 } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, clickable, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
+import type { PickerKind, PickerKinds } from '../components/ui';
 import { initialOn } from '../theme';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
@@ -17,6 +18,7 @@ interface Props {
   onUpdate: () => void;
   autoOpenEditor?: boolean;
   onAutoOpenConsumed?: () => void;
+  onOpenMember?: (id: string) => void;
 }
 
 const TIER_COLORS: Record<FrontTierKey, string> = {
@@ -48,7 +50,7 @@ export async function applyFrontUpdate(current: FrontState | null, primary: any,
   return newFront;
 }
 
-export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed }: Props) {
+export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed, onOpenMember }: Props) {
   useMinuteTick();
   const front = useAppStore(s => s.state.front);
   const members = useAppStore(s => s.state.members);
@@ -151,17 +153,20 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
               if (!m) return null;
               return (
                 <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="tile__avatar" style={{
-                    width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
-                    fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
-                    ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
-                  }}>
-                    {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: isPrimary ? 16 : 14, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
-                    {m.pronouns && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{m.pronouns}</div>}
-                    {m.role && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: m.color, marginTop: 1 }}>{m.role.toUpperCase()}</div>}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, cursor: onOpenMember ? 'pointer' : 'default', borderRadius: 8 }}
+                    {...(onOpenMember ? clickable(() => onOpenMember(id), `${m.name}, ${t('systemMap.viewProfile')}`) : {})}>
+                    <div className="tile__avatar" style={{
+                      width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
+                      fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
+                      ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
+                    }}>
+                      {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: isPrimary ? 16 : 14, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
+                      {m.pronouns && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{m.pronouns}</div>}
+                      {m.role && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: m.color, marginTop: 1 }}>{upperText(m.role)}</div>}
+                    </div>
                   </div>
                   <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>
                   <button className="icon-btn" aria-label={t('front.quickRemove', { name: m.name })} onClick={() => quickRemove(id)}
@@ -319,8 +324,9 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
   const [coFrontEnergy, setCoFrontEnergy] = useState<number | undefined>(undefined);
   const [coConEnergy, setCoConEnergy] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
-  const [searchCf, setSearchCf] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
-  const [searchFacet, setSearchFacet] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
+  const [kinds, setKinds] = useState<Record<FrontTierKey, PickerKinds>>({ primary: ALL_PICKER_KINDS, coFront: ALL_PICKER_KINDS, coConscious: ALL_PICKER_KINDS });
+  const kindLabels: Record<PickerKind, string> = { members: t('members.title'), facets: t('members.facets'), customFronts: t('members.customFronts') };
+  const searchLabel = t('members.searchToAddKind', { kind: t('terminology.fronters') });
   const [customMood, setCustomMood] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
   const [showCustomMood, setShowCustomMood] = useState<Record<FrontTierKey, boolean>>({ primary: false, coFront: false, coConscious: false });
   const [confirmClear, setConfirmClear] = useState(false);
@@ -329,9 +335,6 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
   useEffect(() => {
     if (open && !prevOpen.current) {
       if (current) {
-        // Seed the tiers disjoint, highest tier wins. A saved state that
-        // already carries the same member twice used to be shown twice and
-        // written back out twice on the next save.
         const seedP = new Set(current.primary.memberIds);
         const seedCf = new Set(current.coFront.memberIds.filter(id => !seedP.has(id)));
         const seedCc = new Set(current.coConscious.memberIds.filter(id => !seedP.has(id) && !seedCf.has(id)));
@@ -358,8 +361,6 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         setPrimaryEnergy(undefined); setCoFrontEnergy(undefined); setCoConEnergy(undefined);
       }
       setSearch({ primary: '', coFront: '', coConscious: '' });
-      setSearchCf({ primary: '', coFront: '', coConscious: '' });
-      setSearchFacet({ primary: '', coFront: '', coConscious: '' });
       setCustomMood({ primary: '', coFront: '', coConscious: '' });
       setShowCustomMood({ primary: false, coFront: false, coConscious: false });
     }
@@ -374,12 +375,6 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
     return map;
   }, [primaryIds, coFrontIds, coConsciousIds]);
 
-  // The other two tiers drop everything this tier now holds, computed inside
-  // the updater from live state instead of the render-time snapshot. Reading
-  // the snapshot meant two clicks in one tick found nothing to remove and left
-  // the same member sitting in two tiers at once. Clearing against the whole
-  // new set rather than only the added id also heals a duplicate that was
-  // already in the saved state the moment either tier is touched.
   const toggleMember = (tier: FrontTierKey, id: string) => {
     const sets: Record<FrontTierKey, Set<string>> = {
       primary: primaryIds, coFront: coFrontIds, coConscious: coConsciousIds,
@@ -431,61 +426,29 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
     energy?: number; setEnergy: (v: number | undefined) => void;
     location: string; setLocation: (v: string) => void;
   }) => {
-    const renderPool = (pool: Member[], q: string, setQ: (v: string) => void, showHint: boolean, kindLabel?: string) => {
-      const searchLabel = kindLabel
-        ? t('members.searchToAddKind', { kind: kindLabel, defaultValue: `Type to search ${kindLabel}…` })
-        : t('members.searchToAdd');
-      const hintLabel = kindLabel
-        ? t('members.searchHintKind', { kind: kindLabel, defaultValue: `Type a name or select a tag to find ${kindLabel}` })
-        : t('members.searchHint');
-      const ql = q.toLowerCase();
-      const filtered = ql ? pool.filter(m => !selectedIds.has(m.id) && memberMatchesSearch(m, ql)) : [];
-      const poolSelected = pool.filter(m => selectedIds.has(m.id));
-      return (
-        <>
-          {poolSelected.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-              {poolSelected.map(m => (
-                <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
-                  onClick={() => toggleMember(tierKey, m.id)}>
-                  <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                  <span style={{ color: m.color }}>{m.name}</span>
-                  <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
-                </button>
-              ))}
-            </div>
-          )}
-          <input className="field__input" value={q}
-            onChange={e => setQ(e.target.value)}
-            aria-label={searchLabel} placeholder={searchLabel} style={{ marginBottom: 6, fontSize: 12 }} />
-          {ql && filtered.length > 0 && (
-            <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 10 }}>
-              {filtered.slice(0, 20).map(m => {
-                const assignedTo = allAssigned[m.id];
-                return (
-                  <button key={m.id} onClick={() => toggleMember(tierKey, m.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: assignedTo && assignedTo !== tierKey ? 0.5 : 1 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                    <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                    {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
-                    {assignedTo && assignedTo !== tierKey && (
-                      <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({TIER_LABELS[assignedTo].split(' ')[0]})</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {showHint && !ql && poolSelected.length === 0 && (
-            <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '4px 0 8px' }}>{hintLabel}</p>
-          )}
-        </>
-      );
-    };
-
     const regularPool = members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted);
     const facetPool = members.filter(m => m.isFacet && !m.isCustomFront && !m.deleted);
     const customPool = members.filter(m => m.isCustomFront && !m.deleted);
+    const tierKinds = kinds[tierKey];
+    const pools = [
+      { kind: 'members' as PickerKind, label: kindLabels.members, members: regularPool },
+      { kind: 'facets' as PickerKind, label: kindLabels.facets, members: facetPool },
+      { kind: 'customFronts' as PickerKind, label: kindLabels.customFronts, members: customPool },
+    ].filter(p => tierKinds[p.kind] && p.members.length > 0);
+    const q = search[tierKey];
+    const ql = q.toLowerCase();
+    let budget = 20;
+    const grouped: { label: string; rows: Member[] }[] = [];
+    if (ql) {
+      for (const pool of pools) {
+        if (budget <= 0) break;
+        const rows = pool.members.filter(m => !selectedIds.has(m.id) && memberMatchesSearch(m, ql)).slice(0, budget);
+        if (rows.length === 0) continue;
+        budget -= rows.length;
+        grouped.push({ label: pool.label, rows });
+      }
+    }
+    const selectedHere = members.filter(m => !m.deleted && selectedIds.has(m.id));
 
     return (
       <div style={{ marginBottom: 16 }}>
@@ -495,17 +458,49 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
           <span className="section-div__line" />
         </div>
 
-        <label className="field__label">{t('members.title')}</label>
-        {renderPool(regularPool, search[tierKey], v => setSearch({ ...search, [tierKey]: v }), true, t('members.title'))}
-
-        <label className="field__label">{t('members.facets')}</label>
-        {renderPool(facetPool, searchFacet[tierKey], v => setSearchFacet({ ...searchFacet, [tierKey]: v }), false, t('members.facets'))}
-
-        {customPool.length > 0 && (
-          <>
-            <label className="field__label">{t('members.customFronts')}</label>
-            {renderPool(customPool, searchCf[tierKey], v => setSearchCf({ ...searchCf, [tierKey]: v }), false, t('members.customFronts'))}
-          </>
+        {selectedHere.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {selectedHere.map(m => (
+              <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
+                onClick={() => toggleMember(tierKey, m.id)}>
+                <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+                <span style={{ color: m.color }}>{m.name}</span>
+                <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <input className="field__input" value={q}
+          onChange={e => setSearch({ ...search, [tierKey]: e.target.value })}
+          aria-label={searchLabel} placeholder={searchLabel} style={{ marginBottom: 6, fontSize: 12 }} />
+        <KindToggles kinds={tierKinds} setKinds={k => setKinds({ ...kinds, [tierKey]: k })} labels={kindLabels} />
+        {ql && grouped.length > 0 && (
+          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 10 }}>
+            {grouped.map((group, gi) => (
+              <div key={`${gi}-${group.label}`}>
+                {grouped.length > 1 && (
+                  <div role="heading" aria-level={4} style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, padding: '8px 12px 4px', background: 'var(--card)' }}>{group.label}</div>
+                )}
+                {group.rows.map(m => {
+                  const assignedTo = allAssigned[m.id];
+                  return (
+                    <button key={m.id} onClick={() => toggleMember(tierKey, m.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: assignedTo && assignedTo !== tierKey ? 0.5 : 1 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
+                      <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                      {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
+                      {assignedTo && assignedTo !== tierKey && (
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({TIER_LABELS[assignedTo].split(' ')[0]})</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+        {!ql && selectedHere.length === 0 && (
+          <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '4px 0 8px' }}>{t('members.searchHint')}</p>
         )}
 
         <label className="field__label" style={{ marginTop: 4 }}>{t('modal.mood')}</label>

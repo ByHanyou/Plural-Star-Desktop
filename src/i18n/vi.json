@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "TT",
+    "day": "NN",
+    "year": "NNNN",
+    "hour": "GG",
+    "minute": "PP"
+  },
   "colors": {
     "title": "Màu sắc",
     "rowDefault": "Mặc định",
@@ -54,7 +61,11 @@
     "tierHint": "Đổi tên các cấp độ front. Từ của bạn sẽ thay thế từ mặc định ở mọi nơi. Để trống sẽ dùng mặc định.",
     "tierPrimary": "Front Chính",
     "tierCoFront": "Đồng Front",
-    "tierCoConscious": "Đồng Ý thức"
+    "tierCoConscious": "Đồng Ý thức",
+    "journal": "Nhật ký",
+    "hub": "Trung tâm",
+    "history": "Lịch sử",
+    "archive": "Lưu trữ"
   },
   "planner": {
     "title": "Sổ Kế hoạch Ngày",
@@ -110,6 +121,7 @@
     "title": "Hộp thư",
     "compose": "Soạn thư",
     "everyone": "Mọi người",
+    "allOthers": "Tất cả Thành viên khác",
     "from": "Từ",
     "to": "Đến",
     "send": "Gửi",
@@ -184,7 +196,7 @@
     "relayHint": "Địa chỉ và token của một nút Plural Star để kết nối qua. Để trống token nếu relay mở.",
     "saveRelay": "Lưu và kết nối",
     "tabPrivacy": "Quyền riêng tư",
-    "privacyDesc": "Vòng riêng tư quyết định bạn bè trong đó thấy gì: tất cả, một phần hoặc không gì cả — theo từng tính năng. Gán bạn bè sẽ có trong bản mở rộng chia sẻ.",
+    "privacyDesc": "Vòng riêng tư quyết định bạn bè trong đó thấy gì: tất cả, một phần hoặc không gì cả — theo từng tính năng.",
     "noBuckets": "Chưa có vòng nào.",
     "newBucket": "Vòng mới",
     "bucketName": "Tên vòng",
@@ -412,7 +424,22 @@
     "noArchived": "Không có thành viên lưu trữ.",
     "noArchivedFacets": "Không có diện lưu trữ.",
     "noArchivedCustomFronts": "Không có front tùy chỉnh lưu trữ.",
-    "selectedCount": "Đã chọn {{count}}"
+    "selectedCount": "Đã chọn {{count}}",
+    "restore": "Khôi phục",
+    "select": "Chọn",
+    "selectAll": "Tất cả",
+    "selectNone": "Không chọn",
+    "bulkArchive": "Lưu trữ thành viên",
+    "bulkArchiveMsg": "Lưu trữ {{count}} thành viên? Có thể khôi phục sau.",
+    "bulkRestore": "Khôi phục thành viên",
+    "bulkRestoreMsg": "Khôi phục {{count}} thành viên về trạng thái hoạt động?",
+    "bulkDelete": "Xóa thành viên",
+    "bulkDeleteMsg": "Xóa vĩnh viễn {{count}} thành viên? Không thể hoàn tác.",
+    "assignGroup": "Nhóm",
+    "frontingLockTitle": "Đang front",
+    "frontingLockMsg": "Không thể lưu trữ hoặc xóa thành viên khi họ đang front. Hãy gỡ họ khỏi front trước.",
+    "archive": "Lưu trữ",
+    "recentlyDeleted": "Đã xóa gần đây"
   },
   "history": {
     "title": "Lịch sử",
@@ -608,7 +635,8 @@
     "toolQuote": "Trích dẫn",
     "toolCode": "Mã",
     "brokenImage": "[ảnh hỏng]",
-    "imageUnavailable": "[ảnh không khả dụng]"
+    "imageUnavailable": "[ảnh không khả dụng]",
+    "spoiler": "Spoiler, nhấp để hiện"
   },
   "modal": {
     "read": "Xem",

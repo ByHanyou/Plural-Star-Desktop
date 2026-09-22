@@ -99,10 +99,6 @@ export default function ImportExportView({ onUpdate }: Props) {
 
   const [confirmClear, setConfirmClear] = useState(false);
 
-  // A restore or an import in Overwrite mode removes what the file does not
-  // contain (spec 5.4: "Replace-mode import; restore from backup"). It asks
-  // first and names what is lost; the danger dialog adds the second step
-  // while a vault is linked. Update mode removes nothing and just runs.
   const [pendingOverwrite, setPendingOverwrite] = useState<{ title: string; run: () => void } | null>(null);
   const confirmOverwrite = (title: string, run: () => void) => {
     if (importMode !== 'overwrite') { run(); return; }
@@ -110,8 +106,6 @@ export default function ImportExportView({ onUpdate }: Props) {
   };
 
   const clearAllData = async () => {
-    // Leave the vault first. Wiping a linked device must never empty the
-    // vault or the other devices; unlinking never does (spec 5.3).
     await CloudServices.unlink().catch(() => {});
     await store.clearAll();
     setConfirmClear(false);
@@ -144,7 +138,7 @@ export default function ImportExportView({ onUpdate }: Props) {
           {t('share.exportDesc')}
         </p>
         <div style={{ display: 'flex', gap: 10, fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
-          <span>{t('share.membersCountSimple', { count: members.length })}</span>
+          <span>{t('share.membersCountSimple', { count: members.filter(m => !m.deleted).length })}</span>
           <span>·</span>
           <span>{t('share.historyCount', { count: history.length })}</span>
           <span>·</span>

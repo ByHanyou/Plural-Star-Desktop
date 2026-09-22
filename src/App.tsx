@@ -192,7 +192,6 @@ function AppInner() {
   useEffect(() => { if (state.loaded) NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.loaded, state.front, state.members]);
   useEffect(() => {
     NetworkManager.notifyDataChanged();
-    // Spec 8.1: every save also saves to the cloud. Debounced inside.
     CloudServices.schedulePush();
   }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.chatCategories, state.settings, state.palettes]);
   useEffect(() => NetworkManager.onSyncApplied(() => { loadData(); }), [loadData]);
@@ -426,7 +425,7 @@ function AppInner() {
                 selfId={selfMember?.id} onSaveStatus={saveQuickFront}
                 onEnsureSelf={ensureSelfMember} />
             ) : (
-              <FrontView onUpdate={loadData} />
+              <FrontView onUpdate={loadData} onOpenMember={(id) => { setMemberFocus(id); setView('members'); }} />
             ))}
             {view === 'system-manager' && (
               <SystemManagerView

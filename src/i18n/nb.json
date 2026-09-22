@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "ÅÅÅÅ",
+    "hour": "TT",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Farger",
     "rowDefault": "Standard",
@@ -54,7 +61,11 @@
     "tierHint": "Gi nytt navn til frontnivåene. Ordet ditt erstatter standardordet overalt. Tomt bruker standard.",
     "tierPrimary": "Primær Front",
     "tierCoFront": "Co-Front",
-    "tierCoConscious": "Co-Bevisst"
+    "tierCoConscious": "Co-Bevisst",
+    "journal": "Dagbok",
+    "hub": "Hub",
+    "history": "Historikk",
+    "archive": "Arkiv"
   },
   "planner": {
     "title": "Dagsplanlegger",
@@ -111,6 +122,7 @@
     "title": "Postkasse",
     "compose": "Skriv",
     "everyone": "Alle",
+    "allOthers": "Alle andre Medlemmer",
     "from": "Fra",
     "to": "Til",
     "send": "Send",
@@ -185,7 +197,7 @@
     "relayHint": "Adressen og tokenet til en Plural Star-node å koble til gjennom. La tokenet stå tomt hvis releet er åpent.",
     "saveRelay": "Lagre og koble til",
     "tabPrivacy": "Personvern",
-    "privacyDesc": "Personvernsirkler bestemmer hva venner i dem kan se: alt, et utvalg eller ingenting, per funksjon. Tildeling av venner kommer med delingsutvidelsen.",
+    "privacyDesc": "Personvernsirkler bestemmer hva venner i dem kan se: alt, et utvalg eller ingenting, per funksjon.",
     "noBuckets": "Ingen sirkler ennå.",
     "newBucket": "Ny sirkel",
     "bucketName": "Sirkelnavn",
@@ -509,7 +521,22 @@
     "archived": "Arkivert",
     "noArchived": "Ingen arkiverte medlemmer.",
     "noArchivedFacets": "Ingen arkiverte fasetter.",
-    "noArchivedCustomFronts": "Ingen arkiverte egendefinerte fronter."
+    "noArchivedCustomFronts": "Ingen arkiverte egendefinerte fronter.",
+    "restore": "Gjenopprett",
+    "select": "Velg",
+    "selectAll": "Alle",
+    "selectNone": "Ingen",
+    "bulkArchive": "Arkiver medlemmer",
+    "bulkArchiveMsg": "Arkivere {{count}} medlem(mer)? De kan gjenopprettes senere.",
+    "bulkRestore": "Gjenopprett medlemmer",
+    "bulkRestoreMsg": "Gjenopprette {{count}} medlem(mer) som aktive?",
+    "bulkDelete": "Slett medlemmer",
+    "bulkDeleteMsg": "Slette {{count}} medlem(mer) permanent? Dette kan ikke angres.",
+    "assignGroup": "Gruppe",
+    "frontingLockTitle": "Er front nå",
+    "frontingLockMsg": "Du kan ikke arkivere eller slette et medlem mens det er front. Fjern det fra fronten først.",
+    "archive": "Arkiver",
+    "recentlyDeleted": "Nylig slettet"
   },
   "history": {
     "title": "Historikk",
@@ -705,7 +732,8 @@
     "toolQuote": "Sitat",
     "toolCode": "Kode",
     "brokenImage": "[ødelagt bilde]",
-    "imageUnavailable": "[bilde utilgjengelig]"
+    "imageUnavailable": "[bilde utilgjengelig]",
+    "spoiler": "Spoiler, klikk for å vise"
   },
   "modal": {
     "appFont": "App-skrifttype",

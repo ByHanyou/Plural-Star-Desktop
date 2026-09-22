@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "月",
+    "day": "日",
+    "year": "年",
+    "hour": "時",
+    "minute": "分"
+  },
   "colors": {
     "title": "顏色",
     "rowDefault": "預設",
@@ -54,7 +61,11 @@
     "tierHint": "自訂前台層級的稱呼。你的用詞將在所有位置取代預設用詞。留空則使用預設。",
     "tierPrimary": "主要前台",
     "tierCoFront": "共同前台",
-    "tierCoConscious": "共同意識"
+    "tierCoConscious": "共同意識",
+    "journal": "日誌",
+    "hub": "中心",
+    "history": "歷史",
+    "archive": "封存"
   },
   "planner": {
     "title": "日程規劃",
@@ -110,6 +121,7 @@
     "title": "信箱",
     "compose": "撰寫",
     "everyone": "所有人",
+    "allOthers": "所有其他成員",
     "from": "寄件者",
     "to": "收件者",
     "send": "傳送",
@@ -184,7 +196,7 @@
     "relayHint": "用於連線的 Plural Star 節點位址與權杖。若中繼為開放式，權杖可留空。",
     "saveRelay": "儲存並連線",
     "tabPrivacy": "隱私",
-    "privacyDesc": "隱私圈決定圈內好友能看到的內容：全部、部分或無——按功能設定。好友指派將隨共享擴充推出。",
+    "privacyDesc": "隱私圈決定圈內好友能看到的內容：全部、部分或無——按功能設定。",
     "noBuckets": "還沒有隱私圈。",
     "newBucket": "新增圈子",
     "bucketName": "圈子名稱",
@@ -412,7 +424,22 @@
     "noArchivedCustomFronts": "沒有已封存的自訂前台。",
     "selectedCount": "已選取 {{count}} 位",
     "clone": "複製",
-    "cloneFields": "要複製哪些欄位？"
+    "cloneFields": "要複製哪些欄位？",
+    "restore": "還原",
+    "select": "選取",
+    "selectAll": "全部",
+    "selectNone": "全不選",
+    "bulkArchive": "封存成員",
+    "bulkArchiveMsg": "封存 {{count}} 位成員？之後可以還原。",
+    "bulkRestore": "還原成員",
+    "bulkRestoreMsg": "將 {{count}} 位成員還原為使用中？",
+    "bulkDelete": "刪除成員",
+    "bulkDeleteMsg": "永久刪除 {{count}} 位成員？此操作無法復原。",
+    "assignGroup": "群組",
+    "frontingLockTitle": "目前在前台",
+    "frontingLockMsg": "成員在前台時無法封存或刪除。請先將其從前台移除。",
+    "archive": "封存",
+    "recentlyDeleted": "最近刪除"
   },
   "history": {
     "title": "歷史",
@@ -608,7 +635,8 @@
     "toolQuote": "引言",
     "toolCode": "程式碼",
     "brokenImage": "[圖片損毀]",
-    "imageUnavailable": "[圖片無法使用]"
+    "imageUnavailable": "[圖片無法使用]",
+    "spoiler": "隱藏內容，點一下顯示"
   },
   "modal": {
     "read": "閱讀",

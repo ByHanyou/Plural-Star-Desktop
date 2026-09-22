@@ -1,5 +1,5 @@
 import { store, KEYS, chatMsgKey } from '../storage';
-import { Member, ExportPayload, parallelMap } from '../utils';
+import { Member, ExportPayload, parallelMap, fileSlug } from '../utils';
 import { detectPluralSpace } from '../importers';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { extFromDataUri, dataUriToBytes, u8ToBase64, bytesToDataUri, buildPluralKitExport } from '../exportUtils';
@@ -98,7 +98,7 @@ export const handleExport = async (ctx: ImportCtx) => {
       'data.json': strToU8(JSON.stringify(payload)),
       ...mediaFiles,
     });
-    const slug = (system?.name || 'plural-star').replace(/\s+/g, '-').toLowerCase();
+    const slug = fileSlug(system?.name || '');
     const defaultName = `${slug}-backup-${new Date().toISOString().slice(0, 10)}.zip`;
     const filePath = await window.electronAPI.dialog.saveFile(defaultName);
     if (!filePath) return;
@@ -110,7 +110,7 @@ export const handleExport = async (ctx: ImportCtx) => {
 export const handlePluralKitExport = async (ctx: ImportCtx) => {
   const { system, members, history, showStatus, t } = ctx;
     const json = JSON.stringify(buildPluralKitExport(system, members, history), null, 2);
-    const slug = (system?.name || 'plural-star').replace(/\s+/g, '-').toLowerCase();
+    const slug = fileSlug(system?.name || '');
     const defaultName = `${slug}-pluralkit-${new Date().toISOString().slice(0, 10)}.json`;
     const filePath = await window.electronAPI.dialog.saveFile(defaultName);
     if (!filePath) return;
@@ -124,9 +124,6 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.zip,.json,.txt';
-      // The handler runs later, on its own, so the try around input.click()
-      // never sees what it throws: a malformed file has to be caught here or
-      // the pick silently does nothing.
       input.onchange = async () => {
         try {
           const file = input.files?.[0];
@@ -225,7 +222,14 @@ export const handleRestore = async (ctx: ImportCtx) => {
               const nm = String(im.name || '').trim().toLowerCase();
               at = nm ? out.findIndex(m => !claimed.has(m.id) && !m.isCustomFront && !m.isFacet && String(m.name || '').trim().toLowerCase() === nm) : -1;
             }
-            if (at >= 0) { out[at] = { ...out[at], ...im, id: out[at].id, deleted: im.deleted ?? false }; claimed.add(out[at].id); }
+            if (at >= 0) {
+              const local = out[at];
+              const incDeleted = !!im.deleted;
+              const deleted = incDeleted && !!local.deleted;
+              const archived = deleted ? true : (incDeleted ? !!local.archived : (im.archived ?? local.archived ?? false));
+              out[at] = { ...local, ...im, id: local.id, deleted, archived };
+              claimed.add(local.id);
+            }
             else { out.push(im); claimed.add(im.id); }
           });
           batch[KEYS.members] = out;

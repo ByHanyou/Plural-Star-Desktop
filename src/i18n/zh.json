@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "月",
+    "day": "日",
+    "year": "年",
+    "hour": "时",
+    "minute": "分"
+  },
   "colors": {
     "title": "颜色",
     "rowDefault": "默认",
@@ -54,7 +61,11 @@
     "tierHint": "自定义前台层级的叫法。你的用词将在所有位置替换默认用词。留空则使用默认。",
     "tierPrimary": "主前台",
     "tierCoFront": "共同前台",
-    "tierCoConscious": "共同意识"
+    "tierCoConscious": "共同意识",
+    "journal": "日记",
+    "hub": "中心",
+    "history": "历史",
+    "archive": "归档"
   },
   "planner": {
     "title": "日程规划",
@@ -110,6 +121,7 @@
     "title": "信箱",
     "compose": "撰写",
     "everyone": "所有人",
+    "allOthers": "所有其他成员",
     "from": "发件人",
     "to": "收件人",
     "send": "发送",
@@ -184,7 +196,7 @@
     "relayHint": "用于连接的 Plural Star 节点的地址和令牌。若中继开放，令牌可留空。",
     "saveRelay": "保存并连接",
     "tabPrivacy": "隐私",
-    "privacyDesc": "隐私圈决定圈内好友能看到的内容：全部、部分或无——按功能设置。好友分配将随共享扩展推出。",
+    "privacyDesc": "隐私圈决定圈内好友能看到的内容：全部、部分或无——按功能设置。",
     "noBuckets": "还没有隐私圈。",
     "newBucket": "新建圈子",
     "bucketName": "圈子名称",
@@ -508,7 +520,22 @@
     "noArchivedFacets": "没有已归档的侧面。",
     "noArchivedCustomFronts": "没有已归档的自定义前台。",
     "clone": "克隆",
-    "cloneFields": "复制哪些字段？"
+    "cloneFields": "复制哪些字段？",
+    "restore": "恢复",
+    "select": "选择",
+    "selectAll": "全部",
+    "selectNone": "无",
+    "bulkArchive": "归档成员",
+    "bulkArchiveMsg": "归档 {{count}} 名成员？之后可以恢复。",
+    "bulkRestore": "恢复成员",
+    "bulkRestoreMsg": "将 {{count}} 名成员恢复为活跃状态？",
+    "bulkDelete": "删除成员",
+    "bulkDeleteMsg": "永久删除 {{count}} 名成员？此操作无法撤销。",
+    "assignGroup": "组",
+    "frontingLockTitle": "当前在前台",
+    "frontingLockMsg": "成员在前台时无法归档或删除。请先将其从前台移除。",
+    "archive": "归档",
+    "recentlyDeleted": "最近删除"
   },
   "history": {
     "title": "历史",
@@ -704,7 +731,8 @@
     "toolQuote": "引用",
     "toolCode": "代码",
     "brokenImage": "[图片损坏]",
-    "imageUnavailable": "[图片不可用]"
+    "imageUnavailable": "[图片不可用]",
+    "spoiler": "隐藏内容，点击显示"
   },
   "modal": {
     "appFont": "应用字体",

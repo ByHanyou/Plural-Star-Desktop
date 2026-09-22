@@ -85,8 +85,6 @@ export default function WhiteboardView() {
       });
     };
     load();
-    // A sync that brought strokes from another device must land here, or
-    // the next stroke saved from this view's list would write over them.
     return NetworkManager.onSyncApplied(load);
   }, []);
 

@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "AA",
+    "day": "GG",
+    "year": "YYYY",
+    "hour": "SS",
+    "minute": "DK"
+  },
   "colors": {
     "title": "Renkler",
     "rowDefault": "Varsayılan",
@@ -54,7 +61,11 @@
     "tierHint": "Front seviyelerinin adlarını değiştir. Senin sözcüğün varsayılanın yerine her yerde geçer. Boş bırakılırsa varsayılan kullanılır.",
     "tierPrimary": "Birincil Front",
     "tierCoFront": "Eş-Front",
-    "tierCoConscious": "Eş-Bilinç"
+    "tierCoConscious": "Eş-Bilinç",
+    "journal": "Günlük",
+    "hub": "Merkez",
+    "history": "Geçmiş",
+    "archive": "Arşiv"
   },
   "planner": {
     "title": "Gün Planlayıcı",
@@ -111,6 +122,7 @@
     "title": "Posta kutusu",
     "compose": "Yaz",
     "everyone": "Herkes",
+    "allOthers": "Diğer tüm Üyeler",
     "from": "Kimden",
     "to": "Kime",
     "send": "Gönder",
@@ -185,7 +197,7 @@
     "relayHint": "Bağlanılacak bir Plural Star düğümünün adresi ve belirteci. Aktarıcı açıksa belirteci boş bırak.",
     "saveRelay": "Kaydet ve bağlan",
     "tabPrivacy": "Gizlilik",
-    "privacyDesc": "Gizlilik çemberleri, içindeki arkadaşların neyi görebileceğini belirler: her şey, bir seçim veya hiçbir şey — özellik başına. Arkadaş atama, paylaşım genişletmesiyle gelecek.",
+    "privacyDesc": "Gizlilik çemberleri, içindeki arkadaşların neyi görebileceğini belirler: her şey, bir seçim veya hiçbir şey — özellik başına.",
     "noBuckets": "Henüz çember yok.",
     "newBucket": "Yeni çember",
     "bucketName": "Çember adı",
@@ -413,7 +425,22 @@
     "noArchived": "Arşivlenmiş üye yok.",
     "noArchivedFacets": "Arşivlenmiş yön yok.",
     "noArchivedCustomFronts": "Arşivlenmiş özel front yok.",
-    "selectedCount": "{{count}} seçili"
+    "selectedCount": "{{count}} seçili",
+    "restore": "Geri Yükle",
+    "select": "Seç",
+    "selectAll": "Tümü",
+    "selectNone": "Hiçbiri",
+    "bulkArchive": "Üyeleri arşivle",
+    "bulkArchiveMsg": "{{count}} üye arşivlensin mi? Daha sonra geri yüklenebilirler.",
+    "bulkRestore": "Üyeleri geri yükle",
+    "bulkRestoreMsg": "{{count}} üye aktif olarak geri yüklensin mi?",
+    "bulkDelete": "Üyeleri sil",
+    "bulkDeleteMsg": "{{count}} üye kalıcı olarak silinsin mi? Bu geri alınamaz.",
+    "assignGroup": "Grup",
+    "frontingLockTitle": "Şu anda frontta",
+    "frontingLockMsg": "Bir üye fronttayken arşivlenemez veya silinemez. Önce onu fronttan çıkarın.",
+    "archive": "Arşivle",
+    "recentlyDeleted": "Son silinenler"
   },
   "history": {
     "title": "Geçmiş",
@@ -609,7 +636,8 @@
     "toolQuote": "Alıntı",
     "toolCode": "Kod",
     "brokenImage": "[bozuk görsel]",
-    "imageUnavailable": "[görsel kullanılamıyor]"
+    "imageUnavailable": "[görsel kullanılamıyor]",
+    "spoiler": "Spoiler, göstermek için tıkla"
   },
   "modal": {
     "read": "Görüntüle",

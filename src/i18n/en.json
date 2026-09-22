@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "YYYY",
+    "hour": "HH",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Colors",
     "rowDefault": "Default",
@@ -197,7 +204,22 @@
     "archived": "Archived",
     "noArchived": "No archived members.",
     "noArchivedFacets": "No archived facets.",
-    "noArchivedCustomFronts": "No archived custom fronts."
+    "noArchivedCustomFronts": "No archived custom fronts.",
+    "restore": "Restore",
+    "select": "Select",
+    "selectAll": "All",
+    "selectNone": "None",
+    "bulkArchive": "Archive members",
+    "bulkArchiveMsg": "Archive {{count}} member(s)? They can be restored later.",
+    "bulkRestore": "Restore members",
+    "bulkRestoreMsg": "Restore {{count}} member(s) to active?",
+    "bulkDelete": "Delete members",
+    "bulkDeleteMsg": "Permanently delete {{count}} member(s)? This cannot be undone.",
+    "assignGroup": "Group",
+    "frontingLockTitle": "Currently fronting",
+    "frontingLockMsg": "You can't archive or delete a member while they're fronting. Remove them from the front first.",
+    "archive": "Archive",
+    "recentlyDeleted": "Recently Deleted"
   },
   "history": {
     "title": "History",
@@ -393,7 +415,8 @@
     "toolQuote": "Quote",
     "toolCode": "Code",
     "brokenImage": "[broken image]",
-    "imageUnavailable": "[image unavailable]"
+    "imageUnavailable": "[image unavailable]",
+    "spoiler": "Spoiler, click to reveal"
   },
   "modal": {
     "changePfp": "Change profile picture",
@@ -578,7 +601,11 @@
     "tierHint": "Rename the fronting levels. Your word replaces the default everywhere. Blank uses the default.",
     "tierPrimary": "Primary Front",
     "tierCoFront": "Co-Front",
-    "tierCoConscious": "Co-Conscious"
+    "tierCoConscious": "Co-Conscious",
+    "journal": "Journal",
+    "hub": "Hub",
+    "history": "History",
+    "archive": "Archive"
   },
   "planner": {
     "title": "Day Planner",
@@ -635,6 +662,7 @@
     "title": "Mailbox",
     "compose": "Compose",
     "everyone": "Everyone",
+    "allOthers": "All other Members",
     "from": "From",
     "to": "To",
     "send": "Send",
@@ -709,7 +737,7 @@
     "relayHint": "The address and token of a Plural Star Node to connect through. Leave the token blank if the relay is open.",
     "saveRelay": "Save & connect",
     "tabPrivacy": "Privacy",
-    "privacyDesc": "Privacy Buckets decide what friends in them can see — everything, a selection, or nothing, for each feature. Assigning friends to buckets arrives with the sharing expansion.",
+    "privacyDesc": "Privacy Buckets decide what friends in them can see — everything, a selection, or nothing, for each feature.",
     "noBuckets": "No buckets yet.",
     "newBucket": "New bucket",
     "bucketName": "Bucket name",

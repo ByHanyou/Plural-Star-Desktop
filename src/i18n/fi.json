@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "KK",
+    "day": "PP",
+    "year": "VVVV",
+    "hour": "TT",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Värit",
     "rowDefault": "Oletus",
@@ -54,7 +61,11 @@
     "tierHint": "Nimeä edustamisen tasot uudelleen. Sanasi korvaa oletussanan kaikkialla. Tyhjä käyttää oletusta.",
     "tierPrimary": "Ensisijainen",
     "tierCoFront": "Rinnakkais-Front",
-    "tierCoConscious": "Rinnakkais-Tietoinen"
+    "tierCoConscious": "Rinnakkais-Tietoinen",
+    "journal": "Päiväkirja",
+    "hub": "Keskus",
+    "history": "Historia",
+    "archive": "Arkisto"
   },
   "planner": {
     "title": "Päiväsuunnittelija",
@@ -111,6 +122,7 @@
     "title": "Postilaatikko",
     "compose": "Kirjoita",
     "everyone": "Kaikki",
+    "allOthers": "Kaikki muut Jäsenet",
     "from": "Lähettäjä",
     "to": "Vastaanottaja",
     "send": "Lähetä",
@@ -185,7 +197,7 @@
     "relayHint": "Plural Star -solmun osoite ja tunniste, jonka kautta yhdistetään. Jätä tunniste tyhjäksi, jos välittäjä on avoin.",
     "saveRelay": "Tallenna ja yhdistä",
     "tabPrivacy": "Yksityisyys",
-    "privacyDesc": "Yksityisyyspiirit määrittävät, mitä niihin lisätyt ystävät näkevät: kaiken, valinnan tai ei mitään — toiminnoittain. Ystävien lisääminen tulee jakolaajennuksen myötä.",
+    "privacyDesc": "Yksityisyyspiirit määrittävät, mitä niihin lisätyt ystävät näkevät: kaiken, valinnan tai ei mitään — toiminnoittain.",
     "noBuckets": "Ei vielä piirejä.",
     "newBucket": "Uusi piiri",
     "bucketName": "Piirin nimi",
@@ -509,7 +521,22 @@
     "archived": "Arkistoitu",
     "noArchived": "Ei arkistoituja jäseniä.",
     "noArchivedFacets": "Ei arkistoituja puolia.",
-    "noArchivedCustomFronts": "Ei arkistoituja mukautettuja frontteja."
+    "noArchivedCustomFronts": "Ei arkistoituja mukautettuja frontteja.",
+    "restore": "Palauta",
+    "select": "Valitse",
+    "selectAll": "Kaikki",
+    "selectNone": "Ei mitään",
+    "bulkArchive": "Arkistoi jäsenet",
+    "bulkArchiveMsg": "Arkistoidaanko {{count}} jäsen(tä)? Heidät voi palauttaa myöhemmin.",
+    "bulkRestore": "Palauta jäsenet",
+    "bulkRestoreMsg": "Palautetaanko {{count}} jäsen(tä) aktiivisiksi?",
+    "bulkDelete": "Poista jäsenet",
+    "bulkDeleteMsg": "Poistetaanko {{count}} jäsen(tä) pysyvästi? Tätä ei voi kumota.",
+    "assignGroup": "Ryhmä",
+    "frontingLockTitle": "Tällä hetkellä edessä",
+    "frontingLockMsg": "Et voi arkistoida tai poistaa jäsentä, kun hän on edessä. Poista hänet ensin edestä.",
+    "archive": "Arkistoi",
+    "recentlyDeleted": "Äskettäin poistetut"
   },
   "history": {
     "title": "Historia",
@@ -705,7 +732,8 @@
     "toolQuote": "Lainaus",
     "toolCode": "Koodi",
     "brokenImage": "[rikkinäinen kuva]",
-    "imageUnavailable": "[kuva ei saatavilla]"
+    "imageUnavailable": "[kuva ei saatavilla]",
+    "spoiler": "Spoileri, napsauta paljastaaksesi"
   },
   "modal": {
     "appFont": "Sovelluksen fontti",

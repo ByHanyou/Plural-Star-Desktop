@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "ÅÅÅÅ",
+    "hour": "TT",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Färger",
     "rowDefault": "Standard",
@@ -197,7 +204,22 @@
     "archived": "Arkiverade",
     "noArchived": "Inga arkiverade medlemmar.",
     "noArchivedFacets": "Inga arkiverade fasetter.",
-    "noArchivedCustomFronts": "Inga arkiverade egna fronter."
+    "noArchivedCustomFronts": "Inga arkiverade egna fronter.",
+    "restore": "Återställ",
+    "select": "Välj",
+    "selectAll": "Alla",
+    "selectNone": "Inga",
+    "bulkArchive": "Arkivera medlemmar",
+    "bulkArchiveMsg": "Arkivera {{count}} medlem(mar)? De kan återställas senare.",
+    "bulkRestore": "Återställ medlemmar",
+    "bulkRestoreMsg": "Återställ {{count}} medlem(mar) till aktiva?",
+    "bulkDelete": "Radera medlemmar",
+    "bulkDeleteMsg": "Radera {{count}} medlem(mar) permanent? Detta kan inte ångras.",
+    "assignGroup": "Grupp",
+    "frontingLockTitle": "Frontar just nu",
+    "frontingLockMsg": "Du kan inte arkivera eller radera en medlem som frontar. Ta bort medlemmen från fronten först.",
+    "archive": "Arkivera",
+    "recentlyDeleted": "Nyligen raderade"
   },
   "history": {
     "title": "Historik",
@@ -393,7 +415,8 @@
     "toolQuote": "Citat",
     "toolCode": "Kod",
     "brokenImage": "[trasig bild]",
-    "imageUnavailable": "[bilden är inte tillgänglig]"
+    "imageUnavailable": "[bilden är inte tillgänglig]",
+    "spoiler": "Spoiler, klicka för att visa"
   },
   "modal": {
     "changePfp": "Byt profilbild",
@@ -578,7 +601,11 @@
     "tierHint": "Byt namn på frontnivåerna. Ditt ord ersätter standardordet överallt. Tomt använder standard.",
     "tierPrimary": "Primär front",
     "tierCoFront": "Co-front",
-    "tierCoConscious": "Co-medveten"
+    "tierCoConscious": "Co-medveten",
+    "journal": "Dagbok",
+    "hub": "Hub",
+    "history": "Historik",
+    "archive": "Arkiv"
   },
   "planner": {
     "title": "Dagsplanerare",
@@ -635,6 +662,7 @@
     "title": "Brevlåda",
     "compose": "Skriv",
     "everyone": "Alla",
+    "allOthers": "Alla andra Medlemmar",
     "from": "Från",
     "to": "Till",
     "send": "Skicka",
@@ -709,7 +737,7 @@
     "relayHint": "Adressen och token till en Plural Star-nod att ansluta genom. Lämna token tom om reläet är öppet.",
     "saveRelay": "Spara och anslut",
     "tabPrivacy": "Integritet",
-    "privacyDesc": "Integritetshinkar avgör vad vänner i dem kan se — allt, ett urval eller inget, per funktion. Att tilldela vänner till hinkar kommer med delningsutbyggnaden.",
+    "privacyDesc": "Integritetshinkar avgör vad vänner i dem kan se — allt, ett urval eller inget, per funktion.",
     "noBuckets": "Inga hinkar än.",
     "newBucket": "Ny hink",
     "bucketName": "Hinknamn",

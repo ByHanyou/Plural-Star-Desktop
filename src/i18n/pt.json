@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "AAAA",
+    "hour": "HH",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Cores",
     "rowDefault": "Padrão",
@@ -54,7 +61,11 @@
     "tierHint": "Renomeie os níveis de fronting. Sua palavra substitui a padrão em todo o app. Em branco usa a padrão.",
     "tierPrimary": "Frente Principal",
     "tierCoFront": "Co-Frente",
-    "tierCoConscious": "Co-Consciente"
+    "tierCoConscious": "Co-Consciente",
+    "journal": "Diário",
+    "hub": "Central",
+    "history": "Histórico",
+    "archive": "Arquivo"
   },
   "planner": {
     "title": "Planejador Diário",
@@ -111,6 +122,7 @@
     "title": "Caixa de correio",
     "compose": "Escrever",
     "everyone": "Todo mundo",
+    "allOthers": "Todos os outros Membros",
     "from": "De",
     "to": "Para",
     "send": "Enviar",
@@ -185,7 +197,7 @@
     "relayHint": "O endereço e o token de um nó do Plural Star para se conectar. Deixe o token em branco se o relay for aberto.",
     "saveRelay": "Salvar e conectar",
     "tabPrivacy": "Privacidade",
-    "privacyDesc": "Os círculos de privacidade decidem o que os amigos neles podem ver: tudo, uma seleção ou nada, por recurso. Atribuir amigos chegará com a expansão de compartilhamento.",
+    "privacyDesc": "Os círculos de privacidade decidem o que os amigos neles podem ver: tudo, uma seleção ou nada, por recurso.",
     "noBuckets": "Ainda não há círculos.",
     "newBucket": "Novo círculo",
     "bucketName": "Nome do círculo",
@@ -509,7 +521,22 @@
     "archived": "Arquivados",
     "noArchived": "Nenhum membro arquivado.",
     "noArchivedFacets": "Nenhuma faceta arquivada.",
-    "noArchivedCustomFronts": "Nenhuma frente personalizada arquivada."
+    "noArchivedCustomFronts": "Nenhuma frente personalizada arquivada.",
+    "restore": "Restaurar",
+    "select": "Selecionar",
+    "selectAll": "Todos",
+    "selectNone": "Nenhum",
+    "bulkArchive": "Arquivar membros",
+    "bulkArchiveMsg": "Arquivar {{count}} membro(s)? Eles podem ser restaurados depois.",
+    "bulkRestore": "Restaurar membros",
+    "bulkRestoreMsg": "Restaurar {{count}} membro(s) como ativos?",
+    "bulkDelete": "Excluir membros",
+    "bulkDeleteMsg": "Excluir permanentemente {{count}} membro(s)? Isso não pode ser desfeito.",
+    "assignGroup": "Grupo",
+    "frontingLockTitle": "Atualmente na frente",
+    "frontingLockMsg": "Você não pode arquivar ou excluir um membro enquanto ele está na frente. Remova-o da frente primeiro.",
+    "archive": "Arquivar",
+    "recentlyDeleted": "Excluídos recentemente"
   },
   "history": {
     "title": "Histórico",
@@ -705,7 +732,8 @@
     "toolQuote": "Citação",
     "toolCode": "Código",
     "brokenImage": "[imagem quebrada]",
-    "imageUnavailable": "[imagem indisponível]"
+    "imageUnavailable": "[imagem indisponível]",
+    "spoiler": "Spoiler, clique para revelar"
   },
   "modal": {
     "appFont": "Fonte do app",

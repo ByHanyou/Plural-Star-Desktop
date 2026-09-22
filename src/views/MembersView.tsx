@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch, groupKind } from '../utils';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch, groupKind, groupParent, nameCompare, childrenOf, descendantsOf, tagKey } from '../utils';
 import { chooseImageTreatment } from '../components/ImageCropModal';
 import { PALETTE, ensureReadable, initialOn } from '../theme';
 import { store, KEYS } from '../storage';
@@ -8,6 +8,7 @@ import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { CustomHexEntry } from '../components/CustomHexEntry';
+import { MarkdownText } from '../components/MarkdownText';
 import { useAppStore } from '../store/appStore';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -40,12 +41,24 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [listView, setListView] = useState<'active' | 'customFronts' | 'facets'>('active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
   const [reorderLocked, setReorderLocked] = useState(true);
   const [quickFrontFor, setQuickFrontFor] = useState<Member | null>(null);
   const [confirmRemoveFront, setConfirmRemoveFront] = useState<Member | null>(null);
+
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState<'archive' | 'restore' | 'delete' | 'facet' | null>(null);
+  const [showGroupAssign, setShowGroupAssign] = useState(false);
+  const [groupAssignSel, setGroupAssignSel] = useState<Set<string>>(new Set());
+  const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); setBulkConfirm(null); setShowGroupAssign(false); };
+  const switchListView = (v: 'active' | 'customFronts' | 'facets') => { if (v !== listView) exitSelection(); setListView(v); };
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
+  useEffect(() => { setGroupOpen({}); }, [editing?.id]);
+  const toggleSelected = (id: string) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const isFronting = (id: string): boolean => !!front && (
     (front.primary?.memberIds || []).includes(id) ||
@@ -70,9 +83,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [noteText, setNoteText] = useState('');
   const [noteAuthorId, setNoteAuthorId] = useState<string | null>(null);
 
-  // Field definitions, connections and notes are loaded here, not in the app
-  // store, so a sync that changes them must reload them or the next save from
-  // this view would write the stale list over them.
   useEffect(() => {
     const load = () => {
       store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFieldDefs(defs || []));
@@ -115,11 +125,37 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     listView === 'customFronts' ? customFronts : listView === 'facets' ? facets : active,
     sortMode,
   );
+  const deletedMembers = !archiveOnly ? [] : members.filter(m => {
+    if (!m.deleted) return false;
+    if (m.isCustomFront) return listView === 'customFronts';
+    if (listView === 'customFronts') return false;
+    if (m.isFacet) return listView === 'facets';
+    if (listView === 'facets') return false;
+    return true;
+  });
+  const allTags = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const m of members) {
+      if (m.deleted || archiveOnly !== !!m.archived) continue;
+      if (listView === 'customFronts' ? !m.isCustomFront : m.isCustomFront) continue;
+      if (listView !== 'customFronts' && (listView === 'facets') !== !!m.isFacet) continue;
+      for (const tag of m.tags || []) {
+        const k = tagKey(tag);
+        if (!seen.has(k)) seen.set(k, tag);
+      }
+    }
+    return [...seen.values()].sort((a, b) => {
+      const ka = tagKey(a), kb = tagKey(b);
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+  }, [members, listView, archiveOnly]);
+  const activeTagKey = activeTag ? tagKey(activeTag) : null;
   const filtered = sorted.filter(m =>
     memberMatchesSearch(m, search)
+    && (!activeTagKey || (m.tags || []).some(tag => tagKey(tag) === activeTagKey))
   );
 
-  const canReorder = !archiveOnly && sortMode === 'manual' && !search;
+  const canReorder = !archiveOnly && sortMode === 'manual' && !search && !activeTag;
   const reorderActive = canReorder && !reorderLocked;
 
   const sensors = useSensors(
@@ -164,15 +200,34 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const set = (k: keyof Member, v: any) => setF(x => ({ ...x, [k]: v }));
 
   const addTag = () => {
-    const raw = tagInput.trim().replace(/^#/, '').toLowerCase();
+    const raw = tagInput.trim().replace(/^#/, '').normalize('NFC');
     if (!raw) return;
+    const next = `#${raw}`;
     setF(x => {
       const cur = x.tags || [];
-      if (cur.includes(`#${raw}`)) return x;
-      return { ...x, tags: [...cur, `#${raw}`] };
+      if (cur.some(v => tagKey(v) === tagKey(next))) return x;
+      return { ...x, tags: [...cur, next] };
     });
     setTagInput('');
   };
+  const applyTag = (tag: string) => {
+    setF(x => (x.tags || []).some(v => tagKey(v) === tagKey(tag)) ? x : { ...x, tags: [...(x.tags || []), tag] });
+    setTagInput('');
+  };
+  const tagSuggestions = useMemo(() => {
+    const mine = new Set((f.tags || []).map(tagKey));
+    const seen = new Map<string, string>();
+    for (const tag of members.flatMap(m => m.tags || [])) {
+      const k = tagKey(tag);
+      if (mine.has(k) || seen.has(k)) continue;
+      seen.set(k, tag);
+    }
+    const q = tagKey(tagInput.trim().replace(/^#/, ''));
+    return [...seen.values()]
+      .filter(tag => !q || tagKey(tag).includes(q))
+      .sort((a, b) => { const ka = tagKey(a), kb = tagKey(b); return ka < kb ? -1 : ka > kb ? 1 : 0; })
+      .slice(0, 30);
+  }, [members, f.tags, tagInput]);
 
   const toggleGroup = (gid: string) => {
     setF(x => {
@@ -212,9 +267,66 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   };
 
   const deleteMember = async (id: string) => {
-    await store.set(KEYS.members, members.map(m => m.id === id ? { ...m, archived: true, deleted: true } : m));
+    try {
+      const rels = (await store.get<any[]>(KEYS.relationships, [])) || [];
+      const keep = rels.filter(r => r && r.fromId !== id && r.toId !== id);
+      if (keep.length !== rels.length) await store.set(KEYS.relationships, keep);
+      const mapIds = (await store.get<string[]>(KEYS.systemMapMembers, [])) || [];
+      if (mapIds.includes(id)) await store.set(KEYS.systemMapMembers, mapIds.filter(x => x !== id));
+      const pos = (await store.get<Record<string, unknown>>(KEYS.systemMapPositions, {})) || {};
+      if (id in pos) { const { [id]: _drop, ...rest } = pos; await store.set(KEYS.systemMapPositions, rest); }
+    } catch (e) { console.warn('[MEMBERS] delete: clearing links failed', e); }
+    const live = useAppStore.getState().state.members;
+    await store.set(KEYS.members, live.map(m => m.id === id ? { ...m, archived: true, deleted: true } : m));
     setConfirmDelete(null);
     setEditing(null);
+    onUpdate();
+  };
+
+  const restoreDeleted = async (id: string) => {
+    const live = useAppStore.getState().state.members;
+    await store.set(KEYS.members, live.map(m => m.id === id ? { ...m, deleted: false, archived: false } : m));
+    onUpdate();
+  };
+
+  const bulkIds = () => [...selectedIds];
+  const bulkBlockedByFront = () => bulkIds().some(id => isFronting(id));
+  const runBulk = async (kind: 'archive' | 'restore' | 'delete' | 'facet') => {
+    const ids = new Set(bulkIds());
+    if (ids.size === 0) return;
+    if (kind === 'delete') {
+      for (const id of ids) {
+        try {
+          const rels = (await store.get<any[]>(KEYS.relationships, [])) || [];
+          const keep = rels.filter(r => r && r.fromId !== id && r.toId !== id);
+          if (keep.length !== rels.length) await store.set(KEYS.relationships, keep);
+          const mapIds = (await store.get<string[]>(KEYS.systemMapMembers, [])) || [];
+          if (mapIds.includes(id)) await store.set(KEYS.systemMapMembers, mapIds.filter(x => x !== id));
+          const pos = (await store.get<Record<string, unknown>>(KEYS.systemMapPositions, {})) || {};
+          if (id in pos) { const { [id]: _drop, ...rest } = pos; await store.set(KEYS.systemMapPositions, rest); }
+        } catch (e) { console.warn('[MEMBERS] bulk delete: clearing links failed', e); }
+      }
+    }
+    const toFacet = listView === 'active';
+    const live = useAppStore.getState().state.members;
+    const next = live.map(m => {
+      if (!ids.has(m.id)) return m;
+      if (kind === 'archive') return { ...m, archived: true };
+      if (kind === 'restore') return { ...m, archived: false };
+      if (kind === 'delete') return { ...m, archived: true, deleted: true };
+      return m.isCustomFront ? m : { ...m, isFacet: toFacet };
+    });
+    await store.set(KEYS.members, next);
+    exitSelection();
+    onUpdate();
+  };
+  const applyGroupAssign = async () => {
+    const ids = new Set(bulkIds());
+    const gids = [...groupAssignSel];
+    if (ids.size === 0 || gids.length === 0) { setShowGroupAssign(false); return; }
+    const live = useAppStore.getState().state.members;
+    await store.set(KEYS.members, live.map(m => ids.has(m.id) ? { ...m, groupIds: [...new Set([...(m.groupIds || []), ...gids])] } : m));
+    exitSelection();
     onUpdate();
   };
 
@@ -267,14 +379,17 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             🤏
           </button>
         )}
-        <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => setListView('active')}>
+        <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => switchListView('active')}>
           {t('members.title')} ({active.length})
         </Btn>
-        <Btn variant={listView === 'facets' ? 'info' : 'ghost'} onClick={() => setListView('facets')}>
+        <Btn variant={listView === 'facets' ? 'info' : 'ghost'} onClick={() => switchListView('facets')}>
           {t('members.facets')} ({facets.length})
         </Btn>
-        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => setListView('customFronts')}>
+        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => switchListView('customFronts')}>
           {t('members.customFronts')} ({customFronts.length})
+        </Btn>
+        <Btn variant={selectionMode ? 'info' : 'ghost'} aria-pressed={selectionMode} onClick={() => selectionMode ? exitSelection() : setSelectionMode(true)}>
+          {selectionMode ? t('common.cancel') : t('members.select')}
         </Btn>
         {!archiveOnly && (
           <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : listView === 'facets' ? t('members.addFacet') : t('members.add')}</Btn>
@@ -308,14 +423,72 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         </div>
       </div>
 
+      {selectionMode && (
+        <div role="toolbar" aria-label={t('members.selectedCount', { count: selectedIds.size })} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 90 }}>{t('members.selectedCount', { count: selectedIds.size })}</span>
+          <Btn variant="ghost" onClick={() => setSelectedIds(new Set(filtered.map(m => m.id)))}>{t('members.selectAll')}</Btn>
+          <Btn variant="ghost" onClick={() => setSelectedIds(new Set())}>{t('members.selectNone')}</Btn>
+          {selectedIds.size > 0 && (
+            <>
+              {groups.length > 0 && (
+                <Btn variant="ghost" onClick={() => { setGroupAssignSel(new Set()); setShowGroupAssign(true); }}>{t('members.assignGroup')}</Btn>
+              )}
+              {!archiveOnly && listView !== 'customFronts' && (
+                <Btn variant="ghost" onClick={() => setBulkConfirm('facet')} title={bulkBlockedByFront() ? t('members.frontingLockMsg') : undefined} disabled={bulkBlockedByFront()}>
+                  {listView === 'active' ? t('members.makeFacet') : t('members.makeMember')}
+                </Btn>
+              )}
+              {!archiveOnly && (
+                <Btn variant="ghost" onClick={() => setBulkConfirm('archive')} title={bulkBlockedByFront() ? t('members.frontingLockMsg') : undefined} disabled={bulkBlockedByFront()}>{t('members.archive')}</Btn>
+              )}
+              {archiveOnly && (
+                <Btn variant="ghost" onClick={() => setBulkConfirm('restore')}>{t('members.restore')}</Btn>
+              )}
+              <Btn variant="danger" onClick={() => setBulkConfirm('delete')} title={bulkBlockedByFront() ? t('members.frontingLockMsg') : undefined} disabled={bulkBlockedByFront()}>{t('common.delete')}</Btn>
+            </>
+          )}
+        </div>
+      )}
+
+      {allTags.length > 0 && (
+        <div role="group" aria-label={t('modal.tags')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          <button type="button" aria-pressed={!activeTag} onClick={() => setActiveTag(null)}
+            style={{ padding: '5px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
+              background: !activeTag ? 'var(--info-bg)' : 'var(--surface)', color: !activeTag ? 'var(--info)' : 'var(--dim)',
+              border: `1px solid ${!activeTag ? 'var(--info)' : 'var(--border)'}`, fontWeight: !activeTag ? 600 : 400 }}>
+            {t('members.allTags')}
+          </button>
+          {allTags.map(tag => {
+            const sel = activeTagKey === tagKey(tag);
+            return (
+              <button key={tagKey(tag)} type="button" aria-pressed={sel} onClick={() => setActiveTag(sel ? null : tag)}
+                style={{ padding: '5px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
+                  background: sel ? 'var(--info-bg)' : 'var(--surface)', color: sel ? 'var(--info)' : 'var(--dim)',
+                  border: `1px solid ${sel ? 'var(--info)' : 'var(--border)'}`, fontWeight: sel ? 600 : 400 }}>
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={filtered.map(m => m.id)} strategy={rectSortingStrategy}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {filtered.map(m => (
           <SortableCard key={m.id} id={m.id} label={m.name} disabled={!reorderActive}>
           <div className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer', position: 'relative', overflow: 'hidden',
+            ...(selectionMode && selectedIds.has(m.id) ? { outline: '2px solid var(--accent)', outlineOffset: -2 } : {}),
             ...((listFields.background === 'color' || (listFields.background === 'banner' && !m.banner)) ? { background: `linear-gradient(${m.color}26, ${m.color}26), var(--card)` } : {}) }}
-            {...clickable(() => openEdit(m), m.name)}>
+            {...(selectionMode ? { 'aria-checked': selectedIds.has(m.id) } : {})}
+            {...clickable(() => selectionMode ? toggleSelected(m.id) : openEdit(m), m.name)}
+            {...(selectionMode ? { role: 'checkbox' as const } : {})}>
+            {selectionMode && (
+              <div aria-hidden style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 20, height: 20, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
+                background: selectedIds.has(m.id) ? 'var(--accent)' : 'var(--surface)', color: selectedIds.has(m.id) ? 'var(--bg)' : 'transparent', border: `1px solid ${selectedIds.has(m.id) ? 'var(--accent)' : 'var(--border)'}` }}>
+                ✓
+              </div>
+            )}
             {listFields.background === 'banner' && m.banner && (
               <>
                 <div aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: `url(${m.banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -338,7 +511,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   </div>
                 )}
               </div>
-              {quickFrontEnabled && !m.archived && (
+              {quickFrontEnabled && !m.archived && !selectionMode && (
                 isFronting(m.id) ? (
                   <button
                     aria-label={`${t('members.removeFromFront')} — ${m.name}`}
@@ -395,9 +568,56 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-          {search ? t('members.noMembers') : archiveOnly ? (listView === 'customFronts' ? t('members.noArchivedCustomFronts') : listView === 'facets' ? t('members.noArchivedFacets') : t('members.noArchived')) : listView === 'customFronts' ? t('members.noCustomFronts') : listView === 'facets' ? t('members.noFacets') : t('members.noMembers')}
+          {(search || activeTag) ? t('members.noMembers') : archiveOnly ? (listView === 'customFronts' ? t('members.noArchivedCustomFronts') : listView === 'facets' ? t('members.noArchivedFacets') : t('members.noArchived')) : listView === 'customFronts' ? t('members.noCustomFronts') : listView === 'facets' ? t('members.noFacets') : t('members.noMembers')}
         </div>
       )}
+
+      {archiveOnly && deletedMembers.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <Section label={t('members.recentlyDeleted')} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {deletedMembers.map(m => (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', opacity: 0.85 }}>
+                <div className="tile__avatar" style={{ width: 32, height: 32, fontSize: 12, overflow: 'hidden', ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}) }}>
+                  {m.avatar ? <img src={m.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(m.name)}
+                </div>
+                <div style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
+                <Btn variant="ghost" onClick={() => restoreDeleted(m.id)} aria-label={`${t('members.restore')} ${m.name}`}>{t('members.restore')}</Btn>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog open={bulkConfirm === 'archive'} title={t('members.bulkArchive')} message={t('members.bulkArchiveMsg', { count: selectedIds.size })}
+        onConfirm={() => runBulk('archive')} onCancel={() => setBulkConfirm(null)} />
+      <ConfirmDialog open={bulkConfirm === 'restore'} title={t('members.bulkRestore')} message={t('members.bulkRestoreMsg', { count: selectedIds.size })}
+        onConfirm={() => runBulk('restore')} onCancel={() => setBulkConfirm(null)} />
+      <ConfirmDialog open={bulkConfirm === 'delete'} danger title={t('members.bulkDelete')} message={t('members.bulkDeleteMsg', { count: selectedIds.size })}
+        onConfirm={() => runBulk('delete')} onCancel={() => setBulkConfirm(null)} />
+      <ConfirmDialog open={bulkConfirm === 'facet'} title={listView === 'active' ? t('members.makeFacet') : t('members.makeMember')} message={t('members.selectedCount', { count: selectedIds.size })}
+        onConfirm={() => runBulk('facet')} onCancel={() => setBulkConfirm(null)} />
+
+      <Modal open={showGroupAssign} title={t('members.assignGroup')} onClose={() => setShowGroupAssign(false)}
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
+            <Btn variant="ghost" onClick={() => setShowGroupAssign(false)}>{t('common.cancel')}</Btn>
+            <Btn variant="primary" onClick={applyGroupAssign} disabled={groupAssignSel.size === 0}>{t('common.confirm')}</Btn>
+          </div>
+        }>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+          {sortGroupsForDisplay(groups, groups).map(g => {
+            const on = groupAssignSel.has(g.id);
+            return (
+              <button key={g.id} className="chip" aria-pressed={on} onClick={() => setGroupAssignSel(prev => { const n = new Set(prev); if (n.has(g.id)) n.delete(g.id); else n.add(g.id); return n; })}
+                style={{ background: on ? 'var(--accent-bg)' : 'var(--surface)', color: on ? 'var(--accent)' : 'var(--dim)', borderColor: on ? 'var(--accent)' : 'var(--border)' }}>
+                <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
+                {g.name}
+              </button>
+            );
+          })}
+        </div>
+      </Modal>
 
       <Modal open={!!editing} title={isNew ? t('modal.addMember') : t('modal.editMember')} onClose={() => setEditing(null)}
         footer={
@@ -449,7 +669,8 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           const allTypes = allRelationshipTypes(relTypes);
           const relTypeById = new Map(allTypes.map(ty => [ty.id, ty]));
           const relLabel = (id: string) => { const ty = relTypeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`, { defaultValue: ty.name }) : ty.name) : '?'; };
-          const mine = relationships.filter(r => r.fromId === f.id || r.toId === f.id);
+          const gone = (i: string) => { const m = members.find(x => x.id === i); return !!m && !!m.deleted; };
+          const mine = relationships.filter(r => (r.fromId === f.id || r.toId === f.id) && !gone(r.fromId === f.id ? r.toId : r.fromId));
           const readVal = (fd: CustomFieldDef, val: string | number | boolean | null) => {
             if (fd.type === 'toggle') return <span style={{ fontSize: 14, color: val ? 'var(--accent)' : 'var(--muted)' }}>{val ? '✓' : '—'}</span>;
             if (fd.type === 'color') return (
@@ -460,7 +681,8 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             );
             if (fd.type === 'image') return <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />;
             if (fd.type === 'dateRange') { const [a, b] = String(val || '').split('|'); return <span style={{ fontSize: 13, color: 'var(--text)' }}>{[a, b].filter(Boolean).join(' – ')}</span>; }
-            return <span style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{String(val)}</span>;
+            if (fd.type === 'text' || fd.type === 'markdown') return <MarkdownText text={String(val)} members={members} />;
+            return <span style={{ fontSize: 13, color: 'var(--text)' }}>{String(val)}</span>;
           };
           return (
             <div>
@@ -514,7 +736,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                 <>
                   <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 6 }}>{t('modal.descriptionBio')}</div>
                   <div style={{ padding: 12, background: 'var(--surface)', border: `1px solid ${f.color}40`, borderRadius: 8, marginBottom: 14 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{f.description}</p>
+                    <MarkdownText text={f.description} members={members} />
                   </div>
                 </>
               ) : null}
@@ -629,35 +851,90 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <ColorCarousel value={f.color} onChange={v => set('color', v)} />
           <CustomHexEntry value={f.color} onApply={v => set('color', v)} />
 
-          {groups.length > 0 && (
-            <>
-              <Section label={t('memberGroups.title')} />
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
-                {sortGroupsForDisplay(groups, groups).map(g => {
-                  const active = (f.groupIds || []).includes(g.id);
-                  return (
-                    <button key={g.id} className={`chip ${active ? '' : ''}`}
-                      title={g.description || undefined}
-                      aria-pressed={active}
-                      style={{
-                        borderColor: active ? `${g.color || 'var(--accent)'}50` : 'var(--border)',
-                        background: active ? `${g.color || 'var(--accent)'}20` : 'var(--surface)',
-                        color: active ? (g.color || 'var(--accent)') : 'var(--dim)',
-                      }}
-                      onClick={() => toggleGroup(g.id)}>
-                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
-                      {g.name}
-                      {active && <span aria-hidden style={{ fontWeight: 700 }}>✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          {groups.length > 0 && (() => {
+            const selected = new Set(f.groupIds || []);
+            const chip = (g: MemberGroup) => {
+              const active = selected.has(g.id);
+              return (
+                <button key={g.id} className="chip" type="button"
+                  title={g.description || undefined}
+                  aria-pressed={active}
+                  style={{
+                    borderColor: active ? `${g.color || 'var(--accent)'}50` : 'var(--border)',
+                    background: active ? `${g.color || 'var(--accent)'}20` : 'var(--surface)',
+                    color: active ? (g.color || 'var(--accent)') : 'var(--dim)',
+                  }}
+                  onClick={() => toggleGroup(g.id)}>
+                  <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
+                  {g.name}
+                  {active && <span aria-hidden style={{ fontWeight: 700 }}>✓</span>}
+                </button>
+              );
+            };
+            const isOpen = (g: MemberGroup): boolean =>
+              g.id in groupOpen ? groupOpen[g.id] : descendantsOf(groups, g.id).some(d => selected.has(d.id));
+            const toggleOpen = (g: MemberGroup) => setGroupOpen(prev => ({ ...prev, [g.id]: !isOpen(g) }));
+            const exists = new Set(groups.map(g => g.id));
+            const roots = groups
+              .filter(g => { const p = groupParent(g); return p === null || !exists.has(p); })
+              .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || nameCompare(a.name, b.name));
+            const reachable = new Set<string>();
+            const mark = (g: MemberGroup) => { if (reachable.has(g.id)) return; reachable.add(g.id); for (const c of childrenOf(groups, g.id)) mark(c); };
+            roots.forEach(mark);
+            const unreached = groups.filter(g => !reachable.has(g.id));
+            const seen = new Set<string>();
+            const renderLevel = (parentId: string | null, depth: number): React.ReactNode => {
+              const kids = (parentId === null ? roots : childrenOf(groups, parentId)).filter(g => !seen.has(g.id));
+              kids.forEach(g => seen.add(g.id));
+              const leaves = kids.filter(g => childrenOf(groups, g.id).length === 0);
+              const parents = kids.filter(g => childrenOf(groups, g.id).length > 0);
+              return (
+                <div style={{ paddingLeft: depth === 0 ? 0 : 16, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {leaves.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>{leaves.map(g => chip(g))}</div>}
+                  {parents.map(g => {
+                    const open = isOpen(g);
+                    const activeKids = descendantsOf(groups, g.id).filter(d => selected.has(d.id)).length;
+                    return (
+                      <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {chip(g)}
+                          <button type="button" className="chip" aria-expanded={open} aria-label={g.name} onClick={() => toggleOpen(g)}
+                            style={{ padding: '3px 8px', background: 'var(--surface)', color: 'var(--dim)', borderColor: 'var(--border)' }}>
+                            {!open && activeKids > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: g.color || 'var(--accent)' }}>{activeKids}</span>}
+                            <span aria-hidden style={{ fontSize: 10 }}>{open ? '▽' : '▷'}</span>
+                          </button>
+                        </div>
+                        {open && renderLevel(g.id, depth + 1)}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            };
+            return (
+              <>
+                <Section label={t('memberGroups.title')} />
+                <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {renderLevel(null, 0)}
+                  {unreached.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>{unreached.map(g => chip(g))}</div>}
+                </div>
+              </>
+            );
+          })()}
 
           <Section label={t('modal.memberTags')} />
           <ChipList items={f.tags || []} onRemove={tag => setF(x => ({ ...x, tags: (x.tags || []).filter(t => t !== tag) }))} />
           <AddRow value={tagInput} onChange={setTagInput} onAdd={addTag} placeholder={t('modal.memberTagPlaceholder')} />
+          {tagSuggestions.length > 0 && (
+            <div role="list" aria-label={t('members.allTags')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6, marginBottom: 10 }}>
+              {tagSuggestions.map(tag => (
+                <button key={tagKey(tag)} type="button" className="chip" aria-label={`${t('common.add')} ${tag}`} onClick={() => applyTag(tag)}
+                  style={{ borderStyle: 'dashed', background: 'var(--surface)', color: 'var(--dim)', borderColor: 'var(--border)' }}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
 
           <Section label={t('modal.descriptionBio')} />
           <Field value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} multiline />
@@ -713,7 +990,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                         <input className="field__input" aria-label={fd.name} type="month" value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
                       </div>
                     ) : fd.type === 'year' ? (
-                      <Field label={fd.name} value={String(val || '')} onChange={v => setFieldVal(v)} placeholder="YYYY" />
+                      <Field label={fd.name} value={String(val || '')} onChange={v => setFieldVal(v)} placeholder={t('dateFormat.year')} />
                     ) : fd.type === 'monthYear' ? (
                       <div>
                         <label className="field__label">{fd.name}</label>
@@ -785,7 +1062,8 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           const allTypes = allRelationshipTypes(relTypes);
           const typeById = new Map(allTypes.map(ty => [ty.id, ty]));
           const typeLabel = (id: string) => { const ty = typeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`, { defaultValue: ty.name }) : ty.name) : '?'; };
-          const mine = relationships.filter(r => r.fromId === f.id || r.toId === f.id);
+          const gone = (i: string) => { const m = members.find(x => x.id === i); return !!m && !!m.deleted; };
+          const mine = relationships.filter(r => (r.fromId === f.id || r.toId === f.id) && !gone(r.fromId === f.id ? r.toId : r.fromId));
           return (
             <div>
               {onShowOnMap && (

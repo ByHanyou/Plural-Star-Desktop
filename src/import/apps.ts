@@ -1,7 +1,7 @@
 import { store, KEYS, chatMsgKey } from '../storage';
 import {
   Member, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
-  CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, NoteboardEntry, uid,
+  CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, NoteboardEntry, uid, truncateRunes,
 } from '../utils';
 import { detectForeignFormat, convertOurcana, convertParallax, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace, isOpenPluralSystem, normalizeOpenPlural, isAmparBytes, amparToDatabaseJson, findOurcanaJsonEntry } from '../importers';
 import { isImportStopped } from './progress';
@@ -621,7 +621,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
         if (j.emotion) tags.push(`#${String(j.emotion)}`);
         const entry: JournalEntry = {
           id: uid(),
-          title: body.split('\n')[0].slice(0, 60),
+          title: truncateRunes(body.split('\n')[0], 60),
           body,
           authorIds: author ? [author] : [],
           hashtags: [...new Set(tags)],

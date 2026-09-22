@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "JJJJ",
+    "hour": "UU",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Kleure",
     "rowDefault": "Verstek",
@@ -197,7 +204,22 @@
     "archived": "Geargiveer",
     "noArchived": "Geen geargiveerde lede nie.",
     "noArchivedFacets": "Geen geargiveerde fasette nie.",
-    "noArchivedCustomFronts": "Geen geargiveerde pasgemaakte fronte nie."
+    "noArchivedCustomFronts": "Geen geargiveerde pasgemaakte fronte nie.",
+    "restore": "Herstel",
+    "select": "Kies",
+    "selectAll": "Almal",
+    "selectNone": "Geen",
+    "bulkArchive": "Argiveer lede",
+    "bulkArchiveMsg": "Argiveer {{count}} lid/lede? Hulle kan later herstel word.",
+    "bulkRestore": "Herstel lede",
+    "bulkRestoreMsg": "Herstel {{count}} lid/lede na aktief?",
+    "bulkDelete": "Skrap lede",
+    "bulkDeleteMsg": "Skrap {{count}} lid/lede permanent? Dit kan nie ontdoen word nie.",
+    "assignGroup": "Groep",
+    "frontingLockTitle": "Tans fronting",
+    "frontingLockMsg": "Jy kan nie 'n lid argiveer of skrap terwyl hulle fronting is nie. Verwyder hulle eers uit die front.",
+    "archive": "Argiveer",
+    "recentlyDeleted": "Onlangs geskrap"
   },
   "history": {
     "title": "Geskiedenis",
@@ -393,7 +415,8 @@
     "toolQuote": "Aanhaling",
     "toolCode": "Kode",
     "brokenImage": "[gebroke prent]",
-    "imageUnavailable": "[prent nie beskikbaar nie]"
+    "imageUnavailable": "[prent nie beskikbaar nie]",
+    "spoiler": "Bederwer, klik om te onthul"
   },
   "modal": {
     "changePfp": "Verander profielfoto",
@@ -578,7 +601,11 @@
     "tierHint": "Hernoem die frontvlakke. Jou woord vervang die verstek oral. Leeg gebruik die verstek.",
     "tierPrimary": "Primêre front",
     "tierCoFront": "Co-front",
-    "tierCoConscious": "Co-bewus"
+    "tierCoConscious": "Co-bewus",
+    "journal": "Joernaal",
+    "hub": "Hub",
+    "history": "Geskiedenis",
+    "archive": "Argief"
   },
   "planner": {
     "title": "Dagbeplanner",
@@ -635,6 +662,7 @@
     "title": "Posbus",
     "compose": "Skryf",
     "everyone": "Almal",
+    "allOthers": "Alle ander Lede",
     "from": "Van",
     "to": "Aan",
     "send": "Stuur",
@@ -709,7 +737,7 @@
     "relayHint": "Die adres en token van 'n Plural Star Node om deur te koppel. Los die token leeg as die relay oop is.",
     "saveRelay": "Stoor en koppel",
     "tabPrivacy": "Privaatheid",
-    "privacyDesc": "Privaatheidsemmers bepaal wat vriende daarin kan sien — alles, 'n keuse, of niks, vir elke funksie. Om vriende aan emmers toe te wys, kom saam met die deel-uitbreiding.",
+    "privacyDesc": "Privaatheidsemmers bepaal wat vriende daarin kan sien — alles, 'n keuse, of niks, vir elke funksie.",
     "noBuckets": "Nog geen emmers nie.",
     "newBucket": "Nuwe emmer",
     "bucketName": "Emmernaam",

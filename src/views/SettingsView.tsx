@@ -292,7 +292,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
       <Section label={t('terminology.title')} />
       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{t('terminology.hint')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-        {(['member', 'members', 'fronter', 'fronters', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system'] as const).map(term => (
+        {(['member', 'members', 'fronter', 'fronters', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system', 'hub', 'journal', 'history', 'archive'] as const).map(term => (
           <Field key={term} label={t(`terminology.${term}`)} value={termMap[term] || ''}
             onChange={v => setTermMap(m => ({ ...m, [term]: v }))} placeholder={t(`terminology.${term}`)} />
         ))}

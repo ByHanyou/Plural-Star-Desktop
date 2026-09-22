@@ -4,7 +4,7 @@ import { Btn, Field, Modal } from '../components/ui';
 import { NetworkManager } from '../network/NetworkManager';
 import { MirrorFeature, MirrorCacheEntry, MirrorMember, MirrorGroup, MirrorSystemProfile, MIRROR_SYSTEM_AVATAR_ID, MIRROR_SYSTEM_BANNER_ID } from '../network/types';
 import SystemProfileCard from '../components/SystemProfileCard';
-import { fmtTime } from '../utils';
+import { fmtTime, getInitials } from '../utils';
 import { logError } from '../log';
 
 interface Props {
@@ -135,7 +135,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                   <img src={av} alt="" style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
                   <span aria-hidden style={{ width: 36, height: 36, borderRadius: 18, flexShrink: 0, background: m.color || 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontWeight: 600 }}>
-                    {(m.name || '?').slice(0, 1).toUpperCase()}
+                    {Array.from(getInitials(m.name || '?'))[0] || '?'}
                   </span>
                 )}
                 <span style={{ flex: 1, minWidth: 0 }}>

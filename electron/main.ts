@@ -18,6 +18,20 @@ let tray: Tray | null = null;
 
 const isDev = !app.isPackaged;
 
+const fromMainWindow = (e: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent): boolean => {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
+  if (e.sender !== mainWindow.webContents) return false;
+  const frame = (e as Electron.IpcMainInvokeEvent).senderFrame;
+  return !frame || frame === mainWindow.webContents.mainFrame;
+};
+
+const handle = (channel: string, fn: (e: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown): void => {
+  ipcMain.handle(channel, (e, ...args) => {
+    if (!fromMainWindow(e)) throw new Error(`ipc ${channel}: unauthorized sender`);
+    return fn(e, ...args);
+  });
+};
+
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.png');
 const TRAY_ICON_PATH = path.join(__dirname, '..', 'build', 'tray.png');
 
@@ -73,13 +87,10 @@ function createWindow(): void {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   });
 
-  // Links in markdown (a friend's mirrored description included) and the
-  // Discord / support tiles open in the system browser. Nothing ever opens
-  // as a second window of this app, which would carry the preload bridge to
-  // whatever page it loaded (Electron security checklist, items 13 and 14).
   const externalOk = (url: string): boolean => /^(https?:|mailto:)/i.test(url);
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (externalOk(url)) shell.openExternal(url).catch(() => {});
@@ -104,7 +115,7 @@ function createWindow(): void {
   });
 }
 
-ipcMain.handle('store:get', (_e, key: string) => {
+handle('store:get', (_e, key: string) => {
   try {
     return store.get(key, null);
   } catch (e) {
@@ -113,11 +124,11 @@ ipcMain.handle('store:get', (_e, key: string) => {
   }
 });
 
-ipcMain.handle('store:getStrict', (_e, key: string) => {
+handle('store:getStrict', (_e, key: string) => {
   return store.get(key, null);
 });
 
-ipcMain.handle('store:set', (_e, key: string, value: unknown) => {
+handle('store:set', (_e, key: string, value: unknown) => {
   try {
     store.set(key, value);
   } catch (e) {
@@ -126,7 +137,7 @@ ipcMain.handle('store:set', (_e, key: string, value: unknown) => {
   }
 });
 
-ipcMain.handle('store:setBatch', (_e, updates: Record<string, unknown>) => {
+handle('store:setBatch', (_e, updates: Record<string, unknown>) => {
   if (!updates || typeof updates !== 'object') {
     throw new TypeError('setBatch expects an object of {key: value} updates');
   }
@@ -147,7 +158,7 @@ ipcMain.handle('store:setBatch', (_e, updates: Record<string, unknown>) => {
   atomicWriteJson(STORE_FILE, current);
 });
 
-ipcMain.handle('store:remove', (_e, key: string) => {
+handle('store:remove', (_e, key: string) => {
   try {
     store.delete(key);
   } catch (e) {
@@ -156,7 +167,7 @@ ipcMain.handle('store:remove', (_e, key: string) => {
   }
 });
 
-ipcMain.handle('store:clearAll', () => {
+handle('store:clearAll', () => {
   try {
     const all = store.store;
     for (const key of Object.keys(all)) {
@@ -168,7 +179,7 @@ ipcMain.handle('store:clearAll', () => {
   }
 });
 
-ipcMain.handle('store:allKeys', () => {
+handle('store:allKeys', () => {
   try {
     return Object.keys(store.store);
   } catch (e) {
@@ -177,7 +188,7 @@ ipcMain.handle('store:allKeys', () => {
   }
 });
 
-ipcMain.handle('dialog:openFile', async (_e, filters?: Electron.FileFilter[]) => {
+handle('dialog:openFile', async (_e, filters?: Electron.FileFilter[]) => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: filters || [
@@ -189,7 +200,7 @@ ipcMain.handle('dialog:openFile', async (_e, filters?: Electron.FileFilter[]) =>
   return result.canceled ? null : result.filePaths[0];
 });
 
-ipcMain.handle('dialog:saveFile', async (_e, defaultName: string) => {
+handle('dialog:saveFile', async (_e, defaultName: string) => {
   const result = await dialog.showSaveDialog({
     defaultPath: defaultName,
     filters: [
@@ -201,7 +212,7 @@ ipcMain.handle('dialog:saveFile', async (_e, defaultName: string) => {
   return result.canceled ? null : result.filePath;
 });
 
-ipcMain.handle('file:readAsBase64', async (_e, filePath: string) => {
+handle('file:readAsBase64', async (_e, filePath: string) => {
   try {
     const buffer = fs.readFileSync(filePath);
     const ext = path.extname(filePath).toLowerCase().replace('.', '');
@@ -217,7 +228,7 @@ ipcMain.handle('file:readAsBase64', async (_e, filePath: string) => {
   }
 });
 
-ipcMain.handle('file:write', async (_e, filePath: string, content: string) => {
+handle('file:write', async (_e, filePath: string, content: string) => {
   try {
     fs.writeFileSync(filePath, content, 'utf8');
   } catch (e) {
@@ -226,7 +237,7 @@ ipcMain.handle('file:write', async (_e, filePath: string, content: string) => {
   }
 });
 
-ipcMain.handle('file:writeBytes', async (_e, filePath: string, base64: string) => {
+handle('file:writeBytes', async (_e, filePath: string, base64: string) => {
   try {
     fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
   } catch (e) {
@@ -235,8 +246,9 @@ ipcMain.handle('file:writeBytes', async (_e, filePath: string, base64: string) =
   }
 });
 
-ipcMain.handle('net:fetch', async (_e, url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) => {
+handle('net:fetch', async (_e, url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) => {
   try {
+    if (!/^https?:\/\//i.test(String(url || ''))) return { ok: false, status: 0, text: 'unsupported url' };
     const res = await fetch(url, {
       method: options?.method || 'GET',
       headers: options?.headers || {},
@@ -249,10 +261,7 @@ ipcMain.handle('net:fetch', async (_e, url: string, options?: { method?: string;
   }
 });
 
-// Cloud Services moves ciphertext, which is not text. Bodies cross the IPC as
-// base64 both ways, and every response header comes back because the resumable
-// upload reads Upload-Offset from a HEAD.
-ipcMain.handle('net:fetchRaw', async (_e, url: string, options?: { method?: string; headers?: Record<string, string>; bodyBase64?: string; timeoutMs?: number }) => {
+handle('net:fetchRaw', async (_e, url: string, options?: { method?: string; headers?: Record<string, string>; bodyBase64?: string; timeoutMs?: number }) => {
   const timeoutMs = Math.max(1000, Number(options?.timeoutMs) || 30000);
   const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('request timed out')), timeoutMs));
   try {
@@ -272,7 +281,7 @@ ipcMain.handle('net:fetchRaw', async (_e, url: string, options?: { method?: stri
   }
 });
 
-ipcMain.handle('net:fetchImage', async (_e, url: string) => {
+handle('net:fetchImage', async (_e, url: string) => {
   try {
     if (!/^https?:\/\//i.test(String(url || ''))) return null;
     const res = await fetch(url, { headers: { 'User-Agent': 'PluralStar-Desktop' } });
@@ -296,16 +305,17 @@ ipcMain.handle('net:fetchImage', async (_e, url: string) => {
   }
 });
 
-ipcMain.handle('notify', (_e, title: string, body: string) => {
+handle('notify', (_e, title: string, body: string) => {
   new Notification({ title, body }).show();
 });
 
-ipcMain.on('window:minimize', () => mainWindow?.minimize());
-ipcMain.on('window:maximize', () => {
+ipcMain.on('window:minimize', e => { if (fromMainWindow(e)) mainWindow?.minimize(); });
+ipcMain.on('window:maximize', e => {
+  if (!fromMainWindow(e)) return;
   if (mainWindow?.isMaximized()) mainWindow.unmaximize();
   else mainWindow?.maximize();
 });
-ipcMain.on('window:close', () => mainWindow?.close());
+ipcMain.on('window:close', e => { if (fromMainWindow(e)) mainWindow?.close(); });
 
 function createTray(): void {
   let trayImage = nativeImage.createFromPath(TRAY_ICON_PATH);

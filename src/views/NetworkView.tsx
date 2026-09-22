@@ -15,15 +15,17 @@ import { useCloud } from '../cloud/useCloud';
 import { passwordRuleFailing } from '../cloud/cloudCrypto';
 
 type Kind = 'friend' | 'device';
-type BucketFeature = 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections' | 'systemProfile' | 'whiteboard' | 'planner' | 'facets' | 'customFronts';
-const BUCKET_ROWS: BucketFeature[] = ['members', 'facets', 'customFronts', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard', 'planner'];
+type BucketFeature = 'front' | 'members' | 'groups' | 'journal' | 'history' | 'customFields' | 'medical' | 'connections' | 'systemProfile' | 'whiteboard' | 'planner' | 'facets' | 'customFronts';
+const BUCKET_ROWS: BucketFeature[] = ['front', 'members', 'facets', 'customFronts', 'groups', 'journal', 'history', 'customFields', 'connections', 'systemProfile', 'whiteboard', 'planner'];
 
-type Bucket = PrivacyBucket & { systemProfile: PrivacyScope; whiteboard: PrivacyScope; planner: PrivacyScope; facets: PrivacyScope; customFronts: PrivacyScope };
+type Bucket = PrivacyBucket & { front: PrivacyScope; systemProfile: PrivacyScope; whiteboard: PrivacyScope; planner: PrivacyScope; facets: PrivacyScope; customFronts: PrivacyScope };
 
 const emptyScope = (): PrivacyScope => ({ mode: 'none', ids: [] });
+const allScope = (): PrivacyScope => ({ mode: 'all', ids: [] });
 const newBucket = (): Bucket => ({
   id: uid(),
   name: '',
+  front: allScope(),
   members: emptyScope(),
   groups: emptyScope(),
   journal: emptyScope(),
@@ -42,6 +44,7 @@ const newBucket = (): Bucket => ({
 
 const normalizeBucket = (b: PrivacyBucket): Bucket => ({
   ...b,
+  front: b.front || allScope(),
   members: b.members || emptyScope(),
   groups: b.groups || emptyScope(),
   journal: b.journal || emptyScope(),
@@ -101,8 +104,6 @@ export default function NetworkView() {
       store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(rt => setRelTypes(rt || [])).catch(e => logError('network', e));
     };
     load();
-    // Buckets travel in the vault; a pulled change must land here or the
-    // next bucket save would write the stale list over it.
     return NetworkManager.onSyncApplied(load);
   }, []);
 
@@ -129,7 +130,7 @@ export default function NetworkView() {
   };
 
   const featureLabel = (f: BucketFeature): string =>
-    f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'customFronts' ? t('members.customFronts') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : f === 'planner' ? t('planner.title') : t('systemMap.title', { defaultValue: 'Connections' });
+    f === 'front' ? t('tabs.front') : f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'customFronts' ? t('members.customFronts') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : f === 'planner' ? t('planner.title') : t('systemMap.title', { defaultValue: 'Connections' });
   const scopeSummary = (s: PrivacyScope): string =>
     s.mode === 'all' ? t('network.scopeAll') : s.mode === 'none' ? t('network.scopeNone') : `${s.ids.length}`;
   const setScopeMode = (f: BucketFeature, mode: PrivacyScopeMode) => {
@@ -156,6 +157,10 @@ export default function NetworkView() {
     setEditBucket({
       id: uid(),
       name: `${b.name} 2`,
+      front: { mode: b.front.mode, ids: [] },
+      frontMood: b.frontMood,
+      frontLocation: b.frontLocation,
+      frontNote: b.frontNote,
       members: { mode: b.members.mode, ids: [...b.members.ids] },
       groups: { mode: b.groups.mode, ids: [...b.groups.ids] },
       journal: { mode: b.journal.mode, ids: [...b.journal.ids] },
@@ -238,11 +243,6 @@ export default function NetworkView() {
     return () => clearInterval(id);
   }, []);
 
-  // ---- Cloud Services (SPEC section 5) --------------------------------------
-  // The toggle refuses while device syncing is on and points at the warning;
-  // the two never run together. Submit derives the credentials and asks the
-  // node whether the vault exists: new = created and uploaded here, existing =
-  // an Import dialog with a second confirmation that names what is lost.
   const cloudRuleText = (): string => {
     switch (cloudRule) {
       case 'length': return t('network.cloudRuleLength');
@@ -329,15 +329,11 @@ export default function NetworkView() {
     }
   };
 
-  // Spec 5.1, both directions: the cloud toggle refuses while devices are
-  // paired, and device pairing refuses while the vault is linked.
   const cloudBlocksSync = (kind: Kind): boolean => {
     if (kind !== 'device' || !cloud.linked) return false;
     setError(t('network.cloudBlocksSync'));
     return true;
   };
-  // The engine records failures in English for the log. Map the ones a person
-  // can act on to translated text, and fall back to the raw line otherwise.
   const cloudErrorText = (raw: string): string => {
     const s = raw.toLowerCase();
     const m = raw.match(/^Left out, larger than \d+ MB: (.*)$/);
@@ -544,7 +540,6 @@ export default function NetworkView() {
         </div>
       </div>
 
-      {/* SPEC 5.1: directly under "Sync your devices", warning first. */}
       <p style={{ fontSize: 12, color: 'var(--danger)', margin: '14px 0 0' }}>{t('network.cloudWarning')}</p>
 
       <div style={{ marginTop: 12 }}>
@@ -603,7 +598,6 @@ export default function NetworkView() {
         )}
       </div>
 
-      {/* These four already stack their own second step, so they stay single. */}
       <ConfirmDialog open={cloudExists} title={t('network.cloudExistsTitle')} message={t('network.cloudExistsMsg')} danger single
         onConfirm={() => { setCloudExists(false); setCloudImportConfirm(true); }}
         onCancel={() => { setCloudExists(false); CloudServices.cancelPendingLink(); }} />
@@ -663,9 +657,9 @@ export default function NetworkView() {
         }>
         <Field label={t('network.bucketName')} value={editBucket?.name || ''} onChange={v => editBucket && setEditBucket({ ...editBucket, name: v })} placeholder={t('network.bucketName')} />
         {editBucket && BUCKET_ROWS.map(f => (
-          <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+          <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
             <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{featureLabel(f)}</span>
-            {((f === 'history' || f === 'systemProfile' || f === 'whiteboard' || f === 'planner' ? ['all', 'none'] : ['all', 'select', 'none']) as PrivacyScopeMode[]).map(mode => {
+            {((f === 'front' || f === 'history' || f === 'systemProfile' || f === 'whiteboard' || f === 'planner' ? ['all', 'none'] : ['all', 'select', 'none']) as PrivacyScopeMode[]).map(mode => {
               const sel = editBucket[f].mode === mode;
               const label = mode === 'all' ? t('network.scopeAll') : mode === 'select' ? t('network.scopeSelect') : t('network.scopeNone');
               return (
@@ -686,8 +680,50 @@ export default function NetworkView() {
                 {editBucket[f].ids.length} ✎
               </Btn>
             )}
+            {f === 'front' && editBucket.front.mode !== 'none' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, width: '100%', paddingTop: 6 }}>
+                {([['frontMood', t('modal.mood')], ['frontLocation', t('modal.location')], ['frontNote', t('modal.note')]] as const).map(([key, label]) => {
+                  const on = editBucket[key] !== false;
+                  return (
+                    <button key={key} type="button" className="chip" role="checkbox" aria-checked={on} aria-label={label}
+                      style={{ borderColor: on ? 'var(--accent)' : 'var(--border)', background: on ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'var(--surface)', color: on ? 'var(--accent)' : 'var(--dim)' }}
+                      onClick={() => setEditBucket({ ...editBucket, [key]: !on })}>
+                      {on ? '✓ ' : ''}{label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
+        {editBucket && (() => {
+          const accepted = net.friends.filter(f => f.kind !== 'device' && f.status === 'accepted');
+          return (
+            <div style={{ padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{t('network.friends')}</div>
+              {accepted.length === 0 ? (
+                <p style={{ fontSize: 11, color: 'var(--dim)', margin: 0 }}>{t('network.noFriends')}</p>
+              ) : accepted.map(f => {
+                const checked = (editBucket.friendPeerIds || []).includes(f.peerId);
+                return (
+                  <button key={f.peerId} type="button" role="checkbox" aria-checked={checked} aria-label={f.displayName}
+                    onClick={() => setEditBucket({
+                      ...editBucket,
+                      friendPeerIds: checked
+                        ? (editBucket.friendPeerIds || []).filter(id => id !== f.peerId)
+                        : [...(editBucket.friendPeerIds || []), f.peerId],
+                    })}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '7px 0', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <span aria-hidden style={{ width: 20, height: 20, borderRadius: 10, border: `2px solid ${checked ? 'var(--accent)' : 'var(--border)'}`, background: checked ? 'var(--accent)' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                      {checked ? '✓' : ''}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.displayName}</span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </Modal>
 
       <Modal

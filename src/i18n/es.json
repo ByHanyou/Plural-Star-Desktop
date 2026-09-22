@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "AAAA",
+    "hour": "HH",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Colores",
     "rowDefault": "Predeterminado",
@@ -54,7 +61,11 @@
     "tierHint": "Cambia el nombre de los niveles de fronteo. Tu palabra sustituye a la predeterminada en toda la app. En blanco se usa la predeterminada.",
     "tierPrimary": "Frente Principal",
     "tierCoFront": "Co-Frente",
-    "tierCoConscious": "Co-Consciente"
+    "tierCoConscious": "Co-Consciente",
+    "journal": "Diario",
+    "hub": "Centro",
+    "history": "Historial",
+    "archive": "Archivo"
   },
   "planner": {
     "title": "Planificador Diario",
@@ -111,6 +122,7 @@
     "title": "Buzón",
     "compose": "Redactar",
     "everyone": "Todo el mundo",
+    "allOthers": "Todos los demás Miembros",
     "from": "De",
     "to": "Para",
     "send": "Enviar",
@@ -185,7 +197,7 @@
     "relayHint": "La dirección y el token de un nodo de Plural Star por el que conectarse. Deja el token vacío si el relé es abierto.",
     "saveRelay": "Guardar y conectar",
     "tabPrivacy": "Privacidad",
-    "privacyDesc": "Los círculos de privacidad deciden qué pueden ver los amigos dentro de ellos: todo, una selección o nada, por función. Asignar amigos llegará con la expansión de compartir.",
+    "privacyDesc": "Los círculos de privacidad deciden qué pueden ver los amigos dentro de ellos: todo, una selección o nada, por función.",
     "noBuckets": "Aún no hay círculos.",
     "newBucket": "Nuevo círculo",
     "bucketName": "Nombre del círculo",
@@ -509,7 +521,22 @@
     "archived": "Archivados",
     "noArchived": "No hay miembros archivados.",
     "noArchivedFacets": "No hay facetas archivadas.",
-    "noArchivedCustomFronts": "No hay frentes personalizados archivados."
+    "noArchivedCustomFronts": "No hay frentes personalizados archivados.",
+    "restore": "Restaurar",
+    "select": "Seleccionar",
+    "selectAll": "Todos",
+    "selectNone": "Ninguno",
+    "bulkArchive": "Archivar miembros",
+    "bulkArchiveMsg": "¿Archivar {{count}} miembro(s)? Se pueden restaurar más tarde.",
+    "bulkRestore": "Restaurar miembros",
+    "bulkRestoreMsg": "¿Restaurar {{count}} miembro(s) a activos?",
+    "bulkDelete": "Eliminar miembros",
+    "bulkDeleteMsg": "¿Eliminar permanentemente {{count}} miembro(s)? Esto no se puede deshacer.",
+    "assignGroup": "Grupo",
+    "frontingLockTitle": "Actualmente al frente",
+    "frontingLockMsg": "No puedes archivar ni eliminar un miembro mientras está al frente. Quítalo del frente primero.",
+    "archive": "Archivar",
+    "recentlyDeleted": "Eliminados recientemente"
   },
   "history": {
     "title": "Historial",
@@ -705,7 +732,8 @@
     "toolQuote": "Cita",
     "toolCode": "Código",
     "brokenImage": "[imagen dañada]",
-    "imageUnavailable": "[imagen no disponible]"
+    "imageUnavailable": "[imagen no disponible]",
+    "spoiler": "Spoiler, haz clic para revelar"
   },
   "modal": {
     "appFont": "Fuente de la app",

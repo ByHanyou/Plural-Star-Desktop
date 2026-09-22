@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChatChannel, ChatCategory, ChatMessage, DEFAULT_CHANNELS, Member,
-  uid, getInitials, fmtTime, frontersFirst, sortChatCategories, chatChannelsIn, isRosterMember, memberMatchesSearch, mirrorThumbDataUrl,
+  uid, getInitials, fmtTime, frontersFirst, sortChatCategories, chatChannelsIn, isRosterMember, memberMatchesSearch, mirrorThumbDataUrl, truncateRunes,
 } from '../utils';
 import { store, KEYS, chatMsgKey } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
@@ -75,14 +75,10 @@ export default function ChatView({ onUpdate }: Props) {
     if (activeChannelId) loadMessages(activeChannelId);
   }, [activeChannelId, loadMessages]);
 
-  // A sync (device lane or the vault) can land messages in the open channel.
-  // Reload so they show, and so a send does not save a stale list over them.
   useEffect(() => NetworkManager.onSyncApplied(() => {
     if (activeChannelId) loadMessages(activeChannelId);
   }), [activeChannelId, loadMessages]);
 
-  // Sends that await something (the file reader) must append to the list as
-  // it is when the await ends, not as it was when they began.
   const messagesRef = useRef<ChatMessage[]>(messages);
   messagesRef.current = messages;
 
@@ -151,10 +147,6 @@ export default function ChatView({ onUpdate }: Props) {
       reader.onload = async () => {
         try {
           let content = reader.result as string;
-          // Same bound as mobile's picker (1280 px longest side): a full-size
-          // photo inlined into the channel JSON is rewritten on every save
-          // and refused by the vault above 25 MB. Small GIFs and PNGs stay as
-          // they are (animation, transparency).
           const keepRaw = (file.type === 'image/gif' || file.type === 'image/png') && file.size <= 2 * 1024 * 1024;
           if (!keepRaw) content = (await mirrorThumbDataUrl(content, 1280, 0.8)) || content;
           const msg: ChatMessage = {
@@ -525,14 +517,11 @@ export default function ChatView({ onUpdate }: Props) {
                     {replyMsg && (
                       <div style={{ fontSize: 11, color: 'var(--muted)', borderLeft: `2px solid ${replyAuthor?.color || 'var(--border)'}`, paddingLeft: 8, marginBottom: 4, marginTop: 2 }}>
                         <span style={{ color: replyAuthor?.color || 'var(--dim)' }}>{replyAuthor?.name}</span>
-                        {': '}{replyMsg.content.slice(0, 80)}{replyMsg.content.length > 80 ? '...' : ''}
+                        {': '}{truncateRunes(replyMsg.content, 80, '...')}
                       </div>
                     )}
 
                     {msg.type === 'image' ? (
-                      // 'cloud:media' is the vault's placeholder for bytes this
-                      // device has not received (full-size images off, or not
-                      // pulled yet).
                       msg.content && msg.content !== 'cloud:media'
                         ? <img src={msg.content} alt="" style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8, marginTop: 4 }} />
                         : <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', margin: '4px 0 0' }}>{t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</p>
@@ -565,8 +554,6 @@ export default function ChatView({ onUpdate }: Props) {
                       )}
                       <button aria-label={t('chat.addReaction', {defaultValue: 'Add reaction'})} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
                         onClick={() => setShowEmojiFor(showEmojiFor === msg.id ? null : msg.id)}>😊</button>
-                      {/* Mobile has had per-message delete since chat shipped;
-                          Desktop never did. Same keys as mobile. */}
                       <button aria-label={t('chat.deleteMsg')} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}
                         onClick={() => setConfirmDeleteMsg(msg)}><span aria-hidden>✕ </span>{t('common.delete')}</button>
                     </div>
@@ -574,7 +561,7 @@ export default function ChatView({ onUpdate }: Props) {
                     {showEmojiFor === msg.id && (
                       <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                         {EMOJI_QUICK.map(e => (
-                          <button key={e} style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                          <button key={e} type="button" aria-label={e} style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
                             onClick={() => addReaction(msg.id, e)}>{e}</button>
                         ))}
                       </div>

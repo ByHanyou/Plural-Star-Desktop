@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "ÁÁÁÁ",
+    "hour": "KK",
+    "minute": "MÍN"
+  },
   "colors": {
     "title": "Litir",
     "rowDefault": "Sjálfgefið",
@@ -197,7 +204,22 @@
     "archived": "Í safni",
     "noArchived": "Engir meðlimir í safni.",
     "noArchivedFacets": "Engar hliðar í safni.",
-    "noArchivedCustomFronts": "Engin sérsniðin front í safni."
+    "noArchivedCustomFronts": "Engin sérsniðin front í safni.",
+    "restore": "Endurheimta",
+    "select": "Velja",
+    "selectAll": "Allt",
+    "selectNone": "Ekkert",
+    "bulkArchive": "Setja meðlimi í safn",
+    "bulkArchiveMsg": "Setja {{count}} meðlim(i) í safn? Hægt er að endurheimta þá síðar.",
+    "bulkRestore": "Endurheimta meðlimi",
+    "bulkRestoreMsg": "Endurheimta {{count}} meðlim(i) sem virka?",
+    "bulkDelete": "Eyða meðlimum",
+    "bulkDeleteMsg": "Eyða {{count}} meðlim(um) varanlega? Þetta er ekki hægt að afturkalla.",
+    "assignGroup": "Hópur",
+    "frontingLockTitle": "Núna að fronta",
+    "frontingLockMsg": "Ekki er hægt að setja meðlim í safn eða eyða á meðan viðkomandi frontar. Taktu viðkomandi fyrst úr fronti.",
+    "archive": "Setja í safn",
+    "recentlyDeleted": "Nýlega eytt"
   },
   "history": {
     "title": "Saga",
@@ -393,7 +415,8 @@
     "toolQuote": "Tilvitnun",
     "toolCode": "Kóði",
     "brokenImage": "[biluð mynd]",
-    "imageUnavailable": "[mynd ekki tiltæk]"
+    "imageUnavailable": "[mynd ekki tiltæk]",
+    "spoiler": "Spilliefni, smelltu til að sýna"
   },
   "modal": {
     "changePfp": "Breyta prófílmynd",
@@ -578,7 +601,11 @@
     "tierHint": "Endurnefndu frontstigin. Orðið þitt kemur í stað sjálfgefna orðsins alls staðar. Tómt notar sjálfgefið.",
     "tierPrimary": "Aðalfront",
     "tierCoFront": "Sam-front",
-    "tierCoConscious": "Sam-meðvitund"
+    "tierCoConscious": "Sam-meðvitund",
+    "journal": "Dagbók",
+    "hub": "Miðstöð",
+    "history": "Saga",
+    "archive": "Safn"
   },
   "planner": {
     "title": "Dagsskipuleggjari",
@@ -635,6 +662,7 @@
     "title": "Pósthólf",
     "compose": "Semja",
     "everyone": "Öll",
+    "allOthers": "Allir aðrir Meðlimir",
     "from": "Frá",
     "to": "Til",
     "send": "Senda",
@@ -709,7 +737,7 @@
     "relayHint": "Vistfang og aðgangslykill Plural Star-hnúts til að tengjast í gegnum. Skildu lykilinn eftir tóman ef miðlarinn er opinn.",
     "saveRelay": "Vista og tengjast",
     "tabPrivacy": "Persónuvernd",
-    "privacyDesc": "Persónuverndarfötur ákveða hvað vinir í þeim sjá — allt, úrval eða ekkert, fyrir hvern eiginleika. Að úthluta vinum í fötur kemur með deilistækkuninni.",
+    "privacyDesc": "Persónuverndarfötur ákveða hvað vinir í þeim sjá — allt, úrval eða ekkert, fyrir hvern eiginleika.",
     "noBuckets": "Engar fötur enn.",
     "newBucket": "Ný fata",
     "bucketName": "Nafn fötu",

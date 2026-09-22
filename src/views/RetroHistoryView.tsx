@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Toggle, useEscapeKey } from '../components/ui';
+import { Btn, Field, Toggle, useEscapeKey, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
+import type { PickerKind, PickerKinds } from '../components/ui';
 
 interface Props {
   onUpdate: () => void;
@@ -38,6 +39,13 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const facetMembers = members.filter(m => m.isFacet && !m.isCustomFront && !m.archived);
   const customFronts = members.filter(m => m.isCustomFront && !m.archived);
   const statusPool = singletStatuses(members);
+  const kindLabels: Record<PickerKind, string> = { members: t('members.title'), facets: t('members.facets'), customFronts: t('members.customFronts') };
+  const retroPools: { kind?: PickerKind; label: string; members: Member[] }[] = [
+    { kind: 'members', label: kindLabels.members, members: regularMembers },
+    { kind: 'facets', label: kindLabels.facets, members: facetMembers },
+    { kind: 'customFronts', label: kindLabels.customFronts, members: customFronts },
+  ];
+  const [kinds, setKinds] = useState<Record<string, PickerKinds>>({});
 
   const [primaryIds, setPrimaryIds] = useState<string[]>([]);
   const [coFrontIds, setCoFrontIds] = useState<string[]>([]);
@@ -208,15 +216,30 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     finish();
   };
 
-  const TierMemberPicker = ({ tierKey, poolKey, label, color, selected, setSelected, pool, searchKind }: {
+  const TierMemberPicker = ({ tierKey, poolKey, label, color, selected, setSelected, pools, searchKind }: {
     tierKey: FrontTierKey; poolKey: string; label: string; color: string;
-    selected: string[]; setSelected: (ids: string[]) => void; pool: Member[];
+    selected: string[]; setSelected: (ids: string[]) => void; pools: { kind?: PickerKind; label: string; members: Member[] }[];
     searchKind?: string;
   }) => {
     const q = search[poolKey] || '';
     const ql = q.toLowerCase();
-    const filtered = ql ? pool.filter(m => !selected.includes(m.id) && memberMatchesSearch(m, ql)) : [];
-    const poolSelected = pool.filter(m => selected.includes(m.id));
+    const all = pools.flatMap(p => p.members);
+    const hasKinds = pools.some(p => !!p.kind);
+    const tierKinds = kinds[poolKey] || ALL_PICKER_KINDS;
+    const activePools = pools.filter(p => (!p.kind || tierKinds[p.kind]) && p.members.length > 0);
+    const searchLabel = t('members.searchToAddKind', { kind: searchKind || t('terminology.fronters') });
+    let budget = 20;
+    const grouped: { label: string; rows: Member[] }[] = [];
+    if (ql) {
+      for (const pool of activePools) {
+        if (budget <= 0) break;
+        const rows = pool.members.filter(m => !selected.includes(m.id) && memberMatchesSearch(m, ql)).slice(0, budget);
+        if (rows.length === 0) continue;
+        budget -= rows.length;
+        grouped.push({ label: pool.label, rows });
+      }
+    }
+    const poolSelected = all.filter(m => selected.includes(m.id));
     const toggle = (id: string) => {
       setSelected(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
     };
@@ -241,25 +264,32 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         )}
         <input className="field__input" value={q}
           onChange={e => setSearch({ ...search, [poolKey]: e.target.value })}
-          aria-label={searchKind ? t('members.searchToAddKind', { kind: searchKind, defaultValue: `Type to search ${searchKind}…` }) : t('members.searchToAdd')}
-          placeholder={searchKind ? t('members.searchToAddKind', { kind: searchKind, defaultValue: `Type to search ${searchKind}…` }) : t('members.searchToAdd')}
+          aria-label={searchLabel} placeholder={searchLabel}
           style={{ marginBottom: 6, fontSize: 12 }} />
-        {ql && filtered.length > 0 && (
-          <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 4 }}>
-            {filtered.slice(0, 20).map(m => {
-              const otherTier = (Object.entries(allSelected) as [FrontTierKey, string[]][]).find(([tk, ids]) => tk !== tierKey && ids.includes(m.id));
-              return (
-                <button key={m.id} onClick={() => { toggle(m.id); setSearch({ ...search, [poolKey]: '' }); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: otherTier ? 0.5 : 1 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                  <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                  {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
-                  {otherTier && (
-                    <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({TIER_LABELS[otherTier[0]].split(' ')[0]})</span>
-                  )}
-                </button>
-              );
-            })}
+        {hasKinds && <KindToggles kinds={tierKinds} setKinds={k => setKinds({ ...kinds, [poolKey]: k })} labels={kindLabels} />}
+        {ql && grouped.length > 0 && (
+          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 4 }}>
+            {grouped.map((group, gi) => (
+              <div key={`${gi}-${group.label}`}>
+                {grouped.length > 1 && (
+                  <div role="heading" aria-level={4} style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, padding: '8px 12px 4px', background: 'var(--card)' }}>{group.label}</div>
+                )}
+                {group.rows.map(m => {
+                  const otherTier = (Object.entries(allSelected) as [FrontTierKey, string[]][]).find(([tk, ids]) => tk !== tierKey && ids.includes(m.id));
+                  return (
+                    <button key={m.id} onClick={() => { toggle(m.id); setSearch({ ...search, [poolKey]: '' }); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: otherTier ? 0.5 : 1 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
+                      <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                      {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
+                      {otherTier && (
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({TIER_LABELS[otherTier[0]].split(' ')[0]})</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -322,23 +352,11 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
       <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 16px' }} />
 
       {singlet ? (
-        <TierMemberPicker tierKey="primary" poolKey="primary" label={t('status.statuses')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={statusPool} />
+        <TierMemberPicker tierKey="primary" poolKey="primary" label={t('status.statuses')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={[{ label: t('status.statuses'), members: statusPool }]} searchKind={t('status.statuses')} />
       ) : (<>
-        <TierMemberPicker tierKey="primary" poolKey="primary" label={TIER_LABELS.primary} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={regularMembers} searchKind={t('members.title')} />
-        <TierMemberPicker tierKey="primary" poolKey="primaryFacet" label={t('members.facets')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={facetMembers} searchKind={t('members.facets')} />
-        {customFronts.length > 0 && (
-          <TierMemberPicker tierKey="primary" poolKey="primaryCf" label={t('members.customFronts')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pool={customFronts} searchKind={t('members.customFronts')} />
-        )}
-        <TierMemberPicker tierKey="coFront" poolKey="coFront" label={TIER_LABELS.coFront} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={regularMembers} searchKind={t('members.title')} />
-        <TierMemberPicker tierKey="coFront" poolKey="coFrontFacet" label={t('members.facets')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={facetMembers} searchKind={t('members.facets')} />
-        {customFronts.length > 0 && (
-          <TierMemberPicker tierKey="coFront" poolKey="coFrontCf" label={t('members.customFronts')} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pool={customFronts} searchKind={t('members.customFronts')} />
-        )}
-        <TierMemberPicker tierKey="coConscious" poolKey="coConscious" label={TIER_LABELS.coConscious} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={regularMembers} searchKind={t('members.title')} />
-        <TierMemberPicker tierKey="coConscious" poolKey="coConsciousFacet" label={t('members.facets')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={facetMembers} searchKind={t('members.facets')} />
-        {customFronts.length > 0 && (
-          <TierMemberPicker tierKey="coConscious" poolKey="coConsciousCf" label={t('members.customFronts')} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pool={customFronts} searchKind={t('members.customFronts')} />
-        )}
+        <TierMemberPicker tierKey="primary" poolKey="primary" label={TIER_LABELS.primary} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={retroPools} />
+        <TierMemberPicker tierKey="coFront" poolKey="coFront" label={TIER_LABELS.coFront} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pools={retroPools} />
+        <TierMemberPicker tierKey="coConscious" poolKey="coConscious" label={TIER_LABELS.coConscious} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pools={retroPools} />
       </>)}
 
       {tierDetails(singlet ? '' : TIER_LABELS.primary, 'var(--accent)', mood, setMood, location, setLocation, energy, setEnergy, note, setNote)}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatMessage } from '../utils';
+import { ChatMessage, truncateRunes } from '../utils';
 import { store, chatMsgKey } from '../storage';
 import { useAppStore } from '../store/appStore';
 
@@ -33,7 +33,7 @@ export default function ChatTile({ onClick }: Props) {
         {!lastMsg ? <span className="tile__empty">{t('chat.noMessages')}</span> : (<>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>#{lastMsg.channel}</span>
           <div className="tile__chat-author">{getMember(lastMsg.msg.authorId)?.name || t('common.unknown')}</div>
-          <div className="tile__chat-msg">{lastMsg.msg.content.length > 120 ? lastMsg.msg.content.slice(0, 120) + '...' : lastMsg.msg.content}</div>
+          <div className="tile__chat-msg">{truncateRunes(lastMsg.msg.content, 120, '...')}</div>
         </>)}
         <div style={{ marginTop: 'auto', paddingTop: 8, fontSize: 11, color: 'var(--muted)' }}>{activeCount} {t('chat.channels')}</div>
       </div>

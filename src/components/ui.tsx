@@ -100,6 +100,24 @@ export function Toggle({ value, onChange, label, description }: {
 }
 
 
+export type PickerKind = 'members' | 'facets' | 'customFronts';
+export type PickerKinds = Record<PickerKind, boolean>;
+export const PICKER_KIND_ORDER: PickerKind[] = ['members', 'facets', 'customFronts'];
+export const ALL_PICKER_KINDS: PickerKinds = { members: true, facets: true, customFronts: true };
+
+export function KindToggles({ kinds, setKinds, labels }: { kinds: PickerKinds; setKinds: (k: PickerKinds) => void; labels: Record<PickerKind, string> }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 8 }}>
+      {PICKER_KIND_ORDER.map(kind => (
+        <label key={kind} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: kinds[kind] ? 'var(--text)' : 'var(--dim)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={kinds[kind]} onChange={e => setKinds({ ...kinds, [kind]: e.target.checked })} style={{ accentColor: 'var(--accent)', width: 15, height: 15, margin: 0 }} />
+          {labels[kind]}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export function Section({ label, color }: { label: string; color?: string }) {
   return (
     <div className="section-div">
@@ -224,6 +242,8 @@ export function ColorPicker({ value, onChange, palette }: {
   const hsvRef = useRef(hsv);
   hsvRef.current = hsv;
   const lastHexRef = useRef(value.toUpperCase());
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   const adopt = (n: string) => {
     const nh = hexToHsv(n);
@@ -249,7 +269,7 @@ export function ColorPicker({ value, onChange, palette }: {
     const nx = hsvToHex(h, s, v);
     setHsv({ h, s, v }); setHex(nx); setError(false);
     lastHexRef.current = nx.toUpperCase();
-    onChange(nx);
+    onChangeRef.current(nx);
   };
 
   const onSvPointer = (e: { clientX: number; clientY: number }) => {
@@ -364,12 +384,6 @@ export function Modal({ open, title, onClose, footer, children }: {
 }
 
 
-// SPEC 5.4 (Cloud Services): with a vault linked, every destructive
-// confirmation gets a second step that repeats what is about to be lost and
-// says it happens on every linked device. Every danger dialog in the app goes
-// through this one component, so the rule lives here and nowhere else. A
-// caller that already stacks its own second dialog passes `single` to stay at
-// its own count (the Cloud Services dialogs, the whiteboard's triple clear).
 export function ConfirmDialog({ open, title, message, onConfirm, onCancel, danger = false, single = false }: {
   open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; danger?: boolean; single?: boolean;
 }) {

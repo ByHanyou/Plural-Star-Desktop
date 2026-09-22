@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "BB",
+    "day": "HH",
+    "year": "TTTT",
+    "hour": "JJ",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Warna",
     "rowDefault": "Lalai",
@@ -54,7 +61,11 @@
     "tierHint": "Namakan semula tahap fronting. Perkataan anda menggantikan yang lalai di mana-mana sahaja. Kosong menggunakan lalai.",
     "tierPrimary": "Front Utama",
     "tierCoFront": "Ko-Front",
-    "tierCoConscious": "Ko-Sedar"
+    "tierCoConscious": "Ko-Sedar",
+    "journal": "Jurnal",
+    "hub": "Hab",
+    "history": "Sejarah",
+    "archive": "Arkib"
   },
   "planner": {
     "title": "Perancang Hari",
@@ -110,6 +121,7 @@
     "title": "Peti mel",
     "compose": "Karang",
     "everyone": "Semua",
+    "allOthers": "Semua Ahli lain",
     "from": "Daripada",
     "to": "Kepada",
     "send": "Hantar",
@@ -184,7 +196,7 @@
     "relayHint": "Alamat dan token nod Plural Star untuk disambungkan. Biarkan token kosong jika relay terbuka.",
     "saveRelay": "Simpan & sambung",
     "tabPrivacy": "Privasi",
-    "privacyDesc": "Bulatan privasi menentukan apa yang rakan di dalamnya boleh lihat: semua, pilihan, atau tiada — mengikut ciri. Penetapan rakan tiba dengan peluasan perkongsian.",
+    "privacyDesc": "Bulatan privasi menentukan apa yang rakan di dalamnya boleh lihat: semua, pilihan, atau tiada — mengikut ciri.",
     "noBuckets": "Tiada bulatan lagi.",
     "newBucket": "Bulatan baharu",
     "bucketName": "Nama bulatan",
@@ -412,7 +424,22 @@
     "noArchived": "Tiada ahli diarkib.",
     "noArchivedFacets": "Tiada facet diarkib.",
     "noArchivedCustomFronts": "Tiada front tersuai diarkib.",
-    "selectedCount": "{{count}} dipilih"
+    "selectedCount": "{{count}} dipilih",
+    "restore": "Pulihkan",
+    "select": "Pilih",
+    "selectAll": "Semua",
+    "selectNone": "Tiada",
+    "bulkArchive": "Arkibkan ahli",
+    "bulkArchiveMsg": "Arkibkan {{count}} ahli? Mereka boleh dipulihkan kemudian.",
+    "bulkRestore": "Pulihkan ahli",
+    "bulkRestoreMsg": "Pulihkan {{count}} ahli kepada aktif?",
+    "bulkDelete": "Padam ahli",
+    "bulkDeleteMsg": "Padam {{count}} ahli secara kekal? Ini tidak boleh dibuat asal.",
+    "assignGroup": "Kumpulan",
+    "frontingLockTitle": "Sedang front",
+    "frontingLockMsg": "Anda tidak boleh mengarkib atau memadam ahli semasa mereka front. Keluarkan mereka dari front dahulu.",
+    "archive": "Arkib",
+    "recentlyDeleted": "Dipadam baru-baru ini"
   },
   "history": {
     "title": "Sejarah",
@@ -608,7 +635,8 @@
     "toolQuote": "Petikan",
     "toolCode": "Kod",
     "brokenImage": "[imej rosak]",
-    "imageUnavailable": "[imej tidak tersedia]"
+    "imageUnavailable": "[imej tidak tersedia]",
+    "spoiler": "Spoiler, klik untuk dedahkan"
   },
   "modal": {
     "read": "Baca",

@@ -69,7 +69,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
 
   const deleteStatus = async (id: string) => {
     const all = await store.get<Member[]>(KEYS.members, []) || [];
-    await store.set(KEYS.members, all.filter(m => m.id !== id));
+    await store.set(KEYS.members, all.map(m => m.id === id ? { ...m, archived: true, deleted: true } : m));
     setConfirmDeleteStatus(null);
     setEditingStatus(null);
     onUpdate();

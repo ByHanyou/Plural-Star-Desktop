@@ -80,8 +80,6 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
       }
     };
     load().catch(e => logError('systemMap', e));
-    // Relationships, types, map membership and positions live here, not in
-    // the app store: a sync that changes them must reload them.
     return NetworkManager.onSyncApplied(() => { load().catch(e => logError('systemMap', e)); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "JJ",
+    "year": "AAAA",
+    "hour": "HH",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Couleurs",
     "rowDefault": "Par défaut",
@@ -54,7 +61,11 @@
     "tierHint": "Renomme les niveaux de front. Ton mot remplace le mot par défaut partout. Vide = mot par défaut.",
     "tierPrimary": "Front Principal",
     "tierCoFront": "Co-Front",
-    "tierCoConscious": "Co-Conscient"
+    "tierCoConscious": "Co-Conscient",
+    "journal": "Journal",
+    "hub": "Centre",
+    "history": "Historique",
+    "archive": "Archives"
   },
   "planner": {
     "title": "Agenda du Jour",
@@ -111,6 +122,7 @@
     "title": "Messagerie",
     "compose": "Rédiger",
     "everyone": "Tout le monde",
+    "allOthers": "Tous les autres Membres",
     "from": "De",
     "to": "À",
     "send": "Envoyer",
@@ -185,7 +197,7 @@
     "relayHint": "L'adresse et le jeton d'un nœud Plural Star par lequel se connecter. Laisse le jeton vide si le relais est ouvert.",
     "saveRelay": "Enregistrer et connecter",
     "tabPrivacy": "Confidentialité",
-    "privacyDesc": "Les cercles de confidentialité déterminent ce que les amis placés dedans peuvent voir : tout, une sélection ou rien, par fonctionnalité. L'attribution des amis arrivera avec l'extension de partage.",
+    "privacyDesc": "Les cercles de confidentialité déterminent ce que les amis placés dedans peuvent voir : tout, une sélection ou rien, par fonctionnalité.",
     "noBuckets": "Aucun cercle pour l'instant.",
     "newBucket": "Nouveau cercle",
     "bucketName": "Nom du cercle",
@@ -509,7 +521,22 @@
     "archived": "Archivés",
     "noArchived": "Aucun membre archivé.",
     "noArchivedFacets": "Aucune facette archivée.",
-    "noArchivedCustomFronts": "Aucun front personnalisé archivé."
+    "noArchivedCustomFronts": "Aucun front personnalisé archivé.",
+    "restore": "Restaurer",
+    "select": "Sélectionner",
+    "selectAll": "Tous",
+    "selectNone": "Aucun",
+    "bulkArchive": "Archiver des membres",
+    "bulkArchiveMsg": "Archiver {{count}} membre(s) ? Ils pourront être restaurés plus tard.",
+    "bulkRestore": "Restaurer des membres",
+    "bulkRestoreMsg": "Restaurer {{count}} membre(s) comme actifs ?",
+    "bulkDelete": "Supprimer des membres",
+    "bulkDeleteMsg": "Supprimer définitivement {{count}} membre(s) ? Cette action est irréversible.",
+    "assignGroup": "Groupe",
+    "frontingLockTitle": "Actuellement au front",
+    "frontingLockMsg": "Vous ne pouvez pas archiver ou supprimer un membre pendant qu'il est au front. Retirez-le du front d'abord.",
+    "archive": "Archiver",
+    "recentlyDeleted": "Supprimés récemment"
   },
   "history": {
     "title": "Historique",
@@ -672,7 +699,8 @@
     "toolQuote": "Citation",
     "toolCode": "Code",
     "brokenImage": "[image corrompue]",
-    "imageUnavailable": "[image indisponible]"
+    "imageUnavailable": "[image indisponible]",
+    "spoiler": "Spoiler, cliquez pour révéler"
   },
   "modal": {
     "appFont": "Police de l'app",

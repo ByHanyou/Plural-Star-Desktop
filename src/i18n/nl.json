@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "JJJJ",
+    "hour": "UU",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Kleuren",
     "rowDefault": "Standaard",
@@ -197,7 +204,22 @@
     "archived": "Gearchiveerd",
     "noArchived": "Geen gearchiveerde leden.",
     "noArchivedFacets": "Geen gearchiveerde facetten.",
-    "noArchivedCustomFronts": "Geen gearchiveerde aangepaste fronts."
+    "noArchivedCustomFronts": "Geen gearchiveerde aangepaste fronts.",
+    "restore": "Terugzetten",
+    "select": "Selecteren",
+    "selectAll": "Alles",
+    "selectNone": "Geen",
+    "bulkArchive": "Leden archiveren",
+    "bulkArchiveMsg": "{{count}} lid/leden archiveren? Ze kunnen later worden teruggezet.",
+    "bulkRestore": "Leden terugzetten",
+    "bulkRestoreMsg": "{{count}} lid/leden terugzetten naar actief?",
+    "bulkDelete": "Leden verwijderen",
+    "bulkDeleteMsg": "{{count}} lid/leden definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    "assignGroup": "Groep",
+    "frontingLockTitle": "Nu aan het fronten",
+    "frontingLockMsg": "Je kunt een lid niet archiveren of verwijderen terwijl die front. Haal ze eerst uit de front.",
+    "archive": "Archiveren",
+    "recentlyDeleted": "Onlangs verwijderd"
   },
   "history": {
     "title": "Geschiedenis",
@@ -393,7 +415,8 @@
     "toolQuote": "Citaat",
     "toolCode": "Code",
     "brokenImage": "[kapotte afbeelding]",
-    "imageUnavailable": "[afbeelding niet beschikbaar]"
+    "imageUnavailable": "[afbeelding niet beschikbaar]",
+    "spoiler": "Spoiler, klik om te tonen"
   },
   "modal": {
     "changePfp": "Profielfoto wijzigen",
@@ -578,7 +601,11 @@
     "tierHint": "Hernoem de frontniveaus. Jouw woord vervangt overal het standaardwoord. Leeg gebruikt de standaard.",
     "tierPrimary": "Primaire front",
     "tierCoFront": "Co-front",
-    "tierCoConscious": "Co-bewust"
+    "tierCoConscious": "Co-bewust",
+    "journal": "Dagboek",
+    "hub": "Hub",
+    "history": "Geschiedenis",
+    "archive": "Archief"
   },
   "planner": {
     "title": "Dagplanner",
@@ -635,6 +662,7 @@
     "title": "Brievenbus",
     "compose": "Opstellen",
     "everyone": "Iedereen",
+    "allOthers": "Alle andere Leden",
     "from": "Van",
     "to": "Aan",
     "send": "Versturen",
@@ -709,7 +737,7 @@
     "relayHint": "Het adres en de token van een Plural Star-node om via te verbinden. Laat de token leeg als het relay open is.",
     "saveRelay": "Opslaan & verbinden",
     "tabPrivacy": "Privacy",
-    "privacyDesc": "Privacybuckets bepalen wat vrienden erin kunnen zien — alles, een selectie of niets, per functie. Vrienden aan buckets toewijzen komt met de deel-uitbreiding.",
+    "privacyDesc": "Privacybuckets bepalen wat vrienden erin kunnen zien — alles, een selectie of niets, per functie.",
     "noBuckets": "Nog geen buckets.",
     "newBucket": "Nieuwe bucket",
     "bucketName": "Bucketnaam",

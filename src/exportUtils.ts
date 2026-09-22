@@ -1,4 +1,4 @@
-import { Member } from './utils';
+import { Member, truncateRunes } from './utils';
 
 export const MIME_BY_EXT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
 export const extFromDataUri = (u: string): string => { const m = /^data:image\/([\w+]+)/.exec(u); const e = (m?.[1] || 'png').toLowerCase(); return e === 'jpeg' ? 'jpg' : e; };
@@ -29,15 +29,15 @@ export const buildPluralKitExport = (system: any, members: Member[], history: an
   const pkMembers = realMembers.map(m => ({
     id: idMap[m.id],
     uuid: pkUuid(),
-    name: (m.name || 'Member').slice(0, 100),
+    name: truncateRunes(m.name || 'Member', 100),
     display_name: null,
     color: pkHexColor(m.color),
     birthday: null,
-    pronouns: m.pronouns ? m.pronouns.slice(0, 100) : null,
+    pronouns: m.pronouns ? truncateRunes(m.pronouns, 100) : null,
     avatar_url: pkPublicUrl(m.avatar) || m.pkAvatarUrl || null,
     webhook_avatar_url: null,
     banner: pkPublicUrl(m.banner) || m.pkBannerUrl || null,
-    description: m.description ? m.description.slice(0, 1000) : null,
+    description: m.description ? truncateRunes(m.description, 1000) : null,
     created: new Date((m as any).createdAt || Date.now()).toISOString(),
     keep_proxy: m.pkKeepProxy ?? false,
     tts: false,
@@ -57,8 +57,8 @@ export const buildPluralKitExport = (system: any, members: Member[], history: an
     .map((sw: any) => ({ timestamp: new Date(sw.t).toISOString(), members: sw.members }));
   return {
     version: 1,
-    name: system?.name ? system.name.slice(0, 100) : null,
-    description: system?.description ? system.description.slice(0, 1000) : null,
+    name: system?.name ? truncateRunes(system.name, 100) : null,
+    description: system?.description ? truncateRunes(system.description, 1000) : null,
     tag: null,
     pronouns: null,
     color: null,

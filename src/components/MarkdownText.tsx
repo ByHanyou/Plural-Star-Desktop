@@ -22,11 +22,29 @@ const Img = ({ uri }: { uri: string }) => {
   return <img src={uri} alt="" style={{ display: 'block', maxWidth: 300, maxHeight: 300, borderRadius: 8, margin: '2px 0' }} onError={() => setFailed(true)} />;
 };
 
+const SPOILER_RE = /\|\|(.+?)\|\|/;
+const Spoiler = ({ raw, render }: { raw: string; render: () => React.ReactNode }) => {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <span role="button" tabIndex={0} aria-expanded={open}
+      aria-label={open ? undefined : i18n.t('markdown.spoiler')}
+      onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setOpen(v => !v); } }}
+      style={open
+        ? { background: 'color-mix(in srgb, var(--dim) 20%, transparent)', borderRadius: 3, padding: '0 2px', cursor: 'pointer' }
+        : { background: 'var(--dim)', color: 'var(--dim)', borderRadius: 3, padding: '0 2px', cursor: 'pointer', userSelect: 'none' }}>
+      {open ? render() : <span aria-hidden>{raw}</span>}
+    </span>
+  );
+};
+const spoilerKey = (i: number, raw: string) => `sp-${i}-${raw.length}-${raw.slice(0, 24)}`;
+
 const renderInline = (text: string, members?: Member[]): React.ReactNode => {
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let key = 0;
   const patterns: [RegExp, (m: RegExpMatchArray) => React.ReactNode][] = [
+    [SPOILER_RE, m => { const raw = m[1]; return <Spoiler key={spoilerKey(key++, raw)} raw={raw} render={() => renderInline(raw, members)} />; }],
     [new RegExp(MENTION_RE.source), m => {
       const member = members?.find(mb => mb.id === m[2]);
       const displayName = member?.name || m[1];
@@ -43,8 +61,6 @@ const renderInline = (text: string, members?: Member[]): React.ReactNode => {
       return <Img key={key++} uri={url} />;
     }],
     [/\[(.+?)\]\((.+?)\)/, m => {
-      // Only web and mail links become links. Anything else (javascript:,
-      // file:, data:) is shown as text; descriptions can come from friends.
       const href = m[2].trim();
       if (!/^(https?:\/\/|mailto:)/i.test(href)) return <span key={key++}>{m[1]}</span>;
       return <a key={key++} href={href} target="_blank" rel="noreferrer noopener" style={{ color: 'var(--info)', textDecoration: 'underline' }}>{m[1]}</a>;

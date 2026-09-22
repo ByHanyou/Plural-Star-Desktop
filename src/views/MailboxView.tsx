@@ -29,17 +29,15 @@ export default function MailboxView({ onUpdate }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<NoteboardEntry | null>(null);
 
   const activeMembers = useMemo(
-    () => members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted).sort((a, b) => nameCompare(a.name, b.name)),
+    () => members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted && !m.archived).sort((a, b) => nameCompare(a.name, b.name)),
     [members],
   );
   const activeFacets = useMemo(
-    () => members.filter(m => !m.isCustomFront && m.isFacet && !m.deleted).sort((a, b) => nameCompare(a.name, b.name)),
+    () => members.filter(m => !m.isCustomFront && m.isFacet && !m.deleted && !m.archived).sort((a, b) => nameCompare(a.name, b.name)),
     [members],
   );
   const nameOf = (id: string) => members.find(m => m.id === id)?.name || '?';
 
-  // Loaded here, not in the app store, so a sync that changes it must reload
-  // it or the next save here would write the stale list over it.
   useEffect(() => {
     const load = () => { store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setNotes(n || [])); };
     load();
@@ -161,7 +159,9 @@ export default function MailboxView({ onUpdate }: Props) {
   const recipientOptions = activeMembers.length > 0 ? [ALL_RECIPIENTS, ...memberOptions] : memberOptions;
   const renderMemberOption = (id: string) => nameOf(id);
   const renderRecipientOption = (id: string) =>
-    id === ALL_RECIPIENTS ? `${t('mailbox.everyone')} (${activeMembers.length})` : nameOf(id);
+    id === ALL_RECIPIENTS
+      ? `${t('mailbox.allOthers')} (${activeMembers.filter(m => m.id !== composeFrom).length})`
+      : nameOf(id);
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', paddingBottom: 32 }}>

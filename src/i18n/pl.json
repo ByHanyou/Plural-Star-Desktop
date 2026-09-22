@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "DD",
+    "year": "RRRR",
+    "hour": "GG",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Kolory",
     "rowDefault": "Domyślne",
@@ -197,7 +204,22 @@
     "archived": "Zarchiwizowani",
     "noArchived": "Brak zarchiwizowanych członków.",
     "noArchivedFacets": "Brak zarchiwizowanych aspektów.",
-    "noArchivedCustomFronts": "Brak zarchiwizowanych własnych frontów."
+    "noArchivedCustomFronts": "Brak zarchiwizowanych własnych frontów.",
+    "restore": "Przywróć",
+    "select": "Wybierz",
+    "selectAll": "Wszystko",
+    "selectNone": "Nic",
+    "bulkArchive": "Archiwizuj członków",
+    "bulkArchiveMsg": "Zarchiwizować członków ({{count}})? Można ich później przywrócić.",
+    "bulkRestore": "Przywróć członków",
+    "bulkRestoreMsg": "Przywrócić członków ({{count}}) jako aktywnych?",
+    "bulkDelete": "Usuń członków",
+    "bulkDeleteMsg": "Trwale usunąć członków ({{count}})? Tego nie da się cofnąć.",
+    "assignGroup": "Grupa",
+    "frontingLockTitle": "Obecnie frontuje",
+    "frontingLockMsg": "Nie możesz zarchiwizować ani usunąć członka, gdy frontuje. Najpierw usuń go z frontu.",
+    "archive": "Archiwizuj",
+    "recentlyDeleted": "Ostatnio usunięte"
   },
   "history": {
     "title": "Historia",
@@ -393,7 +415,8 @@
     "toolQuote": "Cytat",
     "toolCode": "Kod",
     "brokenImage": "[uszkodzony obraz]",
-    "imageUnavailable": "[obraz niedostępny]"
+    "imageUnavailable": "[obraz niedostępny]",
+    "spoiler": "Spoiler, kliknij, aby odsłonić"
   },
   "modal": {
     "changePfp": "Zmień zdjęcie profilowe",
@@ -578,7 +601,11 @@
     "tierHint": "Zmień nazwy poziomów frontingu. Twoje słowo zastąpi domyślne wszędzie. Puste pole przywraca domyślne.",
     "tierPrimary": "Główny front",
     "tierCoFront": "Współfront",
-    "tierCoConscious": "Współświadomość"
+    "tierCoConscious": "Współświadomość",
+    "journal": "Dziennik",
+    "hub": "Centrum",
+    "history": "Historia",
+    "archive": "Archiwum"
   },
   "planner": {
     "title": "Planer Dnia",
@@ -637,6 +664,7 @@
     "title": "Skrzynka",
     "compose": "Napisz",
     "everyone": "Wszyscy",
+    "allOthers": "Wszyscy pozostali Członkowie",
     "from": "Od",
     "to": "Do",
     "send": "Wyślij",
@@ -711,7 +739,7 @@
     "relayHint": "Adres i token węzła Plural Star, przez który się łączysz. Zostaw token pusty, jeśli przekaźnik jest otwarty.",
     "saveRelay": "Zapisz i połącz",
     "tabPrivacy": "Prywatność",
-    "privacyDesc": "Kubełki prywatności decydują, co widzą znajomi w nich umieszczeni — wszystko, wybór albo nic, dla każdej funkcji. Przypisywanie znajomych do kubełków pojawi się wraz z rozszerzeniem udostępniania.",
+    "privacyDesc": "Kubełki prywatności decydują, co widzą znajomi w nich umieszczeni — wszystko, wybór albo nic, dla każdej funkcji.",
     "noBuckets": "Nie ma jeszcze kubełków.",
     "newBucket": "Nowy kubełek",
     "bucketName": "Nazwa kubełka",

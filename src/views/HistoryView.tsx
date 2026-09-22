@@ -24,7 +24,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
   const [range, setRange] = useState<TimeRange>('all');
   const [memberFilter, setMemberFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
-  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<HistoryEntry | null>(null);
   const [deleteStep, setDeleteStep] = useState(0);
 
   const getMember = (id: string) => members.find(m => m.id === id);
@@ -56,7 +56,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
         return true;
       })
       .sort((a, b) => b.startTime - a.startTime);
-  }, [history, cutoff, memberFilter, search]);
+  }, [history, cutoff, memberFilter, search, members]);
 
   const effEnd = useMemo(() => buildEffectiveEnd(history), [history]);
 
@@ -95,8 +95,8 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
     );
   };
 
-  const startDelete = (entryIndex: number) => {
-    setDeleteTarget(entryIndex);
+  const startDelete = (entry: HistoryEntry) => {
+    setDeleteTarget(entry);
     setDeleteStep(1);
   };
 
@@ -106,7 +106,12 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
       return;
     }
     if (deleteTarget === null) return;
-    const updated = history.filter((_, i) => i !== deleteTarget);
+    const live = useAppStore.getState().state.history;
+    const target = deleteTarget;
+    let idx = live.indexOf(target);
+    if (idx < 0) idx = live.findIndex(e => e.startTime === target.startTime && e.endTime === target.endTime && e.memberIds.join(',') === target.memberIds.join(','));
+    if (idx < 0) { setDeleteTarget(null); setDeleteStep(0); return; }
+    const updated = live.filter((_, i) => i !== idx);
     await store.set(KEYS.history, updated);
     setDeleteTarget(null);
     setDeleteStep(0);
@@ -260,7 +265,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
                   <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 11, cursor: 'pointer', opacity: 0.6, padding: '2px 6px' }}
-                    onClick={() => startDelete(history.indexOf(entry))}>
+                    onClick={() => startDelete(entry)}>
                     {t('history.deleteEntry')}
                   </button>
                 </div>

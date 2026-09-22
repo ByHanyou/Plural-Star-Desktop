@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "月",
+    "day": "日",
+    "year": "年",
+    "hour": "時",
+    "minute": "分"
+  },
   "colors": {
     "title": "カラー",
     "rowDefault": "デフォルト",
@@ -54,7 +61,11 @@
     "tierHint": "フロントの段階の呼び方を変更できます。入力した語がデフォルトの語をどこでも置き換えます。空欄ならデフォルトを使用します。",
     "tierPrimary": "プライマリフロント",
     "tierCoFront": "コフロント",
-    "tierCoConscious": "コーコンシャス"
+    "tierCoConscious": "コーコンシャス",
+    "journal": "ジャーナル",
+    "hub": "ハブ",
+    "history": "履歴",
+    "archive": "アーカイブ"
   },
   "planner": {
     "title": "デイプランナー",
@@ -110,6 +121,7 @@
     "title": "メールボックス",
     "compose": "作成",
     "everyone": "全員",
+    "allOthers": "他のすべてのメンバー",
     "from": "差出人",
     "to": "宛先",
     "send": "送信",
@@ -184,7 +196,7 @@
     "relayHint": "接続に使う Plural Star ノードのアドレスとトークン。リレーが公開されている場合はトークンを空欄にしてください。",
     "saveRelay": "保存して接続",
     "tabPrivacy": "プライバシー",
-    "privacyDesc": "プライバシーサークルは、その中の友達に見せる範囲を機能ごとに決めます（すべて・選択・なし）。友達の割り当ては共有拡張で追加されます。",
+    "privacyDesc": "プライバシーサークルは、その中の友達に見せる範囲を機能ごとに決めます（すべて・選択・なし）。",
     "noBuckets": "サークルはまだありません。",
     "newBucket": "新しいサークル",
     "bucketName": "サークル名",
@@ -508,7 +520,22 @@
     "noArchivedFacets": "アーカイブされた側面はありません。",
     "noArchivedCustomFronts": "アーカイブされたカスタムフロントはありません。",
     "clone": "複製",
-    "cloneFields": "どのフィールドをコピーしますか？"
+    "cloneFields": "どのフィールドをコピーしますか？",
+    "restore": "復元",
+    "select": "選択",
+    "selectAll": "すべて",
+    "selectNone": "なし",
+    "bulkArchive": "メンバーをアーカイブ",
+    "bulkArchiveMsg": "{{count}} 人のメンバーをアーカイブしますか？後で復元できます。",
+    "bulkRestore": "メンバーを復元",
+    "bulkRestoreMsg": "{{count}} 人のメンバーをアクティブに復元しますか？",
+    "bulkDelete": "メンバーを削除",
+    "bulkDeleteMsg": "{{count}} 人のメンバーを完全に削除しますか？この操作は取り消せません。",
+    "assignGroup": "グループ",
+    "frontingLockTitle": "現在フロント中",
+    "frontingLockMsg": "フロント中のメンバーはアーカイブまたは削除できません。先にフロントから外してください。",
+    "archive": "アーカイブ",
+    "recentlyDeleted": "最近削除した項目"
   },
   "history": {
     "title": "履歴",
@@ -704,7 +731,8 @@
     "toolQuote": "引用",
     "toolCode": "コード",
     "brokenImage": "[画像が壊れています]",
-    "imageUnavailable": "[画像は利用できません]"
+    "imageUnavailable": "[画像は利用できません]",
+    "spoiler": "ネタバレ、クリックして表示"
   },
   "modal": {
     "appFont": "アプリのフォント",

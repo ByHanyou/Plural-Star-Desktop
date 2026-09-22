@@ -91,8 +91,6 @@ export default function PlannerView({ onUpdate }: Props) {
       }).catch(e => logError('planner', e));
     };
     load();
-    // The planner lives here, not in the app store: a sync that changes it
-    // must reload it or the next save would write the stale copy over it.
     return NetworkManager.onSyncApplied(load);
   }, []);
 

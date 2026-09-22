@@ -1,4 +1,11 @@
 {
+  "dateFormat": {
+    "month": "MM",
+    "day": "TT",
+    "year": "JJJJ",
+    "hour": "HH",
+    "minute": "MIN"
+  },
   "colors": {
     "title": "Farben",
     "rowDefault": "Standard",
@@ -54,7 +61,11 @@
     "tierHint": "Benenne die Front-Ebenen um. Dein Wort ersetzt überall das Standardwort. Leer = Standard.",
     "tierPrimary": "Primärer Front",
     "tierCoFront": "Co-Front",
-    "tierCoConscious": "Co-Bewusst"
+    "tierCoConscious": "Co-Bewusst",
+    "journal": "Tagebuch",
+    "hub": "Zentrum",
+    "history": "Verlauf",
+    "archive": "Archiv"
   },
   "planner": {
     "title": "Tagesplaner",
@@ -111,6 +122,7 @@
     "title": "Postfach",
     "compose": "Verfassen",
     "everyone": "Alle",
+    "allOthers": "Alle anderen Mitglieder",
     "from": "Von",
     "to": "An",
     "send": "Senden",
@@ -185,7 +197,7 @@
     "relayHint": "Adresse und Token eines Plural-Star-Nodes, über den die Verbindung läuft. Token leer lassen, wenn das Relay offen ist.",
     "saveRelay": "Speichern & verbinden",
     "tabPrivacy": "Privatsphäre",
-    "privacyDesc": "Privatsphäre-Kreise legen fest, was Freunde darin sehen können: alles, eine Auswahl oder nichts — je Funktion. Freunde zuweisen kommt mit der Freigabe-Erweiterung.",
+    "privacyDesc": "Privatsphäre-Kreise legen fest, was Freunde darin sehen können: alles, eine Auswahl oder nichts — je Funktion.",
     "noBuckets": "Noch keine Kreise.",
     "newBucket": "Neuer Kreis",
     "bucketName": "Name des Kreises",
@@ -509,7 +521,22 @@
     "archived": "Archiviert",
     "noArchived": "Keine archivierten Mitglieder.",
     "noArchivedFacets": "Keine archivierten Facetten.",
-    "noArchivedCustomFronts": "Keine archivierten benutzerdefinierten Fronten."
+    "noArchivedCustomFronts": "Keine archivierten benutzerdefinierten Fronten.",
+    "restore": "Wiederherstellen",
+    "select": "Auswählen",
+    "selectAll": "Alle",
+    "selectNone": "Keine",
+    "bulkArchive": "Mitglieder archivieren",
+    "bulkArchiveMsg": "{{count}} Mitglied(er) archivieren? Sie können später wiederhergestellt werden.",
+    "bulkRestore": "Mitglieder wiederherstellen",
+    "bulkRestoreMsg": "{{count}} Mitglied(er) wieder aktivieren?",
+    "bulkDelete": "Mitglieder löschen",
+    "bulkDeleteMsg": "{{count}} Mitglied(er) endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
+    "assignGroup": "Gruppe",
+    "frontingLockTitle": "Derzeit im Front",
+    "frontingLockMsg": "Du kannst ein Mitglied nicht archivieren oder löschen, während es im Front ist. Entferne es zuerst aus dem Front.",
+    "archive": "Archivieren",
+    "recentlyDeleted": "Kürzlich gelöscht"
   },
   "history": {
     "title": "Verlauf",
@@ -672,7 +699,8 @@
     "toolQuote": "Zitat",
     "toolCode": "Code",
     "brokenImage": "[defektes Bild]",
-    "imageUnavailable": "[Bild nicht verfügbar]"
+    "imageUnavailable": "[Bild nicht verfügbar]",
+    "spoiler": "Spoiler, zum Anzeigen klicken"
   },
   "modal": {
     "appFont": "App-Schriftart",

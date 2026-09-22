@@ -25,8 +25,6 @@ export default function CustomFieldsView({ onUpdate }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  // Loaded here, not in the app store, so a sync that changes it must reload
-  // it or the next save here would write the stale list over it.
   useEffect(() => {
     const load = () => { store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFields(defs || [])); };
     load();
