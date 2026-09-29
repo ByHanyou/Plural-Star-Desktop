@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HistoryEntry, ChatMessage, fmtDur, fmtNum, getInitials, translateMood, buildEffectiveEnd, SINGLET_HIDDEN_STATUS_NAMES } from '../utils';
+import { HistoryEntry, ChatMessage, fmtDur, fmtNum, fmtClock, getInitials, translateMood, buildEffectiveEnd, SINGLET_HIDDEN_STATUS_NAMES } from '../utils';
 import { Section } from '../components/ui';
 import { store, chatMsgKey, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
@@ -269,7 +269,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {(['all', '30d', '7d'] as TimeRange[]).map(r => (
           <button key={r} className={`btn ${range === r ? 'btn--primary' : 'btn--ghost'}`}
-            onClick={() => setRange(r)}>
+            aria-pressed={range === r} onClick={() => setRange(r)}>
             {r === 'all' ? t('stats.allTime') : r === '30d' ? t('stats.last30') : t('stats.last7')}
           </button>
         ))}
@@ -340,7 +340,8 @@ export default function StatsView({ singlet = false, selfId }: Props) {
 
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.peakHours')}</h3>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
+        <div role="img" aria-label={`${t('stats.peakHours')}: ${peakHours.map((c, h) => c > 0 ? `${fmtClock(h, 0)} (${fmtNum(c)})` : '').filter(Boolean).join(', ')}`}
+          style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
           {peakHours.map((count, h) => (
             <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{
@@ -357,7 +358,8 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       {energyByHour.some(v => v > 0) && (
         <div style={{ marginTop: 20 }}>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.energyByHour', { defaultValue: 'Energy by Hour' })}</h3>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
+          <div role="img" aria-label={`${t('stats.energyByHour')}, ${t('energy.outOf10')}: ${energyByHour.map((avg, h) => avg > 0 ? `${fmtClock(h, 0)} (${fmtNum(avg, 1)})` : '').filter(Boolean).join(', ')}`}
+            style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
             {energyByHour.map((avg, h) => (
               <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ width: '100%', background: avg > 0 ? 'var(--accent)' : 'var(--border)', borderRadius: 2, height: `${avg > 0 ? Math.max((avg / 10) * 100, 3) : 2}%`, minHeight: 2, transition: 'height 0.3s ease' }} />
@@ -369,10 +371,10 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       )}
 
       <div style={{ marginTop: 20 }}>
-        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.memberLeaderboard', { name: '' }).replace(/^\s+/, '') || 'Member Details'}</h3>
+        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{singlet ? t('stats.statusDetails') : t('stats.topCoFronters')}</h3>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {members.filter(m => !m.archived && !m.isFacet && (singlet ? (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)) : !m.isCustomFront)).map(m => (
-            <button key={m.id} className={`chip`}
+            <button key={m.id} className={`chip`} aria-pressed={selectedStatMember === m.id}
               style={{
                 borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
                 background: selectedStatMember === m.id ? `${m.color}20` : 'var(--surface)',
@@ -392,7 +394,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
             <label className="field__label">{label}</label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
               {list.map(m => (
-                <button key={m.id} className={`chip`}
+                <button key={m.id} className={`chip`} aria-pressed={selectedStatMember === m.id}
                   style={{
                     borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
                     background: selectedStatMember === m.id ? `${m.color}20` : 'var(--surface)',

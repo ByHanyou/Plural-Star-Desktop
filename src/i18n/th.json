@@ -265,6 +265,10 @@
     "publishFailed": "ไม่สามารถเผยแพร่รหัสของคุณได้ — ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง"
   },
   "common": {
+    "durDaysHours": "{{d}} วัน {{h}} ชม.",
+    "durHoursMinutes": "{{h}} ชม. {{m}} นาที",
+    "durMinutes": "{{m}} นาที",
+    "durUnderMinute": "<1 นาที",
     "on": "เปิด",
     "off": "ปิด",
     "settingsSaved": "บันทึกการตั้งค่าแล้ว",
@@ -436,6 +440,8 @@
     "bulkDelete": "ลบสมาชิก",
     "bulkDeleteMsg": "ลบ {{count}} สมาชิกถาวร? ไม่สามารถย้อนกลับได้",
     "assignGroup": "กลุ่ม",
+    "assignTag": "แท็ก",
+    "addTags": "เพิ่มแท็ก",
     "frontingLockTitle": "กำลังฟรอนต์อยู่",
     "frontingLockMsg": "ไม่สามารถเก็บถาวรหรือลบสมาชิกขณะกำลังฟรอนต์ได้ นำออกจากฟรอนต์ก่อน",
     "archive": "เก็บถาวร",
@@ -626,7 +632,13 @@
     "creditIos": "พอร์ต iOS ของ Plural Star",
     "supportPS": "สนับสนุน PS"
   },
+  "editor": {
+    "urlPlaceholder": "URL ที่นี่",
+    "textPlaceholder": "ข้อความ"
+  },
   "markdown": {
+    "toolImageLeft": "รูปภาพทางซ้าย ข้อความทางขวา",
+    "toolImageRight": "รูปภาพทางขวา ข้อความทางซ้าย",
     "toolBold": "ตัวหนา",
     "toolItalic": "ตัวเอียง",
     "toolStrike": "ขีดฆ่า",
@@ -674,6 +686,8 @@
     "confirmDelete": "ยืนยันการลบ",
     "archiveMember": "เก็บถาวรสมาชิก",
     "archiveDesc": "ซ่อนจากรายชื่อสมาชิกที่ใช้งานและตัวเลือกฟรอนต์ ประวัติจะถูกเก็บไว้",
+    "private": "ส่วนตัว",
+    "privateDesc": "มีแค่คุณที่มองเห็น ซ่อนจากเพื่อนทุกคน ในทุกวงความเป็นส่วนตัว",
     "newEntry": "บันทึกใหม่",
     "editEntry": "แก้ไขบันทึก",
     "entryTitle": "ชื่อเรื่อง",
@@ -776,6 +790,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "อัปเดต",
+    "version": "เวอร์ชัน {{version}}",
+    "check": "ตรวจหาอัปเดต",
+    "checking": "กำลังตรวจสอบ…",
+    "available": "Plural Star {{latest}} ออกแล้ว คุณใช้ {{current}} อยู่",
+    "upToDate": "คุณใช้เวอร์ชันล่าสุดแล้ว",
+    "failed": "ตรวจหาอัปเดตไม่ได้ ลองอีกครั้งภายหลัง",
+    "download": "ดาวน์โหลด"
+  },
   "memberGroups": {
     "groupName": "ชื่อกลุ่ม",
     "changeColor": "เปลี่ยนสี",
@@ -788,6 +812,9 @@
     "none": "ยังไม่มีกลุ่มหรือระบบย่อย",
     "promoteChildren": "เก็บรายการลูกไว้",
     "subsystem": "ระบบย่อย",
+    "linkedFronter": "ผู้ฟรอนต์ที่ลิงก์",
+    "noLinkedFronter": "ไม่มี",
+    "linkedSubsystems": "ระบบย่อยที่ลิงก์",
     "toRoot": "ระดับบนสุด",
     "title": "กลุ่ม",
     "addPlaceholder": "ชื่อกลุ่มใหม่…",
@@ -798,6 +825,8 @@
     "deleteWithChildrenMsg": "กลุ่มนี้มี {{count}} รายการซ้อนอยู่ เก็บไว้แล้วย้ายขึ้นหนึ่งระดับ หรือลบทั้งหมด?"
   },
   "stats": {
+    "last90": "90 วัน",
+    "statusDetails": "รายละเอียดสถานะ",
     "showMore": "แสดงเพิ่มเติม",
     "energyByHour": "พลังงานรายชั่วโมง",
     "allTime": "ตลอดเวลา",
@@ -1009,6 +1038,7 @@
     "addOption": "+ เพิ่มตัวเลือก",
     "optionPlaceholder": "ตัวเลือก...",
     "hideVoters": "ซ่อนชื่อผู้โหวต",
+    "multipleChoice": "เลือกได้หลายข้อ",
     "vote": "โหวต",
     "votes": "{{count}} โหวต",
     "closePoll": "ปิดโพล",
@@ -1044,6 +1074,13 @@
     "changeBanner": "เปลี่ยนแบนเนอร์",
     "removeAvatar": "นำรูปประจำตัวออก",
     "removeBanner": "นำแบนเนอร์ออก"
+  },
+  "frontSort": {
+    "label": "จัดระเบียบ",
+    "added": "ที่เพิ่ม",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "กำหนดเอง"
   },
   "memberSort": {
     "label": "เรียงสมาชิก",

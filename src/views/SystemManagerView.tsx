@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, GroupNodeKind, MemberSortMode, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember, sortMembers, nameCompare, memberMatchesSearch } from '../utils';
+import { Member, MemberGroup, GroupNodeKind, MemberSortMode, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember, sortMembers, nameCompare, memberMatchesSearch, getInitials } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Modal, ConfirmDialog, Dropdown, useEscapeKey } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { NetworkManager } from '../network/NetworkManager';
-import { PALETTE } from '../theme';
+import { PALETTE, initialOn } from '../theme';
 
 interface Props {
   onUpdate: () => void;
   onViewMember?: (id: string) => void;
   onQuickFront?: (memberId: string, tier: 'primary' | 'coFront' | 'coConscious') => void;
   onRemoveFromFront?: (memberId: string) => void;
+  startBrowsing?: boolean;
+  hideRootTitle?: boolean;
 }
 
-export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront, onRemoveFromFront }: Props) {
+export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront, onRemoveFromFront, startBrowsing, hideRootTitle }: Props) {
   const members = useAppStore(s => s.state.members);
   const groups = useAppStore(s => s.state.groups);
   const front = useAppStore(s => s.state.front);
@@ -35,12 +37,13 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState<string>(PALETTE[0]);
   const [editDesc, setEditDesc] = useState('');
+  const [editLinked, setEditLinked] = useState('');
   const [movingId, setMovingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   useEscapeKey(!!confirmDeleteId, () => setConfirmDeleteId(null));
   const [showNewColor, setShowNewColor] = useState(false);
   const [showEditColor, setShowEditColor] = useState(false);
-  const [browse, setBrowse] = useState(false);
+  const [browse, setBrowse] = useState(!!startBrowsing);
   const [browseId, setBrowseId] = useState<string | null>(null);
   const [quickFrontFor, setQuickFrontFor] = useState<Member | null>(null);
   const [confirmRemoveFront, setConfirmRemoveFront] = useState<Member | null>(null);
@@ -106,7 +109,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
   const renameNode = (id: string) => {
     const name = editName.trim();
     if (!name) return;
-    saveGroups(groups.map(g => g.id === id ? { ...g, name, color: editColor, description: editDesc.trim() || undefined } : g));
+    saveGroups(groups.map(g => g.id === id ? { ...g, name, color: editColor, description: editDesc.trim() || undefined, ...(groupKind(g) === 'subsystem' ? { linkedMemberId: editLinked || undefined } : {}) } : g));
     setEditId(null); setEditName('');
   };
 
@@ -143,9 +146,9 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
     return (
       <div key={g.id}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingLeft: depth * 18 }}>
-          {depth > 0 && <span style={{ color: 'var(--muted)', fontSize: 12 }}>└</span>}
+          {depth > 0 && <span aria-hidden style={{ color: 'var(--muted)', fontSize: 12 }}>└</span>}
           {isEditing ? (
-            <button title={t('memberGroups.changeColor')} aria-label={t('memberGroups.changeColor')} onClick={() => setShowEditColor(v => !v)}
+            <button title={t('memberGroups.changeColor')} aria-label={t('memberGroups.changeColor')} aria-expanded={showEditColor} onClick={() => setShowEditColor(v => !v)}
               style={{ width: 18, height: 18, borderRadius: isSub ? 4 : 9, backgroundColor: editColor, border: '2px solid rgba(255,255,255,0.15)', cursor: 'pointer', flexShrink: 0 }} />
           ) : (
             <span style={{ width: 12, height: 12, borderRadius: isSub ? 3 : 6, backgroundColor: g.color || 'var(--accent)', flexShrink: 0 }} />
@@ -175,7 +178,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>{memberCount}</span>
                   <button onClick={() => setMovingId(g.id)} title={`${t('memberGroups.move')} ${g.name}`} aria-label={`${t('memberGroups.move')} ${g.name}`}
                     style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 15, cursor: 'pointer', padding: 2 }}>⇄</button>
-                  <button onClick={() => { setEditId(g.id); setEditName(g.name); setEditColor(g.color || PALETTE[0]); setEditDesc(g.description || ''); setShowEditColor(false); }}
+                  <button onClick={() => { setEditId(g.id); setEditName(g.name); setEditColor(g.color || PALETTE[0]); setEditDesc(g.description || ''); setEditLinked(g.linkedMemberId || ''); setShowEditColor(false); }}
                     style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--accent-bg)', color: 'var(--accent)', cursor: 'pointer' }}>
                     {t('common.edit')}
                   </button>
@@ -195,6 +198,21 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
           <div style={{ paddingLeft: depth * 18 + 26, marginBottom: 10 }}>
             <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder={t('modal.descriptionBio')} aria-label={t('modal.descriptionBio')} rows={2}
               style={{ width: '100%', boxSizing: 'border-box', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'vertical' }} />
+            {isSub && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--dim)', flexShrink: 0 }}>{t('memberGroups.linkedFronter')}</span>
+                <select className="field__input" value={editLinked} onChange={e => setEditLinked(e.target.value)} style={{ flex: 1, fontSize: 13 }}>
+                  <option value="">{t('memberGroups.noLinkedFronter')}</option>
+                  {editLinked && !members.some(m => m.id === editLinked && !m.deleted && !m.archived && !m.isCustomFront) && (() => {
+                    const cur = members.find(m => m.id === editLinked && !m.deleted);
+                    return cur ? <option value={cur.id}>{cur.name}</option> : null;
+                  })()}
+                  {members.filter(m => !m.deleted && !m.archived && !m.isCustomFront).sort((a, b) => nameCompare(a.name, b.name)).map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         )}
         {childrenOf(groups, g.id).map(c => renderNode(c, depth + 1, seen))}
@@ -243,7 +261,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
               {browseId && (
                 <button onClick={() => goBrowseTo(folder?.parentId ?? null)} aria-label={t('common.back')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 14, cursor: 'pointer' }}>←</button>
               )}
-              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{folder ? folder.name : t('systemManager.title')}</span>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{folder ? folder.name : (hideRootTitle ? '' : t('systemManager.title'))}</span>
               <Dropdown<MemberSortMode>
                 value={groupSortMode}
                 options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}
@@ -259,6 +277,25 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                   style={{ width: 24, height: 24, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 14, lineHeight: 1 }}>−</button>
               )}
             </div>
+            {(() => {
+              const linked = folder && groupKind(folder) === 'subsystem' && folder.linkedMemberId
+                ? members.find(m => m.id === folder.linkedMemberId && !m.deleted) || null
+                : null;
+              if (!linked) return null;
+              return (
+                <button onClick={() => onViewMember?.(linked.id)} disabled={!onViewMember} aria-label={`${t('memberGroups.linkedFronter')}: ${linked.name}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', marginBottom: 10, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', cursor: onViewMember ? 'pointer' : 'default', textAlign: 'left' }}>
+                  {linked.avatar
+                    ? <img src={linked.avatar} alt="" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover', flexShrink: 0 }} />
+                    : <span aria-hidden style={{ width: 28, height: 28, borderRadius: 14, background: linked.color, color: initialOn(linked.color), display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{getInitials(linked.name || '?')}</span>}
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>{t('memberGroups.linkedFronter')}</span>
+                    <span style={{ display: 'block', fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.name}</span>
+                  </span>
+                  {onViewMember && <span aria-hidden style={{ fontSize: 11, color: 'var(--muted)' }}>›</span>}
+                </button>
+              );
+            })()}
             {removeMode && folder && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: 8, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--danger)' }}>
                 <span style={{ flex: 1, fontSize: 11, color: 'var(--dim)' }}>{t('members.selectedCount', { count: removeIds.length })}</span>
@@ -439,7 +476,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
 
       {!browse && (<>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 12 }}>
-        <button aria-label={t('memberGroups.changeColor')} title={t('memberGroups.changeColor')} onClick={() => setShowNewColor(v => !v)}
+        <button aria-label={t('memberGroups.changeColor')} title={t('memberGroups.changeColor')} aria-expanded={showNewColor} onClick={() => setShowNewColor(v => !v)}
           style={{ width: 28, height: 28, borderRadius: newKind === 'subsystem' ? 6 : 14, backgroundColor: newColor, border: '2px solid rgba(255,255,255,0.15)', cursor: 'pointer', flexShrink: 0 }} />
         <input className="field__input" value={newName} onChange={e => setNewName(e.target.value)}
           aria-label={t('memberGroups.addPlaceholder')} placeholder={t('memberGroups.addPlaceholder')}

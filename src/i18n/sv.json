@@ -45,6 +45,10 @@
     "sand": "Sand"
   },
   "common": {
+    "durDaysHours": "{{d}} d {{h}} h",
+    "durHoursMinutes": "{{h}} h {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "På",
     "off": "Av",
     "settingsSaved": "Inställningar sparade",
@@ -216,6 +220,8 @@
     "bulkDelete": "Radera medlemmar",
     "bulkDeleteMsg": "Radera {{count}} medlem(mar) permanent? Detta kan inte ångras.",
     "assignGroup": "Grupp",
+    "assignTag": "Tagg",
+    "addTags": "Lägg till taggar",
     "frontingLockTitle": "Frontar just nu",
     "frontingLockMsg": "Du kan inte arkivera eller radera en medlem som frontar. Ta bort medlemmen från fronten först.",
     "archive": "Arkivera",
@@ -406,7 +412,13 @@
     "creditsBlurb": "Bidragsgivare från communityn",
     "archive": "Arkiv"
   },
+  "editor": {
+    "urlPlaceholder": "URL här",
+    "textPlaceholder": "text"
+  },
   "markdown": {
+    "toolImageLeft": "Bild till vänster, text till höger",
+    "toolImageRight": "Bild till höger, text till vänster",
     "toolBold": "Fet",
     "toolItalic": "Kursiv",
     "toolStrike": "Genomstruken",
@@ -453,6 +465,8 @@
     "confirmDelete": "Bekräfta radering",
     "archiveMember": "Arkivera medlem",
     "archiveDesc": "Dölj från den aktiva medlemslistan och frontväljaren. Historiken bevaras.",
+    "private": "Privat",
+    "privateDesc": "Bara du kan se dem. Dolda för alla vänner, i alla sekretesscirklar.",
     "newEntry": "Nytt inlägg",
     "editEntry": "Redigera inlägg",
     "viewEntry": "Dagboksinlägg",
@@ -556,6 +570,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Uppdateringar",
+    "version": "Version {{version}}",
+    "check": "Sök efter uppdateringar",
+    "checking": "Söker…",
+    "available": "Plural Star {{latest}} har släppts. Du har {{current}}.",
+    "upToDate": "Du har den senaste versionen.",
+    "failed": "Det gick inte att söka efter uppdateringar. Försök igen senare.",
+    "download": "Ladda ner"
+  },
   "memberGroups": {
     "groupName": "Gruppnamn",
     "title": "Grupper",
@@ -575,7 +599,10 @@
     "toRoot": "Översta nivån",
     "none": "Inga grupper eller undersystem än.",
     "group": "Grupp",
-    "subsystem": "Undersystem"
+    "subsystem": "Undersystem",
+    "linkedFronter": "Länkad frontare",
+    "noLinkedFronter": "Ingen",
+    "linkedSubsystems": "Länkade undersystem"
   },
   "systemManager": {
     "title": "Systemhanterare",
@@ -880,9 +907,9 @@
     "apptPlaceholder": "t.ex. Tandläkare…",
     "remindBefore": "Påminn innan",
     "atTime": "På tiden",
-    "remind30m": "30m",
+    "remind30m": "30 min",
     "remind1h": "1t",
-    "remind1d": "1d",
+    "remind1d": "1 d",
     "noAppointments": "Inga tider än.",
     "history": "Historik",
     "addHistory": "+ Lägg till post",
@@ -902,6 +929,8 @@
     "apptReminderTitle": "Tidspåminnelse"
   },
   "stats": {
+    "last90": "90 dagar",
+    "statusDetails": "Statusdetaljer",
     "showMore": "Visa mer",
     "energyByHour": "Energi per timme",
     "allTime": "Hela tiden",
@@ -1010,6 +1039,7 @@
     "addOption": "+ Lägg till alternativ",
     "optionPlaceholder": "Alternativ...",
     "hideVoters": "Dölj röstarnas namn",
+    "multipleChoice": "Flera val",
     "vote": "Rösta",
     "votes": "{{count}} röster",
     "closePoll": "Stäng omröstning",
@@ -1045,6 +1075,13 @@
     "changeBanner": "Byt banner",
     "removeAvatar": "Ta bort avatar",
     "removeBanner": "Ta bort banner"
+  },
+  "frontSort": {
+    "label": "Ordna",
+    "added": "Tillagd",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Egen"
   },
   "memberSort": {
     "label": "Sortera medlemmar",

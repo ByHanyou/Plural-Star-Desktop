@@ -362,6 +362,10 @@
     "apptReminderTitle": "Recordatorio de cita"
   },
   "common": {
+    "durDaysHours": "{{d}} d {{h}} h",
+    "durHoursMinutes": "{{h}} h {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Activado",
     "off": "Desactivado",
     "settingsSaved": "Ajustes guardados",
@@ -533,6 +537,8 @@
     "bulkDelete": "Eliminar miembros",
     "bulkDeleteMsg": "¿Eliminar permanentemente {{count}} miembro(s)? Esto no se puede deshacer.",
     "assignGroup": "Grupo",
+    "assignTag": "Etiqueta",
+    "addTags": "Añadir etiquetas",
     "frontingLockTitle": "Actualmente al frente",
     "frontingLockMsg": "No puedes archivar ni eliminar un miembro mientras está al frente. Quítalo del frente primero.",
     "archive": "Archivar",
@@ -723,7 +729,13 @@
     "creditsBlurb": "Contribuyentes de la comunidad",
     "archive": "Archivo"
   },
+  "editor": {
+    "urlPlaceholder": "URL aquí",
+    "textPlaceholder": "texto"
+  },
   "markdown": {
+    "toolImageLeft": "Imagen a la izquierda, texto a la derecha",
+    "toolImageRight": "Imagen a la derecha, texto a la izquierda",
     "toolBold": "Negrita",
     "toolItalic": "Cursiva",
     "toolStrike": "Tachado",
@@ -770,6 +782,8 @@
     "confirmDelete": "Confirmar Eliminación",
     "archiveMember": "Archivar Miembro",
     "archiveDesc": "Ocultar de la lista activa y del selector de frente. El historial se conserva.",
+    "private": "Privado",
+    "privateDesc": "Solo tú puedes verlos. Ocultos para todos los amigos, en todos los círculos de privacidad.",
     "newEntry": "Nueva Entrada",
     "editEntry": "Editar Entrada",
     "viewEntry": "Entrada del diario",
@@ -873,6 +887,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Actualizaciones",
+    "version": "Versión {{version}}",
+    "check": "Buscar actualizaciones",
+    "checking": "Buscando…",
+    "available": "Plural Star {{latest}} ya está disponible. Tienes la {{current}}.",
+    "upToDate": "Estás al día.",
+    "failed": "No se pudieron buscar actualizaciones. Inténtalo más tarde.",
+    "download": "Descargar"
+  },
   "memberGroups": {
     "groupName": "Nombre del grupo",
     "title": "Grupos",
@@ -892,7 +916,10 @@
     "toRoot": "Nivel superior",
     "none": "Aún no hay grupos ni subsistemas.",
     "group": "Grupo",
-    "subsystem": "Subsistema"
+    "subsystem": "Subsistema",
+    "linkedFronter": "Fronter vinculado",
+    "noLinkedFronter": "Ninguno",
+    "linkedSubsystems": "Subsistemas vinculados"
   },
   "systemManager": {
     "emptyFolder": "Aún no hay nada aquí.",
@@ -902,6 +929,8 @@
     "subsystemsCount": "{{count}} subsistemas"
   },
   "stats": {
+    "last90": "90 Días",
+    "statusDetails": "Detalles del estado",
     "showMore": "Mostrar más",
     "energyByHour": "Energía por hora",
     "allTime": "Todo",
@@ -1010,6 +1039,7 @@
     "optionPlaceholder": "Opción",
     "addOption": "+ Agregar opción",
     "hideVoters": "Ocultar nombres de votantes",
+    "multipleChoice": "Selección múltiple",
     "closed": "Cerrada",
     "closePoll": "Cerrar",
     "reopenPoll": "Reabrir",
@@ -1032,6 +1062,13 @@
   "memberProfile": {
     "changeBanner": "Cambiar banner",
     "removeBanner": "Quitar banner"
+  },
+  "frontSort": {
+    "label": "Organizar",
+    "added": "Añadido",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Personalizado"
   },
   "memberSort": {
     "age": "Más antiguos",

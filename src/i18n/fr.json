@@ -362,6 +362,10 @@
     "apptReminderTitle": "Rappel de rendez-vous"
   },
   "common": {
+    "durDaysHours": "{{d}} j {{h}} h",
+    "durHoursMinutes": "{{h}} h {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Activé",
     "off": "Désactivé",
     "settingsSaved": "Paramètres enregistrés",
@@ -533,6 +537,8 @@
     "bulkDelete": "Supprimer des membres",
     "bulkDeleteMsg": "Supprimer définitivement {{count}} membre(s) ? Cette action est irréversible.",
     "assignGroup": "Groupe",
+    "assignTag": "Étiquette",
+    "addTags": "Ajouter des étiquettes",
     "frontingLockTitle": "Actuellement au front",
     "frontingLockMsg": "Vous ne pouvez pas archiver ou supprimer un membre pendant qu'il est au front. Retirez-le du front d'abord.",
     "archive": "Archiver",
@@ -690,7 +696,13 @@
     "spMergeDesc": "Fusionner une sauvegarde Simply Plural avec votre système actuel.",
     "banners": "Bannières des Membres"
   },
+  "editor": {
+    "urlPlaceholder": "URL ici",
+    "textPlaceholder": "texte"
+  },
   "markdown": {
+    "toolImageLeft": "Image à gauche, texte à droite",
+    "toolImageRight": "Image à droite, texte à gauche",
     "toolBold": "Gras",
     "toolItalic": "Italique",
     "toolStrike": "Barré",
@@ -775,6 +787,8 @@
     "fileAccessDesc": "Autoriser l'importation et l'exportation de fichiers. Activé par défaut.",
     "archiveMember": "Archiver le Membre",
     "archiveDesc": "Masquer de la liste active et du sélecteur de front. L'historique est conservé.",
+    "private": "Privé",
+    "privateDesc": "Vous seul pouvez les voir. Masqués pour tous les amis, dans chaque cercle de confidentialité.",
     "palette": "Palette de Thème",
     "paletteDesc": "Choisissez un thème intégré ou créez le vôtre.",
     "newPalette": "Nouvelle Palette",
@@ -840,6 +854,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Mises à jour",
+    "version": "Version {{version}}",
+    "check": "Rechercher des mises à jour",
+    "checking": "Recherche…",
+    "available": "Plural Star {{latest}} est disponible. Vous avez la {{current}}.",
+    "upToDate": "Vous êtes à jour.",
+    "failed": "Impossible de rechercher les mises à jour. Réessayez plus tard.",
+    "download": "Télécharger"
+  },
   "memberGroups": {
     "groupName": "Nom du groupe",
     "title": "Groupes",
@@ -859,7 +883,10 @@
     "toRoot": "Niveau supérieur",
     "none": "Aucun groupe ni sous-système pour le moment.",
     "group": "Groupe",
-    "subsystem": "Sous-système"
+    "subsystem": "Sous-système",
+    "linkedFronter": "Fronter lié",
+    "noLinkedFronter": "Aucun",
+    "linkedSubsystems": "Sous-systèmes liés"
   },
   "systemManager": {
     "emptyFolder": "Rien ici pour l'instant.",
@@ -902,6 +929,8 @@
     "archive": "Archives"
   },
   "stats": {
+    "last90": "90 Jours",
+    "statusDetails": "Détails du statut",
     "showMore": "Afficher plus",
     "energyByHour": "Énergie par heure",
     "allTime": "Tout",
@@ -1010,6 +1039,7 @@
     "optionPlaceholder": "Option",
     "addOption": "+ Ajouter une option",
     "hideVoters": "Masquer les votants",
+    "multipleChoice": "Choix multiples",
     "closed": "Fermé",
     "closePoll": "Fermer",
     "reopenPoll": "Rouvrir",
@@ -1032,6 +1062,13 @@
   "memberProfile": {
     "changeBanner": "Changer la bannière",
     "removeBanner": "Supprimer la bannière"
+  },
+  "frontSort": {
+    "label": "Organiser",
+    "added": "Ajouté",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Personnalisé"
   },
   "memberSort": {
     "age": "Plus ancien",

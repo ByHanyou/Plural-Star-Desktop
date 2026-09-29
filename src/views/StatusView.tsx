@@ -71,7 +71,7 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
           {statuses.map(m => {
             const on = statusIds.has(m.id);
             return (
-              <button key={m.id} className="chip" style={{
+              <button key={m.id} className="chip" aria-pressed={on} style={{
                 borderColor: on ? `${m.color}60` : 'var(--border)',
                 background: on ? `${m.color}20` : 'var(--surface)',
               }} onClick={() => {
@@ -95,12 +95,12 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
             const on = sel.includes(m);
             return (
               <button key={m} className={`btn ${on ? 'btn--primary' : 'btn--ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 11 }}
+                style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={on}
                 onClick={() => setMood(toggleMoodInList(mood, m))}>{translateMood(m, t)}</button>
             );
           }); })()}
           <button className={`btn ${showCustom ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }}
+            style={{ padding: '4px 10px', fontSize: 11 }} aria-expanded={showCustom}
             onClick={() => setShowCustom(!showCustom)}>
             {showCustom ? `− ${t('modal.custom')}` : `+ ${t('modal.custom')}`}
           </button>

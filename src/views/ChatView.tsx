@@ -301,7 +301,7 @@ export default function ChatView({ onUpdate }: Props) {
         display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer',
         background: activeChannelId === ch.id ? 'var(--accent-bg)' : 'transparent',
         borderLeft: activeChannelId === ch.id ? '3px solid var(--accent)' : '3px solid transparent',
-      }} {...clickable(() => setActiveChannelId(ch.id), ch.name)}
+      }} aria-current={activeChannelId === ch.id ? 'true' : undefined} {...clickable(() => setActiveChannelId(ch.id), ch.name)}
         onContextMenu={e => { e.preventDefault(); openChannelEditor(ch); }}>
         <span style={{
           color: activeChannelId === ch.id ? 'var(--accent)' : 'var(--dim)', fontSize: 13,
@@ -389,11 +389,12 @@ export default function ChatView({ onUpdate }: Props) {
               <button style={{
                 display: 'block', width: '100%', padding: '8px 12px', background: 'none', border: 'none',
                 color: 'var(--muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, cursor: 'pointer', textAlign: 'left',
-              }} onClick={() => setShowArchived(!showArchived)}>
-                Archived ({archivedChannels.length}) {showArchived ? '▲' : '▼'}
+              }} aria-expanded={showArchived} onClick={() => setShowArchived(!showArchived)}>
+                {t('members.archived')} ({archivedChannels.length}) <span aria-hidden>{showArchived ? '▲' : '▼'}</span>
               </button>
               {showArchived && archivedChannels.map(ch => (
                 <div key={ch.id} style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.5 }}
+                  aria-current={activeChannelId === ch.id ? 'true' : undefined}
                   {...clickable(() => setActiveChannelId(ch.id), ch.name)}>
                   <span style={{ color: 'var(--muted)', fontSize: 12 }}># {ch.name}</span>
                 </div>
@@ -437,7 +438,7 @@ export default function ChatView({ onUpdate }: Props) {
                     display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '6px 8px',
                     background: m.id === activeMemberId ? `${m.color}15` : 'transparent',
                     border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                  }} onClick={() => { setActiveMemberId(m.id); setShowMemberPicker(false); setMemberSearch(''); }}>
+                  }} aria-pressed={m.id === activeMemberId} onClick={() => { setActiveMemberId(m.id); setShowMemberPicker(false); setMemberSearch(''); }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color }} />
                     <span style={{ fontSize: 12, color: m.id === activeMemberId ? m.color : 'var(--dim)' }}>{m.name}</span>
                   </button>

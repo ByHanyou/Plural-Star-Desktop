@@ -13,7 +13,7 @@ export type ImportCtx = {
   palettes: CustomPalette[];
   onUpdate: () => void;
   t: TFunction;
-  showStatus: (msg: string) => void;
+  showStatus: (msg: string, error?: boolean) => void;
   setImporting: any;
   showExportOptions: boolean;
   exportSel: any;

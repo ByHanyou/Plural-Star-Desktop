@@ -45,6 +45,10 @@
     "sand": "Zand"
   },
   "common": {
+    "durDaysHours": "{{d}} d {{h}} u",
+    "durHoursMinutes": "{{h}} u {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Aan",
     "off": "Uit",
     "settingsSaved": "Instellingen opgeslagen",
@@ -216,6 +220,8 @@
     "bulkDelete": "Leden verwijderen",
     "bulkDeleteMsg": "{{count}} lid/leden definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
     "assignGroup": "Groep",
+    "assignTag": "Tag",
+    "addTags": "Tags toevoegen",
     "frontingLockTitle": "Nu aan het fronten",
     "frontingLockMsg": "Je kunt een lid niet archiveren of verwijderen terwijl die front. Haal ze eerst uit de front.",
     "archive": "Archiveren",
@@ -406,7 +412,13 @@
     "creditsBlurb": "Communitybijdragers",
     "archive": "Archief"
   },
+  "editor": {
+    "urlPlaceholder": "URL hier",
+    "textPlaceholder": "tekst"
+  },
   "markdown": {
+    "toolImageLeft": "Afbeelding links, tekst rechts",
+    "toolImageRight": "Afbeelding rechts, tekst links",
     "toolBold": "Vet",
     "toolItalic": "Cursief",
     "toolStrike": "Doorgestreept",
@@ -453,6 +465,8 @@
     "confirmDelete": "Verwijderen bevestigen",
     "archiveMember": "Lid archiveren",
     "archiveDesc": "Verbergen uit de actieve ledenlijst en frontkiezer. Geschiedenis blijft bewaard.",
+    "private": "Privé",
+    "privateDesc": "Alleen jij kunt ze zien. Verborgen voor alle vrienden, in elke privacybucket.",
     "newEntry": "Nieuwe notitie",
     "editEntry": "Notitie bewerken",
     "viewEntry": "Dagboeknotitie",
@@ -556,6 +570,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Updates",
+    "version": "Versie {{version}}",
+    "check": "Controleren op updates",
+    "checking": "Controleren…",
+    "available": "Plural Star {{latest}} is uit. Je hebt {{current}}.",
+    "upToDate": "Je bent up-to-date.",
+    "failed": "Kon niet controleren op updates. Probeer het later opnieuw.",
+    "download": "Downloaden"
+  },
   "memberGroups": {
     "groupName": "Groepsnaam",
     "title": "Groepen",
@@ -575,7 +599,10 @@
     "toRoot": "Hoogste niveau",
     "none": "Nog geen groepen of subsystemen.",
     "group": "Groep",
-    "subsystem": "Subsysteem"
+    "subsystem": "Subsysteem",
+    "linkedFronter": "Gekoppelde fronter",
+    "noLinkedFronter": "Geen",
+    "linkedSubsystems": "Gekoppelde subsystemen"
   },
   "systemManager": {
     "title": "Systeembeheer",
@@ -902,6 +929,8 @@
     "apptReminderTitle": "Afspraakherinnering"
   },
   "stats": {
+    "last90": "90 dagen",
+    "statusDetails": "Statusdetails",
     "showMore": "Meer tonen",
     "energyByHour": "Energie per uur",
     "allTime": "Altijd",
@@ -1010,6 +1039,7 @@
     "addOption": "+ Optie toevoegen",
     "optionPlaceholder": "Optie...",
     "hideVoters": "Namen van stemmers verbergen",
+    "multipleChoice": "Meerdere keuzes",
     "vote": "Stemmen",
     "votes": "{{count}} stemmen",
     "closePoll": "Poll sluiten",
@@ -1045,6 +1075,13 @@
     "changeBanner": "Banner wijzigen",
     "removeAvatar": "Avatar verwijderen",
     "removeBanner": "Banner verwijderen"
+  },
+  "frontSort": {
+    "label": "Ordenen",
+    "added": "Toegevoegd",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Aangepast"
   },
   "memberSort": {
     "label": "Leden sorteren",

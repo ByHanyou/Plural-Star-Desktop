@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch } from '../utils';
+import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch, withMemberSince } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Field, Toggle, useEscapeKey, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
@@ -113,7 +113,9 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   };
 
   const setFrontState = async (f: FrontState | null) => {
-    await store.set(KEYS.front, f);
+    const now = Date.now();
+    const at = startDate.getTime();
+    await store.set(KEYS.front, withMemberSince(f, front, Number.isFinite(at) && at > 0 ? Math.min(at, now) : now));
   };
 
   const replaceEntries = (deleteOverlapKeys?: Set<string>): HistoryEntry[] => {

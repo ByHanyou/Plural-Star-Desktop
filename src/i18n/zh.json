@@ -361,6 +361,10 @@
     "apptReminderTitle": "预约提醒"
   },
   "common": {
+    "durDaysHours": "{{d}}天{{h}}小时",
+    "durHoursMinutes": "{{h}}小时{{m}}分钟",
+    "durMinutes": "{{m}}分钟",
+    "durUnderMinute": "不到1分钟",
     "on": "开",
     "off": "关",
     "settingsSaved": "设置已保存",
@@ -532,6 +536,8 @@
     "bulkDelete": "删除成员",
     "bulkDeleteMsg": "永久删除 {{count}} 名成员？此操作无法撤销。",
     "assignGroup": "组",
+    "assignTag": "标签",
+    "addTags": "添加标签",
     "frontingLockTitle": "当前在前台",
     "frontingLockMsg": "成员在前台时无法归档或删除。请先将其从前台移除。",
     "archive": "归档",
@@ -722,7 +728,13 @@
     "creditsBlurb": "社区贡献者",
     "archive": "归档"
   },
+  "editor": {
+    "urlPlaceholder": "在此输入 URL",
+    "textPlaceholder": "文本"
+  },
   "markdown": {
+    "toolImageLeft": "图片在左，文本在右",
+    "toolImageRight": "图片在右，文本在左",
     "toolBold": "粗体",
     "toolItalic": "斜体",
     "toolStrike": "删除线",
@@ -769,6 +781,8 @@
     "confirmDelete": "确认删除",
     "archiveMember": "归档成员",
     "archiveDesc": "从活跃列表和前台选择器中隐藏。历史记录保留。",
+    "private": "私密",
+    "privateDesc": "只有你能看到。在所有隐私圈中对所有好友隐藏。",
     "newEntry": "新条目",
     "editEntry": "编辑条目",
     "viewEntry": "日记条目",
@@ -872,6 +886,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "更新",
+    "version": "版本 {{version}}",
+    "check": "检查更新",
+    "checking": "正在检查…",
+    "available": "Plural Star {{latest}} 已发布。你当前使用的是 {{current}}。",
+    "upToDate": "已是最新版本。",
+    "failed": "无法检查更新，请稍后再试。",
+    "download": "下载"
+  },
   "memberGroups": {
     "groupName": "分组名称",
     "title": "组",
@@ -891,7 +915,10 @@
     "toRoot": "顶层",
     "none": "暂无组或子系统。",
     "group": "组",
-    "subsystem": "子系统"
+    "subsystem": "子系统",
+    "linkedFronter": "关联的前台者",
+    "noLinkedFronter": "无",
+    "linkedSubsystems": "关联的子系统"
   },
   "systemManager": {
     "emptyFolder": "这里还什么都没有。",
@@ -901,6 +928,8 @@
     "subsystemsCount": "{{count}} 个子系统"
   },
   "stats": {
+    "last90": "90 天",
+    "statusDetails": "状态详情",
     "showMore": "显示更多",
     "energyByHour": "按小时的能量",
     "allTime": "全部时间",
@@ -1009,6 +1038,7 @@
     "addOption": "+ 添加选项",
     "optionPlaceholder": "选项…",
     "hideVoters": "隐藏投票者姓名",
+    "multipleChoice": "多选",
     "vote": "投票",
     "votes": "{{count}} 票",
     "closePoll": "关闭投票",
@@ -1044,6 +1074,13 @@
     "changeBanner": "更改横幅",
     "removeAvatar": "移除头像",
     "removeBanner": "移除横幅"
+  },
+  "frontSort": {
+    "label": "整理",
+    "added": "添加顺序",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "自定义"
   },
   "memberSort": {
     "label": "排序成员",

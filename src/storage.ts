@@ -27,6 +27,9 @@ declare global {
           Promise<{ status: number; headers: Record<string, string>; bodyBase64: string; error?: string }>;
       };
       notify: (title: string, body: string) => Promise<void>;
+      app: {
+        version: () => Promise<string>;
+      };
       window: {
         minimize: () => void;
         maximize: () => void;
@@ -66,6 +69,7 @@ export const KEYS = {
 };
 
 import { FRONT_CLEARED_KEY } from './network/types';
+import { clearAllMirrorGifs } from './network/mirrorGifStore';
 
 export const chatMsgKey = (channelId: string): string => `ps:chat:${channelId}`;
 
@@ -144,6 +148,7 @@ export const store = {
     } catch (e) {
       console.error('Storage clear error:', e);
     }
+    await clearAllMirrorGifs();
   },
 };
 

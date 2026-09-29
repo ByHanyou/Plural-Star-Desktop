@@ -362,6 +362,10 @@
     "apptReminderTitle": "Ajanvarausmuistutus"
   },
   "common": {
+    "durDaysHours": "{{d}} pv {{h}} t",
+    "durHoursMinutes": "{{h}} t {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Päällä",
     "off": "Pois",
     "settingsSaved": "Asetukset tallennettu",
@@ -533,6 +537,8 @@
     "bulkDelete": "Poista jäsenet",
     "bulkDeleteMsg": "Poistetaanko {{count}} jäsen(tä) pysyvästi? Tätä ei voi kumota.",
     "assignGroup": "Ryhmä",
+    "assignTag": "Tunniste",
+    "addTags": "Lisää tunnisteita",
     "frontingLockTitle": "Tällä hetkellä edessä",
     "frontingLockMsg": "Et voi arkistoida tai poistaa jäsentä, kun hän on edessä. Poista hänet ensin edestä.",
     "archive": "Arkistoi",
@@ -723,7 +729,13 @@
     "creditsBlurb": "Yhteisön avustajat",
     "archive": "Arkisto"
   },
+  "editor": {
+    "urlPlaceholder": "URL tähän",
+    "textPlaceholder": "teksti"
+  },
   "markdown": {
+    "toolImageLeft": "Kuva vasemmalla, teksti oikealla",
+    "toolImageRight": "Kuva oikealla, teksti vasemmalla",
     "toolBold": "Lihavointi",
     "toolItalic": "Kursivointi",
     "toolStrike": "Yliviivaus",
@@ -759,6 +771,8 @@
     "confirmDelete": "Vahvista Poisto",
     "archiveMember": "Arkistoi Jäsen",
     "archiveDesc": "Piilota frontvalitsimesta. Historia säilyy.",
+    "private": "Yksityinen",
+    "privateDesc": "Vain sinä näet heidät. Piilotettu kaikilta ystäviltä kaikissa yksityisyyspiireissä.",
     "newEntry": "Uusi Merkintä",
     "editEntry": "Muokkaa Merkintää",
     "viewEntry": "Päiväkirjamerkintä",
@@ -873,6 +887,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Päivitykset",
+    "version": "Versio {{version}}",
+    "check": "Tarkista päivitykset",
+    "checking": "Tarkistetaan…",
+    "available": "Plural Star {{latest}} on saatavilla. Sinulla on {{current}}.",
+    "upToDate": "Sinulla on uusin versio.",
+    "failed": "Päivityksiä ei voitu tarkistaa. Yritä myöhemmin uudelleen.",
+    "download": "Lataa"
+  },
   "memberGroups": {
     "groupName": "Ryhmän nimi",
     "title": "Ryhmät",
@@ -892,7 +916,10 @@
     "toRoot": "Ylin taso",
     "none": "Ei vielä ryhmiä tai alijärjestelmiä.",
     "group": "Ryhmä",
-    "subsystem": "Alijärjestelmä"
+    "subsystem": "Alijärjestelmä",
+    "linkedFronter": "Linkitetty edessä oleva",
+    "noLinkedFronter": "Ei mitään",
+    "linkedSubsystems": "Linkitetyt alijärjestelmät"
   },
   "systemManager": {
     "emptyFolder": "Täällä ei ole vielä mitään.",
@@ -902,6 +929,8 @@
     "subsystemsCount": "{{count}} alijärjestelmää"
   },
   "stats": {
+    "last90": "90 päivää",
+    "statusDetails": "Tilan tiedot",
     "showMore": "Näytä lisää",
     "energyByHour": "Energia tunneittain",
     "allTime": "Kaikki",
@@ -1010,6 +1039,7 @@
     "optionPlaceholder": "Vaihtoehto",
     "addOption": "+ Lisää vaihtoehto",
     "hideVoters": "Piilota äänestäjien nimet",
+    "multipleChoice": "Monivalinta",
     "closed": "Suljettu",
     "closePoll": "Sulje",
     "reopenPoll": "Avaa uudelleen",
@@ -1032,6 +1062,13 @@
   "memberProfile": {
     "changeBanner": "Vaihda banneri",
     "removeBanner": "Poista banneri"
+  },
+  "frontSort": {
+    "label": "Järjestä",
+    "added": "Lisätty",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Oma"
   },
   "memberSort": {
     "age": "Vanhimmat ensin",

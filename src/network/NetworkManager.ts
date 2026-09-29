@@ -47,11 +47,22 @@ import {
   MIRROR_SERVED_KEY,
   MIRROR_SYSTEM_AVATAR_ID,
   MIRROR_SYSTEM_BANNER_ID,
+  MIRROR_GIF_PART,
+  MIRROR_GIF_MAX_PARTS,
+  MIRROR_GIF_ASK_MAX,
+  MirrorGifAsk,
+  isMirrorGifHash,
+  isMirrorGifB64,
+  mirrorGifHash,
+  mirrorGifDataB64,
+  mirrorGifWants,
+  sanitizeMirrorGifAsk,
   PrivacyBucket,
   PrivacyScope,
   PRIVACY_BUCKETS_KEY,
   frontVisibilityFor,
 } from './types';
+import { mirrorGifKey, putMirrorGif, getMirrorGif, listMirrorGifKeys, deleteMirrorGifKeys, clearMirrorGifsFor } from './mirrorGifStore';
 
 const SYNC_DEBOUNCE_MS = 8000;
 const MIRROR_DEBOUNCE_MS = 10000;
@@ -61,6 +72,15 @@ const SYNC_CHUNK_SIZE = 48 * 1024;
 const SYNC_PACE_MS = 300;
 const SYNC_MAX_PARTS = 4096;
 const MIRROR_MEDIA_MAX = 600 * 1024;
+const LINK_PROBE_TIMEOUT_MS = 12000;
+const RESUME_MIN_GAP_MS = 20000;
+const PENDING_LINK_WATCH_MS = 60 * 60 * 1000;
+const LINK_FRESH_MS = 10000;
+const CHUNK_IDLE_MS = 10 * 60 * 1000;
+const MIRROR_GIF_ASK_TTL_MS = 3 * 60 * 1000;
+const MIRROR_GIF_ASK_KEEP_MS = 60 * 60 * 1000;
+const MIRROR_GIF_BUFFERS_PER_PEER = 2;
+const MIRROR_GIF_URL_CACHE_CHARS = 48 * 1024 * 1024;
 
 const FRONT_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const withinSkew = (at: unknown): boolean =>
@@ -293,7 +313,7 @@ class NetworkManagerImpl {
   private mirrorTimer: ReturnType<typeof setTimeout> | null = null;
   private lastPushAt = 0;
   private syncing = false;
-  private chunkBuffers: Map<string, {parts: string[]; total: number; seqs: Set<number>; init: boolean; resolved: boolean}> = new Map();
+  private chunkBuffers: Map<string, {parts: string[]; total: number; seqs: Set<number>; init: boolean; resolved: boolean; at: number}> = new Map();
   private pendingConflicts: Map<string, {key: string; remoteValue: string; remoteHash: string}[]> = new Map();
   private syncAppliedListeners: Set<() => void> = new Set();
   private syncConflictListeners: Set<(c: {peerId: string; deviceName: string; keys: string[]}) => void> = new Set();
@@ -324,9 +344,10 @@ class NetworkManagerImpl {
       friends: this.friends.filter(f => f.kind !== 'device')
         .sort((a, b) => (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER) || (a.addedAt - b.addedAt)),
       devices: this.friends.filter(f => f.kind === 'device'),
-      onlinePeers: this.identity && this.status === 'online'
-        ? Array.from(new Set([...this.online, this.identity.peerId]))
-        : Array.from(this.online),
+      onlinePeers: Array.from(new Set([
+        ...this.friends.filter(f => this.online.has(f.peerId)).map(f => f.peerId),
+        ...(this.identity && this.status === 'online' ? [this.identity.peerId] : []),
+      ])),
       relayConfigured: !!net.relayUrl,
       activeFriendCode: this.active.friend?.code ?? null,
       activeFriendExpiresAt: this.active.friend?.expiresAt ?? null,
@@ -499,16 +520,22 @@ class NetworkManagerImpl {
       this.expireStaleClones();
       store.get<{ name?: string }>(KEYS.system, null).then(sys => { if (sys && sys.name) this.systemName = sys.name; }).catch(() => {});
       if (this.settings.enabled && this.client) this.client.ensureConnected();
+      this.onResume();
     });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         this.expireStaleClones();
         store.get<{ name?: string }>(KEYS.system, null).then(sys => { if (sys && sys.name) this.systemName = sys.name; }).catch(() => {});
         if (this.settings.enabled && this.client) this.client.ensureConnected();
+        this.onResume();
       }
     });
     if (this.cloneExpiryTimer) clearInterval(this.cloneExpiryTimer);
-    this.cloneExpiryTimer = setInterval(() => this.expireStaleClones(), 60 * 1000);
+    this.cloneExpiryTimer = setInterval(() => {
+      this.expireStaleClones();
+      this.keepPendingLinksAlive();
+      this.pruneStaleChunks();
+    }, 60 * 1000);
     if (this.settings.enabled) await this.connect();
     else this.notify();
   }
@@ -547,6 +574,7 @@ class NetworkManagerImpl {
     });
     client.on('packet_received', (p: PacketReceived) => this.handlePacket(p));
     client.on('peer_online', (e: any) => {
+      this.lastInboundAt = Date.now();
       if (e?.peer_id && e.peer_id !== this.identity?.peerId) {
         this.online.add(e.peer_id);
         const pending = this.friends.find(f => f.peerId === e.peer_id && f.status === 'entered_theirs');
@@ -561,13 +589,14 @@ class NetworkManagerImpl {
         if (linked) this.sendSyncReqTo(linked.peerId).catch(() => {});
         const buddy = this.friends.find(f => f.peerId === e.peer_id && f.kind !== 'device' && f.status === 'accepted');
         if (buddy && this.myFrontKnown) this.sendMyFrontTo(buddy.peerId);
-        this.notify();
+        if (this.friends.some(f => f.peerId === e.peer_id)) this.notify();
       }
     });
     client.on('peer_offline', (e: any) => {
+      this.lastInboundAt = Date.now();
       if (e?.peer_id) {
         this.online.delete(e.peer_id);
-        this.notify();
+        if (this.friends.some(f => f.peerId === e.peer_id)) this.notify();
       }
     });
     client.on('error', (e: any) => console.warn('[NETWORK] client error:', e));
@@ -689,7 +718,8 @@ class NetworkManagerImpl {
     await this.persistFriends();
     this.notify();
 
-    await this.sendConnectTo(id.peerId, kind, false);
+    const linkOk = kind !== 'device' || role !== 'target' || await this.verifyLink();
+    if (linkOk) await this.sendConnectTo(id.peerId, kind, false);
     if (status === 'accepted') {
       if (kind === 'friend') await this.sendMyFrontTo(id.peerId);
       else {
@@ -708,10 +738,20 @@ class NetworkManagerImpl {
   }
 
   private handlePacket(p: PacketReceived): void {
+    this.lastInboundAt = Date.now();
     const self = this.identity;
     if (!self || !p?.sender_peer_id || !p?.payload) return;
     const opened = openMessage(self, p.sender_peer_id, p.payload);
     if (!opened) return;
+    if (opened.sender.peerId === self.peerId && opened.message.t === 'ping') {
+      const probe = this.linkProbe;
+      if (probe && opened.message.n === probe.nonce) {
+        clearTimeout(probe.timer);
+        this.linkProbe = null;
+        this.settleLinkWaiters(true);
+      }
+      return;
+    }
     if (opened.dev && this.subId && opened.dev === this.subId) return;
     this.routeMessage(opened.sender, opened.message);
   }
@@ -764,8 +804,9 @@ class NetworkManagerImpl {
       if (body === undefined) return;
       raw.body = body;
       raw.ts = typeof raw.ts === 'number' && Number.isFinite(raw.ts) ? raw.ts : Date.now();
-    } else if (raw.t === 'mirror_req' || raw.t === 'mirror' || raw.t === 'mirror_media') {
+    } else if (raw.t === 'mirror_req' || raw.t === 'mirror' || raw.t === 'mirror_media' || raw.t === 'mirror_gif' || raw.t === 'mirror_gif_req') {
       if (!isMirrorFeature(raw.feature)) return;
+      if (raw.t === 'mirror_gif_req') raw.items = sanitizeMirrorGifAsk(raw.items);
     }
     const known = this.friends.find(f => f.peerId === sender.peerId);
     if (known) {
@@ -789,6 +830,7 @@ class NetworkManagerImpl {
             displayName: msg.name || existing.displayName,
             peerRole: msg.role ?? existing.peerRole,
             peerV: msg.v ?? existing.peerV,
+            ...(existing.kind === 'device' && existing.initPending ? { initStartedAt: Date.now() } : {}),
           };
           this.upsertFriend(accepted);
           if (!msg.ack) this.sendConnectTo(sender.peerId, existing.kind, true).catch(() => {});
@@ -937,6 +979,17 @@ class NetworkManagerImpl {
         if (fr) this.handleMirrorMedia(sender, msg);
         break;
       }
+      case 'mirror_gif_req': {
+        const fr = this.friends.find(f => f.peerId === sender.peerId && f.kind !== 'device' && f.status === 'accepted');
+        if (!fr || (msg.feature !== 'members' && msg.feature !== 'systemProfile') || msg.items.length === 0) break;
+        this.handleMirrorReq(sender.peerId, msg.feature, false, msg.items).catch(e => console.warn('[NETWORK] mirror gif req failed:', e));
+        break;
+      }
+      case 'mirror_gif': {
+        const fr = this.friends.find(f => f.peerId === sender.peerId && f.kind !== 'device' && f.status === 'accepted');
+        if (fr) this.handleMirrorGif(sender, msg);
+        break;
+      }
       case 'ping':
         break;
     }
@@ -977,6 +1030,108 @@ class NetworkManagerImpl {
         this.sendConnectTo(f.peerId, f.kind, true).catch(() => {});
       }
     }
+  }
+
+  private linkProbe: {nonce: string; timer: ReturnType<typeof setTimeout>} | null = null;
+  private linkWaiters: ((ok: boolean) => void)[] = [];
+  private lastInboundAt = 0;
+  private lastResumeAt = 0;
+
+  private settleLinkWaiters(ok: boolean): void {
+    const waiters = this.linkWaiters;
+    this.linkWaiters = [];
+    for (const w of waiters) {
+      try {
+        w(ok);
+      } catch {}
+    }
+  }
+
+  private verifyLink(): Promise<boolean> {
+    if (!this.identity || !this.client || !this.settings.enabled || this.status !== 'online') return Promise.resolve(false);
+    if (Date.now() - this.lastInboundAt < LINK_FRESH_MS) return Promise.resolve(true);
+    return new Promise(resolve => {
+      this.linkWaiters.push(resolve);
+      this.probeLink();
+      if (!this.linkProbe) this.settleLinkWaiters(false);
+    });
+  }
+
+  private pruneStaleChunks(): void {
+    const cutoff = Date.now() - CHUNK_IDLE_MS;
+    for (const [id, buf] of this.chunkBuffers) {
+      if (buf.at < cutoff) this.chunkBuffers.delete(id);
+    }
+    for (const [id, buf] of this.mirrorGifBuffers) {
+      if (buf.at < cutoff) this.mirrorGifBuffers.delete(id);
+    }
+    const askCutoff = Date.now() - MIRROR_GIF_ASK_KEEP_MS;
+    for (const [id, at] of this.mirrorGifAsked) {
+      if (at < askCutoff) this.mirrorGifAsked.delete(id);
+    }
+  }
+
+  private onResume(): void {
+    const now = Date.now();
+    if (now - this.lastResumeAt < RESUME_MIN_GAP_MS) return;
+    this.lastResumeAt = now;
+    this.probeLink();
+    this.resendPendingHandshakes();
+  }
+
+  private probeLink(): void {
+    const self = this.identity;
+    const client = this.client;
+    if (!self || !client || !this.settings.enabled || this.status !== 'online' || this.linkProbe) return;
+    const nonce = encodeBase64(nacl.randomBytes(12));
+    let payload: string;
+    try {
+      payload = sealMessage(self, self.boxPublicKey, {t: 'ping', n: nonce}, this.subId || undefined);
+    } catch {
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (this.linkProbe?.nonce !== nonce) return;
+      this.linkProbe = null;
+      this.settleLinkWaiters(false);
+      if (this.client === client && this.status === 'online') client.reconnect();
+    }, LINK_PROBE_TIMEOUT_MS);
+    this.linkProbe = {nonce, timer};
+    client.send(self.peerId, payload).catch(() => {
+      if (this.linkProbe?.nonce !== nonce) return;
+      clearTimeout(timer);
+      this.linkProbe = null;
+      this.settleLinkWaiters(false);
+    });
+  }
+
+  private resendPendingHandshakes(): void {
+    if (!this.settings.enabled || this.status !== 'online') return;
+    for (const f of this.friends) {
+      if (f.status === 'entered_theirs') this.sendHandshake(f);
+    }
+  }
+
+  private sendHandshake(f: Friend): void {
+    if (f.kind === 'device' && f.initRole === 'target') {
+      this.verifyLink()
+        .then(ok => {
+          if (ok) this.sendConnectTo(f.peerId, f.kind, false).catch(() => {});
+        })
+        .catch(() => {});
+      return;
+    }
+    this.sendConnectTo(f.peerId, f.kind, false).catch(() => {});
+  }
+
+  private keepPendingLinksAlive(): void {
+    const now = Date.now();
+    const waiting = this.friends.some(f =>
+      (f.status === 'entered_theirs' || (f.kind === 'device' && f.initPending)) &&
+      now - (f.initStartedAt || f.addedAt || 0) < PENDING_LINK_WATCH_MS);
+    if (!waiting) return;
+    this.probeLink();
+    if (!this.syncing) this.restartPendingClones();
   }
 
   private restartPendingClones(): void {
@@ -1263,8 +1418,9 @@ class NetworkManagerImpl {
   }
 
   async updateMyFront(front: any, members: Member[]): Promise<void> {
-    this.myFrontRaw = {front, members};
-    this.myFront = buildFrontShare(front, members);
+    const shareable = members.filter(m => !m.private);
+    this.myFrontRaw = {front, members: shareable};
+    this.myFront = buildFrontShare(front, shareable);
     this.myFrontAt = Date.now();
     const wasUnknown = !this.myFrontKnown;
     this.myFrontKnown = true;
@@ -1306,6 +1462,11 @@ class NetworkManagerImpl {
   private mirrorMediaTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private mirrorMediaPending: Map<string, Record<string, string>> = new Map();
   private mirrorServed: Map<string, Set<MirrorFeature>> = new Map();
+  private mirrorGifBuffers: Map<string, {peerId: string; h: string; total: number; parts: string[]; seqs: Set<number>; at: number}> = new Map();
+  private mirrorGifAsked: Map<string, number> = new Map();
+  private mirrorGifQueues: Map<string, {items: {id: string; h: string; src: string}[]; current: string | null}> = new Map();
+  private mirrorGifUrls: Map<string, string> = new Map();
+  private mirrorGifUrlChars = 0;
 
   private async loadMirrorServed(): Promise<void> {
     try {
@@ -1373,13 +1534,53 @@ class NetworkManagerImpl {
     return `${MIRROR_CACHE_PREFIX}${feature}:${peerId}`;
   }
 
-  async loadMirror(peerId: string, feature: MirrorFeature): Promise<MirrorCacheEntry | null> {
+  private async readMirrorEntry(peerId: string, feature: MirrorFeature): Promise<MirrorCacheEntry | null> {
     try {
       const raw = await getRaw(this.mirrorCacheKey(peerId, feature));
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
+  }
+
+  async loadMirror(peerId: string, feature: MirrorFeature): Promise<MirrorCacheEntry | null> {
+    const entry = await this.readMirrorEntry(peerId, feature);
+    if (!entry || entry.none || (feature !== 'members' && feature !== 'systemProfile')) return entry;
+    const wants = mirrorGifWants(feature, entry.data);
+    if (wants.size === 0) return entry;
+    const media = {...(entry.media || {})};
+    for (const [id, h] of wants) {
+      const url = await this.mirrorGifUrl(mirrorGifKey(peerId, feature, id, h));
+      if (url) media[id] = url;
+    }
+    return {...entry, media};
+  }
+
+  private async mirrorGifUrl(key: string): Promise<string | null> {
+    const hit = this.mirrorGifUrls.get(key);
+    if (hit) {
+      this.mirrorGifUrls.delete(key);
+      this.mirrorGifUrls.set(key, hit);
+      return hit;
+    }
+    const b64 = await getMirrorGif(key);
+    if (!b64) return null;
+    const url = `data:image/gif;base64,${b64}`;
+    this.mirrorGifUrls.set(key, url);
+    this.mirrorGifUrlChars += url.length;
+    while (this.mirrorGifUrlChars > MIRROR_GIF_URL_CACHE_CHARS && this.mirrorGifUrls.size > 1) {
+      const first = this.mirrorGifUrls.keys().next().value;
+      if (first === undefined) break;
+      this.dropMirrorGifUrl(first);
+    }
+    return url;
+  }
+
+  private dropMirrorGifUrl(key: string): void {
+    const url = this.mirrorGifUrls.get(key);
+    if (url === undefined) return;
+    this.mirrorGifUrls.delete(key);
+    this.mirrorGifUrlChars = Math.max(0, this.mirrorGifUrlChars - url.length);
   }
 
   async requestMirror(peerId: string, feature: MirrorFeature): Promise<void> {
@@ -1391,6 +1592,12 @@ class NetworkManagerImpl {
       window.electronAPI.store.remove(this.mirrorCacheKey(peerId, feat)).catch(() => {});
       this.mirrorSentHash.delete(`${peerId}|${feat}`);
     }
+    clearMirrorGifsFor(peerId).catch(() => {});
+    const prefix = `${peerId}|`;
+    for (const k of [...this.mirrorGifUrls.keys()]) if (k.startsWith(prefix)) this.dropMirrorGifUrl(k);
+    for (const k of [...this.mirrorGifBuffers.keys()]) if (k.startsWith(prefix)) this.mirrorGifBuffers.delete(k);
+    for (const k of [...this.mirrorGifAsked.keys()]) if (k.startsWith(prefix)) this.mirrorGifAsked.delete(k);
+    for (const [k, q] of [...this.mirrorGifQueues]) if (k.startsWith(prefix)) q.items.length = 0;
     if (this.mirrorServed.delete(peerId)) this.persistMirrorServed().catch(() => {});
   }
 
@@ -1423,7 +1630,7 @@ class NetworkManagerImpl {
 
   private mirrorSentHash: Map<string, string> = new Map();
 
-  private async handleMirrorReq(peerId: string, feature: MirrorFeature, skipIfUnchanged?: boolean): Promise<void> {
+  private async handleMirrorReq(peerId: string, feature: MirrorFeature, skipIfUnchanged?: boolean, gifAsk?: MirrorGifAsk[]): Promise<void> {
     if (feature !== 'members' && feature !== 'groups' && feature !== 'journal' && feature !== 'history' && feature !== 'systemProfile' && feature !== 'whiteboard' && feature !== 'planner') return;
     const fr = this.friends.find(x => x.peerId === peerId && x.kind !== 'device' && x.status === 'accepted');
     if (!fr) return;
@@ -1436,6 +1643,7 @@ class NetworkManagerImpl {
     } catch {}
     const scope = this.effectiveScope(buckets, peerId, feature);
     if (scope.mode === 'none') {
+      if (gifAsk) return;
       if (skipIfUnchanged && this.mirrorSentHash.get(gateKey) === 'none') return;
       try {
         await this.sendTo(peerId, { t: 'mirror', feature, seq: 0, total: 1, data: '', none: true });
@@ -1451,6 +1659,11 @@ class NetworkManagerImpl {
     let mediaMembers: {id: string; avatar: string}[] = [];
     let cfImages: {memberId: string; fieldId: string; src: string}[] = [];
     let profileImages: {id: string; src: string; maxDim: number}[] = [];
+    const gifSrc = new Map<string, {h: string; src: string}>();
+    const gifOf = (src: unknown): string | undefined => {
+      const b64 = mirrorGifDataB64(src);
+      return b64 ? mirrorGifHash(b64) : undefined;
+    };
     try {
       if (feature === 'whiteboard') {
         const rawWb = await getRaw(KEYS.whiteboard);
@@ -1498,11 +1711,14 @@ class NetworkManagerImpl {
         } catch {}
         const hasAvatar = typeof sys?.avatar === 'string' && !!sys.avatar;
         const hasBanner = typeof sys?.banner === 'string' && !!sys.banner;
+        const bannerGif = hasBanner ? gifOf(sys.banner) : undefined;
+        if (bannerGif) gifSrc.set(MIRROR_SYSTEM_BANNER_ID, {h: bannerGif, src: sys.banner});
         payload = JSON.stringify({
           name: String(sys?.name || ''),
           description: sys?.description ? String(sys.description) : undefined,
           hasAvatar: hasAvatar || undefined,
           hasBanner: hasBanner || undefined,
+          bannerGif,
         });
         if (hasAvatar) {
           profileImages.push({id: MIRROR_SYSTEM_AVATAR_ID, src: sys.avatar, maxDim: 256});
@@ -1514,7 +1730,7 @@ class NetworkManagerImpl {
         const raw = await getRaw(KEYS.members);
         const list: any[] = raw ? JSON.parse(raw) : [];
         const shared = (Array.isArray(list) ? list : [])
-          .filter(m => m && !m.deleted && !m.isCustomFront && !m.isFacet && (scope.mode === 'all' || scope.ids.has(m.id)))
+          .filter(m => m && !m.deleted && !m.private && !m.isCustomFront && !m.isFacet && (scope.mode === 'all' || scope.ids.has(m.id)))
           .sort((a, b) => ((a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER)) || nameCompare(a.name, b.name));
         const cfScope = this.effectiveScope(buckets, peerId, 'customFields');
         let grantedDefs: any[] = [];
@@ -1584,11 +1800,16 @@ class NetworkManagerImpl {
               if (d.type === 'image') {
                 if (typeof v.value !== 'string' || !v.value) return null;
                 cfImages.push({memberId: m.id, fieldId: d.id, src: v.value});
-                return {name: d.name, value: '🖼', type: d.type, fieldId: d.id};
+                const gif = gifOf(v.value);
+                if (gif) gifSrc.set(`${m.id}#cf:${d.id}`, {h: gif, src: v.value});
+                return {name: d.name, value: '🖼', type: d.type, fieldId: d.id, gif};
               }
               return {name: d.name, value: v.value, type: d.type, markdown: d.markdown || undefined, fieldId: d.id};
             })
             .filter(Boolean) as MirrorMember['customFields'];
+          const hasBanner = typeof m.banner === 'string' && m.banner.startsWith('data:');
+          const bannerGif = hasBanner ? gifOf(m.banner) : undefined;
+          if (bannerGif) gifSrc.set(`${m.id}#banner`, {h: bannerGif, src: m.banner as string});
           return {
             id: m.id,
             name: m.name || '',
@@ -1597,6 +1818,8 @@ class NetworkManagerImpl {
             color: m.color || undefined,
             description: m.description || undefined,
             archived: m.archived || undefined,
+            hasBanner,
+            bannerGif,
             customFields: cfs && cfs.length > 0 ? cfs : undefined,
             connections: connectionsOf(m.id),
           };
@@ -1625,7 +1848,7 @@ class NetworkManagerImpl {
         const sharedGroupIds = new Set(sharedGroups.map(g => g.id));
         const mScope = this.effectiveScope(buckets, peerId, 'members');
         const sharedMembers = (Array.isArray(allMembers) ? allMembers : []).filter(
-          m => m && !m.deleted && !m.isCustomFront && !m.isFacet && (mScope.mode === 'all' || mScope.ids.has(m.id)),
+          m => m && !m.deleted && !m.private && !m.isCustomFront && !m.isFacet && (mScope.mode === 'all' || mScope.ids.has(m.id)),
         );
         const membership: Record<string, {id: string; name: string}[]> = {};
         for (const m of sharedMembers) {
@@ -1661,7 +1884,7 @@ class NetworkManagerImpl {
         const mScope = this.effectiveScope(buckets, peerId, 'members');
         const visibleIds = new Set(
           (Array.isArray(allMembers) ? allMembers : [])
-            .filter(m => m && !m.deleted && (mScope.mode === 'all' || mScope.ids.has(m.id)))
+            .filter(m => m && !m.deleted && !m.private && (mScope.mode === 'all' || mScope.ids.has(m.id)))
             .map(m => m.id),
         );
         const keep = (ids?: string[]) => (ids || []).filter(id => visibleIds.has(id));
@@ -1692,13 +1915,30 @@ class NetworkManagerImpl {
       } else {
         const raw = await getRaw(KEYS.journal);
         const list: any[] = raw ? JSON.parse(raw) : [];
-        const shared = (Array.isArray(list) ? list : []).filter(
-          e => e && (scope.mode === 'all' || scope.ids.has(e.id)),
-        );
+        const rawM = await getRaw(KEYS.members);
+        let allMembers: any[] = [];
+        try {
+          allMembers = rawM ? JSON.parse(rawM) : [];
+        } catch {}
+        const privateIds = new Set((Array.isArray(allMembers) ? allMembers : []).filter(m => m && m.private).map(m => m.id));
+        const shared = (Array.isArray(list) ? list : [])
+          .filter(e => e && (scope.mode === 'all' || scope.ids.has(e.id)))
+          .map(e => (Array.isArray(e.authorIds) && e.authorIds.some((id: string) => privateIds.has(id))
+            ? {...e, authorIds: e.authorIds.filter((id: string) => !privateIds.has(id))}
+            : e));
         payload = JSON.stringify(shared);
       }
     } catch (e) {
       console.warn('[NETWORK] mirror build failed:', e);
+      return;
+    }
+    if (gifAsk) {
+      const items: {id: string; h: string; src: string}[] = [];
+      for (const a of gifAsk) {
+        const g = gifSrc.get(a.id);
+        if (g && g.h === a.h) items.push({id: a.id, h: g.h, src: g.src});
+      }
+      if (items.length > 0) this.queueMirrorGifs(peerId, feature, items);
       return;
     }
     const pHash = syncHash(payload);
@@ -1779,12 +2019,14 @@ class NetworkManagerImpl {
         return;
       }
     }
-    const prev = await this.loadMirror(sender.peerId, m.feature);
+    const prev = await this.readMirrorEntry(sender.peerId, m.feature);
     const media: Record<string, string> = {};
     if (m.feature === 'members' && prev?.media && !m.none && Array.isArray(data)) {
       for (const mm of data) {
         if (!mm?.id) continue;
         if (prev.media[mm.id]) media[mm.id] = prev.media[mm.id];
+        const bk = `${mm.id}#banner`;
+        if (mm.hasBanner !== false && prev.media[bk]) media[bk] = prev.media[bk];
         for (const cf of (mm.customFields || []) as {type?: string; fieldId?: string}[]) {
           if (cf && cf.type === 'image' && cf.fieldId) {
             const k = `${mm.id}#cf:${cf.fieldId}`;
@@ -1802,6 +2044,11 @@ class NetworkManagerImpl {
     try {
       await setRaw(this.mirrorCacheKey(sender.peerId, m.feature), JSON.stringify(entry));
     } catch {}
+    if (m.feature === 'members' || m.feature === 'systemProfile') {
+      const wants = m.none ? new Map<string, string>() : mirrorGifWants(m.feature, data);
+      await this.pruneMirrorGifs(sender.peerId, m.feature, wants);
+      this.askMirrorGifs(sender.peerId, m.feature, wants).catch(e => console.warn('[NETWORK] mirror gif ask failed:', e));
+    }
     this.notifyMirror(sender.peerId, m.feature);
   }
 
@@ -1822,7 +2069,7 @@ class NetworkManagerImpl {
   }
 
   private async flushMirrorMedia(peerId: string, feature: MirrorFeature, batch: Record<string, string>): Promise<void> {
-    const prev = await this.loadMirror(peerId, feature);
+    const prev = await this.readMirrorEntry(peerId, feature);
     if (!prev || prev.none) return;
     const media = {...(prev.media || {})};
     let changed = false;
@@ -1835,7 +2082,8 @@ class NetworkManagerImpl {
     } else if (Array.isArray(prev.data)) {
       const idsPresent = new Set(prev.data.map((x: any) => x?.id));
       for (const mid in batch) {
-        const baseId = mid.includes('#cf:') ? mid.slice(0, mid.indexOf('#cf:')) : mid;
+        const cut = mid.endsWith('#banner') ? mid.length - '#banner'.length : mid.indexOf('#cf:');
+        const baseId = cut >= 0 ? mid.slice(0, cut) : mid;
         if (idsPresent.has(baseId)) {
           media[mid] = batch[mid];
           changed = true;
@@ -1848,6 +2096,114 @@ class NetworkManagerImpl {
       await setRaw(this.mirrorCacheKey(peerId, feature), JSON.stringify(entry));
     } catch {}
     this.notifyMirror(peerId, feature);
+  }
+
+  private async pruneMirrorGifs(peerId: string, feature: MirrorFeature, wants: Map<string, string>): Promise<void> {
+    const keep = new Set<string>();
+    wants.forEach((h, id) => keep.add(mirrorGifKey(peerId, feature, id, h)));
+    const stale = (await listMirrorGifKeys(peerId, feature)).filter(k => !keep.has(k));
+    for (const k of stale) this.dropMirrorGifUrl(k);
+    await deleteMirrorGifKeys(stale);
+  }
+
+  private async askMirrorGifs(peerId: string, feature: MirrorFeature, wants: Map<string, string>): Promise<void> {
+    if (wants.size === 0) return;
+    const have = new Set(await listMirrorGifKeys(peerId, feature));
+    const now = Date.now();
+    const items: MirrorGifAsk[] = [];
+    wants.forEach((h, id) => {
+      const key = mirrorGifKey(peerId, feature, id, h);
+      if (have.has(key) || items.length >= MIRROR_GIF_ASK_MAX) return;
+      const at = this.mirrorGifAsked.get(key);
+      if (at && now - at < MIRROR_GIF_ASK_TTL_MS) return;
+      this.mirrorGifAsked.set(key, now);
+      items.push({id, h});
+    });
+    if (items.length === 0) return;
+    try {
+      await this.sendTo(peerId, { t: 'mirror_gif_req', feature, items });
+    } catch (e) {
+      for (const it of items) this.mirrorGifAsked.delete(mirrorGifKey(peerId, feature, it.id, it.h));
+      console.warn('[NETWORK] mirror gif ask send failed:', e);
+    }
+  }
+
+  private handleMirrorGif(sender: FriendIdentity, m: {feature: MirrorFeature; memberId: string; h: string; seq: number; total: number; data: string}): void {
+    if (!m || typeof m.memberId !== 'string' || !m.memberId || m.memberId.length > 128 || !isMirrorGifHash(m.h)) return;
+    if (!Number.isInteger(m.seq) || !Number.isInteger(m.total) || m.total < 1 || m.total > MIRROR_GIF_MAX_PARTS || m.seq < 0 || m.seq >= m.total) return;
+    if (typeof m.data !== 'string' || m.data.length === 0 || m.data.length > MIRROR_GIF_PART) return;
+    const askKey = mirrorGifKey(sender.peerId, m.feature, m.memberId, m.h);
+    if (!this.mirrorGifAsked.has(askKey)) return;
+    const bufKey = `${sender.peerId}|${m.feature}|${m.memberId}`;
+    let buf = this.mirrorGifBuffers.get(bufKey);
+    if (!buf || buf.h !== m.h || buf.total !== m.total) {
+      const mine = [...this.mirrorGifBuffers].filter(([k, b]) => k !== bufKey && b.peerId === sender.peerId).sort((a, b) => a[1].at - b[1].at);
+      while (mine.length >= MIRROR_GIF_BUFFERS_PER_PEER) {
+        const oldest = mine.shift();
+        if (oldest) this.mirrorGifBuffers.delete(oldest[0]);
+      }
+      buf = {peerId: sender.peerId, h: m.h, total: m.total, parts: new Array(m.total).fill(''), seqs: new Set(), at: Date.now()};
+      this.mirrorGifBuffers.set(bufKey, buf);
+    }
+    buf.at = Date.now();
+    if (buf.seqs.has(m.seq)) return;
+    buf.parts[m.seq] = m.data;
+    buf.seqs.add(m.seq);
+    if (buf.seqs.size !== buf.total) return;
+    this.mirrorGifBuffers.delete(bufKey);
+    this.mirrorGifAsked.delete(askKey);
+    this.storeMirrorGif(sender.peerId, m.feature, m.memberId, m.h, buf.parts.join('')).catch(e => console.warn('[NETWORK] mirror gif store failed:', e));
+  }
+
+  private async storeMirrorGif(peerId: string, feature: MirrorFeature, id: string, h: string, b64: string): Promise<void> {
+    if (!isMirrorGifB64(b64)) return;
+    const entry = await this.readMirrorEntry(peerId, feature);
+    if (!entry || entry.none || mirrorGifWants(feature, entry.data).get(id) !== h) return;
+    if (await putMirrorGif(mirrorGifKey(peerId, feature, id, h), b64)) this.notifyMirror(peerId, feature);
+  }
+
+  private queueMirrorGifs(peerId: string, feature: MirrorFeature, items: {id: string; h: string; src: string}[]): void {
+    const qk = `${peerId}|${feature}`;
+    const running = this.mirrorGifQueues.get(qk);
+    if (running) {
+      for (const it of items) {
+        const k = `${it.id}|${it.h}`;
+        if (running.current === k || running.items.some(x => x.id === it.id && x.h === it.h)) continue;
+        running.items.push(it);
+      }
+      return;
+    }
+    const q = {items: [...items], current: null as string | null};
+    this.mirrorGifQueues.set(qk, q);
+    (async () => {
+      try {
+        while (q.items.length > 0) {
+          const it = q.items.shift();
+          if (!it) break;
+          q.current = `${it.id}|${it.h}`;
+          await this.sendMirrorGif(peerId, feature, it);
+        }
+      } finally {
+        this.mirrorGifQueues.delete(qk);
+      }
+    })().catch(e => console.warn('[NETWORK] mirror gif queue failed:', e));
+  }
+
+  private async sendMirrorGif(peerId: string, feature: MirrorFeature, it: {id: string; h: string; src: string}): Promise<void> {
+    const b64 = mirrorGifDataB64(it.src);
+    if (!b64) return;
+    const total = Math.ceil(b64.length / MIRROR_GIF_PART);
+    if (total < 1 || total > MIRROR_GIF_MAX_PARTS) return;
+    for (let seq = 0; seq < total; seq++) {
+      const data = b64.slice(seq * MIRROR_GIF_PART, (seq + 1) * MIRROR_GIF_PART);
+      try {
+        await this.sendTo(peerId, { t: 'mirror_gif', feature, memberId: it.id, h: it.h, seq, total, data });
+      } catch (e) {
+        console.warn('[NETWORK] mirror gif send failed:', e);
+        return;
+      }
+      await sleep(SYNC_PACE_MS);
+    }
   }
 
   private onDeviceLinkAccepted(f: Friend): void {
@@ -2154,7 +2510,7 @@ class NetworkManagerImpl {
     const CLONE_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
     let changed = false;
     this.friends = this.friends.map(f => {
-      if (f.kind === 'device' && f.initPending) {
+      if (f.kind === 'device' && f.initPending && f.status === 'accepted') {
         if (!f.initStartedAt || Date.now() - f.initStartedAt > CLONE_IDLE_TIMEOUT_MS) {
           changed = true;
           return { ...f, initPending: false };
@@ -2171,9 +2527,9 @@ class NetworkManagerImpl {
 
   private retryPendingLinks(): void {
     for (const f of this.friends) {
-      if (f.kind !== 'device' || f.status === 'accepted') continue;
+      if (f.kind !== 'device' || f.status !== 'entered_theirs') continue;
       if (!this.isReachable(f.peerId)) continue;
-      this.sendConnectTo(f.peerId, 'device', false).catch(() => {});
+      this.sendHandshake(f);
     }
   }
 
@@ -2462,9 +2818,10 @@ class NetworkManagerImpl {
     const id = `${sender.peerId}:${m.key}:${m.h}`;
     let buf = this.chunkBuffers.get(id);
     if (!buf) {
-      buf = {parts: new Array(m.total).fill(''), total: m.total, seqs: new Set(), init: !!m.init, resolved: !!m.resolved};
+      buf = {parts: new Array(m.total).fill(''), total: m.total, seqs: new Set(), init: !!m.init, resolved: !!m.resolved, at: Date.now()};
       this.chunkBuffers.set(id, buf);
     }
+    buf.at = Date.now();
     buf.parts[m.seq] = m.data;
     buf.seqs.add(m.seq);
     if (buf.seqs.size >= buf.total) {

@@ -265,6 +265,10 @@
     "publishFailed": "Không thể công bố mã của bạn — kiểm tra kết nối và thử lại."
   },
   "common": {
+    "durDaysHours": "{{d}} ngày {{h}} giờ",
+    "durHoursMinutes": "{{h}} giờ {{m}} phút",
+    "durMinutes": "{{m}} phút",
+    "durUnderMinute": "<1 phút",
     "on": "Bật",
     "off": "Tắt",
     "settingsSaved": "Đã lưu cài đặt",
@@ -436,6 +440,8 @@
     "bulkDelete": "Xóa thành viên",
     "bulkDeleteMsg": "Xóa vĩnh viễn {{count}} thành viên? Không thể hoàn tác.",
     "assignGroup": "Nhóm",
+    "assignTag": "Thẻ",
+    "addTags": "Thêm thẻ",
     "frontingLockTitle": "Đang front",
     "frontingLockMsg": "Không thể lưu trữ hoặc xóa thành viên khi họ đang front. Hãy gỡ họ khỏi front trước.",
     "archive": "Lưu trữ",
@@ -626,7 +632,13 @@
     "creditIos": "Bản port iOS của Plural Star",
     "supportPS": "Ủng hộ PS"
   },
+  "editor": {
+    "urlPlaceholder": "URL ở đây",
+    "textPlaceholder": "văn bản"
+  },
   "markdown": {
+    "toolImageLeft": "Hình ảnh bên trái, văn bản bên phải",
+    "toolImageRight": "Hình ảnh bên phải, văn bản bên trái",
     "toolBold": "In đậm",
     "toolItalic": "In nghiêng",
     "toolStrike": "Gạch ngang",
@@ -674,6 +686,8 @@
     "confirmDelete": "Xác nhận Xóa",
     "archiveMember": "Lưu trữ Thành viên",
     "archiveDesc": "Ẩn khỏi danh sách thành viên hoạt động và bộ chọn front. Lịch sử được giữ nguyên.",
+    "private": "Riêng tư",
+    "privateDesc": "Chỉ bạn mới thấy. Ẩn với mọi bạn bè, trong mọi vòng riêng tư.",
     "newEntry": "Bài Mới",
     "editEntry": "Sửa Bài",
     "entryTitle": "Tiêu đề",
@@ -776,6 +790,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Cập nhật",
+    "version": "Phiên bản {{version}}",
+    "check": "Kiểm tra cập nhật",
+    "checking": "Đang kiểm tra…",
+    "available": "Plural Star {{latest}} đã ra mắt. Bạn đang dùng {{current}}.",
+    "upToDate": "Bạn đang dùng phiên bản mới nhất.",
+    "failed": "Không thể kiểm tra cập nhật. Hãy thử lại sau.",
+    "download": "Tải xuống"
+  },
   "memberGroups": {
     "groupName": "Tên nhóm",
     "changeColor": "Đổi màu",
@@ -788,6 +812,9 @@
     "none": "Chưa có nhóm hoặc hệ thống con nào.",
     "promoteChildren": "Giữ các mục con",
     "subsystem": "Hệ thống con",
+    "linkedFronter": "Người front được liên kết",
+    "noLinkedFronter": "Không có",
+    "linkedSubsystems": "Hệ thống con được liên kết",
     "toRoot": "Cấp cao nhất",
     "title": "Nhóm",
     "addPlaceholder": "Tên nhóm mới…",
@@ -798,6 +825,8 @@
     "deleteWithChildrenMsg": "Nhóm này chứa {{count}} mục lồng nhau. Giữ chúng và chuyển lên một cấp, hay xóa tất cả?"
   },
   "stats": {
+    "last90": "90 Ngày",
+    "statusDetails": "Chi tiết Trạng thái",
     "showMore": "Hiện thêm",
     "energyByHour": "Năng lượng theo Giờ",
     "allTime": "Mọi lúc",
@@ -1009,6 +1038,7 @@
     "addOption": "+ Thêm Lựa chọn",
     "optionPlaceholder": "Lựa chọn...",
     "hideVoters": "Ẩn Tên Người bình chọn",
+    "multipleChoice": "Chọn Nhiều",
     "vote": "Bình chọn",
     "votes": "{{count}} phiếu",
     "closePoll": "Đóng Bình chọn",
@@ -1044,6 +1074,13 @@
     "changeBanner": "Đổi Ảnh bìa",
     "removeAvatar": "Gỡ Ảnh đại diện",
     "removeBanner": "Gỡ Ảnh bìa"
+  },
+  "frontSort": {
+    "label": "Sắp xếp",
+    "added": "Đã thêm",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Tùy chỉnh"
   },
   "memberSort": {
     "label": "Sắp xếp Thành viên",

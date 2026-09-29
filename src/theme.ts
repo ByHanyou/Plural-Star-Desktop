@@ -143,6 +143,69 @@ export const deriveTheme = (bg: string, accent: string, text: string, mid: strin
   };
 };
 
+export const inkOn = (bg: string): string =>
+  wcagContrast('#000000', bg) >= wcagContrast('#FFFFFF', bg) ? '#000000' : '#FFFFFF';
+
+export const profileTheme = (base: Pick<ThemeColors, 'accent' | 'danger' | 'success' | 'info'>, color: string): ThemeColors => {
+  const ink = inkOn(color);
+  const surface = mix(color, ink === '#000000' ? '#FFFFFF' : '#000000', 0.18);
+  const readable = (c: string, min: number) => ensureReadable(ensureReadable(c, surface, min), color, min);
+  return {
+    bg: color,
+    surface,
+    card: color,
+    border: mix(color, ink, 0.3),
+    borderLt: mix(color, ink, 0.4),
+    accent: readable(base.accent, 4.5),
+    accentBg: surface,
+    text: ink,
+    dim: readable(mix(ink, color, 0.2), 4.5),
+    muted: readable(mix(ink, color, 0.35), 3),
+    toggleOff: mix(color, ink, 0.35),
+    danger: readable(base.danger, 4.5),
+    dangerBg: surface,
+    success: readable(base.success, 4.5),
+    successBg: surface,
+    info: readable(base.info, 4.5),
+    infoBg: surface,
+    isLight: ink === '#000000',
+  };
+};
+
+export const themeVars = (theme: ThemeColors): Record<string, string> => ({
+  '--bg': theme.bg,
+  '--surface': theme.surface,
+  '--card': theme.card,
+  '--border': theme.border,
+  '--border-lt': theme.borderLt,
+  '--accent': theme.accent,
+  '--accent-bg': theme.accentBg,
+  '--text': theme.text,
+  '--dim': theme.dim,
+  '--muted': theme.muted,
+  '--toggle-off': theme.toggleOff,
+  '--danger': theme.danger,
+  '--danger-bg': theme.dangerBg,
+  '--success': theme.success,
+  '--success-bg': theme.successBg,
+  '--info': theme.info,
+  '--info-bg': theme.infoBg,
+});
+
+export const liveThemeBase = (): Pick<ThemeColors, 'accent' | 'danger' | 'success' | 'info'> => {
+  const css = getComputedStyle(document.documentElement);
+  const read = (name: string, fallback: string) => {
+    const v = css.getPropertyValue(name).trim();
+    return /^#[0-9A-Fa-f]{6}$/.test(v) ? v : fallback;
+  };
+  return {
+    accent: read('--accent', DARK_PALETTE.accent),
+    danger: read('--danger', '#d9534f'),
+    success: read('--success', '#4caf8a'),
+    info: read('--info', '#7B9FE8'),
+  };
+};
+
 export const DARK_PALETTE: CustomPalette = {
   id: '__dark__',
   name: 'Obsidian',
@@ -163,6 +226,8 @@ export const LIGHT_PALETTE: CustomPalette = {
 
 export const BUILTIN_PALETTES: CustomPalette[] = [DARK_PALETTE, LIGHT_PALETTE];
 
+export const MAX_CUSTOM_PALETTES = 20;
+
 export const PALETTE = [
   '#DAA520', '#7B9FE8', '#E87BA8', '#7BE8C4',
   '#A87BE8', '#E8A87B', '#6EC9A9', '#E87B7B',
@@ -171,23 +236,7 @@ export const PALETTE = [
 
 export function applyThemeToDOM(theme: ThemeColors): void {
   const root = document.documentElement;
-  root.style.setProperty('--bg', theme.bg);
-  root.style.setProperty('--surface', theme.surface);
-  root.style.setProperty('--card', theme.card);
-  root.style.setProperty('--border', theme.border);
-  root.style.setProperty('--border-lt', theme.borderLt);
-  root.style.setProperty('--accent', theme.accent);
-  root.style.setProperty('--accent-bg', theme.accentBg);
-  root.style.setProperty('--text', theme.text);
-  root.style.setProperty('--dim', theme.dim);
-  root.style.setProperty('--muted', theme.muted);
-  root.style.setProperty('--toggle-off', theme.toggleOff);
-  root.style.setProperty('--danger', theme.danger);
-  root.style.setProperty('--danger-bg', theme.dangerBg);
-  root.style.setProperty('--success', theme.success);
-  root.style.setProperty('--success-bg', theme.successBg);
-  root.style.setProperty('--info', theme.info);
-  root.style.setProperty('--info-bg', theme.infoBg);
+  for (const [name, value] of Object.entries(themeVars(theme))) root.style.setProperty(name, value);
 }
 
 export function applyTextScale(scale: number): void {

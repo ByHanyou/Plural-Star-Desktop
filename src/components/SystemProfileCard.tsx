@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { getInitials } from '../utils';
+import { MarkdownText } from './MarkdownText';
 
 interface Props {
   name: string;
@@ -32,7 +33,7 @@ export default function SystemProfileCard({ name, description, avatar, banner, c
 
       <div style={{ padding: 14, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
         {description ? (
-          <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{description}</div>
+          <MarkdownText text={description} />
         ) : (
           <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('systemProfile.noDescription')}</span>
         )}

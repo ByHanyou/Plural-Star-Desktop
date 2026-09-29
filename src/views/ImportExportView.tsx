@@ -39,7 +39,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const channels = useAppStore(s => s.state.channels);
   const palettes = useAppStore(s => s.state.palettes);
   const { t } = useTranslation();
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ msg: string; error: boolean } | null>(null);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const importControlRef = useRef<ImportControl | null>(null);
@@ -74,8 +74,8 @@ export default function ImportExportView({ onUpdate }: Props) {
   const togExp = (k: keyof ExportCategories) => setExportSel(s => ({ ...s, [k]: !s[k] }));
   const [showExportOptions, setShowExportOptions] = useState(false);
 
-  const showStatus = (msg: string) => {
-    setStatus(msg);
+  const showStatus = (msg: string, error = false) => {
+    setStatus({ msg, error });
     setTimeout(() => setStatus(null), 4000);
   };
 
@@ -121,14 +121,14 @@ export default function ImportExportView({ onUpdate }: Props) {
         onCancel={importControlRef.current ? () => importControlRef.current?.requestStop() : undefined}
       />
       {status && (
-        <div style={{
+        <div role={status.error ? 'alert' : 'status'} style={{
           padding: '10px 16px', marginBottom: 16, borderRadius: 8,
-          background: status.startsWith('Error') ? 'var(--danger-bg)' : 'var(--success-bg)',
-          border: `1px solid ${status.startsWith('Error') ? 'var(--danger)' : 'var(--success)'}`,
-          color: status.startsWith('Error') ? 'var(--danger)' : 'var(--success)',
+          background: status.error ? 'var(--danger-bg)' : 'var(--success-bg)',
+          border: `1px solid ${status.error ? 'var(--danger)' : 'var(--success)'}`,
+          color: status.error ? 'var(--danger)' : 'var(--success)',
           fontSize: 13,
         }}>
-          {status}
+          {status.msg}
         </div>
       )}
 
@@ -139,9 +139,9 @@ export default function ImportExportView({ onUpdate }: Props) {
         </p>
         <div style={{ display: 'flex', gap: 10, fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
           <span>{t('share.membersCountSimple', { count: members.filter(m => !m.deleted).length })}</span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <span>{t('share.historyCount', { count: history.length })}</span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <span>{t('share.journalCount', { count: journal.length })}</span>
         </div>
 

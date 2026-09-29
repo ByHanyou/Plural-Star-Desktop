@@ -45,6 +45,10 @@
     "sand": "모래색"
   },
   "common": {
+    "durDaysHours": "{{d}}일 {{h}}시간",
+    "durHoursMinutes": "{{h}}시간 {{m}}분",
+    "durMinutes": "{{m}}분",
+    "durUnderMinute": "1분 미만",
     "on": "켜짐",
     "off": "꺼짐",
     "settingsSaved": "설정이 저장됐어요",
@@ -216,6 +220,8 @@
     "bulkDelete": "멤버 삭제",
     "bulkDeleteMsg": "멤버 {{count}}명을 영구 삭제할까요? 되돌릴 수 없어요.",
     "assignGroup": "그룹",
+    "assignTag": "태그",
+    "addTags": "태그 추가",
     "frontingLockTitle": "현재 프런팅 중",
     "frontingLockMsg": "프런팅 중인 멤버는 보관하거나 삭제할 수 없어요. 먼저 프런트에서 빼 주세요.",
     "archive": "보관",
@@ -406,7 +412,13 @@
     "creditsBlurb": "커뮤니티 기여자",
     "archive": "보관함"
   },
+  "editor": {
+    "urlPlaceholder": "URL 입력",
+    "textPlaceholder": "텍스트"
+  },
   "markdown": {
+    "toolImageLeft": "이미지 왼쪽, 텍스트 오른쪽",
+    "toolImageRight": "이미지 오른쪽, 텍스트 왼쪽",
     "toolBold": "굵게",
     "toolItalic": "기울임",
     "toolStrike": "취소선",
@@ -453,6 +465,8 @@
     "confirmDelete": "삭제 확인",
     "archiveMember": "멤버 보관",
     "archiveDesc": "활성 멤버 목록과 프런트 선택에서 숨겨요. 기록은 보존돼요.",
+    "private": "비공개",
+    "privateDesc": "나만 볼 수 있어요. 모든 프라이버시 버킷에서 모든 친구에게 숨겨져요.",
     "newEntry": "새 글",
     "editEntry": "글 편집",
     "viewEntry": "일지 글",
@@ -556,6 +570,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "업데이트",
+    "version": "버전 {{version}}",
+    "check": "업데이트 확인",
+    "checking": "확인 중…",
+    "available": "Plural Star {{latest}}이(가) 출시되었습니다. 현재 {{current}}을(를) 사용 중입니다.",
+    "upToDate": "최신 버전입니다.",
+    "failed": "업데이트를 확인할 수 없습니다. 나중에 다시 시도하세요.",
+    "download": "다운로드"
+  },
   "memberGroups": {
     "groupName": "그룹 이름",
     "title": "그룹",
@@ -575,7 +599,10 @@
     "toRoot": "최상위",
     "none": "아직 그룹이나 하위 시스템이 없어요.",
     "group": "그룹",
-    "subsystem": "하위 시스템"
+    "subsystem": "하위 시스템",
+    "linkedFronter": "연결된 프런터",
+    "noLinkedFronter": "없음",
+    "linkedSubsystems": "연결된 하위 시스템"
   },
   "systemManager": {
     "title": "시스템 관리자",
@@ -901,6 +928,8 @@
     "apptReminderTitle": "예약 알림"
   },
   "stats": {
+    "last90": "90일",
+    "statusDetails": "상태 상세",
     "showMore": "더 보기",
     "energyByHour": "시간대별 에너지",
     "allTime": "전체 기간",
@@ -1009,6 +1038,7 @@
     "addOption": "+ 선택지 추가",
     "optionPlaceholder": "선택지...",
     "hideVoters": "투표자 이름 숨기기",
+    "multipleChoice": "복수 선택",
     "vote": "투표",
     "votes": "{{count}}표",
     "closePoll": "투표 마감",
@@ -1044,6 +1074,13 @@
     "changeBanner": "배너 변경",
     "removeAvatar": "아바타 삭제",
     "removeBanner": "배너 삭제"
+  },
+  "frontSort": {
+    "label": "정리",
+    "added": "추가순",
+    "az": "가나다순",
+    "za": "역순",
+    "custom": "사용자 지정"
   },
   "memberSort": {
     "label": "멤버 정렬",

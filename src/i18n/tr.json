@@ -266,6 +266,10 @@
     "publishFailed": "Kodun yayınlanamadı — bağlantını kontrol edip yeniden dene."
   },
   "common": {
+    "durDaysHours": "{{d}} g {{h}} sa",
+    "durHoursMinutes": "{{h}} sa {{m}} dk",
+    "durMinutes": "{{m}} dk",
+    "durUnderMinute": "<1 dk",
     "on": "Açık",
     "off": "Kapalı",
     "settingsSaved": "Ayarlar kaydedildi",
@@ -437,6 +441,8 @@
     "bulkDelete": "Üyeleri sil",
     "bulkDeleteMsg": "{{count}} üye kalıcı olarak silinsin mi? Bu geri alınamaz.",
     "assignGroup": "Grup",
+    "assignTag": "Etiket",
+    "addTags": "Etiket ekle",
     "frontingLockTitle": "Şu anda frontta",
     "frontingLockMsg": "Bir üye fronttayken arşivlenemez veya silinemez. Önce onu fronttan çıkarın.",
     "archive": "Arşivle",
@@ -627,7 +633,13 @@
     "creditIos": "Plural Star iOS Portu",
     "supportPS": "PS'yi Destekle"
   },
+  "editor": {
+    "urlPlaceholder": "URL buraya",
+    "textPlaceholder": "metin"
+  },
   "markdown": {
+    "toolImageLeft": "Görsel solda, metin sağda",
+    "toolImageRight": "Görsel sağda, metin solda",
     "toolBold": "Kalın",
     "toolItalic": "İtalik",
     "toolStrike": "Üstü çizili",
@@ -675,6 +687,8 @@
     "confirmDelete": "Silmeyi Onayla",
     "archiveMember": "Üyeyi Arşivle",
     "archiveDesc": "Aktif üye listesinden ve front seçicisinden gizle. Geçmiş korunur.",
+    "private": "Gizli",
+    "privateDesc": "Onları yalnızca sen görebilirsin. Her gizlilik çemberinde tüm arkadaşlardan gizlenir.",
     "newEntry": "Yeni Girdi",
     "editEntry": "Girdiyi Düzenle",
     "entryTitle": "Başlık",
@@ -777,6 +791,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Güncellemeler",
+    "version": "Sürüm {{version}}",
+    "check": "Güncellemeleri denetle",
+    "checking": "Denetleniyor…",
+    "available": "Plural Star {{latest}} çıktı. Sizde {{current}} var.",
+    "upToDate": "Güncelsiniz.",
+    "failed": "Güncellemeler denetlenemedi. Daha sonra tekrar deneyin.",
+    "download": "İndir"
+  },
   "memberGroups": {
     "groupName": "Grup adı",
     "changeColor": "Rengi değiştir",
@@ -789,6 +813,9 @@
     "none": "Henüz grup veya alt sistem yok.",
     "promoteChildren": "Alt öğeleri tut",
     "subsystem": "Alt sistem",
+    "linkedFronter": "Bağlı Frontta Olan",
+    "noLinkedFronter": "Hiçbiri",
+    "linkedSubsystems": "Bağlı alt sistemler",
     "toRoot": "En üst düzey",
     "title": "Gruplar",
     "addPlaceholder": "Yeni grup adı…",
@@ -799,6 +826,8 @@
     "deleteWithChildrenMsg": "Bu, {{count}} iç içe öğe içeriyor. Onları bir üst düzeye taşıyarak tutalım mı, yoksa her şey silinsin mi?"
   },
   "stats": {
+    "last90": "90 Gün",
+    "statusDetails": "Durum Ayrıntıları",
     "showMore": "Daha fazla göster",
     "energyByHour": "Saate Göre Enerji",
     "allTime": "Tüm Zamanlar",
@@ -1010,6 +1039,7 @@
     "addOption": "+ Seçenek Ekle",
     "optionPlaceholder": "Seçenek...",
     "hideVoters": "Oy Veren Adlarını Gizle",
+    "multipleChoice": "Çoklu Seçim",
     "vote": "Oy Ver",
     "votes": "{{count}} oy",
     "closePoll": "Anketi Kapat",
@@ -1045,6 +1075,13 @@
     "changeBanner": "Afişi Değiştir",
     "removeAvatar": "Avatarı Kaldır",
     "removeBanner": "Afişi Kaldır"
+  },
+  "frontSort": {
+    "label": "Düzenle",
+    "added": "Eklenen",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Özel"
   },
   "memberSort": {
     "label": "Üyeleri Sırala",

@@ -32,6 +32,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   notify: (title: string, body: string) => ipcRenderer.invoke('notify', title, body),
 
+  app: {
+    version: () => ipcRenderer.invoke('app:version'),
+  },
+
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl } from '../utils';
-import { PALETTE, initialOn } from '../theme';
+import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl, isValidHex } from '../utils';
+import { PALETTE, initialOn, profileTheme, themeVars, liveThemeBase } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, Toggle, clickable } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { chooseImageTreatment } from '../components/ImageCropModal';
-import { CustomHexEntry } from '../components/CustomHexEntry';
+import { CustomHexEntry, ProfileBgChip } from '../components/CustomHexEntry';
+import { MarkdownText } from '../components/MarkdownText';
 
 type SubTab = 'profile' | 'statuses';
 
@@ -30,6 +31,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
 
   const activeIds = allFrontMemberIds(front);
   const set = (k: keyof Member, v: any) => setF(x => ({ ...x, [k]: v }));
+  const profilePt = member?.profileBg && isValidHex(member.color) ? profileTheme(liveThemeBase(), member.color) : null;
 
   const openEditProfile = async () => {
     const self = await onEnsureSelf();
@@ -116,7 +118,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
 
       <div style={{ display: 'flex', gap: 0, margin: '8px 0 16px', borderBottom: '1px solid var(--border)' }}>
         {(['profile', 'statuses'] as SubTab[]).map(id => (
-          <button key={id} onClick={() => setSubTab(id)} style={{
+          <button key={id} aria-pressed={subTab === id} onClick={() => setSubTab(id)} style={{
             padding: '10px 20px', fontSize: 13, fontWeight: subTab === id ? 600 : 400, cursor: 'pointer',
             color: subTab === id ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
             borderBottom: `2px solid ${subTab === id ? 'var(--accent)' : 'transparent'}`,
@@ -127,16 +129,16 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
       </div>
 
       {subTab === 'profile' && (
-        <div>
+        <div style={profilePt ? { ...(themeVars(profilePt) as React.CSSProperties), background: 'var(--bg)', borderRadius: 'var(--radius)', padding: 16 } : undefined}>
           {member?.banner && (
             <img src={member.banner} alt="" style={{ width: '100%', aspectRatio: '3', objectFit: 'cover', borderRadius: 'var(--radius)' }} />
           )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: member?.banner ? -36 : 0, marginBottom: 14 }}>
             {member?.avatar ? (
-              <img src={member.avatar} alt="" style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: `2px solid ${member.color || 'var(--accent)'}` }} />
+              <img src={member.avatar} alt="" style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: `2px solid ${profilePt ? 'var(--border)' : (member.color || 'var(--accent)')}` }} />
             ) : (
-              <div style={{ width: 88, height: 88, borderRadius: 20, background: member?.color || 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.15)' }}>
-                <span style={{ fontSize: 30, fontWeight: 700, color: 'rgba(0,0,0,0.75)' }}>{getInitials(member?.name || '?')}</span>
+              <div style={{ width: 88, height: 88, borderRadius: 20, background: profilePt ? 'var(--surface)' : (member?.color || 'var(--accent)'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: profilePt ? '2px solid var(--border)' : '2px solid rgba(255,255,255,0.15)' }}>
+                <span style={{ fontSize: 30, fontWeight: 700, color: profilePt ? 'var(--text)' : 'rgba(0,0,0,0.75)' }}>{getInitials(member?.name || '?')}</span>
               </div>
             )}
             <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', marginTop: 10, textAlign: 'center' }}>
@@ -146,14 +148,14 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
             {member && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>{t('profile.favoriteColor')}</span>
-                <span style={{ width: 16, height: 16, borderRadius: '50%', background: member.color || 'var(--accent)', border: '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }} />
+                <span style={{ width: 16, height: 16, borderRadius: '50%', background: member.color || 'var(--accent)', border: profilePt ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }} />
               </div>
             )}
           </div>
 
-          <div style={{ padding: 14, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+          <div style={{ padding: 14, background: profilePt ? 'var(--surface)' : 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
             {member?.description ? (
-              <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{member.description}</div>
+              <MarkdownText text={member.description} />
             ) : (
               <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('profile.noDescription')}</span>
             )}
@@ -235,8 +237,9 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
         <Section label={t('profile.favoriteColor')} />
         <ColorCarousel value={f.color} onChange={v => set('color', v)} />
-        <CustomHexEntry value={f.color} onApply={v => set('color', v)} />
-        <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} multiline />
+        <CustomHexEntry value={f.color} onApply={v => set('color', v)}
+          leading={<ProfileBgChip color={f.color} value={!!f.profileBg} onChange={v => set('profileBg', v)} />} />
+        <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} multiline pictureTools />
       </Modal>
 
       <Modal open={!!editingStatus} title={isNewStatus ? t('status.add') : t('status.edit')} onClose={() => setEditingStatus(null)}
@@ -256,7 +259,9 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} />
         <Section label={t('modal.color')} />
         <ColorCarousel value={f.color} onChange={v => set('color', v)} />
-        <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} multiline />
+        <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} multiline pictureTools />
+        <Toggle label={t('modal.private')} description={t('modal.privateDesc')}
+          value={!!f.private} onChange={v => set('private', v)} />
       </Modal>
 
       <ConfirmDialog open={!!confirmDeleteStatus} title={t('common.delete')} message={t('journal.areYouSure')}

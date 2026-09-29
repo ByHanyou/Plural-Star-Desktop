@@ -6,6 +6,23 @@ const MENTION_RE = /@\[([^\]]+)\]\(member:([a-zA-Z0-9_-]+)\)/;
 const IMAGE_URL_RE = /https?:\/\/\S+\.(?:gif|png|pnj|jpe?g|webp|bmp|svg)(?:[?#]\S*)?/i;
 const MD_IMAGE_RE = /!\[([^\]]*)\]\(([^)]+)\)/;
 
+type Side = 'left' | 'right';
+const SIDE_ALT = 'ps-side:';
+const imgTagSide = (tag: string): Side | null => {
+  const m = tag.match(/\salign\s*=\s*["']?\s*(left|right)\b/i);
+  if (!m) return null;
+  return m[1].toLowerCase() === 'right' ? 'right' : 'left';
+};
+const altSide = (alt: string): Side | null => (alt === `${SIDE_ALT}left` ? 'left' : alt === `${SIDE_ALT}right` ? 'right' : null);
+const lineHasImage = (line: string): boolean => MD_IMAGE_RE.test(line) || IMAGE_URL_RE.test(line);
+const parseImageRef = (raw: string): { url: string; w?: number; h?: number } => {
+  const s = raw.trim();
+  const hint = s.match(/#(\d+)x(\d+)$/);
+  const w = hint ? Number(hint[1]) : 0;
+  const h = hint ? Number(hint[2]) : 0;
+  return { url: s.replace(/[)]+$/, '').replace(/#\d+x\d+$/, '').trim(), w: w > 0 ? w : undefined, h: h > 0 ? h : undefined };
+};
+
 const isValidImageUri = (u: unknown): u is string => {
   if (typeof u !== 'string') return false;
   const s = u.trim();
@@ -21,6 +38,23 @@ const Img = ({ uri }: { uri: string }) => {
   }
   return <img src={uri} alt="" style={{ display: 'block', maxWidth: 300, maxHeight: 300, borderRadius: 8, margin: '2px 0' }} onError={() => setFailed(true)} />;
 };
+
+const SideImg = ({ uri, w, h }: { uri: string; w?: number; h?: number }) => {
+  const [failed, setFailed] = React.useState(false);
+  React.useEffect(() => { setFailed(false); }, [uri]);
+  if (failed) {
+    return <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', maxWidth: '45%' }}>{i18n.t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</span>;
+  }
+  return <img src={uri} alt="" style={{ display: 'block', flexShrink: 0, width: w || 110, maxWidth: '45%', height: 'auto', aspectRatio: w && h ? `${w} / ${h}` : undefined, objectFit: 'contain', borderRadius: 8 }} onError={() => setFailed(true)} />;
+};
+
+const SideRow = ({ side, image, children }: { side: Side; image: React.ReactNode; children: React.ReactNode }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
+    {side === 'left' ? image : null}
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>{children}</div>
+    {side === 'right' ? image : null}
+  </div>
+);
 
 const SPOILER_RE = /\|\|(.+?)\|\|/;
 const Spoiler = ({ raw, render }: { raw: string; render: () => React.ReactNode }) => {
@@ -84,7 +118,7 @@ const renderInline = (text: string, members?: Member[]): React.ReactNode => {
 
 const baseLine: React.CSSProperties = { fontSize: 13, color: 'var(--text)', lineHeight: 1.5, wordBreak: 'break-word', margin: 0 };
 
-const renderLine = (line: string, i: number, members?: Member[]): React.ReactNode => {
+const renderLine = (line: string, i: React.Key, members?: Member[]): React.ReactNode => {
   if (line.startsWith('### ')) return <p key={i} style={{ ...baseLine, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(4), members)}</p>;
   if (line.startsWith('## ')) return <p key={i} style={{ ...baseLine, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(3), members)}</p>;
   if (line.startsWith('# ')) return <p key={i} style={{ ...baseLine, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(2), members)}</p>;
@@ -101,24 +135,53 @@ export const MarkdownText = ({ text, members }: { text: string; members?: Member
   const mdText = text
     .replace(/<img\s[^>]*>/gi, tag => {
       const src = (tag.match(/src=["']([^"']+)["']/) || [])[1] || '';
-      return src ? `![](${src})` : '';
+      if (!src) return '';
+      const w = (tag.match(/width=["']?(\d+)/) || [])[1];
+      const h = (tag.match(/height=["']?(\d+)/) || [])[1];
+      const side = imgTagSide(tag);
+      return `![${side ? SIDE_ALT + side : ''}](${src}${w ? `#${w}x${h || 0}` : ''})`;
     })
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '');
   const lineSeparators = new RegExp('\\r\\n?|' + String.fromCharCode(0x2028) + '|' + String.fromCharCode(0x2029), 'g');
   const lines = mdText.replace(lineSeparators, '\n').split('\n');
   const elements: React.ReactNode[] = [];
-  lines.forEach((line, i) => {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const md = line.match(MD_IMAGE_RE);
+    if (md && md.index !== undefined) {
+      const before = line.slice(0, md.index).trim();
+      const after = line.slice(md.index + md[0].length).trim();
+      const side = altSide(md[1]);
+      const { url, w, h } = parseImageRef(md[2]);
+      if (isValidImageUri(url) && (side || before || after)) {
+        const start = i;
+        const beside = [before, after].filter(Boolean);
+        if (side) {
+          while (i + 1 < lines.length && lines[i + 1].trim() && !lineHasImage(lines[i + 1])) beside.push(lines[++i]);
+        }
+        if (beside.length > 0) {
+          elements.push(
+            <SideRow key={`s${start}`} side={side || 'left'} image={<SideImg uri={url} w={w} h={h} />}>
+              {beside.map((b, j) => renderLine(b, `s${start}-${j}`, members))}
+            </SideRow>,
+          );
+        } else {
+          elements.push(<div key={`m${i}`} style={{ display: 'flex', justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}><Img uri={url} /></div>);
+        }
+        continue;
+      }
+    }
     const urlMatch = line.match(IMAGE_URL_RE);
-    if (urlMatch && !line.match(MD_IMAGE_RE) && isValidImageUri(urlMatch[0])) {
+    if (urlMatch && !md && isValidImageUri(urlMatch[0])) {
       const before = line.slice(0, line.indexOf(urlMatch[0])).trim();
       const after = line.slice(line.indexOf(urlMatch[0]) + urlMatch[0].length).trim();
-      if (before) elements.push(renderLine(before, i * 3, members));
-      elements.push(<Img key={i * 3 + 1} uri={urlMatch[0]} />);
-      if (after) elements.push(renderLine(after, i * 3 + 2, members));
+      if (before) elements.push(renderLine(before, `b${i}`, members));
+      elements.push(<Img key={`m${i}`} uri={urlMatch[0]} />);
+      if (after) elements.push(renderLine(after, `a${i}`, members));
     } else {
-      elements.push(renderLine(line, i, members));
+      elements.push(renderLine(line, `l${i}`, members));
     }
-  });
+  }
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>{elements}</div>;
 };

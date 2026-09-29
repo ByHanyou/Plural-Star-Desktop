@@ -28,6 +28,7 @@ export default function PollsView({ onUpdate }: Props) {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [hideVoters, setHideVoters] = useState(false);
+  const [multiChoice, setMultiChoice] = useState(false);
   const [creatorId, setCreatorId] = useState<string>(defaultVoter);
   const [targetId, setTargetId] = useState<string>(defaultVoter);
   const [voterId, setVoterId] = useState<string>(defaultVoter);
@@ -54,15 +55,19 @@ export default function PollsView({ onUpdate }: Props) {
       id: uid(), targetMemberId: targetId, question: question.trim(),
       options: options.filter(o => o.trim()).map(o => ({ id: uid(), label: o.trim(), votes: [] })),
       createdBy: creatorId, createdAt: Date.now(), hideVoterNames: hideVoters || undefined,
+      multipleChoice: multiChoice || undefined,
     };
     savePolls([...polls, poll]);
-    setShowCreate(false); setQuestion(''); setOptions(['', '']); setHideVoters(false);
+    setShowCreate(false); setQuestion(''); setOptions(['', '']); setHideVoters(false); setMultiChoice(false);
   };
 
   const vote = (pollId: string, optionId: string) => {
     if (!voterId) return;
     savePolls(polls.map(p => {
       if (p.id !== pollId) return p;
+      if (p.multipleChoice) {
+        return { ...p, options: p.options.map(o => o.id !== optionId ? o : { ...o, votes: o.votes.includes(voterId) ? o.votes.filter(v => v !== voterId) : [...o.votes, voterId] }) };
+      }
       const alreadyVoted = p.options.some(o => o.id === optionId && o.votes.includes(voterId));
       const opts = p.options.map(o => {
         const without = o.votes.filter(v => v !== voterId);
@@ -108,7 +113,7 @@ export default function PollsView({ onUpdate }: Props) {
       {polls.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {polls.map(poll => {
-            const totalVotes = poll.options.reduce((s, o) => s + o.votes.length, 0);
+            const voterCount = new Set(poll.options.flatMap(o => o.votes)).size;
             const isClosed = !!poll.closedAt;
             return (
               <div key={poll.id} style={{ padding: 16, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10 }}>
@@ -117,12 +122,12 @@ export default function PollsView({ onUpdate }: Props) {
                   {isClosed && <span style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 600, textTransform: 'uppercase' }}>{t('polls.closed')}</span>}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
-                  {poll.hideVoterNames ? '' : `${t('noteboard.by', { name: getName(poll.createdBy) })} · `}{fmtTime(poll.createdAt)} · {t('polls.votes', { count: totalVotes })}
+                  {poll.hideVoterNames ? '' : `${t('noteboard.by', { name: getName(poll.createdBy) })} · `}{fmtTime(poll.createdAt)} · {t('polls.votes', { count: voterCount })}{poll.multipleChoice ? ` · ${t('polls.multipleChoice')}` : ''}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                   {poll.options.map(opt => {
-                    const pct = totalVotes > 0 ? Math.round((opt.votes.length / totalVotes) * 100) : 0;
+                    const pct = voterCount > 0 ? Math.round((opt.votes.length / voterCount) * 100) : 0;
                     const voted = opt.votes.includes(voterId);
                     return (
                       <button key={opt.id} style={{
@@ -132,7 +137,9 @@ export default function PollsView({ onUpdate }: Props) {
                         textAlign: 'left', overflow: 'hidden',
                       }}
                         onClick={() => !isClosed && vote(poll.id, opt.id)}
-                        aria-pressed={voted}
+                        role={poll.multipleChoice ? 'checkbox' : undefined}
+                        aria-checked={poll.multipleChoice ? voted : undefined}
+                        aria-pressed={poll.multipleChoice ? undefined : voted}
                         disabled={isClosed}>
                         <div style={{
                           position: 'absolute', left: 0, top: 0, bottom: 0,
@@ -204,6 +211,12 @@ export default function PollsView({ onUpdate }: Props) {
         ))}
         <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, padding: '6px 0' }}
           onClick={() => setOptions([...options, ''])}>{t('polls.addOption')}</button>
+        <div style={{ marginTop: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={multiChoice} onChange={e => setMultiChoice(e.target.checked)} />
+            <span style={{ fontSize: 13, color: 'var(--dim)' }}>{t('polls.multipleChoice')}</span>
+          </label>
+        </div>
         <div style={{ marginTop: 10 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <input type="checkbox" checked={hideVoters} onChange={e => setHideVoters(e.target.checked)} />

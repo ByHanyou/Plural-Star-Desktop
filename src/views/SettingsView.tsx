@@ -2,32 +2,75 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn, clickable } from '../components/ui';
 import { TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex } from '../utils';
-import { CustomPalette, BUILTIN_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice, ensureReadable, textFloor } from '../theme';
+import { CustomPalette, BUILTIN_PALETTES, MAX_CUSTOM_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice, ensureReadable, textFloor } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
 import type { SupportedLanguage } from '../i18n/i18n';
 import { setTerminologyOverrides, setTierNameOverrides } from '../i18n/terminology';
+import { ColorPickerModal } from '../components/ColorPickerModal';
+import { checkForUpdate, appVersion, RELEASES_URL, UpdateCheckResult } from '../updateCheck';
 
 interface Props {
   onUpdate: () => void;
   onOpenProfile: () => void;
 }
 
+const UpdatesSection = () => {
+  const { t } = useTranslation();
+  const [current, setCurrent] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<UpdateCheckResult | null>(null);
+  useEffect(() => {
+    let alive = true;
+    appVersion().then(v => { if (alive) setCurrent(v); });
+    return () => { alive = false; };
+  }, []);
+  const run = async () => {
+    setBusy(true);
+    setResult(null);
+    const r = await checkForUpdate();
+    if (r.current) setCurrent(r.current);
+    setResult(r);
+    setBusy(false);
+  };
+  return (
+    <>
+      <Section label={t('update.title')} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+        {current ? <span style={{ fontSize: 13, color: 'var(--dim)' }}>{t('update.version', { version: current })}</span> : null}
+        <span style={{ flex: 1 }} />
+        <Btn variant="ghost" onClick={run} disabled={busy}>{busy ? t('update.checking') : t('update.check')}</Btn>
+      </div>
+      <div role="status" style={{ marginBottom: 14 }}>
+        {result?.status === 'update' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{t('update.available', { latest: result.latest, current: result.current })}</span>
+            <Btn variant="primary" onClick={() => window.open(RELEASES_URL, '_blank')}>{t('update.download')}</Btn>
+          </div>
+        )}
+        {result?.status === 'current' && <span style={{ fontSize: 13, color: 'var(--success)' }}>{t('update.upToDate')}</span>}
+        {result?.status === 'error' && <span style={{ fontSize: 13, color: 'var(--danger)' }}>{t('update.failed')}</span>}
+      </div>
+    </>
+  );
+};
+
 const HexField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
-  const valid = isValidHex(normalizeHex(value)) || value.length < 2;
-  const normalized = valid ? normalizeHex(value) : '#333333';
+  const [open, setOpen] = useState(false);
+  const valid = isValidHex(normalizeHex(value));
   return (
     <div style={{ flex: 1 }}>
-      <label className="field__label">{label}</label>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <input type="color" aria-label={label} value={normalized}
-          onChange={e => onChange(e.target.value.toUpperCase())}
-          style={{ width: 28, height: 28, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', background: 'none' }} />
-        <input className={`field__input field__input--mono ${valid ? '' : 'field__input--error'}`}
-          value={value} onChange={e => onChange(e.target.value)} aria-label={label} placeholder="#000000" maxLength={7}
-          style={{ width: '100%' }} />
-      </div>
+      <div className="field__label">{label}</div>
+      <button type="button" aria-haspopup="dialog" aria-label={`${label}, ${value}`} onClick={() => setOpen(true)}
+        className="field__input field__input--mono"
+        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', cursor: 'pointer', textAlign: 'left' }}>
+        <span aria-hidden style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 4, background: valid ? normalizeHex(value) : '#333333', border: '1px solid var(--border)' }} />
+        <span>{value}</span>
+      </button>
+      <ColorPickerModal open={open} title={label} value={value}
+        onSave={hex => { onChange(hex); setOpen(false); }}
+        onClose={() => setOpen(false)} />
     </div>
   );
 };
@@ -43,7 +86,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   const settings = useAppStore(s => s.state.settings);
   const palettes = useAppStore(s => s.state.palettes);
   const { t } = useTranslation();
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<{ msg: string; error: boolean } | null>(null);
   const [singletMode, setSingletMode] = useState(settings.accountMode === 'singlet');
 
   const [journalPw, setJournalPw] = useState(system.journalPassword || '');
@@ -72,6 +115,9 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
 
   const userPalettes = palettes || [];
   const allPalettes = [...BUILTIN_PALETTES, ...userPalettes];
+  const [themesOpen, setThemesOpen] = useState(false);
+  const activePalette = allPalettes.find(p => p.id === activePaletteId) || BUILTIN_PALETTES[0];
+  const activePreview = deriveTheme(activePalette.bg, activePalette.accent, activePalette.text, activePalette.mid);
 
   const addLoc = () => {
     const v = newLoc.trim();
@@ -102,7 +148,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
 
   const savePaletteEdit = async () => {
     if (!editPalette || !palName.trim()) {
-      setSaveStatus(t('common.paletteNameRequired'));
+      setSaveStatus({ msg: t('common.paletteNameRequired'), error: true });
       setTimeout(() => setSaveStatus(null), 3000);
       return;
     }
@@ -118,12 +164,12 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
     try {
       await store.set(KEYS.palettes, newList);
       setEditPalette(null);
-      setSaveStatus(t('common.paletteSaved'));
+      setSaveStatus({ msg: t('common.paletteSaved'), error: false });
       setTimeout(() => setSaveStatus(null), 3000);
       onUpdate();
     } catch (e: any) {
       console.error('Palette save error:', e);
-      setSaveStatus(t('common.paletteError'));
+      setSaveStatus({ msg: t('common.paletteError'), error: true });
       setTimeout(() => setSaveStatus(null), 4000);
     }
   };
@@ -154,11 +200,11 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
       applyTextScale(textScale);
       applyFontChoice(fontChoice);
       onUpdate();
-      setSaveStatus(t('common.settingsSaved'));
+      setSaveStatus({ msg: t('common.settingsSaved'), error: false });
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (e: any) {
       console.error('Settings save error:', e);
-      setSaveStatus(t('common.settingsError'));
+      setSaveStatus({ msg: t('common.settingsError'), error: true });
       setTimeout(() => setSaveStatus(null), 4000);
     }
   };
@@ -179,6 +225,18 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
       )}
 
       <Section label={t('modal.palette')} />
+      <button type="button" aria-expanded={themesOpen} aria-label={`${t('modal.palette')}, ${activePalette.name}`} onClick={() => setThemesOpen(o => !o)}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: 8, textAlign: 'left', cursor: 'pointer',
+          border: `1px solid ${themesOpen ? 'var(--accent)' : 'var(--border)'}`, background: 'var(--surface)', marginBottom: themesOpen ? 8 : 12 }}>
+        <span aria-hidden style={{ display: 'flex', gap: 3 }}>
+          {[activePreview.bg, activePreview.accent, activePreview.text, activePreview.surface].map((c, i) => (
+            <span key={i} style={{ width: 14, height: 14, borderRadius: 3, background: c, border: '1px solid rgba(255,255,255,0.1)', display: 'inline-block' }} />
+          ))}
+        </span>
+        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{activePalette.name}</span>
+        <span aria-hidden style={{ fontSize: 11, color: 'var(--dim)' }}>{themesOpen ? '▲' : '▼'}</span>
+      </button>
+      {themesOpen && (<>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
         {allPalettes.map(p => {
           const isActive = activePaletteId === p.id;
@@ -189,7 +247,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
               display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
               borderRadius: 8, border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
               background: isActive ? 'var(--accent-bg)' : 'var(--surface)', cursor: 'pointer',
-            }} {...clickable(() => selectPalette(p.id), p.name)}>
+            }} aria-pressed={isActive} {...clickable(() => selectPalette(p.id), p.name)}>
               <div style={{ display: 'flex', gap: 3 }}>
                 {[preview.bg, preview.accent, preview.text, preview.surface].map((c, i) => (
                   <div key={i} style={{ width: 14, height: 14, borderRadius: 3, background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -198,7 +256,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
               <span style={{ flex: 1, fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text)', fontWeight: isActive ? 600 : 400 }}>
                 {p.name}
               </span>
-              {isActive && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
+              {isActive && <span aria-hidden style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
               {!isBuiltin && (
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button className="btn btn--ghost" aria-label={`${t('common.edit')} ${p.name}`} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); startEditPalette(p); }}>✎</button>
@@ -231,11 +289,12 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
           </div>
         </div>
       ) : (
-        userPalettes.length < 10 && (
+        userPalettes.length < MAX_CUSTOM_PALETTES && (
           <Btn variant="ghost" onClick={startNewPalette}>+ {t('modal.newPalette')}</Btn>
         )
       )}
-      <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{t('modal.paletteSlots', { used: userPalettes.length, max: 10 })}</p>
+      <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{t('modal.paletteSlots', { used: userPalettes.length, max: MAX_CUSTOM_PALETTES })}</p>
+      </>)}
 
       <Section label={t('modal.globalJournalPassword')} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -274,7 +333,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
         {TEXT_SCALE_OPTIONS.map(opt => (
           <button key={opt.value}
             className={`btn ${textScale === opt.value ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ flex: 1 }}
+            style={{ flex: 1 }} aria-pressed={textScale === opt.value}
             onClick={() => setTextScale(opt.value)}>
             {t(`modal.textScale${opt.label.replace(/\s/g, '')}`)}
           </button>
@@ -307,15 +366,17 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
 
       <Toggle label={t('settings.observatory')} description={t('settings.observatoryDesc')} value={singletMode} onChange={setSingletMode} />
 
+      <UpdatesSection />
+
       <div style={{ position: 'sticky', bottom: 0, padding: '12px 0', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
         {saveStatus && (
-          <div style={{
+          <div role={saveStatus.error ? 'alert' : 'status'} style={{
             padding: '8px 14px', marginBottom: 8, borderRadius: 8, fontSize: 13, textAlign: 'center',
-            background: saveStatus.startsWith('Error') || saveStatus.startsWith('Palette name') ? 'var(--danger-bg)' : 'var(--success-bg)',
-            color: saveStatus.startsWith('Error') || saveStatus.startsWith('Palette name') ? 'var(--danger)' : 'var(--success)',
-            border: `1px solid ${saveStatus.startsWith('Error') || saveStatus.startsWith('Palette name') ? 'var(--danger)' : 'var(--success)'}`,
+            background: saveStatus.error ? 'var(--danger-bg)' : 'var(--success-bg)',
+            color: saveStatus.error ? 'var(--danger)' : 'var(--success)',
+            border: `1px solid ${saveStatus.error ? 'var(--danger)' : 'var(--success)'}`,
           }}>
-            {saveStatus}
+            {saveStatus.msg}
           </div>
         )}
         <Btn variant="solid" onClick={save} className="btn--full">{t('common.save')}</Btn>

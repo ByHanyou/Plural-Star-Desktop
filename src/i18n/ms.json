@@ -265,6 +265,10 @@
     "publishFailed": "Kod anda tidak dapat diterbitkan — semak sambungan anda dan cuba lagi."
   },
   "common": {
+    "durDaysHours": "{{d}} hari {{h}} jam",
+    "durHoursMinutes": "{{h}} jam {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Hidup",
     "off": "Mati",
     "settingsSaved": "Tetapan disimpan",
@@ -436,6 +440,8 @@
     "bulkDelete": "Padam ahli",
     "bulkDeleteMsg": "Padam {{count}} ahli secara kekal? Ini tidak boleh dibuat asal.",
     "assignGroup": "Kumpulan",
+    "assignTag": "Tag",
+    "addTags": "Tambah tag",
     "frontingLockTitle": "Sedang front",
     "frontingLockMsg": "Anda tidak boleh mengarkib atau memadam ahli semasa mereka front. Keluarkan mereka dari front dahulu.",
     "archive": "Arkib",
@@ -626,7 +632,13 @@
     "creditIos": "Port iOS Plural Star",
     "supportPS": "Sokong PS"
   },
+  "editor": {
+    "urlPlaceholder": "URL di sini",
+    "textPlaceholder": "teks"
+  },
   "markdown": {
+    "toolImageLeft": "Imej di kiri, teks di kanan",
+    "toolImageRight": "Imej di kanan, teks di kiri",
     "toolBold": "Tebal",
     "toolItalic": "Condong",
     "toolStrike": "Coret",
@@ -674,6 +686,8 @@
     "confirmDelete": "Sahkan Pemadaman",
     "archiveMember": "Arkibkan Ahli",
     "archiveDesc": "Sembunyikan daripada senarai ahli aktif dan pemilih front. Sejarah dikekalkan.",
+    "private": "Peribadi",
+    "privateDesc": "Hanya anda boleh melihat mereka. Disembunyikan daripada semua rakan, dalam setiap bulatan privasi.",
     "newEntry": "Entri Baharu",
     "editEntry": "Sunting Entri",
     "entryTitle": "Tajuk",
@@ -776,6 +790,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Kemas kini",
+    "version": "Versi {{version}}",
+    "check": "Semak kemas kini",
+    "checking": "Menyemak…",
+    "available": "Plural Star {{latest}} sudah keluar. Anda ada {{current}}.",
+    "upToDate": "Anda sudah dikemas kini.",
+    "failed": "Tidak dapat menyemak kemas kini. Cuba lagi kemudian.",
+    "download": "Muat turun"
+  },
   "memberGroups": {
     "groupName": "Nama kumpulan",
     "changeColor": "Tukar warna",
@@ -788,6 +812,9 @@
     "none": "Tiada kumpulan atau sub-sistem lagi.",
     "promoteChildren": "Kekalkan anak",
     "subsystem": "Sub-sistem",
+    "linkedFronter": "Fronter dipautkan",
+    "noLinkedFronter": "Tiada",
+    "linkedSubsystems": "Sub-sistem dipautkan",
     "toRoot": "Peringkat atas",
     "title": "Kumpulan",
     "addPlaceholder": "Nama kumpulan baharu…",
@@ -798,6 +825,8 @@
     "deleteWithChildrenMsg": "Ini mengandungi {{count}} item bersarang. Kekalkan dan naikkan satu peringkat, atau padam semuanya?"
   },
   "stats": {
+    "last90": "90 Hari",
+    "statusDetails": "Butiran Status",
     "showMore": "Tunjuk lagi",
     "energyByHour": "Tenaga Mengikut Jam",
     "allTime": "Sepanjang Masa",
@@ -1009,6 +1038,7 @@
     "addOption": "+ Tambah Pilihan",
     "optionPlaceholder": "Pilihan...",
     "hideVoters": "Sembunyikan Nama Pengundi",
+    "multipleChoice": "Pilihan Berbilang",
     "vote": "Undi",
     "votes": "{{count}} undi",
     "closePoll": "Tutup Undian",
@@ -1044,6 +1074,13 @@
     "changeBanner": "Tukar Sepanduk",
     "removeAvatar": "Buang Avatar",
     "removeBanner": "Buang Sepanduk"
+  },
+  "frontSort": {
+    "label": "Susun",
+    "added": "Ditambah",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Tersuai"
   },
   "memberSort": {
     "label": "Susun Ahli",

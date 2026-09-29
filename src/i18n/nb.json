@@ -362,6 +362,10 @@
     "apptReminderTitle": "Avtalepåminnelse"
   },
   "common": {
+    "durDaysHours": "{{d}} d {{h}} t",
+    "durHoursMinutes": "{{h}} t {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "På",
     "off": "Av",
     "settingsSaved": "Innstillinger lagret",
@@ -533,6 +537,8 @@
     "bulkDelete": "Slett medlemmer",
     "bulkDeleteMsg": "Slette {{count}} medlem(mer) permanent? Dette kan ikke angres.",
     "assignGroup": "Gruppe",
+    "assignTag": "Tagg",
+    "addTags": "Legg til tagger",
     "frontingLockTitle": "Er front nå",
     "frontingLockMsg": "Du kan ikke arkivere eller slette et medlem mens det er front. Fjern det fra fronten først.",
     "archive": "Arkiver",
@@ -723,7 +729,13 @@
     "creditsBlurb": "Fellesskapets bidragsytere",
     "archive": "Arkiv"
   },
+  "editor": {
+    "urlPlaceholder": "URL her",
+    "textPlaceholder": "tekst"
+  },
   "markdown": {
+    "toolImageLeft": "Bilde til venstre, tekst til høyre",
+    "toolImageRight": "Bilde til høyre, tekst til venstre",
     "toolBold": "Fet",
     "toolItalic": "Kursiv",
     "toolStrike": "Gjennomstreket",
@@ -759,6 +771,8 @@
     "confirmDelete": "Bekreft Sletting",
     "archiveMember": "Arkiver Medlem",
     "archiveDesc": "Skjul fra frontvelger. Historikk bevares.",
+    "private": "Privat",
+    "privateDesc": "Bare du kan se dem. Skjult for alle venner, i alle personvernsirkler.",
     "newEntry": "Nytt Innlegg",
     "editEntry": "Rediger Innlegg",
     "viewEntry": "Dagbokinnlegg",
@@ -873,6 +887,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Oppdateringer",
+    "version": "Versjon {{version}}",
+    "check": "Se etter oppdateringer",
+    "checking": "Ser etter…",
+    "available": "Plural Star {{latest}} er ute. Du har {{current}}.",
+    "upToDate": "Du har nyeste versjon.",
+    "failed": "Kunne ikke se etter oppdateringer. Prøv igjen senere.",
+    "download": "Last ned"
+  },
   "memberGroups": {
     "groupName": "Gruppenavn",
     "title": "Grupper",
@@ -892,7 +916,10 @@
     "toRoot": "Øverste nivå",
     "none": "Ingen grupper eller undersystemer ennå.",
     "group": "Gruppe",
-    "subsystem": "Undersystem"
+    "subsystem": "Undersystem",
+    "linkedFronter": "Koblet fronter",
+    "noLinkedFronter": "Ingen",
+    "linkedSubsystems": "Koblede undersystemer"
   },
   "systemManager": {
     "emptyFolder": "Ingenting her ennå.",
@@ -902,6 +929,8 @@
     "subsystemsCount": "{{count}} undersystemer"
   },
   "stats": {
+    "last90": "90 dager",
+    "statusDetails": "Statusdetaljer",
     "showMore": "Vis mer",
     "energyByHour": "Energi per time",
     "allTime": "Alle",
@@ -1010,6 +1039,7 @@
     "optionPlaceholder": "Alternativ",
     "addOption": "+ Legg til alternativ",
     "hideVoters": "Skjul stemmegivere",
+    "multipleChoice": "Flervalg",
     "closed": "Lukket",
     "closePoll": "Lukk",
     "reopenPoll": "Åpne igjen",
@@ -1032,6 +1062,13 @@
   "memberProfile": {
     "changeBanner": "Endre banner",
     "removeBanner": "Fjern banner"
+  },
+  "frontSort": {
+    "label": "Organiser",
+    "added": "Lagt til",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Egendefinert"
   },
   "memberSort": {
     "age": "Eldste først",

@@ -366,6 +366,10 @@
     "remind1d": "1 дн"
   },
   "common": {
+    "durDaysHours": "{{d}} д {{h}} год",
+    "durHoursMinutes": "{{h}} год {{m}} хв",
+    "durMinutes": "{{m}} хв",
+    "durUnderMinute": "<1 хв",
     "on": "Увімк",
     "off": "Вимк",
     "settingsSaved": "Налаштування збережено",
@@ -537,6 +541,8 @@
     "bulkDelete": "Видалити учасників",
     "bulkDeleteMsg": "Видалити {{count}} учасник(ів) назавжди? Цю дію не можна скасувати.",
     "assignGroup": "Група",
+    "assignTag": "Тег",
+    "addTags": "Додати теги",
     "frontingLockTitle": "Зараз у фронті",
     "frontingLockMsg": "Не можна архівувати або видалити учасника, поки він у фронті. Спочатку приберіть його з фронту.",
     "archive": "Архівувати",
@@ -727,7 +733,13 @@
     "creditsBlurb": "Учасники спільноти",
     "archive": "Архів"
   },
+  "editor": {
+    "urlPlaceholder": "URL тут",
+    "textPlaceholder": "текст"
+  },
   "markdown": {
+    "toolImageLeft": "Зображення ліворуч, текст праворуч",
+    "toolImageRight": "Зображення праворуч, текст ліворуч",
     "toolBold": "Жирний",
     "toolItalic": "Курсив",
     "toolStrike": "Закреслений",
@@ -774,6 +786,8 @@
     "confirmDelete": "Підтвердити видалення",
     "archiveMember": "Архівувати учасника",
     "archiveDesc": "Приховати з активного списку та вибору фронту. Історія зберігається.",
+    "private": "Приватний",
+    "privateDesc": "Бачите лише ви. Приховано від усіх друзів, у будь-якому колі приватності.",
     "newEntry": "Новий запис",
     "editEntry": "Редагувати запис",
     "viewEntry": "Запис щоденника",
@@ -877,6 +891,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Оновлення",
+    "version": "Версія {{version}}",
+    "check": "Перевірити оновлення",
+    "checking": "Перевірка…",
+    "available": "Вийшов Plural Star {{latest}}. У вас {{current}}.",
+    "upToDate": "У вас остання версія.",
+    "failed": "Не вдалося перевірити оновлення. Спробуйте пізніше.",
+    "download": "Завантажити"
+  },
   "memberGroups": {
     "groupName": "Назва групи",
     "title": "Групи",
@@ -896,7 +920,10 @@
     "toRoot": "Верхній рівень",
     "none": "Поки немає груп або підсистем.",
     "group": "Група",
-    "subsystem": "Підсистема"
+    "subsystem": "Підсистема",
+    "linkedFronter": "Пов'язаний фронтер",
+    "noLinkedFronter": "Немає",
+    "linkedSubsystems": "Пов'язані підсистеми"
   },
   "systemManager": {
     "emptyFolder": "Тут поки нічого немає.",
@@ -906,6 +933,8 @@
     "subsystemsCount": "Підсистем: {{count}}"
   },
   "stats": {
+    "last90": "90 днів",
+    "statusDetails": "Деталі статусу",
     "showMore": "Показати більше",
     "energyByHour": "Енергія за годинами",
     "allTime": "Увесь час",
@@ -1014,6 +1043,7 @@
     "addOption": "+ Додати варіант",
     "optionPlaceholder": "Варіант...",
     "hideVoters": "Приховати імена голосуючих",
+    "multipleChoice": "Множинний вибір",
     "vote": "Голосувати",
     "votes": "{{count}} голосів",
     "closePoll": "Закрити опитування",
@@ -1049,6 +1079,13 @@
     "changeBanner": "Змінити банер",
     "removeAvatar": "Прибрати аватар",
     "removeBanner": "Прибрати банер"
+  },
+  "frontSort": {
+    "label": "Упорядкувати",
+    "added": "Додано",
+    "az": "А-Я",
+    "za": "Я-А",
+    "custom": "Власний"
   },
   "memberSort": {
     "label": "Сортування",

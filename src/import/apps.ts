@@ -79,14 +79,14 @@ export const handleImportSP = async (ctx: ImportCtx) => {
           showStatus(t('share.statusSpImported', {members: newMembers.length, history: importedHistory.length}));
           onUpdate();
         } catch (e: any) {
-          showStatus(t('share.statusImportErrorSafe', {msg: e.message}));
+          showStatus(t('share.statusImportErrorSafe', {msg: e.message}), true);
         } finally {
           setImporting(false);
         }
       };
       input.click();
     } catch (e: any) {
-      showStatus(t('share.statusImportError', {msg: e.message}));
+      showStatus(t('share.statusImportError', {msg: e.message}), true);
       setImporting(false);
     }
 };
@@ -115,7 +115,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
             if (isZip) {
               const files = unzipSync(buf);
               const name = findOurcanaJsonEntry(files);
-              if (!name) { showStatus(t('share.statusArchiveNoJson')); setImporting(false); return; }
+              if (!name) { showStatus(t('share.statusArchiveNoJson'), true); setImporting(false); return; }
               text = strFromU8(files[name]);
               ourZipFiles = files;
             } else {
@@ -128,13 +128,13 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
             } else if (parsedJson && detectTupperbox(parsedJson)) {
               conv = convertTupperbox(parsedJson);
             } else {
-              if (!fmt) { showStatus(t('share.statusUnrecognized')); setImporting(false); return; }
+              if (!fmt) { showStatus(t('share.statusUnrecognized'), true); setImporting(false); return; }
               const d = parsedJson ?? JSON.parse(text);
               conv = fmt === 'ourcana' ? convertOurcana(d, ourZipFiles) : fmt === 'parallax' ? convertParallax(d) : fmt === 'multiplicity' ? convertMultiplicity(d) : convertOctocon(d);
             }
           }
         }
-        if (!conv || (conv.members.length === 0 && conv.history.length === 0)) { showStatus(t('share.statusNothingInFile')); setImporting(false); return; }
+        if (!conv || (conv.members.length === 0 && conv.history.length === 0)) { showStatus(t('share.statusNothingInFile'), true); setImporting(false); return; }
 
         const batch: Record<string, unknown> = {};
         const existing = await store.getStrict<Member[]>(KEYS.members, []) || [];
@@ -244,7 +244,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         showStatus(t('share.statusForeignImported', {label: conv.sourceLabel, members: toAdd.length, history: conv.history.length}));
         onUpdate();
       } catch (e: any) {
-        showStatus(t('share.statusImportErrorSafe', {msg: e.message}));
+        showStatus(t('share.statusImportErrorSafe', {msg: e.message}), true);
       } finally {
         setImporting(false);
       }
@@ -452,7 +452,7 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
       showStatus(t('share.psImportDone', { members: toAdd.length, history: conv.history.length, avatars: avatarsLoaded }));
       onUpdate();
     } catch (e: any) {
-      showStatus(t('share.statusError', {msg: e.message}));
+      showStatus(t('share.statusError', {msg: e.message}), true);
     } finally {
       setImporting(false);
     }
@@ -681,7 +681,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
     showStatus(t('share.statusImportedCounts', { members: plMembers.length, switches: historyAdded }));
     onUpdate();
   } catch (e: any) {
-    showStatus(t('share.statusError', { msg: e.message }));
+    showStatus(t('share.statusError', { msg: e.message }), true);
   } finally {
     setImporting(false);
   }
@@ -689,7 +689,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
 
 export const handleTokenFetch = async (ctx: ImportCtx) => {
   const { extToken, showStatus, t, setExtLoading, setExtPreview, extSource, spGet } = ctx;
-    if (!extToken.trim()) { showStatus(t('share.tokenRequired')); return; }
+    if (!extToken.trim()) { showStatus(t('share.tokenRequired'), true); return; }
     setExtLoading(true); setExtPreview(null);
     const netFetch = async (url: string, headers: Record<string, string>) => {
       const res = await window.electronAPI.net.fetch(url, { headers });
@@ -717,7 +717,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
           customFields: Array.isArray(cfData) ? cfData : (cfData?.customFields || []),
           groups: Array.isArray(gData) ? gData : (gData?.groups || []),
         });
-        if (failedCats.length > 0) showStatus(t('share.statusError', {msg: t('share.spFetchPartial', {categories: failedCats.join(', ')})}));
+        if (failedCats.length > 0) showStatus(t('share.statusError', {msg: t('share.spFetchPartial', {categories: failedCats.join(', ')})}), true);
       } else {
         const headers = {Authorization: extToken.trim(), 'Content-Type': 'application/json'};
         const [sData, mData] = await Promise.all([
@@ -749,7 +749,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
       }
     } catch (e: any) {
       if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
-      else showStatus(`${t('share.importFailed')}: ${e.message}`);
+      else showStatus(`${t('share.importFailed')}: ${e.message}`, true);
     }
     finally { setExtLoading(false); }
 };
@@ -934,7 +934,7 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       onUpdate();
     } catch (e: any) {
       if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
-      else showStatus(t('share.statusImportErrorSafe', {msg: e.message}));
+      else showStatus(t('share.statusImportErrorSafe', {msg: e.message}), true);
     }
     finally { setImporting(false); }
 };

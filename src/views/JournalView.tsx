@@ -4,6 +4,7 @@ import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMat
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { MarkdownText } from '../components/MarkdownText';
 import { useAppStore } from '../store/appStore';
 
 interface Props {
@@ -191,7 +192,7 @@ export default function JournalView({ onUpdate }: Props) {
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
         {(['entries', 'templates'] as TabId[]).map(id => (
-          <button key={id} onClick={() => setTab(id)} style={{
+          <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)} style={{
             padding: '10px 20px', fontSize: 13, fontWeight: tab === id ? 600 : 400, cursor: 'pointer',
             color: tab === id ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
             borderBottom: `2px solid ${tab === id ? 'var(--accent)' : 'transparent'}`,
@@ -350,8 +351,8 @@ export default function JournalView({ onUpdate }: Props) {
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 14 }}>{fmtTime(editing?.timestamp || Date.now())}</div>
           {body && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-              {body.replace(/<[^>]+>/g, '')}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 14 }}>
+              <MarkdownText text={body} members={members} />
             </div>
           )}
           {hashtags.length > 0 && (
@@ -381,7 +382,7 @@ export default function JournalView({ onUpdate }: Props) {
         </>) : (<>
         <Field label={t('modal.entryTitle')} value={title} onChange={setTitle} placeholder={t('modal.entryTitlePlaceholder')} />
 
-        <Field label={t('modal.body')} value={body} onChange={setBody} placeholder={t('modal.writeHere')} multiline />
+        <Field label={t('modal.body')} value={body} onChange={setBody} placeholder={t('modal.writeHere')} multiline pictureTools />
 
         <Section label={t('modal.authors')} />
         <input className="field__input" value={authorSearch} onChange={e => setAuthorSearch(e.target.value)}
@@ -453,7 +454,7 @@ export default function JournalView({ onUpdate }: Props) {
         }>
         <Field label={t('journal.templateName', { defaultValue: 'Template Name *' })} value={tplName} onChange={setTplName} placeholder={t('journal.templateNamePlaceholder', { defaultValue: 'e.g. Morning Pages' })} />
         <Field label={t('journal.templateTitle', { defaultValue: 'Entry Title (preset)' })} value={tplTitle} onChange={setTplTitle} placeholder={t('modal.entryTitlePlaceholder')} />
-        <Field label={t('journal.templateBody', { defaultValue: 'Entry Body (preset)' })} value={tplBody} onChange={setTplBody} placeholder={t('modal.writeHere')} multiline />
+        <Field label={t('journal.templateBody', { defaultValue: 'Entry Body (preset)' })} value={tplBody} onChange={setTplBody} placeholder={t('modal.writeHere')} multiline pictureTools />
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {tplTags.map(tag => (
@@ -488,7 +489,7 @@ export default function JournalView({ onUpdate }: Props) {
       <ConfirmDialog open={!!confirmDelete} title={t('journal.deleteEntry')} message={t('journal.areYouSure')}
         danger onConfirm={() => confirmDelete && deleteEntry(confirmDelete)} onCancel={() => setConfirmDelete(null)} />
 
-      <ConfirmDialog open={!!confirmDeleteTemplate} title={t('journal.editTemplate', { defaultValue: 'Delete Template' })} message={t('journal.areYouSure')}
+      <ConfirmDialog open={!!confirmDeleteTemplate} title={t('common.delete')} message={t('journal.areYouSure')}
         danger onConfirm={() => confirmDeleteTemplate && deleteTemplate(confirmDeleteTemplate)} onCancel={() => setConfirmDeleteTemplate(null)} />
     </div>
   );

@@ -266,6 +266,10 @@
     "publishFailed": "Impossibile pubblicare il tuo codice — controlla la connessione e riprova."
   },
   "common": {
+    "durDaysHours": "{{d}} g {{h}} h",
+    "durHoursMinutes": "{{h}} h {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Attivo",
     "off": "Disattivo",
     "settingsSaved": "Impostazioni salvate",
@@ -437,6 +441,8 @@
     "bulkDelete": "Elimina membri",
     "bulkDeleteMsg": "Eliminare definitivamente {{count}} membro/i? Questa azione non può essere annullata.",
     "assignGroup": "Gruppo",
+    "assignTag": "Tag",
+    "addTags": "Aggiungi tag",
     "frontingLockTitle": "Attualmente al front",
     "frontingLockMsg": "Non puoi archiviare o eliminare un membro mentre è al front. Prima rimuovilo dal front.",
     "archive": "Archivia",
@@ -627,7 +633,13 @@
     "creditIos": "Port iOS di Plural Star",
     "supportPS": "Sostieni PS"
   },
+  "editor": {
+    "urlPlaceholder": "URL qui",
+    "textPlaceholder": "testo"
+  },
   "markdown": {
+    "toolImageLeft": "Immagine a sinistra, testo a destra",
+    "toolImageRight": "Immagine a destra, testo a sinistra",
     "toolBold": "Grassetto",
     "toolItalic": "Corsivo",
     "toolStrike": "Barrato",
@@ -675,6 +687,8 @@
     "confirmDelete": "Conferma Eliminazione",
     "archiveMember": "Archivia Membro",
     "archiveDesc": "Nascondi dall'elenco dei membri attivi e dal selettore di front. La cronologia è preservata.",
+    "private": "Privato",
+    "privateDesc": "Solo tu puoi vederli. Nascosti a tutti gli amici, in ogni cerchia di privacy.",
     "newEntry": "Nuova Voce",
     "editEntry": "Modifica Voce",
     "entryTitle": "Titolo",
@@ -777,6 +791,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Aggiornamenti",
+    "version": "Versione {{version}}",
+    "check": "Cerca aggiornamenti",
+    "checking": "Ricerca in corso…",
+    "available": "Plural Star {{latest}} è disponibile. Hai la {{current}}.",
+    "upToDate": "Sei aggiornato.",
+    "failed": "Impossibile cercare aggiornamenti. Riprova più tardi.",
+    "download": "Scarica"
+  },
   "memberGroups": {
     "groupName": "Nome del gruppo",
     "changeColor": "Cambia colore",
@@ -789,6 +813,9 @@
     "none": "Nessun gruppo o sotto-sistema ancora.",
     "promoteChildren": "Mantieni i figli",
     "subsystem": "Sotto-sistema",
+    "linkedFronter": "Fronter collegato",
+    "noLinkedFronter": "Nessuno",
+    "linkedSubsystems": "Sotto-sistemi collegati",
     "toRoot": "Livello superiore",
     "title": "Gruppi",
     "addPlaceholder": "Nome del nuovo gruppo…",
@@ -799,6 +826,8 @@
     "deleteWithChildrenMsg": "Contiene {{count}} elemento/i annidato/i. Mantenerli spostandoli di un livello in su, o eliminare tutto?"
   },
   "stats": {
+    "last90": "90 Giorni",
+    "statusDetails": "Dettagli Stato",
     "showMore": "Mostra di più",
     "energyByHour": "Energia per Ora",
     "allTime": "Sempre",
@@ -1010,6 +1039,7 @@
     "addOption": "+ Aggiungi Opzione",
     "optionPlaceholder": "Opzione...",
     "hideVoters": "Nascondi i Nomi dei Votanti",
+    "multipleChoice": "Scelta Multipla",
     "vote": "Vota",
     "votes": "{{count}} voti",
     "closePoll": "Chiudi Sondaggio",
@@ -1045,6 +1075,13 @@
     "changeBanner": "Cambia Banner",
     "removeAvatar": "Rimuovi Avatar",
     "removeBanner": "Rimuovi Banner"
+  },
+  "frontSort": {
+    "label": "Organizza",
+    "added": "Aggiunti",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Personalizzato"
   },
   "memberSort": {
     "label": "Ordina Membri",

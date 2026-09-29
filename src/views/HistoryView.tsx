@@ -174,8 +174,8 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
           {(['all', '90d', '30d', '7d'] as TimeRange[]).map(r => (
             <button key={r} className={`btn ${range === r ? 'btn--primary' : 'btn--ghost'}`}
               style={{ padding: '7px 10px', fontSize: 12 }}
-              onClick={() => setRange(r)}>
-              {r === 'all' ? t('stats.allTime') : r}
+              aria-pressed={range === r} onClick={() => setRange(r)}>
+              {r === 'all' ? t('stats.allTime') : r === '90d' ? t('stats.last90') : r === '30d' ? t('stats.last30') : t('stats.last7')}
             </button>
           ))}
         </div>

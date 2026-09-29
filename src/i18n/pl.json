@@ -45,6 +45,10 @@
     "sand": "Piaskowy"
   },
   "common": {
+    "durDaysHours": "{{d}} d. {{h}} godz.",
+    "durHoursMinutes": "{{h}} godz. {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Wł.",
     "off": "Wył.",
     "settingsSaved": "Zapisano ustawienia",
@@ -216,6 +220,8 @@
     "bulkDelete": "Usuń członków",
     "bulkDeleteMsg": "Trwale usunąć członków ({{count}})? Tego nie da się cofnąć.",
     "assignGroup": "Grupa",
+    "assignTag": "Tag",
+    "addTags": "Dodaj tagi",
     "frontingLockTitle": "Obecnie frontuje",
     "frontingLockMsg": "Nie możesz zarchiwizować ani usunąć członka, gdy frontuje. Najpierw usuń go z frontu.",
     "archive": "Archiwizuj",
@@ -406,7 +412,13 @@
     "creditsBlurb": "Współtwórcy ze społeczności",
     "archive": "Archiwum"
   },
+  "editor": {
+    "urlPlaceholder": "Tutaj URL",
+    "textPlaceholder": "tekst"
+  },
   "markdown": {
+    "toolImageLeft": "Obraz po lewej, tekst po prawej",
+    "toolImageRight": "Obraz po prawej, tekst po lewej",
     "toolBold": "Pogrubienie",
     "toolItalic": "Kursywa",
     "toolStrike": "Przekreślenie",
@@ -453,6 +465,8 @@
     "confirmDelete": "Potwierdź usunięcie",
     "archiveMember": "Archiwizuj członka",
     "archiveDesc": "Ukryj z listy aktywnych członków i wyboru frontu. Historia zostaje zachowana.",
+    "private": "Prywatne",
+    "privateDesc": "Tylko ty ich widzisz. Ukryte przed wszystkimi znajomymi, w każdym kubełku prywatności.",
     "newEntry": "Nowy wpis",
     "editEntry": "Edytuj wpis",
     "viewEntry": "Wpis w dzienniku",
@@ -556,6 +570,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Aktualizacje",
+    "version": "Wersja {{version}}",
+    "check": "Sprawdź aktualizacje",
+    "checking": "Sprawdzanie…",
+    "available": "Plural Star {{latest}} jest już dostępny. Masz {{current}}.",
+    "upToDate": "Masz najnowszą wersję.",
+    "failed": "Nie udało się sprawdzić aktualizacji. Spróbuj ponownie później.",
+    "download": "Pobierz"
+  },
   "memberGroups": {
     "groupName": "Nazwa grupy",
     "title": "Grupy",
@@ -575,7 +599,10 @@
     "toRoot": "Najwyższy poziom",
     "none": "Nie ma jeszcze grup ani podsystemów.",
     "group": "Grupa",
-    "subsystem": "Podsystem"
+    "subsystem": "Podsystem",
+    "linkedFronter": "Powiązany frontujący",
+    "noLinkedFronter": "Brak",
+    "linkedSubsystems": "Powiązane podsystemy"
   },
   "systemManager": {
     "title": "Menedżer systemu",
@@ -904,6 +931,8 @@
     "apptReminderTitle": "Przypomnienie o wizycie"
   },
   "stats": {
+    "last90": "90 dni",
+    "statusDetails": "Szczegóły statusu",
     "showMore": "Pokaż więcej",
     "energyByHour": "Energia według godziny",
     "allTime": "Cały czas",
@@ -1012,6 +1041,7 @@
     "addOption": "+ Dodaj opcję",
     "optionPlaceholder": "Opcja...",
     "hideVoters": "Ukryj nazwy głosujących",
+    "multipleChoice": "Wielokrotny wybór",
     "vote": "Głosuj",
     "votes": "Głosy: {{count}}",
     "closePoll": "Zamknij ankietę",
@@ -1047,6 +1077,13 @@
     "changeBanner": "Zmień baner",
     "removeAvatar": "Usuń awatar",
     "removeBanner": "Usuń baner"
+  },
+  "frontSort": {
+    "label": "Porządkuj",
+    "added": "Dodane",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Własna"
   },
   "memberSort": {
     "label": "Sortuj członków",

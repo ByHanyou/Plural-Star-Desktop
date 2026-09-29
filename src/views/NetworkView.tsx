@@ -130,7 +130,7 @@ export default function NetworkView() {
   };
 
   const featureLabel = (f: BucketFeature): string =>
-    f === 'front' ? t('tabs.front') : f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'customFronts' ? t('members.customFronts') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : f === 'planner' ? t('planner.title') : t('systemMap.title', { defaultValue: 'Connections' });
+    f === 'front' ? t('tabs.front') : f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'customFronts' ? t('members.customFronts') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : f === 'planner' ? t('planner.title') : t('systemMap.title');
   const scopeSummary = (s: PrivacyScope): string =>
     s.mode === 'all' ? t('network.scopeAll') : s.mode === 'none' ? t('network.scopeNone') : `${s.ids.length}`;
   const setScopeMode = (f: BucketFeature, mode: PrivacyScopeMode) => {
@@ -191,6 +191,7 @@ export default function NetworkView() {
     };
   };
   const memberName = (id: string) => members.find(m => m.id === id)?.name || '?';
+  const isPrivateId = (id: string) => !!members.find(m => m.id === id)?.private;
   const relLabel = (r: Relationship): string => {
     const rt = relTypes.find(x => x.id === r.typeId) || PRESET_RELATIONSHIP_TYPES.find(x => x.id === r.typeId);
     const arrow = rt?.directional ? '→' : '↔';
@@ -209,18 +210,19 @@ export default function NetworkView() {
         .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
     : pickerFeature === 'connections'
     ? relationships
+        .filter(r => !isPrivateId(r.fromId) && !isPrivateId(r.toId))
         .map(r => ({ id: r.id, name: relLabel(r) }))
         .filter(x => !pickerSearch.trim() || (x.name || '').toLowerCase().includes(pickerSearch.trim().toLowerCase()))
     : pickerFeature === 'facets'
     ? pickableFacets
-        .filter(m => memberMatchesSearch(m, pickerSearch))
+        .filter(m => !m.private && memberMatchesSearch(m, pickerSearch))
         .map(m => ({ id: m.id, name: m.name }))
     : pickerFeature === 'customFronts'
     ? pickableCustomFronts
-        .filter(m => memberMatchesSearch(m, pickerSearch))
+        .filter(m => !m.private && memberMatchesSearch(m, pickerSearch))
         .map(m => ({ id: m.id, name: m.name }))
     : pickableMembers
-        .filter(m => memberMatchesSearch(m, pickerSearch))
+        .filter(m => !m.private && memberMatchesSearch(m, pickerSearch))
         .map(m => ({ id: m.id, name: m.name }))
   );
   const allPickedChecked = !!editBucket && !!pickerFeature && pickerItems.length > 0 && pickerItems.every(i => editBucket[pickerFeature].ids.includes(i.id));

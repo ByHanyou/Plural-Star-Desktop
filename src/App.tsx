@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n/i18n';
 import { store, KEYS } from './storage';
@@ -73,6 +73,7 @@ import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import SortableTile from './components/SortableTile';
 import { loadTileOrder, saveTileOrder } from './dashboard/tileOrder';
+import { checkForUpdate, useAvailableUpdate, RELEASES_URL } from './updateCheck';
 
 type ViewId = 'dashboard' | 'front' | 'members' | 'history' | 'journal' | 'chat' | 'stats' | 'import-export' | 'settings' | 'system-profile' | 'custom-fields' | 'polls' | 'credits' | 'system-manager' | 'system-map' | 'medical' | 'archive' | 'retro-history' | 'network' | 'mailbox' | 'whiteboard' | 'colors' | 'planner';
 
@@ -116,6 +117,14 @@ function AppInner() {
   const [showQuickFront, setShowQuickFront] = useState(false);
   const state = useAppStore(s => s.state);
   const setState = useAppStore(s => s.setState);
+  const update = useAvailableUpdate();
+  const [updateHidden, setUpdateHidden] = useState(false);
+  const updateChecked = useRef(false);
+  useEffect(() => {
+    if (!state.loaded || updateChecked.current) return;
+    updateChecked.current = true;
+    checkForUpdate().catch(() => {});
+  }, [state.loaded]);
 
   const loadData = useCallback(async () => {
     const [system, members, groups, frontRaw, history, journal, channels, chatCategories, settings, palettes] = await Promise.all([
@@ -338,6 +347,15 @@ function AppInner() {
           <button className="titlebar__btn titlebar__btn--close" aria-label={t('common.close')} onClick={() => window.electronAPI.window.close()} />
         </div>
       </div>
+
+      {update && !updateHidden && (
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', background: 'var(--accent-bg)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{t('update.available', { latest: update.latest, current: update.current })}</span>
+          <Btn variant="primary" onClick={() => window.open(RELEASES_URL, '_blank')}>{t('update.download')}</Btn>
+          <button type="button" onClick={() => setUpdateHidden(true)} aria-label={t('common.close')} title={t('common.close')}
+            style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer', padding: 4 }}>✕</button>
+        </div>
+      )}
 
       {view === 'dashboard' ? (
         <div className="dashboard">

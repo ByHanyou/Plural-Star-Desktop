@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Member, MemberGroup, FrontState, FrontTier, FrontTierKey, HistoryEntry, NoteboardEntry,
+  Member, MemberGroup, FrontState, FrontTier, FrontTierKey, FrontSortMode, HistoryEntry, NoteboardEntry,
   AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, frontSessionStart, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
-  parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch, upperText,
+  parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch, upperText, orderFronters, placeInCustomOrder,
 } from '../utils';
 import { store, KEYS } from '../storage';
 import { Btn, Field, Section, Modal, ConfirmDialog, clickable, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
@@ -13,6 +13,8 @@ import { initialOn } from '../theme';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
 import { useMinuteTick } from '../useMinuteTick';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 
 interface Props {
   onUpdate: () => void;
@@ -28,6 +30,32 @@ const TIER_COLORS: Record<FrontTierKey, string> = {
 };
 
 const TIER_ORDER: FrontTierKey[] = ['primary', 'coFront', 'coConscious'];
+
+const FRONT_SORTS: [FrontSortMode, string][] = [
+  ['added', 'frontSort.added'],
+  ['az', 'frontSort.az'],
+  ['za', 'frontSort.za'],
+  ['custom', 'frontSort.custom'],
+];
+
+function SortableFrontRow({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const gripLabel = `${t('common.dragReorder')}, ${label}`;
+  return (
+    <div ref={setNodeRef} style={{
+      display: 'flex', alignItems: 'center', gap: 12, position: 'relative',
+      transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
+      transition, zIndex: isDragging ? 10 : undefined, opacity: isDragging ? 0.85 : undefined,
+    }}>
+      <button type="button" aria-label={gripLabel} title={gripLabel} {...attributes} {...listeners}
+        style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'grab', padding: '4px 2px', fontSize: 16, lineHeight: 1, flexShrink: 0 }}>
+        ⠿
+      </button>
+      {children}
+    </div>
+  );
+}
 
 export async function applyFrontUpdate(current: FrontState | null, primary: any, coFront: any, coConscious: any): Promise<FrontState | null> {
   if (current && !isFrontEmpty(current)) {
@@ -77,6 +105,30 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
   const getMember = (id: string) => members.find(m => m.id === id);
   const activeMembers = members.filter(m => !m.archived);
   const allMoods = [...DEFAULT_MOODS, ...(settings.customMoods || [])];
+
+  const frontSortMode: FrontSortMode = settings.frontSortMode || 'added';
+  const customOn = frontSortMode === 'custom';
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const saveFrontSort = async (patch: Pick<AppSettings, 'frontSortMode' | 'frontCustomOrder'>) => {
+    const live = useAppStore.getState().state.settings;
+    await store.set(KEYS.settings, { ...live, ...patch });
+    onUpdate();
+  };
+  const orderedIds = (tier: FrontTier) =>
+    orderFronters(tier.memberIds.filter(id => !!getMember(id)), frontSortMode, id => getMember(id)?.name || '', settings.frontCustomOrder);
+  const onTierDragEnd = (e: DragEndEvent, ids: string[]) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const live = useAppStore.getState().state;
+    const keep = (id: string) => live.members.some(m => m.id === id && !m.deleted);
+    void saveFrontSort({ frontCustomOrder: placeInCustomOrder(live.settings.frontCustomOrder, arrayMove(ids, from, to), keep) });
+  };
 
 
   const quickRemove = (memberId: string) => {
@@ -134,6 +186,30 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
     const color = TIER_COLORS[tierKey];
     const isPrimary = tierKey === 'primary';
     const isEditingNote = editingNote === tierKey;
+    const ids = orderedIds(tier);
+    const canDrag = customOn && ids.length > 1;
+    const rowParts = (id: string, m: Member) => (
+      <>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, cursor: onOpenMember ? 'pointer' : 'default', borderRadius: 8 }}
+          {...(onOpenMember ? clickable(() => onOpenMember(id), `${m.name}, ${t('systemMap.viewProfile')}`) : {})}>
+          <div className="tile__avatar" style={{
+            width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
+            fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
+            ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
+          }}>
+            {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: isPrimary ? 16 : 14, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
+            {m.pronouns && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{m.pronouns}</div>}
+            {m.role && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: m.color, marginTop: 1 }}>{upperText(m.role)}</div>}
+          </div>
+        </div>
+        <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>
+        <button className="icon-btn" aria-label={t('front.quickRemove', { name: m.name })} onClick={() => quickRemove(id)}
+          style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: 8 }}>✕</button>
+      </>
+    );
 
     return (
       <div style={{ marginBottom: 16 }}>
@@ -148,29 +224,22 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
           borderRadius: 'var(--radius)',
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 10 }}>
-            {tier.memberIds.map(id => {
+            {canDrag ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => onTierDragEnd(e, ids)}>
+                <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                  {ids.map(id => {
+                    const m = getMember(id);
+                    if (!m) return null;
+                    return <SortableFrontRow key={id} id={id} label={m.name}>{rowParts(id, m)}</SortableFrontRow>;
+                  })}
+                </SortableContext>
+              </DndContext>
+            ) : ids.map(id => {
               const m = getMember(id);
               if (!m) return null;
               return (
                 <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, cursor: onOpenMember ? 'pointer' : 'default', borderRadius: 8 }}
-                    {...(onOpenMember ? clickable(() => onOpenMember(id), `${m.name}, ${t('systemMap.viewProfile')}`) : {})}>
-                    <div className="tile__avatar" style={{
-                      width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
-                      fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
-                      ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
-                    }}>
-                      {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: isPrimary ? 16 : 14, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
-                      {m.pronouns && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{m.pronouns}</div>}
-                      {m.role && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: m.color, marginTop: 1 }}>{upperText(m.role)}</div>}
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>
-                  <button className="icon-btn" aria-label={t('front.quickRemove', { name: m.name })} onClick={() => quickRemove(id)}
-                    style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: 8 }}>✕</button>
+                  {rowParts(id, m)}
                 </div>
               );
             })}
@@ -247,6 +316,22 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
         </h2>
         <Btn variant="primary" onClick={() => setShowSetFront(true)}>{t('front.update')}</Btn>
       </div>
+
+      {!isFrontEmpty(front) && (
+        <div role="group" aria-label={t('frontSort.label')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          {FRONT_SORTS.map(([mode, key]) => {
+            const sel = frontSortMode === mode;
+            return (
+              <button key={mode} type="button" aria-pressed={sel} onClick={() => { if (!sel) void saveFrontSort({ frontSortMode: mode }); }}
+                style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer',
+                  background: sel ? 'var(--accent-bg)' : 'var(--surface)', color: sel ? 'var(--accent)' : 'var(--dim)',
+                  border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`, fontWeight: sel ? 600 : 400 }}>
+                {t(key)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {noteboardAlert && (
         <div style={{
@@ -509,12 +594,12 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             const on = sel.includes(m);
             return (
               <button key={m} className={`btn ${on ? 'btn--primary' : 'btn--ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 11 }}
+                style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={on}
                 onClick={() => setMood(toggleMoodInList(mood, m))}>{translateMood(m, t)}</button>
             );
           }); })()}
           <button className={`btn ${showCustomMood[tierKey] ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }}
+            style={{ padding: '4px 10px', fontSize: 11 }} aria-expanded={!!showCustomMood[tierKey]}
             onClick={() => setShowCustomMood({ ...showCustomMood, [tierKey]: !showCustomMood[tierKey] })}>
             {showCustomMood[tierKey] ? `− ${t('modal.custom')}` : `+ ${t('modal.custom')}`}
           </button>
@@ -601,7 +686,7 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
         {allMoods.map(m => (
           <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }}
+            style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={mood === m}
             onClick={() => setMood(mood === m ? "" : m)}>{translateMood(m, t)}</button>
         ))}
       </div>

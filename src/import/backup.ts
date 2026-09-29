@@ -132,7 +132,7 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
           if (file.name.toLowerCase().endsWith('.zip')) {
             const files = unzipSync(new Uint8Array(await file.arrayBuffer()));
             const dj = files['data.json'];
-            if (!dj) { showStatus(t('share.statusBackupMissingData')); return; }
+            if (!dj) { showStatus(t('share.statusBackupMissingData'), true); return; }
             data = JSON.parse(strFromU8(dj)) as ExportPayload;
             const avatars: Record<string, string> = { ...(data.avatars || {}) };
             const banners: Record<string, string> = { ...(data.banners || {}) };
@@ -147,28 +147,28 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
             data = JSON.parse(text) as ExportPayload;
           }
           if (!data || typeof data !== 'object' || Array.isArray(data)) {
-            showStatus(t('share.statusNotBackup'));
+            showStatus(t('share.statusNotBackup'), true);
             return;
           }
 
           if (detectPluralSpace(data)) {
-            showStatus(t('share.statusError', {msg: t('share.psUseSection')}));
+            showStatus(t('share.statusError', {msg: t('share.psUseSection')}), true);
             return;
           }
           if (!data._meta?.app?.includes('PluralSpace') && !data._meta?.app?.includes('Plural Space') && !data._meta?.app?.includes('PluralStar') && !data._meta?.app?.includes('Plural Star')) {
-            showStatus(t('share.statusNotBackup'));
+            showStatus(t('share.statusNotBackup'), true);
             return;
           }
 
           setRestoreData(data);
           setRestoreFile(file.name);
         } catch (e: any) {
-          showStatus(t('share.statusImportError', {msg: e?.message || String(e)}));
+          showStatus(t('share.statusImportError', {msg: e?.message || String(e)}), true);
         }
       };
       input.click();
     } catch (e: any) {
-      showStatus(t('share.statusImportError', {msg: e.message}));
+      showStatus(t('share.statusImportError', {msg: e.message}), true);
     }
 };
 
@@ -374,7 +374,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
           count: ctx.control?.completed.length ?? 0,
         }));
       } else {
-        showStatus(t('share.statusRestoreError', {msg: e.message}));
+        showStatus(t('share.statusRestoreError', {msg: e.message}), true);
       }
     } finally {
       setImporting(false);

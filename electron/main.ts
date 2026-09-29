@@ -179,6 +179,8 @@ handle('store:clearAll', () => {
   }
 });
 
+handle('app:version', () => app.getVersion());
+
 handle('store:allKeys', () => {
   try {
     return Object.keys(store.store);
@@ -247,14 +249,15 @@ handle('file:writeBytes', async (_e, filePath: string, base64: string) => {
 });
 
 handle('net:fetch', async (_e, url: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) => {
+  const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('request timed out')), 60000));
   try {
     if (!/^https?:\/\//i.test(String(url || ''))) return { ok: false, status: 0, text: 'unsupported url' };
-    const res = await fetch(url, {
+    const res = await Promise.race([fetch(url, {
       method: options?.method || 'GET',
       headers: options?.headers || {},
       body: options?.body,
-    });
-    const text = await res.text();
+    }), timeout]);
+    const text = await Promise.race([res.text(), timeout]);
     return { ok: res.ok, status: res.status, text };
   } catch (e: any) {
     return { ok: false, status: 0, text: e.message };
@@ -282,11 +285,12 @@ handle('net:fetchRaw', async (_e, url: string, options?: { method?: string; head
 });
 
 handle('net:fetchImage', async (_e, url: string) => {
+  const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('request timed out')), 20000));
   try {
     if (!/^https?:\/\//i.test(String(url || ''))) return null;
-    const res = await fetch(url, { headers: { 'User-Agent': 'PluralStar-Desktop' } });
+    const res = await Promise.race([fetch(url, { headers: { 'User-Agent': 'PluralStar-Desktop' } }), timeout]);
     if (!res.ok) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
+    const buf = Buffer.from(await Promise.race([res.arrayBuffer(), timeout]));
     if (buf.length === 0 || buf.length > 12 * 1024 * 1024) return null;
     const extMime: Record<string, string> = {
       png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',

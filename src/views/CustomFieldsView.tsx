@@ -81,7 +81,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 background: dragIdx === i ? 'var(--accent-bg)' : 'var(--card)',
                 border: '1px solid var(--border)', borderRadius: 8, cursor: 'grab',
               }}>
-              <span style={{ fontSize: 16, color: 'var(--muted)', cursor: 'grab', userSelect: 'none' }}>⋮⋮</span>
+              <span aria-hidden style={{ fontSize: 16, color: 'var(--muted)', cursor: 'grab', userSelect: 'none' }}>⋮⋮</span>
 
               <div style={{ flex: 1 }}>
                 {editId === fd.id ? (

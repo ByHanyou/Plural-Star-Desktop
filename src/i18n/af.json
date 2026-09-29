@@ -45,6 +45,10 @@
     "sand": "Sand"
   },
   "common": {
+    "durDaysHours": "{{d}} d {{h}} u",
+    "durHoursMinutes": "{{h}} u {{m}} min",
+    "durMinutes": "{{m}} min",
+    "durUnderMinute": "<1 min",
     "on": "Aan",
     "off": "Af",
     "settingsSaved": "Instellings gestoor",
@@ -216,6 +220,8 @@
     "bulkDelete": "Skrap lede",
     "bulkDeleteMsg": "Skrap {{count}} lid/lede permanent? Dit kan nie ontdoen word nie.",
     "assignGroup": "Groep",
+    "assignTag": "Etiket",
+    "addTags": "Voeg etikette by",
     "frontingLockTitle": "Tans fronting",
     "frontingLockMsg": "Jy kan nie 'n lid argiveer of skrap terwyl hulle fronting is nie. Verwyder hulle eers uit die front.",
     "archive": "Argiveer",
@@ -406,7 +412,13 @@
     "creditsBlurb": "Gemeenskapsbydraers",
     "archive": "Argief"
   },
+  "editor": {
+    "urlPlaceholder": "URL hier",
+    "textPlaceholder": "teks"
+  },
   "markdown": {
+    "toolImageLeft": "Beeld links, teks regs",
+    "toolImageRight": "Beeld regs, teks links",
     "toolBold": "Vet",
     "toolItalic": "Kursief",
     "toolStrike": "Deurgehaal",
@@ -453,6 +465,8 @@
     "confirmDelete": "Bevestig skrap",
     "archiveMember": "Argiveer lid",
     "archiveDesc": "Versteek uit die aktiewe ledelys en frontkieser. Geskiedenis bly behoue.",
+    "private": "Privaat",
+    "privateDesc": "Net jy kan hulle sien. Versteek vir elke vriend, in elke privaatheidsemmer.",
     "newEntry": "Nuwe inskrywing",
     "editEntry": "Wysig inskrywing",
     "viewEntry": "Joernaalinskrywing",
@@ -556,6 +570,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Opdaterings",
+    "version": "Weergawe {{version}}",
+    "check": "Kyk vir opdaterings",
+    "checking": "Kyk tans…",
+    "available": "Plural Star {{latest}} is beskikbaar. Jy het {{current}}.",
+    "upToDate": "Jy is op datum.",
+    "failed": "Kon nie vir opdaterings kyk nie. Probeer later weer.",
+    "download": "Laai af"
+  },
   "memberGroups": {
     "groupName": "Groepnaam",
     "title": "Groepe",
@@ -575,7 +599,10 @@
     "toRoot": "Boonste vlak",
     "none": "Nog geen groepe of subsisteme nie.",
     "group": "Groep",
-    "subsystem": "Subsisteem"
+    "subsystem": "Subsisteem",
+    "linkedFronter": "Gekoppelde Fronter",
+    "noLinkedFronter": "Geen",
+    "linkedSubsystems": "Gekoppelde subsisteme"
   },
   "systemManager": {
     "title": "Sisteembestuurder",
@@ -902,6 +929,8 @@
     "apptReminderTitle": "Afspraakherinnering"
   },
   "stats": {
+    "last90": "90 dae",
+    "statusDetails": "Statusbesonderhede",
     "showMore": "Wys meer",
     "energyByHour": "Energie per uur",
     "allTime": "Alle tyd",
@@ -1010,6 +1039,7 @@
     "addOption": "+ Voeg opsie by",
     "optionPlaceholder": "Opsie...",
     "hideVoters": "Versteek stemmers se name",
+    "multipleChoice": "Meervoudige keuse",
     "vote": "Stem",
     "votes": "{{count}} stemme",
     "closePoll": "Sluit peiling",
@@ -1045,6 +1075,13 @@
     "changeBanner": "Verander banier",
     "removeAvatar": "Verwyder avatar",
     "removeBanner": "Verwyder banier"
+  },
+  "frontSort": {
+    "label": "Organiseer",
+    "added": "Bygevoeg",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Pasgemaak"
   },
   "memberSort": {
     "label": "Sorteer lede",

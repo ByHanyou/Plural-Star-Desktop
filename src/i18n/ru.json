@@ -366,6 +366,10 @@
     "apptReminderTitle": "Напоминание о приёме"
   },
   "common": {
+    "durDaysHours": "{{d}} д {{h}} ч",
+    "durHoursMinutes": "{{h}} ч {{m}} мин",
+    "durMinutes": "{{m}} мин",
+    "durUnderMinute": "<1 мин",
     "on": "Вкл",
     "off": "Выкл",
     "settingsSaved": "Настройки сохранены",
@@ -537,6 +541,8 @@
     "bulkDelete": "Удалить участников",
     "bulkDeleteMsg": "Удалить {{count}} участник(ов) навсегда? Это действие нельзя отменить.",
     "assignGroup": "Группа",
+    "assignTag": "Тег",
+    "addTags": "Добавить теги",
     "frontingLockTitle": "Сейчас во фронте",
     "frontingLockMsg": "Нельзя архивировать или удалить участника, пока он во фронте. Сначала уберите его из фронта.",
     "archive": "Архивировать",
@@ -727,7 +733,13 @@
     "creditsBlurb": "Участники сообщества",
     "archive": "Архив"
   },
+  "editor": {
+    "urlPlaceholder": "URL здесь",
+    "textPlaceholder": "текст"
+  },
   "markdown": {
+    "toolImageLeft": "Изображение слева, текст справа",
+    "toolImageRight": "Изображение справа, текст слева",
     "toolBold": "Жирный",
     "toolItalic": "Курсив",
     "toolStrike": "Зачёркнутый",
@@ -774,6 +786,8 @@
     "confirmDelete": "Подтвердить удаление",
     "archiveMember": "Архивировать участника",
     "archiveDesc": "Скрыть из активного списка и выбора фронта. История сохраняется.",
+    "private": "Приватный",
+    "privateDesc": "Видны только вам. Скрыты от всех друзей, в любом круге приватности.",
     "newEntry": "Новая запись",
     "editEntry": "Редактировать запись",
     "viewEntry": "Запись дневника",
@@ -877,6 +891,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Обновления",
+    "version": "Версия {{version}}",
+    "check": "Проверить обновления",
+    "checking": "Проверка…",
+    "available": "Вышел Plural Star {{latest}}. У вас {{current}}.",
+    "upToDate": "У вас последняя версия.",
+    "failed": "Не удалось проверить обновления. Попробуйте позже.",
+    "download": "Скачать"
+  },
   "memberGroups": {
     "groupName": "Название группы",
     "title": "Группы",
@@ -896,7 +920,10 @@
     "toRoot": "Верхний уровень",
     "none": "Пока нет групп или подсистем.",
     "group": "Группа",
-    "subsystem": "Подсистема"
+    "subsystem": "Подсистема",
+    "linkedFronter": "Связанный фронтер",
+    "noLinkedFronter": "Нет",
+    "linkedSubsystems": "Связанные подсистемы"
   },
   "systemManager": {
     "emptyFolder": "Здесь пока ничего нет.",
@@ -906,6 +933,8 @@
     "subsystemsCount": "Подсистем: {{count}}"
   },
   "stats": {
+    "last90": "90 дней",
+    "statusDetails": "Детали статуса",
     "showMore": "Показать больше",
     "energyByHour": "Энергия по часам",
     "allTime": "Всё время",
@@ -1014,6 +1043,7 @@
     "addOption": "+ Добавить вариант",
     "optionPlaceholder": "Вариант...",
     "hideVoters": "Скрыть имена голосующих",
+    "multipleChoice": "Множественный выбор",
     "vote": "Голосовать",
     "votes": "{{count}} голосов",
     "closePoll": "Закрыть опрос",
@@ -1049,6 +1079,13 @@
     "changeBanner": "Изменить баннер",
     "removeAvatar": "Убрать аватар",
     "removeBanner": "Убрать баннер"
+  },
+  "frontSort": {
+    "label": "Упорядочить",
+    "added": "Добавлено",
+    "az": "А-Я",
+    "za": "Я-А",
+    "custom": "Свой"
   },
   "memberSort": {
     "label": "Сортировка",

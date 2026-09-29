@@ -31,17 +31,24 @@ export const ImageCropHost = () => {
   const rectRef = useRef<Rect | null>(null);
   const dispRef = useRef<Rect | null>(null);
   const dragRef = useRef<{ mode: 'move' | Corner; startX: number; startY: number; start: Rect } | null>(null);
+  const activeRef = useRef<UploadRequest | null>(null);
 
   useEffect(() => {
     hostOpen = (r: UploadRequest) => {
+      if (activeRef.current && activeRef.current !== r) activeRef.current.resolve(null);
+      activeRef.current = r;
       setStage('choose'); setNatural(null); setBox(null); setRect(null); rectRef.current = null;
       setReq(r);
       const img = new window.Image();
       img.onload = () => setNatural({ w: img.naturalWidth, h: img.naturalHeight });
-      img.onerror = () => { r.resolve(null); setReq(null); };
+      img.onerror = () => { r.resolve(null); if (activeRef.current === r) activeRef.current = null; setReq(null); };
       img.src = r.dataUrl;
     };
-    return () => { hostOpen = null; };
+    return () => {
+      hostOpen = null;
+      if (activeRef.current) activeRef.current.resolve(null);
+      activeRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -116,6 +123,7 @@ export const ImageCropHost = () => {
 
   const finish = (result: string | null) => {
     const r = req;
+    if (activeRef.current === r) activeRef.current = null;
     setReq(null);
     r?.resolve(result);
   };

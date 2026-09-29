@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Btn, Field, ConfirmDialog, Toggle, Section, AddRow, useEscapeKey } from '../components/ui';
 import { store, KEYS } from '../storage';
-import { PlannerData, PlannerAppointment, PlannerReminder, PlannerRepeat, PlannerReminderRepeat, DEFAULT_PLANNER, plannerOccursOnDay, uid, isValidTimeHHMM, getLocale } from '../utils';
+import { PlannerData, PlannerAppointment, PlannerReminder, PlannerRepeat, PlannerReminderRepeat, DEFAULT_PLANNER, plannerOccursOnDay, uid, isValidTimeHHMM, getLocale, firstDayOfWeek } from '../utils';
 import { NetworkManager } from '../network/NetworkManager';
 import { logError } from '../log';
 import { ColorCarousel } from '../components/ColorCarousel';
@@ -50,6 +50,7 @@ const hhmmOf = (ts: number): string => {
 export default function PlannerView({ onUpdate }: Props) {
   const { t } = useTranslation();
   const locale = getLocale();
+  const weekStart = firstDayOfWeek();
   const [planner, setPlannerState] = useState<PlannerData>(DEFAULT_PLANNER);
   const plannerRef = useRef(planner);
   plannerRef.current = planner;
@@ -105,21 +106,21 @@ export default function PlannerView({ onUpdate }: Props) {
     const base = new Date(2026, 7, 2);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(base);
-      d.setDate(base.getDate() + i);
+      d.setDate(base.getDate() + i + weekStart);
       return d.toLocaleDateString(locale, { weekday: 'narrow' });
     });
-  }, [locale]);
+  }, [locale, weekStart]);
 
   const grid = useMemo(() => {
     const first = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
     const start = new Date(first);
-    start.setDate(1 - first.getDay());
+    start.setDate(1 - ((first.getDay() - weekStart + 7) % 7));
     return Array.from({ length: 42 }, (_, i) => {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       return d;
     });
-  }, [viewMonth]);
+  }, [viewMonth, weekStart]);
 
   const minutesOfDay = (ts: number) => { const d = new Date(ts); return d.getHours() * 60 + d.getMinutes(); };
   const apptsOn = (day: Date): PlannerAppointment[] =>

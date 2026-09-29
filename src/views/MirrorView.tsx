@@ -4,6 +4,7 @@ import { Btn, Field, Modal } from '../components/ui';
 import { NetworkManager } from '../network/NetworkManager';
 import { MirrorFeature, MirrorCacheEntry, MirrorMember, MirrorGroup, MirrorSystemProfile, MIRROR_SYSTEM_AVATAR_ID, MIRROR_SYSTEM_BANNER_ID } from '../network/types';
 import SystemProfileCard from '../components/SystemProfileCard';
+import { MarkdownText } from '../components/MarkdownText';
 import { fmtTime, getInitials } from '../utils';
 import { logError } from '../log';
 
@@ -151,7 +152,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                     <img src={entry.media[`${m.id}#banner`]} alt="" style={{ display: 'block', width: '100%', maxHeight: 180, borderRadius: 8, objectFit: 'cover', marginBottom: 6 }} />
                   )}
                   {m.description && (
-                    <p style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', margin: '4px 0' }}>{m.description}</p>
+                    <div style={{ margin: '4px 0' }}><MarkdownText text={m.description} /></div>
                   )}
                   {(m.customFields || []).map((cf, i) => {
                     if (cf.type === 'image') {
@@ -471,7 +472,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
         ) : (
           <>
             {openEntry?.timestamp ? <p style={dim}>{fmtTime(openEntry.timestamp)}</p> : null}
-            <p style={{ fontSize: 14, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{openEntry?.body || ''}</p>
+            <MarkdownText text={openEntry?.body || ''} />
           </>
         )}
       </Modal>

@@ -45,6 +45,10 @@
     "sand": "Sandur"
   },
   "common": {
+    "durDaysHours": "{{d}} d. {{h}} klst.",
+    "durHoursMinutes": "{{h}} klst. {{m}} mín.",
+    "durMinutes": "{{m}} mín.",
+    "durUnderMinute": "<1 mín.",
     "on": "Kveikt",
     "off": "Slökkt",
     "settingsSaved": "Stillingar vistaðar",
@@ -216,6 +220,8 @@
     "bulkDelete": "Eyða meðlimum",
     "bulkDeleteMsg": "Eyða {{count}} meðlim(um) varanlega? Þetta er ekki hægt að afturkalla.",
     "assignGroup": "Hópur",
+    "assignTag": "Merki",
+    "addTags": "Bæta við merkjum",
     "frontingLockTitle": "Núna að fronta",
     "frontingLockMsg": "Ekki er hægt að setja meðlim í safn eða eyða á meðan viðkomandi frontar. Taktu viðkomandi fyrst úr fronti.",
     "archive": "Setja í safn",
@@ -406,7 +412,13 @@
     "creditsBlurb": "Framlög samfélagsins",
     "archive": "Safn"
   },
+  "editor": {
+    "urlPlaceholder": "URL hér",
+    "textPlaceholder": "texti"
+  },
   "markdown": {
+    "toolImageLeft": "Mynd til vinstri, texti til hægri",
+    "toolImageRight": "Mynd til hægri, texti til vinstri",
     "toolBold": "Feitletrað",
     "toolItalic": "Skáletrað",
     "toolStrike": "Yfirstrikað",
@@ -453,6 +465,8 @@
     "confirmDelete": "Staðfesta eyðingu",
     "archiveMember": "Setja meðlim í safn",
     "archiveDesc": "Fela úr virka meðlimalistanum og frontveljaranum. Sagan varðveitist.",
+    "private": "Einka",
+    "privateDesc": "Aðeins þú sérð þau. Falið öllum vinum, í öllum persónuverndarfötum.",
     "newEntry": "Ný færsla",
     "editEntry": "Breyta færslu",
     "viewEntry": "Dagbókarfærsla",
@@ -556,6 +570,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Uppfærslur",
+    "version": "Útgáfa {{version}}",
+    "check": "Leita að uppfærslum",
+    "checking": "Leita…",
+    "available": "Plural Star {{latest}} er komin út. Þú ert með {{current}}.",
+    "upToDate": "Þú ert með nýjustu útgáfuna.",
+    "failed": "Ekki tókst að leita að uppfærslum. Reyndu aftur síðar.",
+    "download": "Sækja"
+  },
   "memberGroups": {
     "groupName": "Nafn hóps",
     "title": "Hópar",
@@ -575,7 +599,10 @@
     "toRoot": "Efsta stig",
     "none": "Engir hópar eða undirkerfi enn.",
     "group": "Hópur",
-    "subsystem": "Undirkerfi"
+    "subsystem": "Undirkerfi",
+    "linkedFronter": "Tengdur frontari",
+    "noLinkedFronter": "Enginn",
+    "linkedSubsystems": "Tengd undirkerfi"
   },
   "systemManager": {
     "title": "Kerfisstjóri",
@@ -902,6 +929,8 @@
     "apptReminderTitle": "Tímaáminning"
   },
   "stats": {
+    "last90": "90 dagar",
+    "statusDetails": "Stöðuupplýsingar",
     "showMore": "Sýna meira",
     "energyByHour": "Orka eftir klukkustund",
     "allTime": "Allur tíminn",
@@ -1010,6 +1039,7 @@
     "addOption": "+ Bæta við valkosti",
     "optionPlaceholder": "Valkostur...",
     "hideVoters": "Fela nöfn kjósenda",
+    "multipleChoice": "Fjölval",
     "vote": "Kjósa",
     "votes": "{{count}} atkvæði",
     "closePoll": "Loka könnun",
@@ -1045,6 +1075,13 @@
     "changeBanner": "Breyta borða",
     "removeAvatar": "Fjarlægja mynd",
     "removeBanner": "Fjarlægja borða"
+  },
+  "frontSort": {
+    "label": "Raða",
+    "added": "Bætt við",
+    "az": "A-Ö",
+    "za": "Ö-A",
+    "custom": "Sérsniðið"
   },
   "memberSort": {
     "label": "Raða meðlimum",

@@ -14,13 +14,25 @@ export const clickable = (onClick?: () => void, label?: string) => ({
   },
 });
 
+const escapeStack: Array<() => void> = [];
+
 export function useEscapeKey(active: boolean, onEscape: () => void) {
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
   useEffect(() => {
     if (!active) return;
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onEscape(); };
+    const entry = () => onEscapeRef.current();
+    escapeStack.push(entry);
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && escapeStack[escapeStack.length - 1] === entry) entry();
+    };
     window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [active, onEscape]);
+    return () => {
+      window.removeEventListener('keydown', h);
+      const i = escapeStack.lastIndexOf(entry);
+      if (i >= 0) escapeStack.splice(i, 1);
+    };
+  }, [active]);
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -63,16 +75,50 @@ export function Btn({ children, onClick, variant = 'primary', disabled = false, 
 }
 
 
-export function Field({ label, value, onChange, placeholder, multiline = false, type = 'text', mono = false }: {
+export function Field({ label, value, onChange, placeholder, multiline = false, type = 'text', mono = false, pictureTools = false }: {
   label?: string; value: string; onChange: (v: string) => void; placeholder?: string;
-  multiline?: boolean; type?: string; mono?: boolean;
+  multiline?: boolean; type?: string; mono?: boolean; pictureTools?: boolean;
 }) {
   const id = useId();
+  const { t } = useTranslation();
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+  const selRef = useRef<number | null>(null);
+  const insertSidePicture = (side: 'left' | 'right') => {
+    const at = selRef.current == null ? value.length : Math.min(Math.max(selRef.current, 0), value.length);
+    const prior = value.slice(0, at);
+    const rest = value.slice(at);
+    const lead = prior && !prior.endsWith('\n') ? '\n' : '';
+    const tail = !rest || rest.startsWith('\n\n') ? '' : rest.startsWith('\n') ? '\n' : '\n\n';
+    const snippet = `${lead}<img src="${t('editor.urlPlaceholder')}" width="100" height="100" align="${side}">\n${t('editor.textPlaceholder')}${tail}`;
+    onChange(prior + snippet + rest);
+    const caret = at + snippet.length;
+    selRef.current = caret;
+    requestAnimationFrame(() => {
+      const area = areaRef.current;
+      if (!area) return;
+      area.focus();
+      area.setSelectionRange(caret, caret);
+    });
+  };
   return (
     <div className="field">
       {label && <label className="field__label" htmlFor={id}>{label}</label>}
+      {multiline && pictureTools && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          {(['left', 'right'] as const).map(side => {
+            const name = t(side === 'left' ? 'markdown.toolImageLeft' : 'markdown.toolImageRight');
+            return (
+              <button key={side} type="button" aria-label={name} title={name} onClick={() => insertSidePicture(side)}
+                style={{ padding: '2px 8px', fontSize: 12, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--dim)', cursor: 'pointer' }}>
+                {side === 'left' ? '🖼≡' : '≡🖼'}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {multiline ? (
-        <textarea id={id} aria-label={label ? undefined : placeholder} className="field__input field__input--multi" value={value} onChange={e => onChange(e.target.value)}
+        <textarea ref={areaRef} id={id} aria-label={label ? undefined : placeholder} className="field__input field__input--multi" value={value} onChange={e => onChange(e.target.value)}
+          onSelect={pictureTools ? e => { selRef.current = e.currentTarget.selectionEnd; } : undefined}
           placeholder={placeholder} rows={4} />
       ) : (
         <input id={id} aria-label={label ? undefined : placeholder} className={`field__input ${mono ? 'field__input--mono' : ''}`} type={type} value={value}
@@ -146,18 +192,22 @@ export function Dropdown<T extends string>({ value, options, onChange, label, re
   }, []);
 
   const display = renderOption || ((v: T) => v);
+  const labelId = useId();
+  const valueId = useId();
 
   return (
     <div className="dropdown" ref={ref}>
-      {label && <label className="field__label">{label}</label>}
-      <button className={`dropdown__trigger ${open ? 'dropdown__trigger--open' : ''}`} onClick={() => setOpen(!open)}>
-        <span>{display(value)}</span>
-        <span className="dropdown__arrow">{open ? '▲' : '▼'}</span>
+      {label && <label className="field__label" id={labelId}>{label}</label>}
+      <button className={`dropdown__trigger ${open ? 'dropdown__trigger--open' : ''}`} onClick={() => setOpen(!open)}
+        aria-haspopup="true" aria-expanded={open} aria-labelledby={label ? `${labelId} ${valueId}` : undefined}>
+        <span id={valueId}>{display(value)}</span>
+        <span className="dropdown__arrow" aria-hidden>{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="dropdown__menu">
           {options.map(opt => (
             <button key={opt} className={`dropdown__item ${opt === value ? 'dropdown__item--active' : ''}`}
+              aria-pressed={opt === value}
               style={optionStyle ? optionStyle(opt) : undefined}
               onClick={() => { onChange(opt); setOpen(false); }}>
               {display(opt)}
@@ -351,7 +401,7 @@ export function ColorPicker({ value, onChange, palette }: {
       <div className="color-picker__swatches">
         {palette.map(c => (
           <button key={c} className={`color-picker__swatch ${c === value ? 'color-picker__swatch--active' : ''}`}
-            aria-label={colorName(c, t)} title={colorName(c, t)}
+            aria-label={colorName(c, t)} title={colorName(c, t)} aria-pressed={c === value}
             style={{ background: c }} onClick={() => { adopt(c); setHex(c); onChange(c); setError(false); }} />
         ))}
       </div>
@@ -360,8 +410,8 @@ export function ColorPicker({ value, onChange, palette }: {
 }
 
 
-export function Modal({ open, title, onClose, footer, children }: {
-  open: boolean; title: string; onClose: () => void; footer?: React.ReactNode; children: React.ReactNode;
+export function Modal({ open, title, onClose, footer, children, style }: {
+  open: boolean; title: string; onClose: () => void; footer?: React.ReactNode; children: React.ReactNode; style?: React.CSSProperties;
 }) {
   const { t } = useTranslation();
   const titleId = useId();
@@ -371,7 +421,7 @@ export function Modal({ open, title, onClose, footer, children }: {
   if (!open) return null;
   return (
     <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onClick={e => e.stopPropagation()}>
+      <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} style={style} onClick={e => e.stopPropagation()}>
         <div className="modal__header">
           <span className="modal__title" id={titleId} role="heading" aria-level={2}>{title}</span>
           <button className="modal__close" aria-label={t('common.close')} onClick={onClose}>✕</button>

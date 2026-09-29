@@ -362,6 +362,10 @@
     "apptReminderTitle": "Termin-Erinnerung"
   },
   "common": {
+    "durDaysHours": "{{d}} T. {{h}} Std.",
+    "durHoursMinutes": "{{h}} Std. {{m}} Min.",
+    "durMinutes": "{{m}} Min.",
+    "durUnderMinute": "<1 Min.",
     "on": "An",
     "off": "Aus",
     "settingsSaved": "Einstellungen gespeichert",
@@ -533,6 +537,8 @@
     "bulkDelete": "Mitglieder löschen",
     "bulkDeleteMsg": "{{count}} Mitglied(er) endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
     "assignGroup": "Gruppe",
+    "assignTag": "Schlagwort",
+    "addTags": "Schlagwörter hinzufügen",
     "frontingLockTitle": "Derzeit im Front",
     "frontingLockMsg": "Du kannst ein Mitglied nicht archivieren oder löschen, während es im Front ist. Entferne es zuerst aus dem Front.",
     "archive": "Archivieren",
@@ -690,7 +696,13 @@
     "spMergeDesc": "Simply-Plural-Backup in das aktuelle System einfügen.",
     "banners": "Mitglied-Banner"
   },
+  "editor": {
+    "urlPlaceholder": "URL hier",
+    "textPlaceholder": "Text"
+  },
   "markdown": {
+    "toolImageLeft": "Bild links, Text rechts",
+    "toolImageRight": "Bild rechts, Text links",
     "toolBold": "Fett",
     "toolItalic": "Kursiv",
     "toolStrike": "Durchgestrichen",
@@ -775,6 +787,8 @@
     "fileAccessDesc": "Import und Export von Dateien erlauben. Standardmäßig aktiviert.",
     "archiveMember": "Mitglied Archivieren",
     "archiveDesc": "Aus der aktiven Liste und dem Front-Auswahl ausblenden. Der Verlauf bleibt erhalten.",
+    "private": "Privat",
+    "privateDesc": "Nur du kannst sie sehen. Vor allen Freunden verborgen, in jedem Privatsphäre-Kreis.",
     "palette": "Farbpalette",
     "paletteDesc": "Wähle ein integriertes Thema oder erstelle dein eigenes.",
     "newPalette": "Neue Palette",
@@ -840,6 +854,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "Updates",
+    "version": "Version {{version}}",
+    "check": "Nach Updates suchen",
+    "checking": "Wird gesucht…",
+    "available": "Plural Star {{latest}} ist verfügbar. Du hast {{current}}.",
+    "upToDate": "Du bist auf dem neuesten Stand.",
+    "failed": "Updates konnten nicht geprüft werden. Versuche es später erneut.",
+    "download": "Herunterladen"
+  },
   "memberGroups": {
     "groupName": "Gruppenname",
     "title": "Gruppen",
@@ -859,7 +883,10 @@
     "toRoot": "Oberste Ebene",
     "none": "Noch keine Gruppen oder Subsysteme.",
     "group": "Gruppe",
-    "subsystem": "Subsystem"
+    "subsystem": "Subsystem",
+    "linkedFronter": "Verknüpfter Fronter",
+    "noLinkedFronter": "Keiner",
+    "linkedSubsystems": "Verknüpfte Subsysteme"
   },
   "systemManager": {
     "emptyFolder": "Hier ist noch nichts.",
@@ -902,6 +929,8 @@
     "archive": "Archiv"
   },
   "stats": {
+    "last90": "90 Tage",
+    "statusDetails": "Statusdetails",
     "showMore": "Mehr anzeigen",
     "energyByHour": "Energie nach Stunde",
     "allTime": "Gesamt",
@@ -1010,6 +1039,7 @@
     "optionPlaceholder": "Option",
     "addOption": "+ Option hinzufügen",
     "hideVoters": "Abstimmende verbergen",
+    "multipleChoice": "Mehrfachauswahl",
     "closed": "Geschlossen",
     "closePoll": "Schließen",
     "reopenPoll": "Wieder öffnen",
@@ -1032,6 +1062,13 @@
   "memberProfile": {
     "changeBanner": "Banner ändern",
     "removeBanner": "Banner entfernen"
+  },
+  "frontSort": {
+    "label": "Ordnen",
+    "added": "Hinzugefügt",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "Eigene"
   },
   "memberSort": {
     "age": "Älteste zuerst",

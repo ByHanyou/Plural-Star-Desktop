@@ -361,6 +361,10 @@
     "apptReminderTitle": "予約リマインダー"
   },
   "common": {
+    "durDaysHours": "{{d}}日{{h}}時間",
+    "durHoursMinutes": "{{h}}時間{{m}}分",
+    "durMinutes": "{{m}}分",
+    "durUnderMinute": "1分未満",
     "on": "オン",
     "off": "オフ",
     "settingsSaved": "設定を保存しました",
@@ -532,6 +536,8 @@
     "bulkDelete": "メンバーを削除",
     "bulkDeleteMsg": "{{count}} 人のメンバーを完全に削除しますか？この操作は取り消せません。",
     "assignGroup": "グループ",
+    "assignTag": "タグ",
+    "addTags": "タグを追加",
     "frontingLockTitle": "現在フロント中",
     "frontingLockMsg": "フロント中のメンバーはアーカイブまたは削除できません。先にフロントから外してください。",
     "archive": "アーカイブ",
@@ -722,7 +728,13 @@
     "creditsBlurb": "コミュニティの貢献者",
     "archive": "アーカイブ"
   },
+  "editor": {
+    "urlPlaceholder": "URL をここに",
+    "textPlaceholder": "テキスト"
+  },
   "markdown": {
+    "toolImageLeft": "画像を左、テキストを右",
+    "toolImageRight": "画像を右、テキストを左",
     "toolBold": "太字",
     "toolItalic": "斜体",
     "toolStrike": "取り消し線",
@@ -769,6 +781,8 @@
     "confirmDelete": "削除を確認",
     "archiveMember": "メンバーをアーカイブ",
     "archiveDesc": "アクティブリストとフロント選択から非表示にします。履歴は保持されます。",
+    "private": "非公開",
+    "privateDesc": "自分だけが見られます。どのプライバシーサークルでも、すべての友達から非表示になります。",
     "newEntry": "新規エントリ",
     "editEntry": "エントリを編集",
     "viewEntry": "ジャーナルエントリ",
@@ -872,6 +886,16 @@
     "sv": "Svenska",
     "pl": "Polski"
   },
+  "update": {
+    "title": "アップデート",
+    "version": "バージョン {{version}}",
+    "check": "アップデートを確認",
+    "checking": "確認中…",
+    "available": "Plural Star {{latest}} が公開されています。現在は {{current}} です。",
+    "upToDate": "最新の状態です。",
+    "failed": "アップデートを確認できませんでした。後でもう一度お試しください。",
+    "download": "ダウンロード"
+  },
   "memberGroups": {
     "groupName": "グループ名",
     "title": "グループ",
@@ -891,7 +915,10 @@
     "toRoot": "最上位",
     "none": "グループやサブシステムはまだありません。",
     "group": "グループ",
-    "subsystem": "サブシステム"
+    "subsystem": "サブシステム",
+    "linkedFronter": "リンクされたフロンター",
+    "noLinkedFronter": "なし",
+    "linkedSubsystems": "リンクされたサブシステム"
   },
   "systemManager": {
     "emptyFolder": "ここにはまだ何もありません。",
@@ -901,6 +928,8 @@
     "subsystemsCount": "{{count}} 件のサブシステム"
   },
   "stats": {
+    "last90": "90日間",
+    "statusDetails": "ステータスの詳細",
     "showMore": "もっと見る",
     "energyByHour": "時間帯別エネルギー",
     "allTime": "全期間",
@@ -1009,6 +1038,7 @@
     "addOption": "+ 選択肢を追加",
     "optionPlaceholder": "選択肢…",
     "hideVoters": "投票者名を非表示",
+    "multipleChoice": "複数選択",
     "vote": "投票",
     "votes": "{{count}} 票",
     "closePoll": "投票を閉じる",
@@ -1044,6 +1074,13 @@
     "changeBanner": "バナーを変更",
     "removeAvatar": "アバターを削除",
     "removeBanner": "バナーを削除"
+  },
+  "frontSort": {
+    "label": "整理",
+    "added": "追加順",
+    "az": "A-Z",
+    "za": "Z-A",
+    "custom": "カスタム"
   },
   "memberSort": {
     "label": "メンバーを並べ替え",
