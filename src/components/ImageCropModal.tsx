@@ -128,6 +128,14 @@ export const ImageCropHost = () => {
     r?.resolve(result);
   };
 
+  useEffect(() => {
+    if (!req) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [req]);
+
   const confirmCrop = () => {
     const r = rectRef.current;
     const d = dispRef.current;
@@ -160,7 +168,7 @@ export const ImageCropHost = () => {
 
   if (stage === 'choose') {
     return (
-      <div style={overlay} role="dialog" aria-label={i18n.t('modal.imagePickHow')} onClick={() => finish(null)}>
+      <div style={overlay} role="dialog" aria-modal="true" aria-label={i18n.t('modal.imagePickHow')} onClick={() => finish(null)}>
         <div role="presentation" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, minWidth: 300 }} onClick={e => e.stopPropagation()}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>{i18n.t('modal.imagePickHow')}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -174,7 +182,7 @@ export const ImageCropHost = () => {
   }
 
   return (
-    <div style={{ ...overlay, background: 'rgba(0,0,0,0.85)', flexDirection: 'column', padding: 24 }} role="dialog" aria-label={i18n.t('modal.cropImage')}>
+    <div style={{ ...overlay, background: 'rgba(0,0,0,0.85)', flexDirection: 'column', padding: 24 }} role="dialog" aria-modal="true" aria-label={i18n.t('modal.cropImage')}>
       <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 10 }}>{i18n.t('modal.cropImage')}</div>
       <div ref={boxRef} style={{ position: 'relative', flex: 1, alignSelf: 'stretch', overflow: 'hidden', userSelect: 'none' }}>
         {box && (

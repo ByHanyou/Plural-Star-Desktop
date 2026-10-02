@@ -75,12 +75,6 @@ const HexField = ({ label, value, onChange }: { label: string; value: string; on
   );
 };
 
-const LANG_NAMES: Record<string, string> = {
-  en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch',
-  pt: 'Português', fi: 'Suomi', nb: 'Norsk',
-  zh: '中文', ja: '日本語', ru: 'Русский', uk: 'Українська',
-};
-
 export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   const system = useAppStore(s => s.state.system);
   const settings = useAppStore(s => s.state.settings);
@@ -135,6 +129,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
     const theme = deriveTheme(p.bg, p.accent, p.text, p.mid);
     applyThemeToDOM(theme);
     await store.set(KEYS.settings, { ...settings, activePaletteId: id });
+    onUpdate();
   };
 
   const startEditPalette = (p: CustomPalette) => {

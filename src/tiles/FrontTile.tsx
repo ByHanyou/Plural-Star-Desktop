@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FrontTierKey, isFrontEmpty, fmtDur, getInitials } from '../utils';
+import { FrontTierKey, isFrontEmpty, fmtDur, getInitials, translateMood } from '../utils';
 import { initialOn } from '../theme';
 import { useAppStore } from '../store/appStore';
 
@@ -29,7 +29,7 @@ export default function FrontTile({ onClick, onUpdateFront }: Props) {
             {tierKey === 'primary' && <span className="tile__duration">{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>}
           </div>
         ); })}
-        {tier.mood && <div style={{ fontSize: 11, color: 'var(--muted)', paddingLeft: 36 }}>{tier.mood}</div>}
+        {tier.mood && <div style={{ fontSize: 11, color: 'var(--muted)', paddingLeft: 36 }}>{translateMood(tier.mood, t)}</div>}
       </React.Fragment>
     );
   };

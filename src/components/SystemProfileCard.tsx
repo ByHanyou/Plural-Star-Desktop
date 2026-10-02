@@ -23,7 +23,7 @@ export default function SystemProfileCard({ name, description, avatar, banner, c
           <img src={avatar} alt="" style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: '2px solid var(--accent)' }} />
         ) : (
           <div aria-hidden style={{ width: 88, height: 88, borderRadius: 20, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.15)' }}>
-            <span style={{ fontSize: 30, fontWeight: 700, color: 'rgba(0,0,0,0.75)' }}>{getInitials(name || '?')}</span>
+            <span style={{ fontSize: 30, fontWeight: 700, color: 'var(--bg)' }}>{getInitials(name || '?')}</span>
           </div>
         )}
         <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', marginTop: 10, textAlign: 'center' }}>

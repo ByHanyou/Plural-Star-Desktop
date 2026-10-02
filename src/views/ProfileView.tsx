@@ -138,7 +138,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
               <img src={member.avatar} alt="" style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: `2px solid ${profilePt ? 'var(--border)' : (member.color || 'var(--accent)')}` }} />
             ) : (
               <div style={{ width: 88, height: 88, borderRadius: 20, background: profilePt ? 'var(--surface)' : (member?.color || 'var(--accent)'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: profilePt ? '2px solid var(--border)' : '2px solid rgba(255,255,255,0.15)' }}>
-                <span style={{ fontSize: 30, fontWeight: 700, color: profilePt ? 'var(--text)' : 'rgba(0,0,0,0.75)' }}>{getInitials(member?.name || '?')}</span>
+                <span style={{ fontSize: 30, fontWeight: 700, color: profilePt ? 'var(--text)' : (member?.color ? initialOn(member.color) : 'var(--bg)') }}>{getInitials(member?.name || '?')}</span>
               </div>
             )}
             <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', marginTop: 10, textAlign: 'center' }}>

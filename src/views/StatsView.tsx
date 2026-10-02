@@ -371,7 +371,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       )}
 
       <div style={{ marginTop: 20 }}>
-        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{singlet ? t('stats.statusDetails') : t('stats.topCoFronters')}</h3>
+        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{singlet ? t('stats.statusDetails') : t('stats.memberDetails')}</h3>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {members.filter(m => !m.archived && !m.isFacet && (singlet ? (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)) : !m.isCustomFront)).map(m => (
             <button key={m.id} className={`chip`} aria-pressed={selectedStatMember === m.id}

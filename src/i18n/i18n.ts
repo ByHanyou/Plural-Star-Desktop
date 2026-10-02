@@ -30,7 +30,7 @@ import pl from './pl.json';
 export const SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de', 'nl', 'pt', 'fi', 'sv', 'nb', 'is', 'it', 'pl', 'tr', 'ms', 'vi', 'th', 'hi', 'af', 'zh', 'zhHant', 'ja', 'ko', 'ru', 'uk'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
-const getDeviceLanguage = (): SupportedLanguage => {
+export const getDeviceLanguage = (): SupportedLanguage => {
   const full = navigator.language || 'en';
   if (/^zh\b/i.test(full) && /(Hant|TW|HK|MO)/i.test(full)) return 'zhHant';
   const code = full.split('-')[0];

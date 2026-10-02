@@ -380,13 +380,13 @@ export function ColorPicker({ value, onChange, palette }: {
   return (
     <div className="color-picker">
       <div className="color-picker__spectrum">
-        <div ref={svRef} className="color-picker__sv" role="slider" aria-label={t('modal.color')} aria-valuetext={value}
+        <div ref={svRef} className="color-picker__sv" role="slider" aria-label={t('modal.color')} aria-valuetext={value} aria-valuenow={Math.round(hsv.v)} aria-valuemin={0} aria-valuemax={100}
           tabIndex={0} onKeyDown={onSvKey}
           style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${hueColor})` }}
           onPointerDown={e => { dragRef.current = 'sv'; onSvPointer(e); }}>
           <div className="color-picker__thumb" style={{ left: `${hsv.s}%`, top: `${100 - hsv.v}%`, background: value }} />
         </div>
-        <div ref={hueRef} className="color-picker__hue" role="slider" aria-label={t('modal.hue')} aria-valuetext={`${Math.round(hsv.h)}`}
+        <div ref={hueRef} className="color-picker__hue" role="slider" aria-label={t('modal.hue')} aria-valuetext={`${Math.round(hsv.h)}`} aria-valuenow={Math.round(hsv.h)} aria-valuemin={0} aria-valuemax={360}
           tabIndex={0} onKeyDown={onHueKey}
           onPointerDown={e => { dragRef.current = 'hue'; onHuePointer(e); }}>
           <div className="color-picker__hue-thumb" style={{ left: `${(hsv.h / 360) * 100}%`, background: hueColor }} />

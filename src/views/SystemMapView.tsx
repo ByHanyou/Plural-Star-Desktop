@@ -84,7 +84,16 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { if (focusMemberId) { setMapIds(prev => prev.includes(focusMemberId) ? prev : [...prev, focusMemberId]); setSelectedId(focusMemberId); } }, [focusMemberId]);
+  useEffect(() => {
+    if (!focusMemberId) return;
+    setMapIds(prev => {
+      if (prev.includes(focusMemberId)) return prev;
+      const next = [...prev, focusMemberId];
+      store.set(KEYS.systemMapMembers, next).catch(() => {});
+      return next;
+    });
+    setSelectedId(focusMemberId);
+  }, [focusMemberId]);
 
   const saveRelationships = async (next: Relationship[]) => { setRelationships(next); await store.set(KEYS.relationships, next); };
   const saveCustomTypes = async (next: RelationshipTypeDef[]) => { setCustomTypes(next); await store.set(KEYS.relationshipTypes, next); };

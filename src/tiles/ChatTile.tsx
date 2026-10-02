@@ -33,7 +33,7 @@ export default function ChatTile({ onClick }: Props) {
         {!lastMsg ? <span className="tile__empty">{t('chat.noMessages')}</span> : (<>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>#{lastMsg.channel}</span>
           <div className="tile__chat-author">{getMember(lastMsg.msg.authorId)?.name || t('common.unknown')}</div>
-          <div className="tile__chat-msg">{truncateRunes(lastMsg.msg.content, 120, '...')}</div>
+          <div className="tile__chat-msg">{lastMsg.msg.type === 'text' ? truncateRunes(lastMsg.msg.content, 120, '...') : '📎'}</div>
         </>)}
         <div style={{ marginTop: 'auto', paddingTop: 8, fontSize: 11, color: 'var(--muted)' }}>{activeCount} {t('chat.channels')}</div>
       </div>

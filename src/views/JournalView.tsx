@@ -17,7 +17,16 @@ export default function JournalView({ onUpdate }: Props) {
   const { t } = useTranslation();
   const journal = useAppStore(s => s.state.journal);
   const members = useAppStore(s => s.state.members);
+  const system = useAppStore(s => s.state.system);
   const [tab, setTab] = useState<TabId>('entries');
+  const [journalUnlocked, setJournalUnlocked] = useState(!system.journalPassword);
+  const [globalPw, setGlobalPw] = useState('');
+  const [globalPwError, setGlobalPwError] = useState(false);
+  const [unlockedEntries, setUnlockedEntries] = useState<Set<string>>(new Set());
+  const [entryPwFor, setEntryPwFor] = useState<JournalEntry | null>(null);
+  const [entryPw, setEntryPw] = useState('');
+  const [entryPwError, setEntryPwError] = useState(false);
+  const [entryPassword, setEntryPassword] = useState('');
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
@@ -50,6 +59,8 @@ export default function JournalView({ onUpdate }: Props) {
     return NetworkManager.onSyncApplied(load);
   }, []);
 
+  useEffect(() => { if (!system.journalPassword) setJournalUnlocked(true); }, [system.journalPassword]);
+
   const getMember = (id: string) => members.find(m => m.id === id);
 
   const allTags = useMemo(() => {
@@ -79,7 +90,7 @@ export default function JournalView({ onUpdate }: Props) {
   };
 
   const openNew = () => {
-    setTitle(''); setBody(''); setHashtags([]); setAuthorIds([]); setTagInput('');
+    setTitle(''); setBody(''); setHashtags([]); setAuthorIds([]); setTagInput(''); setEntryPassword('');
     setIsNew(true); setViewMode(false);
     setEditing({ id: uid(), title: '', body: '', authorIds: [], hashtags: [], timestamp: Date.now() });
   };
@@ -90,15 +101,37 @@ export default function JournalView({ onUpdate }: Props) {
     setHashtags(tpl.hashtags || []);
     setAuthorIds([]);
     setTagInput('');
+    setEntryPassword('');
     setIsNew(true);
     setViewMode(false);
     setEditing({ id: uid(), title: tpl.title, body: tpl.body, authorIds: [], hashtags: tpl.hashtags || [], timestamp: Date.now() });
     setShowTemplatePicker(false);
   };
 
-  const openEdit = (e: JournalEntry) => {
-    setTitle(e.title); setBody(e.body); setHashtags(e.hashtags || []); setAuthorIds(e.authorIds || []); setTagInput('');
+  const isLocked = (e: JournalEntry) => !!e.password && !unlockedEntries.has(e.id);
+
+  const showEntry = (e: JournalEntry) => {
+    setTitle(e.title); setBody(e.body); setHashtags(e.hashtags || []); setAuthorIds(e.authorIds || []); setTagInput(''); setEntryPassword(e.password || '');
     setIsNew(false); setViewMode(true); setEditing(e);
+  };
+
+  const openEdit = (e: JournalEntry) => {
+    if (isLocked(e)) { setEntryPw(''); setEntryPwError(false); setEntryPwFor(e); return; }
+    showEntry(e);
+  };
+
+  const confirmEntryPw = () => {
+    if (!entryPwFor) return;
+    if (entryPw !== entryPwFor.password) { setEntryPwError(true); return; }
+    const e = entryPwFor;
+    setUnlockedEntries(prev => new Set([...prev, e.id]));
+    setEntryPwFor(null); setEntryPw(''); setEntryPwError(false);
+    showEntry(e);
+  };
+
+  const unlockJournal = () => {
+    if (globalPw === system.journalPassword) { setJournalUnlocked(true); setGlobalPw(''); setGlobalPwError(false); }
+    else setGlobalPwError(true);
   };
 
   const addTag = () => {
@@ -121,7 +154,7 @@ export default function JournalView({ onUpdate }: Props) {
       authorIds,
       hashtags,
       timestamp: editing?.timestamp || Date.now(),
-      password: editing?.password,
+      password: entryPassword || undefined,
       pinned: editing?.pinned,
     };
     const updated = isNew
@@ -188,6 +221,22 @@ export default function JournalView({ onUpdate }: Props) {
   const filteredAuthors = members.filter(m => !m.isFacet && authorMatch(m));
   const filteredFacetAuthors = members.filter(m => m.isFacet && authorMatch(m));
 
+  if (!journalUnlocked) {
+    return (
+      <div style={{ maxWidth: 420, margin: '60px auto', textAlign: 'center' }}>
+        <div aria-hidden style={{ fontSize: 40, color: 'var(--accent)', marginBottom: 12 }}>◉</div>
+        <h2 style={{ fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)', marginBottom: 6 }}>{t('journal.locked')}</h2>
+        <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 18 }}>{t('journal.enterPasswordToContinue')}</p>
+        <input className="field__input" type="password" value={globalPw} aria-label={t('journal.password')} placeholder={t('journal.password')} autoFocus
+          onChange={e => { setGlobalPw(e.target.value); setGlobalPwError(false); }}
+          onKeyDown={e => { if (e.key === 'Enter') unlockJournal(); }}
+          style={{ width: '100%', marginBottom: 6, ...(globalPwError ? { borderColor: 'var(--danger)' } : {}) }} />
+        {globalPwError && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{t('journal.incorrectPassword')}</div>}
+        <Btn variant="solid" onClick={unlockJournal} style={{ width: '100%', marginTop: 8 }}>{t('journal.unlockJournal')}</Btn>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
@@ -239,14 +288,16 @@ export default function JournalView({ onUpdate }: Props) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {sorted.map(entry => (
+          {sorted.map(entry => {
+            const locked = isLocked(entry);
+            return (
             <div key={entry.id} className="tile" style={{
               minHeight: 'auto', padding: 16, cursor: 'pointer',
               ...(entry.pinned ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--card))', borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border))' } : {}),
             }}
               {...clickable(() => openEdit(entry))}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{entry.pinned ? '📌 ' : ''}{entry.title}</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{entry.pinned ? '📌 ' : ''}{locked ? '🔒 ' : ''}{entry.title}</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
                   <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                     {fmtDate(entry.timestamp)}
@@ -257,7 +308,9 @@ export default function JournalView({ onUpdate }: Props) {
                   }}>📌</button>
                 </span>
               </div>
-              {entry.body && (
+              {locked ? (
+                <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginBottom: 6 }}>{t('journal.tapToUnlock')}</p>
+              ) : entry.body && (
                 <p style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, marginBottom: 6,
                   overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                   {truncateRunes(entry.body.replace(/<[^>]+>/g, ''), 200)}
@@ -277,7 +330,8 @@ export default function JournalView({ onUpdate }: Props) {
                 ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {sorted.length === 0 && (
@@ -384,6 +438,8 @@ export default function JournalView({ onUpdate }: Props) {
 
         <Field label={t('modal.body')} value={body} onChange={setBody} placeholder={t('modal.writeHere')} multiline pictureTools />
 
+        <Field label={t('modal.entryPassword')} value={entryPassword} onChange={setEntryPassword} placeholder={t('modal.entryPasswordPlaceholder')} type="password" />
+
         <Section label={t('modal.authors')} />
         <input className="field__input" value={authorSearch} onChange={e => setAuthorSearch(e.target.value)}
           aria-label={t('members.search')} placeholder={t('members.search')} style={{ marginBottom: 8 }} />
@@ -484,6 +540,21 @@ export default function JournalView({ onUpdate }: Props) {
             </button>
           ))}
         </div>
+      </Modal>
+
+      <Modal open={!!entryPwFor} title={t('journal.entryLocked')} onClose={() => setEntryPwFor(null)}
+        footer={
+          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
+            <Btn variant="ghost" onClick={() => setEntryPwFor(null)}>{t('common.cancel')}</Btn>
+            <Btn variant="solid" onClick={confirmEntryPw}>{t('journal.unlock')}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12 }}>{t('journal.unlockPasswordPrompt')}</p>
+        <input className="field__input" type="password" value={entryPw} aria-label={t('journal.password')} placeholder={t('journal.password')} autoFocus
+          onChange={e => { setEntryPw(e.target.value); setEntryPwError(false); }}
+          onKeyDown={e => { if (e.key === 'Enter') confirmEntryPw(); }}
+          style={{ width: '100%', ...(entryPwError ? { borderColor: 'var(--danger)' } : {}) }} />
+        {entryPwError && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{t('journal.incorrectPassword')}</div>}
       </Modal>
 
       <ConfirmDialog open={!!confirmDelete} title={t('journal.deleteEntry')} message={t('journal.areYouSure')}

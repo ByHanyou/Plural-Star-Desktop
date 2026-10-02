@@ -9,7 +9,7 @@ import {
   fmtDur, getInitials, DEFAULT_CHANNELS, DEFAULT_MOODS, makeDefaultCustomFronts,
   uid, singletStatuses, readableAccent,
 } from './utils';
-import { changeLanguage } from './i18n/i18n';
+import { changeLanguage, getDeviceLanguage } from './i18n/i18n';
 import { setTerminologyOverrides, setTierNameOverrides } from './i18n/terminology';
 import { ImageCropHost } from './components/ImageCropModal';
 
@@ -119,6 +119,7 @@ function AppInner() {
   const setState = useAppStore(s => s.setState);
   const update = useAvailableUpdate();
   const [updateHidden, setUpdateHidden] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const updateChecked = useRef(false);
   useEffect(() => {
     if (!state.loaded || updateChecked.current) return;
@@ -136,11 +137,13 @@ function AppInner() {
       store.get<JournalEntry[]>(KEYS.journal, []),
       store.get<ChatChannel[]>(KEYS.chatChannels, []),
       store.get<ChatCategory[]>(KEYS.chatCategories, []),
-      store.get<AppSettings>(KEYS.settings, DEFAULT_SETTINGS),
+      store.get<AppSettings>(KEYS.settings, null),
       store.get<CustomPalette[]>(KEYS.palettes, []),
     ]);
 
-    const mergedSettings = { ...DEFAULT_SETTINGS, ...settings };
+    const mergedSettings = { ...DEFAULT_SETTINGS, ...(settings || {}) };
+    // A fresh install has no stored language yet: follow the device instead of the 'en' default.
+    if (!settings?.language) mergedSettings.language = getDeviceLanguage();
     let memberList = members || [];
     if (!mergedSettings.customFrontsSeeded) {
       const existingCustomNames = new Set(memberList.filter(m => m.isCustomFront).map(m => (m.name || '').toLowerCase()));
@@ -186,7 +189,12 @@ function AppInner() {
     });
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData().catch(e => {
+      console.error('[PS] load failed:', e);
+      setLoadError(String(e?.message || e));
+    });
+  }, [loadData]);
   useEffect(() => startMedicalReminders(), []);
   useEffect(() => startPlannerReminders(), []);
   useEffect(() => startFriendAlerts(), []);
@@ -212,6 +220,32 @@ function AppInner() {
   const titleColor = readableAccent(titlePalette.accent, titlePalette.bg, state.theme.text);
 
   const isSinglet = state.settings.accountMode === 'singlet';
+  // One source for the view's display name: the page heading and the window title.
+  const viewTitle = (v: ViewId): string =>
+    v === 'front' ? (isSinglet ? t('tabs.status') : t('tabs.front'))
+                : v === 'members' ? (isSinglet ? t('tabs.profile') : t('tabs.fronters'))
+                : v === 'history' ? t('history.title')
+                : v === 'journal' ? t('journal.title')
+                : v === 'chat' ? t('hub.systemChat')
+                : v === 'stats' ? t('hub.statistics')
+                : v === 'import-export' ? t('hub.importExport')
+                : v === 'settings' ? t('modal.systemSettings')
+                : v === 'system-profile' ? t('systemProfile.title')
+                : v === 'custom-fields' ? t('customFields.title')
+                : v === 'polls' ? t('polls.title')
+                : v === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
+                : v === 'system-manager' ? t('systemManager.title')
+                : v === 'system-map' ? t('systemMap.title')
+                : v === 'planner' ? t('planner.title')
+                : v === 'medical' ? t('medical.title')
+                : v === 'archive' ? t('hub.archive')
+                : v === 'retro-history' ? t('hub.retroHistory')
+                : v === 'network' ? t('network.title')
+                : v === 'mailbox' ? t('mailbox.title')
+                : v === 'whiteboard' ? t('whiteboard.title')
+                : v === 'colors' ? t('colors.title', {defaultValue: 'Colors'})
+                : v;
+
   const selfMember = isSinglet
     ? (state.members.find(m => m.id === state.settings.selfMemberId && !m.isCustomFront)
       || state.members.find(m => !m.isCustomFront && !m.archived))
@@ -319,9 +353,19 @@ function AppInner() {
     return (
       <div className="app-shell">
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: 18 }}>
-            {i18n.t('common.loading', { defaultValue: 'Loading…' })}
-          </span>
+          {loadError ? (
+            <div style={{ textAlign: 'center', maxWidth: 480, padding: 24 }}>
+              <p style={{ color: 'var(--text)', fontSize: 14, marginBottom: 12 }}>{i18n.t('errorBoundary.body', { defaultValue: 'The app hit an unexpected error. Try again, or restart if it persists.' })}</p>
+              <p style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 20, whiteSpace: 'pre-wrap' }}>{loadError}</p>
+              <button onClick={() => window.location.reload()} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--bg)', fontSize: 14, cursor: 'pointer' }}>
+                {i18n.t('errorBoundary.retry', { defaultValue: 'Try again' })}
+              </button>
+            </div>
+          ) : (
+            <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: 18 }}>
+              {i18n.t('common.loading', { defaultValue: 'Loading…' })}
+            </span>
+          )}
         </div>
       </div>
     );
@@ -339,7 +383,7 @@ function AppInner() {
           )}
           {view === 'system-profile'
             ? ` — ${t('systemProfile.title')}`
-            : view !== 'dashboard' && ` — ${view.charAt(0).toUpperCase() + view.slice(1).replace('-', '/')}`}
+            : view !== 'dashboard' && ` — ${viewTitle(view)}`}
         </span>
         <div className="titlebar__controls">
           <button className="titlebar__btn titlebar__btn--minimize" aria-label={t('common.minimize', {defaultValue: 'Minimize'})} onClick={() => window.electronAPI.window.minimize()} />
@@ -376,29 +420,7 @@ function AppInner() {
               {t('hub.dashboard')}
             </button>
             <span className="full-view__title">
-              {view === 'front' ? (isSinglet ? t('tabs.status') : t('tabs.front'))
-                : view === 'members' ? (isSinglet ? t('tabs.profile') : t('tabs.fronters'))
-                : view === 'history' ? t('history.title')
-                : view === 'journal' ? t('journal.title')
-                : view === 'chat' ? t('hub.systemChat')
-                : view === 'stats' ? t('hub.statistics')
-                : view === 'import-export' ? t('hub.importExport')
-                : view === 'settings' ? t('modal.systemSettings')
-                : view === 'system-profile' ? t('systemProfile.title')
-                : view === 'custom-fields' ? t('customFields.title')
-                : view === 'polls' ? t('polls.title')
-                : view === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
-                : view === 'system-manager' ? t('systemManager.title')
-                : view === 'system-map' ? t('systemMap.title')
-                : view === 'planner' ? t('planner.title')
-                : view === 'medical' ? t('medical.title')
-                : view === 'archive' ? t('hub.archive')
-                : view === 'retro-history' ? t('hub.retroHistory')
-                : view === 'network' ? t('network.title')
-                : view === 'mailbox' ? t('mailbox.title')
-                : view === 'whiteboard' ? t('whiteboard.title')
-                : view === 'colors' ? t('colors.title', {defaultValue: 'Colors'})
-                : view}
+              {viewTitle(view)}
             </span>
           </div>
           <div className="full-view__content">

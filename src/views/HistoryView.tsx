@@ -188,7 +188,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
 
       {viewMode === 'list' && (
       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
-        {filtered.length} entr{filtered.length === 1 ? 'y' : 'ies'}
+        {t('history.entryCount', { count: filtered.length })}
       </div>
       )}
 
@@ -214,7 +214,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {chipIds.map(id => <MemberChip key={id} id={id} />)}
                   <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtTime(entry.startTime)} — {displayEnd ? fmtTime(displayEnd) : 'now'}
+                    {fmtTime(entry.startTime)} — {displayEnd ? fmtTime(displayEnd) : t('history.now')}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                     {fmtDur(entry.startTime, displayEnd)}

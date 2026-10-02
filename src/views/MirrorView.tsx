@@ -291,7 +291,8 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
   };
 
   const renderJournal = () => {
-    const list: MirrorJournalEntry[] = Array.isArray(entry?.data) ? (entry!.data as MirrorJournalEntry[]) : [];
+    // Older senders still ship password-locked entries; they are not shown here either.
+    const list: MirrorJournalEntry[] = (Array.isArray(entry?.data) ? (entry!.data as MirrorJournalEntry[]) : []).filter(e => e && !e.password);
     if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
     const sorted = [...list].sort(
       (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.timestamp || 0) - (a.timestamp || 0),
@@ -364,7 +365,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     if (feature === 'whiteboard') {
       const strokes: {id: string; c: string; w: number; pts: number[]}[] = Array.isArray(entry.data) ? entry.data : [];
       if (strokes.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-      const HALF_W = 2000;
+      const HALF_W = 4000;
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       let boardFill = false;
       for (const s of strokes) {

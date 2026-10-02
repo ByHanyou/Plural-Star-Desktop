@@ -10,8 +10,12 @@ const notify = (title: string, body: string) => {
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+// Catch-up window: a machine that slept or a renderer throttled across the
+// reminder minute used to skip that reminder for the day.
+const CATCH_UP_MS = 3 * 60 * 60 * 1000;
+let lastTickAt = 0;
 
 const tick = async () => {
   const settings = await store.get<AppSettings>(KEYS.settings, null);
@@ -21,13 +25,19 @@ const tick = async () => {
   if (!data) return;
 
   const now = new Date();
-  const cur = hhmm(now);
+  const nowMs = now.getTime();
+  const since = lastTickAt ? Math.max(lastTickAt, nowMs - CATCH_UP_MS) : nowMs - 60000;
+  lastTickAt = nowMs;
   const today = dayKey(now);
 
   for (const med of data.medications || []) {
     if (!med.enabled) continue;
     for (const time of med.times || []) {
-      if (time !== cur) continue;
+      const [hh, mm] = String(time).split(':').map(Number);
+      if (!Number.isFinite(hh) || !Number.isFinite(mm)) continue;
+      const at = new Date(now);
+      at.setHours(hh, mm, 0, 0);
+      if (at.getTime() <= since || at.getTime() > nowMs) continue;
       const key = `med:${med.id}:${time}:${today}`;
       if (fired.has(key)) continue;
       fired.add(key);

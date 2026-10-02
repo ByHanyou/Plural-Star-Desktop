@@ -542,7 +542,7 @@ export default function NetworkView() {
         </div>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--danger)', margin: '14px 0 0' }}>{t('network.cloudWarning')}</p>
+      {net.devices.length > 0 && <p style={{ fontSize: 12, color: 'var(--danger)', margin: '14px 0 0' }}>{t('network.cloudWarning')}</p>}
 
       <div style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

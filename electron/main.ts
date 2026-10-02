@@ -16,6 +16,19 @@ const store = new Store({ name: 'plural-space-data', cwd: userDataPath });
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
+// Two instances (portable + installed, or the portable build started twice) would
+// read-modify-write the same data file and open two relay sockets with one identity.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  });
+}
+
 const isDev = !app.isPackaged;
 
 const fromMainWindow = (e: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent): boolean => {

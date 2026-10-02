@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, TIER_LABELS, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch, withMemberSince } from '../utils';
+import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch, withMemberSince } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { Btn, Field, Toggle, useEscapeKey, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
@@ -29,6 +29,9 @@ const toLocalInput = (d: Date): string => {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
+
+const TIER_LABEL_KEY: Record<string, string> = { primary: 'tier.primaryFront', coFront: 'tier.coFront', coConscious: 'tier.coConscious' };
+const TIER_SHORT_KEY: Record<string, string> = { primary: 'tier.primaryShort', coFront: 'tier.coFrontShort', coConscious: 'tier.coConShort' };
 
 export default function RetroHistoryView({ onUpdate, onDone, singlet = false, selfId }: Props) {
   const members = useAppStore(s => s.state.members);
@@ -218,86 +221,6 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     finish();
   };
 
-  const TierMemberPicker = ({ tierKey, poolKey, label, color, selected, setSelected, pools, searchKind }: {
-    tierKey: FrontTierKey; poolKey: string; label: string; color: string;
-    selected: string[]; setSelected: (ids: string[]) => void; pools: { kind?: PickerKind; label: string; members: Member[] }[];
-    searchKind?: string;
-  }) => {
-    const q = search[poolKey] || '';
-    const ql = q.toLowerCase();
-    const all = pools.flatMap(p => p.members);
-    const hasKinds = pools.some(p => !!p.kind);
-    const tierKinds = kinds[poolKey] || ALL_PICKER_KINDS;
-    const activePools = pools.filter(p => (!p.kind || tierKinds[p.kind]) && p.members.length > 0);
-    const searchLabel = t('members.searchToAddKind', { kind: searchKind || t('terminology.fronters') });
-    let budget = 20;
-    const grouped: { label: string; rows: Member[] }[] = [];
-    if (ql) {
-      for (const pool of activePools) {
-        if (budget <= 0) break;
-        const rows = pool.members.filter(m => !selected.includes(m.id) && memberMatchesSearch(m, ql)).slice(0, budget);
-        if (rows.length === 0) continue;
-        budget -= rows.length;
-        grouped.push({ label: pool.label, rows });
-      }
-    }
-    const poolSelected = all.filter(m => selected.includes(m.id));
-    const toggle = (id: string) => {
-      setSelected(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
-    };
-    return (
-      <div style={{ marginBottom: 16 }}>
-        <div className="section-div">
-          <span className="section-div__dot" style={{ background: color }} />
-          <span className="section-div__label" style={{ color }}>{label}</span>
-          <span className="section-div__line" />
-        </div>
-        {poolSelected.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            {poolSelected.map(m => (
-              <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
-                onClick={() => toggle(m.id)}>
-                <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                <span style={{ color: m.color }}>{m.name}</span>
-                <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
-              </button>
-            ))}
-          </div>
-        )}
-        <input className="field__input" value={q}
-          onChange={e => setSearch({ ...search, [poolKey]: e.target.value })}
-          aria-label={searchLabel} placeholder={searchLabel}
-          style={{ marginBottom: 6, fontSize: 12 }} />
-        {hasKinds && <KindToggles kinds={tierKinds} setKinds={k => setKinds({ ...kinds, [poolKey]: k })} labels={kindLabels} />}
-        {ql && grouped.length > 0 && (
-          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 4 }}>
-            {grouped.map((group, gi) => (
-              <div key={`${gi}-${group.label}`}>
-                {grouped.length > 1 && (
-                  <div role="heading" aria-level={4} style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, padding: '8px 12px 4px', background: 'var(--card)' }}>{group.label}</div>
-                )}
-                {group.rows.map(m => {
-                  const otherTier = (Object.entries(allSelected) as [FrontTierKey, string[]][]).find(([tk, ids]) => tk !== tierKey && ids.includes(m.id));
-                  return (
-                    <button key={m.id} onClick={() => { toggle(m.id); setSearch({ ...search, [poolKey]: '' }); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: otherTier ? 0.5 : 1 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                      <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                      {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
-                      {otherTier && (
-                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({TIER_LABELS[otherTier[0]].split(' ')[0]})</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const tierDetails = (
     tierLabel: string, color: string,
     moodVal: string, setMoodVal: (v: string) => void,
@@ -354,16 +277,16 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
       <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 16px' }} />
 
       {singlet ? (
-        <TierMemberPicker tierKey="primary" poolKey="primary" label={t('status.statuses')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={[{ label: t('status.statuses'), members: statusPool }]} searchKind={t('status.statuses')} />
+        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="primary" poolKey="primary" label={t('status.statuses')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={[{ label: t('status.statuses'), members: statusPool }]} searchKind={t('status.statuses')} />
       ) : (<>
-        <TierMemberPicker tierKey="primary" poolKey="primary" label={TIER_LABELS.primary} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={retroPools} />
-        <TierMemberPicker tierKey="coFront" poolKey="coFront" label={TIER_LABELS.coFront} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pools={retroPools} />
-        <TierMemberPicker tierKey="coConscious" poolKey="coConscious" label={TIER_LABELS.coConscious} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pools={retroPools} />
+        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="primary" poolKey="primary" label={t(TIER_LABEL_KEY.primary)} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={retroPools} />
+        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="coFront" poolKey="coFront" label={t(TIER_LABEL_KEY.coFront)} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pools={retroPools} />
+        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="coConscious" poolKey="coConscious" label={t(TIER_LABEL_KEY.coConscious)} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pools={retroPools} />
       </>)}
 
-      {tierDetails(singlet ? '' : TIER_LABELS.primary, 'var(--accent)', mood, setMood, location, setLocation, energy, setEnergy, note, setNote)}
-      {!singlet && coFrontIds.length > 0 && tierDetails(TIER_LABELS.coFront, 'var(--info)', coFrontMood, setCoFrontMood, coFrontLocation, setCoFrontLocation, coFrontEnergy, setCoFrontEnergy, coFrontNote, setCoFrontNote)}
-      {!singlet && coConIds.length > 0 && tierDetails(TIER_LABELS.coConscious, 'var(--success)', coConMood, setCoConMood, coConLocation, setCoConLocation, coConEnergy, setCoConEnergy, coConNote, setCoConNote)}
+      {tierDetails(singlet ? '' : t(TIER_LABEL_KEY.primary), 'var(--accent)', mood, setMood, location, setLocation, energy, setEnergy, note, setNote)}
+      {!singlet && coFrontIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coFront), 'var(--info)', coFrontMood, setCoFrontMood, coFrontLocation, setCoFrontLocation, coFrontEnergy, setCoFrontEnergy, coFrontNote, setCoFrontNote)}
+      {!singlet && coConIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coConscious), 'var(--success)', coConMood, setCoConMood, coConLocation, setCoConLocation, coConEnergy, setCoConEnergy, coConNote, setCoConNote)}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 16, marginBottom: 30 }}>
         <Btn variant="ghost" onClick={onDone}>{t('common.cancel')}</Btn>
@@ -385,6 +308,93 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
               ))}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Hoisted out of RetroHistoryView: a component created inside the render body is a
+// new component type on every render, so React remounted it and the search box
+// lost focus after every letter.
+function TierMemberPicker({ tierKey, poolKey, label, color, selected, setSelected, pools, searchKind, search, setSearch, kinds, setKinds, kindLabels, allSelected }: {
+  tierKey: FrontTierKey; poolKey: string; label: string; color: string;
+  selected: string[]; setSelected: (ids: string[]) => void; pools: { kind?: PickerKind; label: string; members: Member[] }[];
+  searchKind?: string;
+  search: Record<string, string>; setSearch: (s: Record<string, string>) => void;
+  kinds: Record<string, PickerKinds>; setKinds: (k: Record<string, PickerKinds>) => void;
+  kindLabels: Record<PickerKind, string>; allSelected: Record<FrontTierKey, string[]>;
+}) {
+  const { t } = useTranslation();
+  const q = search[poolKey] || '';
+  const ql = q.toLowerCase();
+  const all = pools.flatMap(p => p.members);
+  const hasKinds = pools.some(p => !!p.kind);
+  const tierKinds = kinds[poolKey] || ALL_PICKER_KINDS;
+  const activePools = pools.filter(p => (!p.kind || tierKinds[p.kind]) && p.members.length > 0);
+  const searchLabel = t('members.searchToAddKind', { kind: searchKind || t('terminology.fronters') });
+  let budget = 20;
+  const grouped: { label: string; rows: Member[] }[] = [];
+  if (ql) {
+    for (const pool of activePools) {
+      if (budget <= 0) break;
+      const rows = pool.members.filter(m => !selected.includes(m.id) && memberMatchesSearch(m, ql)).slice(0, budget);
+      if (rows.length === 0) continue;
+      budget -= rows.length;
+      grouped.push({ label: pool.label, rows });
+    }
+  }
+  const poolSelected = all.filter(m => selected.includes(m.id));
+  const toggle = (id: string) => {
+    setSelected(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
+  };
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div className="section-div">
+        <span className="section-div__dot" style={{ background: color }} />
+        <span className="section-div__label" style={{ color }}>{label}</span>
+        <span className="section-div__line" />
+      </div>
+      {poolSelected.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {poolSelected.map(m => (
+            <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
+              onClick={() => toggle(m.id)}>
+              <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
+              <span style={{ color: m.color }}>{m.name}</span>
+              <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <input className="field__input" value={q}
+        onChange={e => setSearch({ ...search, [poolKey]: e.target.value })}
+        aria-label={searchLabel} placeholder={searchLabel}
+        style={{ marginBottom: 6, fontSize: 12 }} />
+      {hasKinds && <KindToggles kinds={tierKinds} setKinds={k => setKinds({ ...kinds, [poolKey]: k })} labels={kindLabels} />}
+      {ql && grouped.length > 0 && (
+        <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 4 }}>
+          {grouped.map((group, gi) => (
+            <div key={`${gi}-${group.label}`}>
+              {grouped.length > 1 && (
+                <div role="heading" aria-level={4} style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, padding: '8px 12px 4px', background: 'var(--card)' }}>{group.label}</div>
+              )}
+              {group.rows.map(m => {
+                const otherTier = (Object.entries(allSelected) as [FrontTierKey, string[]][]).find(([tk, ids]) => tk !== tierKey && ids.includes(m.id));
+                return (
+                  <button key={m.id} onClick={() => { toggle(m.id); setSearch({ ...search, [poolKey]: '' }); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: otherTier ? 0.5 : 1 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                    {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
+                    {otherTier && (
+                      <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({t(TIER_SHORT_KEY[otherTier[0]])})</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
     </div>

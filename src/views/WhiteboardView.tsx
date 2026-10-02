@@ -55,7 +55,8 @@ export default function WhiteboardView() {
   const { t } = useTranslation();
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [current, setCurrent] = useState<Stroke | null>(null);
-  const [color, setColor] = useState('#FFFFFF');
+  // Strokes are stored and mirrored as literal colours, so read the theme's ink once instead of a CSS variable.
+  const [color, setColor] = useState(() => (typeof getComputedStyle === 'function' && getComputedStyle(document.documentElement).getPropertyValue('--text').trim()) || '#FFFFFF');
   const [width, setWidth] = useState(WIDTHS[2]);
   const [tool, setTool] = useState<Tool>('draw');
   const [view, setView] = useState({ tx: 0, ty: 0, scale: 0.5 });
@@ -263,11 +264,19 @@ export default function WhiteboardView() {
     }
   };
 
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.12 : 0.9;
-    setView(v => ({ ...v, scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor)) }));
-  };
+  // React attaches wheel listeners as passive, so preventDefault there is ignored and
+  // the page scrolled along with the zoom; a native non-passive listener is needed.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.12 : 0.9;
+      setView(v => ({ ...v, scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor)) }));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   const undo = () => {
     if (strokesRef.current.length === 0) return;
@@ -334,7 +343,6 @@ export default function WhiteboardView() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
-        onWheel={onWheel}
         style={{ flex: 1, overflow: 'hidden', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, cursor: tool === 'move' ? 'grab' : tool === 'erase' ? 'cell' : 'crosshair', touchAction: 'none' }}>
         <svg width="100%" height="100%">
           <g transform={`translate(${(wrapRef.current?.clientWidth || 0) / 2 + view.tx}, ${(wrapRef.current?.clientHeight || 0) / 2 + view.ty}) scale(${view.scale})`}>

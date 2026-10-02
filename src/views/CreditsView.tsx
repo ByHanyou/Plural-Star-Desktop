@@ -37,19 +37,19 @@ export default function CreditsView() {
             padding: '14px',
             marginBottom: '10px',
             borderRadius: '14px',
-            border: '1px solid var(--color-border)',
-            backgroundColor: 'var(--color-card)',
+            border: '1px solid var(--border)',
+            backgroundColor: 'var(--card)',
             textDecoration: 'none',
             color: 'inherit',
             cursor: 'pointer',
           }}
         >
-          <span aria-hidden style={{ fontSize: '22px', color: 'var(--color-accent)', marginRight: '14px' }}>✦</span>
+          <span aria-hidden style={{ fontSize: '22px', color: 'var(--accent)', marginRight: '14px' }}>✦</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)' }}>{c.name}</div>
-            <div style={{ fontSize: '12px', color: 'var(--color-dim)', marginTop: '2px' }}>{c.role}</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{c.name}</div>
+            <div style={{ fontSize: '12px', color: 'var(--dim)', marginTop: '2px' }}>{c.role}</div>
           </div>
-          <span aria-hidden style={{ fontSize: '14px', color: 'var(--color-dim)', marginLeft: '8px' }}>↗</span>
+          <span aria-hidden style={{ fontSize: '14px', color: 'var(--dim)', marginLeft: '8px' }}>↗</span>
         </a>
       ))}
     </div>

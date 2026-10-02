@@ -103,7 +103,11 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [listView, setListView] = useState<'active' | 'customFronts' | 'facets'>('active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<MemberSortMode>('alphabetical');
+  const [sortMode, setSortMode] = useState<MemberSortMode>(settings.memberSortMode || 'alphabetical');
+  const changeSortMode = (m: MemberSortMode) => {
+    setSortMode(m);
+    store.set(KEYS.settings, { ...settings, memberSortMode: m }).then(() => onUpdate()).catch(() => {});
+  };
   const [reorderLocked, setReorderLocked] = useState(true);
   const [quickFrontFor, setQuickFrontFor] = useState<Member | null>(null);
   const [confirmRemoveFront, setConfirmRemoveFront] = useState<Member | null>(null);
@@ -473,7 +477,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         <Dropdown<MemberSortMode>
           value={sortMode}
           options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}
-          onChange={setSortMode}
+          onChange={changeSortMode}
           renderOption={v => t(`memberSort.${v}`)}
         />
         {canReorder && (
@@ -1144,9 +1148,11 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                     ) : fd.type === 'number' ? (
                       <Field label={fd.name} value={String(val ?? '')} onChange={v => {
                         const cleaned = v.replace(/[^0-9.\-]/g, '');
-                        if (cleaned === '' || cleaned === '-' || cleaned === '.') { setFieldVal(null); return; }
+                        if (cleaned === '') { setFieldVal(null); return; }
                         const n = Number(cleaned);
-                        if (Number.isFinite(n)) setFieldVal(n);
+                        // Keep partial input ("-", "1.", ".5") as typed so decimals and negatives can be entered.
+                        if (Number.isFinite(n) && !/[.\-]$/.test(cleaned) && cleaned !== '.') setFieldVal(n);
+                        else setFieldVal(cleaned);
                       }} placeholder="0" />
                     ) : fd.type === 'color' ? (
                       <div>
@@ -1286,7 +1292,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                         <div style={{ width: 22, height: 22, borderRadius: 11, fontSize: 9, fontWeight: 700,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          background: author?.color || 'var(--muted)', color: 'rgba(0,0,0,0.75)' }}>
+                          background: author?.color || 'var(--muted)', color: author?.color ? initialOn(author.color) : 'var(--text)' }}>
                           {getInitials(author?.name || '?')}
                         </div>
                         <span style={{ fontSize: 12, color: author?.color || 'var(--dim)', fontWeight: 500 }}>{author?.name || '?'}</span>

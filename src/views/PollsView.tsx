@@ -21,7 +21,7 @@ export default function PollsView({ onUpdate }: Props) {
       ...(front?.coFront?.memberIds || []),
       ...(front?.coConscious?.memberIds || []),
     ].find(id => votable.has(id));
-    return fronting || members.find(m => !m.archived)?.id || '';
+    return fronting || members.find(m => !m.archived && !m.deleted && !m.isCustomFront)?.id || '';
   };
   const [polls, setPolls] = useState<MemberPoll[]>([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -29,7 +29,6 @@ export default function PollsView({ onUpdate }: Props) {
   const [options, setOptions] = useState<string[]>(['', '']);
   const [hideVoters, setHideVoters] = useState(false);
   const [multiChoice, setMultiChoice] = useState(false);
-  const [creatorId, setCreatorId] = useState<string>(defaultVoter);
   const [targetId, setTargetId] = useState<string>(defaultVoter);
   const [voterId, setVoterId] = useState<string>(defaultVoter);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -54,7 +53,7 @@ export default function PollsView({ onUpdate }: Props) {
     const poll: MemberPoll = {
       id: uid(), targetMemberId: targetId, question: question.trim(),
       options: options.filter(o => o.trim()).map(o => ({ id: uid(), label: o.trim(), votes: [] })),
-      createdBy: creatorId, createdAt: Date.now(), hideVoterNames: hideVoters || undefined,
+      createdBy: voterId, createdAt: Date.now(), hideVoterNames: hideVoters || undefined,
       multipleChoice: multiChoice || undefined,
     };
     savePolls([...polls, poll]);

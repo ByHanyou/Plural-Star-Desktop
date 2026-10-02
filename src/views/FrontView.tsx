@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Member, MemberGroup, FrontState, FrontTier, FrontTierKey, FrontSortMode, HistoryEntry, NoteboardEntry,
-  AppSettings, TIER_LABELS, DEFAULT_MOODS, EMPTY_TIER,
+  AppSettings, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, frontSessionStart, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
   parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch, upperText, orderFronters, placeInCustomOrder,
 } from '../utils';
@@ -38,6 +38,10 @@ const FRONT_SORTS: [FrontSortMode, string][] = [
   ['custom', 'frontSort.custom'],
 ];
 
+// Tier headings go through i18n so they follow the language and any custom tier names.
+const TIER_LABEL_KEY: Record<string, string> = { primary: 'tier.primaryFront', coFront: 'tier.coFront', coConscious: 'tier.coConscious' };
+const TIER_SHORT_KEY: Record<string, string> = { primary: 'tier.primaryShort', coFront: 'tier.coFrontShort', coConscious: 'tier.coConShort' };
+
 function SortableFrontRow({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -65,8 +69,8 @@ export async function applyFrontUpdate(current: FrontState | null, primary: any,
   }
   const built: FrontState = {
     primary: { memberIds: primary.memberIds || [], mood: primary.mood, note: primary.note || '', location: primary.location, energyLevel: primary.energyLevel },
-    coFront: { memberIds: coFront.memberIds || [], mood: coFront.mood, note: coFront.note || '', energyLevel: coFront.energyLevel },
-    coConscious: { memberIds: coConscious.memberIds || [], mood: coConscious.mood, note: coConscious.note || '', energyLevel: coConscious.energyLevel },
+    coFront: { memberIds: coFront.memberIds || [], mood: coFront.mood, note: coFront.note || '', location: coFront.location, energyLevel: coFront.energyLevel },
+    coConscious: { memberIds: coConscious.memberIds || [], mood: coConscious.mood, note: coConscious.note || '', location: coConscious.location, energyLevel: coConscious.energyLevel },
     startTime: Date.now(),
   };
   if (isFrontEmpty(built)) {
@@ -167,9 +171,10 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
       ...front,
       [tier]: {
         ...front[tier],
-        mood: mood ?? front[tier].mood,
-        location: location ?? front[tier].location,
-        note: note ?? front[tier].note,
+        // The dialog hands back every field, so an empty one is a clear, not "keep the old value".
+        mood,
+        location,
+        note: note || '',
       },
     };
     await store.set(KEYS.front, updated);
@@ -215,7 +220,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
       <div style={{ marginBottom: 16 }}>
         <div className="section-div">
           <span className="section-div__dot" style={{ background: color }} />
-          <span className="section-div__label" style={{ color }}>{TIER_LABELS[tierKey]}</span>
+          <span className="section-div__label" style={{ color }}>{t(TIER_LABEL_KEY[tierKey])}</span>
           <span className="section-div__line" />
         </div>
 
@@ -539,7 +544,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
       <div style={{ marginBottom: 16 }}>
         <div className="section-div">
           <span className="section-div__dot" style={{ background: color }} />
-          <span className="section-div__label" style={{ color }}>{TIER_LABELS[tierKey]}</span>
+          <span className="section-div__label" style={{ color }}>{t(TIER_LABEL_KEY[tierKey])}</span>
           <span className="section-div__line" />
         </div>
 
@@ -575,7 +580,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
                       <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
                       {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
                       {assignedTo && assignedTo !== tierKey && (
-                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({TIER_LABELS[assignedTo].split(' ')[0]})</span>
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({t(TIER_SHORT_KEY[assignedTo])})</span>
                       )}
                     </button>
                   );
@@ -680,7 +685,7 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
   }, [tierData, open]);
 
   return (
-    <Modal open={open} title={t('tier.editTier', { tier: TIER_LABELS[tier] })} onClose={onClose}
+    <Modal open={open} title={t('tier.editTier', { tier: t(TIER_LABEL_KEY[tier]) })} onClose={onClose}
       footer={<Btn variant="solid" onClick={() => onSave(mood || undefined, location || undefined, note || undefined)}>{t('common.save')}</Btn>}>
       <label className="field__label">{t('modal.mood')}</label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>

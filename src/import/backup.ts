@@ -65,7 +65,7 @@ export const handleExport = async (ctx: ImportCtx) => {
       relationships: cat.groups ? (await store.get(KEYS.relationships) || []) : [],
       relationshipTypes: cat.groups ? (await store.get(KEYS.relationshipTypes) || []) : [],
       systemMapMembers: cat.groups ? (await store.get(KEYS.systemMapMembers) || []) : [],
-      medical: (await store.get(KEYS.medical)) || undefined,
+      medical: (cat as any).medical ? ((await store.get(KEYS.medical)) || undefined) : undefined,
       planner: (cat as any).planner !== false ? ((await store.get(KEYS.planner)) || undefined) : undefined,
       systemMapPositions: cat.groups ? ((await store.get(KEYS.systemMapPositions)) || undefined) : undefined,
       whiteboard: cat.settings ? ((await store.get(KEYS.whiteboard)) || undefined) : undefined,
@@ -284,7 +284,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
       if (restoreSel.groups && restoreData.relationshipTypes) batch[KEYS.relationshipTypes] = upd ? restoreMergeById(await store.getStrict<any[]>(KEYS.relationshipTypes, []) || [], restoreData.relationshipTypes as any[]) : restoreData.relationshipTypes;
       if (restoreSel.groups && restoreData.systemMapMembers) batch[KEYS.systemMapMembers] = upd ? [...new Set([...(await store.getStrict<string[]>(KEYS.systemMapMembers, []) || []), ...restoreData.systemMapMembers])] : restoreData.systemMapMembers;
       if (restoreSel.groups && restoreData.systemMapPositions) batch[KEYS.systemMapPositions] = upd ? { ...((await store.getStrict<any>(KEYS.systemMapPositions, null)) || {}), ...(restoreData.systemMapPositions as any) } : restoreData.systemMapPositions;
-      if (restoreData.medical) {
+      if ((restoreSel as Record<string, boolean>).medical !== false && restoreData.medical) {
         if (upd) {
           const cur = (await store.getStrict<any>(KEYS.medical, null)) || {};
           const inc: any = restoreData.medical;

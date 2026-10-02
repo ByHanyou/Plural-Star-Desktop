@@ -604,6 +604,36 @@ class NetworkManagerImpl {
     client.connect();
   }
 
+  /**
+   * Forget every network fact held in memory after "Delete All Data". The storage
+   * keys are already gone; without this the running manager would keep the old
+   * identity, friends and sync state alive and write them straight back, and a
+   * paired device's next sync_req would restore everything.
+   */
+  async wipe(): Promise<void> {
+    if (this.client) { try { this.client.disconnect(); } catch {} }
+    this.client = null;
+    if (this.syncTimer) { clearTimeout(this.syncTimer); this.syncTimer = null; }
+    if (this.mirrorTimer) { clearTimeout(this.mirrorTimer); this.mirrorTimer = null; }
+    this.settings = { enabled: false };
+    this.friends = [];
+    this.friendTombstones = [];
+    this.online = new Set();
+    this.myFront = null;
+    this.myFrontKnown = false;
+    this.myFrontAt = 0;
+    this.myFrontRaw = null;
+    this.gwAnnouncedSig = null;
+    this.lastHashes = {};
+    this.mirrorServed = new Map();
+    this.mirrorSentHash = new Map();
+    this.pendingConflicts = new Map();
+    this.identity = await loadOrCreateIdentity();
+    this.subId = await getDeviceSubId();
+    this.setStatus('disabled');
+    this.notify();
+  }
+
   async setEnabled(enabled: boolean): Promise<void> {
     this.settings = { ...this.settings, enabled };
     await this.persistSettings();
@@ -1232,7 +1262,9 @@ class NetworkManagerImpl {
     const anyHidden = readers.length < accepted.length;
     const contentSig = `${fronters}|${startTime}|${name}|${primary}|${coFront}|${coConscious}|${readers.join(',')}`;
     if (contentSig === this.gwAnnouncedSig) return;
-    const ts = this.myFrontAt || Date.now();
+    // The gateway rejects timestamps older than a few minutes, so the announce time
+    // is now, not the time of the last switch.
+    const ts = Date.now();
     const signed = `psgw-front|${self.peerId}|${ts}|${fronters}|${startTime}|${name}|${primary}|${coFront}|${coConscious}|${readers.join(',')}`;
     const sig = nacl.sign.detached(decodeUTF8(signed), self.edSecretKey);
     try {
@@ -1249,9 +1281,10 @@ class NetworkManagerImpl {
         co_conscious: coConscious,
         readers,
       });
-      if (res && res.ok === false && !anyHidden) {
+      let accepted = !!res && res.ok !== false;
+      if (!accepted && !anyHidden) {
         const legacy = `psgw-front|${self.peerId}|${ts}|${fronters}|${startTime}|${name}`;
-        await this.gatewayFetch('/gw/front', {
+        const res2: any = await this.gatewayFetch('/gw/front', {
           peer_id: self.peerId,
           ed_pub: encodeBase64(self.edPublicKey),
           sig: encodeBase64(nacl.sign.detached(decodeUTF8(legacy), self.edSecretKey)),
@@ -1260,8 +1293,10 @@ class NetworkManagerImpl {
           start_time: startTime,
           name,
         });
+        accepted = !!res2 && res2.ok !== false;
       }
-      this.gwAnnouncedSig = contentSig;
+      // A rejected announce is retried on the next change; marking it done hid it.
+      if (accepted) this.gwAnnouncedSig = contentSig;
     } catch {}
   }
 
@@ -1921,11 +1956,13 @@ class NetworkManagerImpl {
           allMembers = rawM ? JSON.parse(rawM) : [];
         } catch {}
         const privateIds = new Set((Array.isArray(allMembers) ? allMembers : []).filter(m => m && m.private).map(m => m.id));
+        // Password-locked entries and entries by private members stay on this device:
+        // the lock is meaningless once the plaintext is on a friend's device, and a
+        // private member's writing is theirs even with their id stripped.
         const shared = (Array.isArray(list) ? list : [])
           .filter(e => e && (scope.mode === 'all' || scope.ids.has(e.id)))
-          .map(e => (Array.isArray(e.authorIds) && e.authorIds.some((id: string) => privateIds.has(id))
-            ? {...e, authorIds: e.authorIds.filter((id: string) => !privateIds.has(id))}
-            : e));
+          .filter(e => !e.password && !(Array.isArray(e.authorIds) && e.authorIds.some((id: string) => privateIds.has(id))))
+          .map(e => { const {password: _omit, ...rest} = e; return rest; });
         payload = JSON.stringify(shared);
       }
     } catch (e) {

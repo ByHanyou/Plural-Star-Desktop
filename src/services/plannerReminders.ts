@@ -13,6 +13,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+// Catch-up window: a machine that slept or a renderer throttled across the
+// reminder minute used to skip that reminder for the day.
+const CATCH_UP_MS = 3 * 60 * 60 * 1000;
+let lastTickAt = 0;
+
 const tick = async () => {
   const settings = await store.get<AppSettings>(KEYS.settings, null);
   if (settings && settings.notificationsEnabled === false) return;
@@ -21,16 +26,21 @@ const tick = async () => {
   if (!data) return;
 
   const now = new Date();
-  const cur = hhmm(now);
+  const nowMs = now.getTime();
+  const since = lastTickAt ? Math.max(lastTickAt, nowMs - CATCH_UP_MS) : nowMs - 60000;
+  lastTickAt = nowMs;
   const today = dayKey(now);
 
   for (const rem of data.reminders || []) {
     if (!rem.enabled) continue;
     const repeat = rem.repeat || 'daily';
     for (const time of rem.times || []) {
-      if (time !== cur) continue;
-      const [hh, mm] = time.split(':').map(Number);
+      // Times were stored as typed ("9:30" as well as "09:30"); parse them, never string-compare.
+      const [hh, mm] = String(time).split(':').map(Number);
       if (!Number.isFinite(hh) || !Number.isFinite(mm)) continue;
+      const at = new Date(now);
+      at.setHours(hh, mm, 0, 0);
+      if (at.getTime() <= since || at.getTime() > nowMs) continue;
       const anchor = new Date(rem.startDate ?? rem.createdAt);
       anchor.setHours(hh, mm, 0, 0);
       if (!plannerOccursOnDay(anchor.getTime(), repeat, now)) continue;
@@ -44,10 +54,10 @@ const tick = async () => {
   for (const appt of data.appointments || []) {
     if (appt.reminderMinutesBefore == null) continue;
     const offsetMs = appt.reminderMinutesBefore * 60000;
-    const occ = plannerNextOccurrence(appt.time, appt.repeat, now.getTime() - 61000 - offsetMs);
+    const occ = plannerNextOccurrence(appt.time, appt.repeat, since - offsetMs);
     if (occ == null) continue;
     const trigger = occ - offsetMs;
-    if (now.getTime() < trigger || now.getTime() >= occ + 60000) continue;
+    if (trigger <= since || trigger > nowMs) continue;
     const key = `plan-appt:${appt.id}:${dayKey(new Date(occ))}`;
     if (fired.has(key)) continue;
     fired.add(key);

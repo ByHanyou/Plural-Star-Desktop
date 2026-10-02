@@ -29,7 +29,7 @@ export default function ChatView({ onUpdate }: Props) {
   const [activeChannelId, setActiveChannelId] = useState<string | null>(channels.find(c => !c.archived)?.id || null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [activeMemberId, setActiveMemberId] = useState<string | null>(members.find(m => !m.archived)?.id || null);
+  const [activeMemberId, setActiveMemberId] = useState<string | null>(members.find(m => !m.archived && !m.deleted && !m.isCustomFront)?.id || null);
   const [memberSearch, setMemberSearch] = useState('');
   const [showMemberPicker, setShowMemberPicker] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -511,14 +511,14 @@ export default function ChatView({ onUpdate }: Props) {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: author?.color || 'var(--text)' }}>{author?.name || 'Unknown'}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: author?.color || 'var(--text)' }}>{author?.name || t('common.unknown')}</span>
                       <span style={{ fontSize: 10, color: 'var(--muted)' }}>{fmtTime(msg.timestamp)}</span>
                     </div>
 
                     {replyMsg && (
                       <div style={{ fontSize: 11, color: 'var(--muted)', borderLeft: `2px solid ${replyAuthor?.color || 'var(--border)'}`, paddingLeft: 8, marginBottom: 4, marginTop: 2 }}>
                         <span style={{ color: replyAuthor?.color || 'var(--dim)' }}>{replyAuthor?.name}</span>
-                        {': '}{truncateRunes(replyMsg.content, 80, '...')}
+                        {': '}{replyMsg.type === 'text' ? truncateRunes(replyMsg.content, 80, '...') : '📎'}
                       </div>
                     )}
 

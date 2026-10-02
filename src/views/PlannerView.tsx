@@ -180,8 +180,12 @@ export default function PlannerView({ onUpdate }: Props) {
   };
 
   const addRemTime = () => {
-    const v = remNewTime.trim();
-    if (!isValidTimeHHMM(v) || remTimes.includes(v)) return;
+    const raw = remNewTime.trim();
+    if (!isValidTimeHHMM(raw)) return;
+    // Zero-padded so "9:30" and "09:30" are one time and the list sorts by the clock.
+    const [h, m] = raw.split(':');
+    const v = `${h.padStart(2, '0')}:${m}`;
+    if (remTimes.includes(v)) return;
     setRemTimes([...remTimes, v].sort());
     setRemNewTime('');
   };
@@ -364,7 +368,7 @@ export default function PlannerView({ onUpdate }: Props) {
           })}
         </div>
         <button onClick={() => setMarkPickerOpen(v => !v)} aria-expanded={markPickerOpen}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', background: 'none', border: 'none', borderTopStyle: 'solid', cursor: 'pointer', color: 'var(--dim)', fontSize: 11 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', marginTop: 8, paddingTop: 8, background: 'none', border: 'none', borderTop: '1px solid var(--border)', cursor: 'pointer', color: 'var(--dim)', fontSize: 11 }}>
           <span aria-hidden style={{ width: 10, height: 10, borderRadius: 5, background: markColor, display: 'inline-block' }} />
           <span style={{ flex: 1, textAlign: 'left' }}>{t('planner.markColor')}</span>
           <span aria-hidden>{markPickerOpen ? '▲' : '▼'}</span>

@@ -183,7 +183,7 @@
     "cloudError": "雲端錯誤：{{error}}",
     "title": "網路",
     "enable": "啟用網路",
-    "enableDesc": "連上 Plural Star 網路即可新增好友並在裝置間同步。你的資料始終端對端加密；中繼只會看到加密的資料區塊。",
+    "enableDesc": "連上 Plural Star 網路即可新增好友並在裝置間同步。好友訊息與裝置同步皆為端對端加密；中繼只會看到密封的資料區塊。你目前的前台狀態會以未加密的方式傳送至 Plural Star 閘道，讓好友可以查看。",
     "status": {
       "disabled": "關閉",
       "connecting": "連線中…",
@@ -455,6 +455,7 @@
     "statusHistory": "狀態歷史",
     "byStatus": "依狀態",
     "noHistorySinglet": "尚無歷史。狀態更新會自動顯示在這裡。",
+    "entryCount": "{{count}} 筆紀錄",
     "now": "現在",
     "timeline": "時間軸",
     "tlDay": "日",
@@ -472,6 +473,12 @@
     "allMembers": "所有成員"
   },
   "journal": {
+    "locked": "日誌已鎖定",
+    "enterPasswordToContinue": "輸入日誌密碼以繼續。",
+    "unlockJournal": "解鎖日誌",
+    "tapToUnlock": "點按以解鎖此條目",
+    "entryLocked": "條目已鎖定",
+    "unlockPasswordPrompt": "輸入密碼以解鎖此條目。",
     "passwordPrompt": "此條目受密碼保護。",
     "wrongPassword": "密碼錯誤。",
     "title": "日誌",
@@ -538,9 +545,9 @@
     "mergeLogs": "合併記錄（保留現有的歷史、日記、聊天和投票；只新增新的）。成員仍會被取代。",
     "banners": "橫幅",
     "psImport": "PluralSpace 匯入",
-    "psHint": "從 PluralSpace 資料匯出檔（.zip）匯入。解壓縮匯出檔並選擇裡面的 data.json 檔案。成員、自訂欄位、前台歷史、日誌條目、聊天和投票將加入你的系統。",
-    "pickPsFile": "選擇 data.json",
-    "psNotExport": "這看起來不像 PluralSpace 匯出檔。請解壓縮 PluralSpace 匯出檔（.zip）並選擇裡面的 data.json 檔案。",
+    "psHint": "從 PluralSpace 資料匯出檔匯入。直接選擇 .zip 即可——不需要解壓縮（如果已經解壓縮，也可以選擇 data.json）。成員、自訂欄位、前台歷史、日誌條目、聊天、投票和頭像（來自匯出檔的 media 資料夾）將自動匯入。",
+    "pickPsFile": "選擇 .zip 或 data.json",
+    "psNotExport": "這看起來不像 PluralSpace 匯出檔。請直接選擇 PluralSpace 匯出的 .zip（或裡面的 data.json）。",
     "spFetchPartial": "Simply Plural 未回傳：{{categories}}。這通常是暫時的網路或伺服器問題 — 再次點按「擷取資料」重試，或匯入已擷取的內容。",
     "export": "匯出",
     "import": "匯入",
@@ -762,7 +769,7 @@
     "coFront": "共同前台：{{names}}",
     "coConscious": "共同意識：{{names}}",
     "cfShort": "共前：{{names}}",
-    "ccShort": "共識：{{names}}"
+    "ccShort": "共同意識：{{names}}"
   },
   "language": {
     "en": "English",
@@ -826,6 +833,7 @@
   },
   "stats": {
     "last90": "90 天",
+    "memberDetails": "成員詳情",
     "statusDetails": "狀態詳情",
     "showMore": "顯示更多",
     "energyByHour": "每小時能量",

@@ -4,6 +4,7 @@ import { Btn, Section, ConfirmDialog } from '../components/ui';
 import { ImportWaitOverlay } from '../components/ImportWaitOverlay';
 import { ImportControl, ImportProgress } from '../import/progress';
 import { store, KEYS, chatMsgKey } from '../storage';
+import { NetworkManager } from '../network/NetworkManager';
 import { CloudServices } from '../cloud/cloudPlatform';
 import {
   Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ChatMessage,
@@ -23,7 +24,7 @@ interface ExportCategories {
   system: boolean; members: boolean; avatars: boolean; banners: boolean; frontHistory: boolean; journal: boolean;
   groups: boolean; chat: boolean; moods: boolean; palettes: boolean; settings: boolean;
   customFields: boolean; noteboards: boolean; polls: boolean; journalTemplates: boolean;
-  planner: boolean;
+  planner: boolean; medical: boolean;
 }
 
 interface Props {
@@ -61,7 +62,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const [restoreSel, setRestoreSel] = useState({
     system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
-    customFields: true, noteboards: true, polls: true, journalTemplates: true, planner: true,
+    customFields: true, noteboards: true, polls: true, journalTemplates: true, planner: true, medical: true,
   });
   const togR = (k: string) => setRestoreSel(s => ({ ...s, [k]: !s[k as keyof typeof s] }));
   const [mergeLogs, setMergeLogs] = useState(false);
@@ -69,7 +70,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const [exportSel, setExportSel] = useState<ExportCategories>({
     system: true, members: true, avatars: true, banners: true, frontHistory: true, journal: true,
     groups: true, chat: true, moods: true, palettes: true, settings: true,
-    customFields: true, noteboards: true, polls: true, journalTemplates: true, planner: true,
+    customFields: true, noteboards: true, polls: true, journalTemplates: true, planner: true, medical: false,
   });
   const togExp = (k: keyof ExportCategories) => setExportSel(s => ({ ...s, [k]: !s[k] }));
   const [showExportOptions, setShowExportOptions] = useState(false);
@@ -108,6 +109,7 @@ export default function ImportExportView({ onUpdate }: Props) {
   const clearAllData = async () => {
     await CloudServices.unlink().catch(() => {});
     await store.clearAll();
+    await NetworkManager.wipe().catch(() => {});
     setConfirmClear(false);
     showStatus(t('share.statusAllCleared'));
     onUpdate();
@@ -167,6 +169,7 @@ export default function ImportExportView({ onUpdate }: Props) {
               ['customFields', t('customFields.title')],
               ['noteboards', t('mailbox.title')],
               ['planner', t('planner.title')],
+              ['medical', t('medical.title')],
               ['polls', t('polls.title')],
               ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' })],
             ] as [keyof ExportCategories, string][]).map(([k, label]) => (
@@ -231,6 +234,7 @@ export default function ImportExportView({ onUpdate }: Props) {
                 ['customFields', t('customFields.title'), !!restoreData.customFieldDefs?.length, restoreData.customFieldDefs?.length || 0],
                 ['noteboards', t('mailbox.title'), !!restoreData.noteboards?.length, restoreData.noteboards?.length || 0],
                 ['planner', t('planner.title'), !!(restoreData.planner && ((restoreData.planner.appointments?.length || 0) + (restoreData.planner.reminders?.length || 0) > 0)), (restoreData.planner?.appointments?.length || 0) + (restoreData.planner?.reminders?.length || 0)],
+                ['medical', t('medical.title'), !!restoreData.medical, null],
                 ['polls', t('polls.title'), !!restoreData.polls?.length, restoreData.polls?.length || 0],
                 ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' }), !!restoreData.journalTemplates?.length, restoreData.journalTemplates?.length || 0],
               ] as [string, string, boolean, number | null][]).map(([k, label, avail, count]) => (
