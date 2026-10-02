@@ -1150,7 +1150,6 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                         const cleaned = v.replace(/[^0-9.\-]/g, '');
                         if (cleaned === '') { setFieldVal(null); return; }
                         const n = Number(cleaned);
-                        // Keep partial input ("-", "1.", ".5") as typed so decimals and negatives can be entered.
                         if (Number.isFinite(n) && !/[.\-]$/.test(cleaned) && cleaned !== '.') setFieldVal(n);
                         else setFieldVal(cleaned);
                       }} placeholder="0" />

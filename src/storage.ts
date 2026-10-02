@@ -123,8 +123,6 @@ export const store = {
       }
       await window.electronAPI.store.set(key, value);
     } catch (e) {
-      // Swallowing this told the UI the save succeeded on a full disk or a
-      // permission error; let the caller see it instead.
       console.error('Storage write error:', e);
       throw e;
     }

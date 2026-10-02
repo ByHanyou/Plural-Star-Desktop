@@ -604,12 +604,6 @@ class NetworkManagerImpl {
     client.connect();
   }
 
-  /**
-   * Forget every network fact held in memory after "Delete All Data". The storage
-   * keys are already gone; without this the running manager would keep the old
-   * identity, friends and sync state alive and write them straight back, and a
-   * paired device's next sync_req would restore everything.
-   */
   async wipe(): Promise<void> {
     if (this.client) { try { this.client.disconnect(); } catch {} }
     this.client = null;
@@ -1262,8 +1256,6 @@ class NetworkManagerImpl {
     const anyHidden = readers.length < accepted.length;
     const contentSig = `${fronters}|${startTime}|${name}|${primary}|${coFront}|${coConscious}|${readers.join(',')}`;
     if (contentSig === this.gwAnnouncedSig) return;
-    // The gateway rejects timestamps older than a few minutes, so the announce time
-    // is now, not the time of the last switch.
     const ts = Date.now();
     const signed = `psgw-front|${self.peerId}|${ts}|${fronters}|${startTime}|${name}|${primary}|${coFront}|${coConscious}|${readers.join(',')}`;
     const sig = nacl.sign.detached(decodeUTF8(signed), self.edSecretKey);
@@ -1295,7 +1287,6 @@ class NetworkManagerImpl {
         });
         accepted = !!res2 && res2.ok !== false;
       }
-      // A rejected announce is retried on the next change; marking it done hid it.
       if (accepted) this.gwAnnouncedSig = contentSig;
     } catch {}
   }
@@ -1956,9 +1947,6 @@ class NetworkManagerImpl {
           allMembers = rawM ? JSON.parse(rawM) : [];
         } catch {}
         const privateIds = new Set((Array.isArray(allMembers) ? allMembers : []).filter(m => m && m.private).map(m => m.id));
-        // Password-locked entries and entries by private members stay on this device:
-        // the lock is meaningless once the plaintext is on a friend's device, and a
-        // private member's writing is theirs even with their id stripped.
         const shared = (Array.isArray(list) ? list : [])
           .filter(e => e && (scope.mode === 'all' || scope.ids.has(e.id)))
           .filter(e => !e.password && !(Array.isArray(e.authorIds) && e.authorIds.some((id: string) => privateIds.has(id))))

@@ -142,7 +142,6 @@ function AppInner() {
     ]);
 
     const mergedSettings = { ...DEFAULT_SETTINGS, ...(settings || {}) };
-    // A fresh install has no stored language yet: follow the device instead of the 'en' default.
     if (!settings?.language) mergedSettings.language = getDeviceLanguage();
     let memberList = members || [];
     if (!mergedSettings.customFrontsSeeded) {
@@ -220,7 +219,6 @@ function AppInner() {
   const titleColor = readableAccent(titlePalette.accent, titlePalette.bg, state.theme.text);
 
   const isSinglet = state.settings.accountMode === 'singlet';
-  // One source for the view's display name: the page heading and the window title.
   const viewTitle = (v: ViewId): string =>
     v === 'front' ? (isSinglet ? t('tabs.status') : t('tabs.front'))
                 : v === 'members' ? (isSinglet ? t('tabs.profile') : t('tabs.fronters'))

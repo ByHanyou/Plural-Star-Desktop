@@ -13,8 +13,6 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-// Catch-up window: a machine that slept or a renderer throttled across the
-// reminder minute used to skip that reminder for the day.
 const CATCH_UP_MS = 3 * 60 * 60 * 1000;
 let lastTickAt = 0;
 
@@ -35,7 +33,6 @@ const tick = async () => {
     if (!rem.enabled) continue;
     const repeat = rem.repeat || 'daily';
     for (const time of rem.times || []) {
-      // Times were stored as typed ("9:30" as well as "09:30"); parse them, never string-compare.
       const [hh, mm] = String(time).split(':').map(Number);
       if (!Number.isFinite(hh) || !Number.isFinite(mm)) continue;
       const at = new Date(now);

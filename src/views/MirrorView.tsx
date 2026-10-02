@@ -291,7 +291,6 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
   };
 
   const renderJournal = () => {
-    // Older senders still ship password-locked entries; they are not shown here either.
     const list: MirrorJournalEntry[] = (Array.isArray(entry?.data) ? (entry!.data as MirrorJournalEntry[]) : []).filter(e => e && !e.password);
     if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
     const sorted = [...list].sort(

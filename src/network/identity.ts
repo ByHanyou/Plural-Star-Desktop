@@ -70,7 +70,6 @@ export const loadOrCreateIdentity = async (): Promise<Identity> => {
       return cached;
     } catch (e) {
       console.error('[NETWORK] stored identity unreadable, regenerating:', e);
-      // Keep the unreadable blob so the keys are not silently lost with every friend link.
       await store.set(IDENTITY_STORAGE_KEY + '.unreadable', stored).catch(() => {});
     }
   }

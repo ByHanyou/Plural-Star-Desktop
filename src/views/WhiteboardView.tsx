@@ -55,7 +55,6 @@ export default function WhiteboardView() {
   const { t } = useTranslation();
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [current, setCurrent] = useState<Stroke | null>(null);
-  // Strokes are stored and mirrored as literal colours, so read the theme's ink once instead of a CSS variable.
   const [color, setColor] = useState(() => (typeof getComputedStyle === 'function' && getComputedStyle(document.documentElement).getPropertyValue('--text').trim()) || '#FFFFFF');
   const [width, setWidth] = useState(WIDTHS[2]);
   const [tool, setTool] = useState<Tool>('draw');
@@ -264,8 +263,6 @@ export default function WhiteboardView() {
     }
   };
 
-  // React attaches wheel listeners as passive, so preventDefault there is ignored and
-  // the page scrolled along with the zoom; a native non-passive listener is needed.
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;

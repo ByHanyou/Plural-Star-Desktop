@@ -314,9 +314,6 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   );
 }
 
-// Hoisted out of RetroHistoryView: a component created inside the render body is a
-// new component type on every render, so React remounted it and the search box
-// lost focus after every letter.
 function TierMemberPicker({ tierKey, poolKey, label, color, selected, setSelected, pools, searchKind, search, setSearch, kinds, setKinds, kindLabels, allSelected }: {
   tierKey: FrontTierKey; poolKey: string; label: string; color: string;
   selected: string[]; setSelected: (ids: string[]) => void; pools: { kind?: PickerKind; label: string; members: Member[] }[];

@@ -12,8 +12,6 @@ const notify = (title: string, body: string) => {
 const pad = (n: number) => String(n).padStart(2, '0');
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-// Catch-up window: a machine that slept or a renderer throttled across the
-// reminder minute used to skip that reminder for the day.
 const CATCH_UP_MS = 3 * 60 * 60 * 1000;
 let lastTickAt = 0;
 

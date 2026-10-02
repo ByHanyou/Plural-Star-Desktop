@@ -1196,7 +1196,6 @@ export const mirrorThumbDataUrl = (dataUrl: string, maxDim: number = MIRROR_THUM
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, w, h);
-        // JPEG flattens transparent avatars onto black; keep alpha for the formats that carry it.
         const keepAlpha = /^data:image\/(png|gif|webp|svg)/i.test(dataUrl);
         resolve(keepAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', quality));
       } catch {

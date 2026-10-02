@@ -38,7 +38,6 @@ const FRONT_SORTS: [FrontSortMode, string][] = [
   ['custom', 'frontSort.custom'],
 ];
 
-// Tier headings go through i18n so they follow the language and any custom tier names.
 const TIER_LABEL_KEY: Record<string, string> = { primary: 'tier.primaryFront', coFront: 'tier.coFront', coConscious: 'tier.coConscious' };
 const TIER_SHORT_KEY: Record<string, string> = { primary: 'tier.primaryShort', coFront: 'tier.coFrontShort', coConscious: 'tier.coConShort' };
 
@@ -171,7 +170,6 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
       ...front,
       [tier]: {
         ...front[tier],
-        // The dialog hands back every field, so an empty one is a clear, not "keep the old value".
         mood,
         location,
         note: note || '',

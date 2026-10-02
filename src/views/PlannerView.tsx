@@ -182,7 +182,6 @@ export default function PlannerView({ onUpdate }: Props) {
   const addRemTime = () => {
     const raw = remNewTime.trim();
     if (!isValidTimeHHMM(raw)) return;
-    // Zero-padded so "9:30" and "09:30" are one time and the list sorts by the clock.
     const [h, m] = raw.split(':');
     const v = `${h.padStart(2, '0')}:${m}`;
     if (remTimes.includes(v)) return;
