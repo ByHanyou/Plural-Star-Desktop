@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MemberPoll, PollOption, uid, fmtTime, isRosterMember } from '../utils';
+import { MemberPoll, PollOption, uid, fmtTime, fmtPercent, isRosterMember } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
@@ -148,7 +148,7 @@ export default function PollsView({ onUpdate }: Props) {
                         }} />
                         <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontSize: 13, color: voted ? 'var(--accent)' : 'var(--text)', fontWeight: voted ? 600 : 400 }}>{opt.label}</span>
-                          <span style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+                          <span style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtPercent(pct / 100, 0)}</span>
                         </div>
                         {!poll.hideVoterNames && opt.votes.length > 0 && (
                           <div style={{ position: 'relative', fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>

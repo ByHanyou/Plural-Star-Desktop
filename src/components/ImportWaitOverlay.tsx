@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImportProgress, progressFraction } from '../import/progress';
+import { fmtPercent } from '../utils';
 
 interface Props {
   visible: boolean;
@@ -51,7 +52,7 @@ export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--dim)' }}>
-          <span>{pct === null ? '' : `${pct}%`}</span>
+          <span>{pct === null ? '' : fmtPercent(pct / 100, 0)}</span>
           {!!progress?.total && progress.total > 0 && <span>{`${progress.done ?? 0}/${progress.total}`}</span>}
         </div>
 

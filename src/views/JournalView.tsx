@@ -498,7 +498,7 @@ export default function JournalView({ onUpdate }: Props) {
         </>)}
       </Modal>
 
-      <Modal open={!!editingTemplate} title={isNewTemplate ? t('journal.newTemplate', { defaultValue: 'New Template' }) : t('journal.editTemplate', { defaultValue: 'Edit Template' })} onClose={() => setEditingTemplate(null)}
+      <Modal open={!!editingTemplate} title={isNewTemplate ? t('journal.newTemplate') : t('journal.editTemplate')} onClose={() => setEditingTemplate(null)}
         footer={
           <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
             <div>{!isNewTemplate && <Btn variant="danger" onClick={() => setConfirmDeleteTemplate(editingTemplate?.id || '')}>{t('common.delete')}</Btn>}</div>

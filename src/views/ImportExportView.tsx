@@ -186,7 +186,7 @@ export default function ImportExportView({ onUpdate }: Props) {
           <Btn variant="ghost" onClick={() => handlePluralKitExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })}>{t('share.exportPluralKit', { defaultValue: '↓ PluralKit / Tupperbox' })}</Btn>
         </div>
         <p style={{ fontSize: 11, color: 'var(--dim)', marginTop: 6, lineHeight: 1.4 }}>
-          {t('share.pkExportHint', { defaultValue: 'Exports members and front history as a PluralKit-format file for pk;import (PluralKit) or tul!import (Tupperbox). Avatars only carry over if they are image links, and proxy tags are left blank to set up in the bot.' })}
+          {t('share.pkExportHint')}
         </p>
       </div>
 
@@ -279,7 +279,7 @@ export default function ImportExportView({ onUpdate }: Props) {
       <Section label={t('share.importOtherApps', { defaultValue: 'Import from another app' })} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
-          {t('share.importOtherAppsDesc', { defaultValue: 'Import members and fronting history from Ourcana (.our or .json), HiveMind or Octocon (.json), a Tupperbox export (tul!export), or either Ampersand export: the binary .ampar archive or their JSON file. The .ampar archive also brings profile pictures and banners.' })}
+          {t('share.importOtherAppsDesc')}
         </p>
         <Btn onClick={() => confirmOverwrite(t('share.importSelected'), () => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(4) }))} disabled={importing}>
           {importing ? t('share.importing') : t('share.importFromOtherApp', { defaultValue: 'Pick file (.our / .json / .ampar)' })}

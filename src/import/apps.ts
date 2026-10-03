@@ -106,7 +106,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         {
           const buf = new Uint8Array(await file.arrayBuffer());
           if (isAmparBytes(buf)) {
-            conv = convertAmpersandJson(amparToDatabaseJson(buf));
+            try { conv = convertAmpersandJson(amparToDatabaseJson(buf)); } catch { showStatus(t('share.statusUnrecognized'), true); setImporting(false); return; }
           }
           if (!conv) {
             const isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b && (buf[2] === 3 || buf[2] === 5 || buf[2] === 7);

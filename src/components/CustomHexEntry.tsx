@@ -15,8 +15,8 @@ export function ProfileBgChip({ color, value, onChange }: { color: string; value
       aria-label={t('modal.palBg')}
       title={t('modal.palBg')}
       onClick={() => onChange(!value)}
-      style={{ width: 26, height: 26, borderRadius: 13, background: filled ? color : 'var(--surface)', border: `2px solid ${value ? 'var(--accent)' : 'var(--border)'}`, color: filled ? inkOn(color) : 'var(--dim)', fontWeight: 600, fontSize: 10, cursor: 'pointer', lineHeight: 1, padding: 0 }}>
-      Bg
+      style={{ width: 26, height: 26, borderRadius: 13, background: filled ? color : 'var(--surface)', border: `2px solid ${value ? 'var(--accent)' : 'var(--border)'}`, color: filled ? inkOn(color) : 'var(--dim)', fontWeight: 600, fontSize: 10, cursor: 'pointer', lineHeight: 1, padding: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+      {t('modal.palBgShort')}
     </button>
   );
 }

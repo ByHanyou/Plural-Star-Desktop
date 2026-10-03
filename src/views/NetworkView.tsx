@@ -6,7 +6,7 @@ import { useNetwork } from '../network/useNetwork';
 import { NetworkManager } from '../network/NetworkManager';
 import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY, MirrorFeature, MAX_NOTIF_FRIENDS, friendNotifyLevel } from '../network/types';
 import { MirrorView } from './MirrorView';
-import { fmtDur, fmtTime, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES, memberMatchesSearch } from '../utils';
+import { fmtDur, fmtTime, fmtPercent, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES, memberMatchesSearch } from '../utils';
 import { store, KEYS } from '../storage';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
@@ -343,8 +343,9 @@ export default function NetworkView() {
     if (s.includes('object too large')) return t('network.cloudErrTooLarge', { keys: '' });
     if (s.includes('rate limited') || s.includes('429')) return t('network.cloudErrRate');
     if (s.includes('quota') || s.includes('watermark') || s.includes('507')) return t('network.cloudErrFull');
-    if (s.includes('undecryptable') || s.includes('malformed') || s.includes('hash mismatch') || s.includes('bad password')) return t('network.cloudErrCorrupt');
-    if (s.includes('conflict') || s.includes('network') || s.includes('timed out') || s.includes('failed') || s.includes('fetch') || s.includes('not connected') || s.includes('unreach') || /http 5\d\d/.test(s)) return t('network.cloudErrNetwork');
+    if (s.includes('does not open it') || s.includes('bad password') || s.includes('bad auth')) return t('network.cloudErrBadPassword');
+    if (s.includes('undecryptable') || s.includes('malformed') || s.includes('hash mismatch') || s.includes('did not match its id') || s.includes('could not be decrypted')) return t('network.cloudErrCorrupt');
+    if (s.includes('kept changing the vault') || s.includes('conflict') || s.includes('network') || s.includes('timed out') || s.includes('failed') || s.includes('fetch') || s.includes('not connected') || s.includes('unreach') || /http 5\d\d/.test(s)) return t('network.cloudErrNetwork');
     return raw;
   };
   const onGenerate = (kind: Kind) => {
@@ -560,7 +561,7 @@ export default function NetworkView() {
             {cloud.pendingKeys > 0 && <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 0' }}>{t('network.cloudPending', { n: cloud.pendingKeys })}</p>}
             {cloudBusy && (
               <p style={{ fontSize: 11, color: 'var(--accent)', margin: '6px 0 0' }} aria-live="polite">
-                {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${Math.round(cloud.progress * 100)}%` : ''}
+                {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${fmtPercent(cloud.progress, 0)}` : ''}
               </p>
             )}
             {(cloud.lastError || cloudError) && (
@@ -588,7 +589,7 @@ export default function NetworkView() {
                 </div>
                 {cloudBusy && (
                   <p style={{ fontSize: 11, color: 'var(--accent)', margin: '8px 0 0' }} aria-live="polite">
-                    {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${Math.round(cloud.progress * 100)}%` : ''}
+                    {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${fmtPercent(cloud.progress, 0)}` : ''}
                   </p>
                 )}
               </div>
