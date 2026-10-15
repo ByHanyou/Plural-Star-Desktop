@@ -80,7 +80,7 @@ i18n
 
 const htmlLang = (lang: SupportedLanguage): string => (lang === 'zhHant' ? 'zh-Hant' : lang);
 
-export const applyDocumentLanguage = (lang: SupportedLanguage): void => {
+const applyDocumentLanguage = (lang: SupportedLanguage): void => {
   document.documentElement.lang = htmlLang(lang);
 };
 

@@ -42,7 +42,9 @@
     "skyBlue": "Небесно-голубой",
     "orchid": "Орхидея",
     "lime": "Лаймовый",
-    "sand": "Песочный"
+    "sand": "Песочный",
+    "customCount": "Свои {{count}}/{{max}}",
+    "customSlotValue": "Свой цвет {{n}}, {{hex}}"
   },
   "terminology": {
     "fronter": "Фронтер",
@@ -118,7 +120,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Напоминание планировщика",
-    "reminderTitlePlaceholder": "Что написать в напоминании?"
+    "reminderTitlePlaceholder": "Что написать в напоминании?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Напоминание: {{title}}"
   },
   "mailbox": {
     "title": "Почта",
@@ -138,13 +142,21 @@
     "inboxOf": "Почта {{name}}",
     "replyFrom": "Отправить {{name}}",
     "messageCount": "{{count}} сообщение",
+    "messageCount_one": "{{count}} сообщение",
     "messageCount_few": "{{count}} сообщения",
     "messageCount_many": "{{count}} сообщений",
     "messageCount_other": "{{count}} сообщений",
     "unreadCount_one": "{{count}} непрочитанное",
     "unreadCount": "{{count}} непрочитанных",
     "deleteTitle": "Удалить сообщение",
-    "deleteMsg": "Удалить это сообщение? Это действие нельзя отменить."
+    "deleteMsg": "Удалить это сообщение? Это действие нельзя отменить.",
+    "allOthersCount": "Все остальные Участники ({{count}})",
+    "lockedLabel": "Заблокирована",
+    "lockButtonLocked": "Блокировка почты (вкл.)",
+    "lockButtonUnlocked": "Блокировка почты (выкл.)",
+    "fromName": "От: {{name}}",
+    "deleteFrom": "Удалить сообщение от {{name}}",
+    "unlockTitle": "Разблокировать почту: {{name}}"
   },
   "network": {
     "cloudConfirmTitle": "Подтвердите ещё раз",
@@ -158,6 +170,7 @@
     "cloudErrRate": "Слишком много попыток. Подождите минуту и попробуйте снова.",
     "cloudErrFull": "В хранилище или на узле нет места.",
     "cloudErrTooLarge": "Пропущено, больше 25 МБ: {{keys}}",
+    "cloudErrOverQuota": "Пропущено, в хранилище нет места: {{keys}}",
     "cloudErrBadPassword": "Хранилище существует, но этот пароль его не открывает.",
     "cloudErrCorrupt": "Не удалось прочитать хранилище на этом устройстве. Отвяжите и привяжите снова с тем же паролем.",
     "cloudUnavailable": "Узел, к которому вы подключены, не предоставляет Облачные сервисы.",
@@ -269,7 +282,32 @@
     "syncRoleMismatchMsg": "Вы и {{device}} выбрали одно и то же направление, поэтому первая копия была пропущена. Новые изменения всё равно будут синхронизироваться. Чтобы скопировать всё, удалите связь и выполните сопряжение заново — выберите «отправить» на одном устройстве и «получить» на другом.",
     "syncCloneSending": "Отправка первой копии…",
     "syncCloneReceiving": "Получение первой копии…",
-    "publishFailed": "Не удалось опубликовать код — проверьте подключение и попробуйте снова."
+    "publishFailed": "Не удалось опубликовать код — проверьте подключение и попробуйте снова.",
+    "tileFriends": "Друзья: {{count}}",
+    "tileOnline": "В сети: {{count}}",
+    "tileDevices": "Связанные устройства: {{count}}",
+    "deviceMac": "Компьютер Mac",
+    "deviceWindows": "Компьютер Windows",
+    "deviceLinux": "Компьютер Linux",
+    "deviceDesktop": "Компьютер",
+    "defaultSystemName": "Пользователь Plural Star",
+    "unnamedDevice": "Устройство",
+    "unnamedFriend": "Друг",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Что-то пошло не так при синхронизации с облаком. Попробуйте ещё раз.",
+    "viewSharedNamed": "Посмотреть, чем делится {{name}}",
+    "notifyLevelCycle": "Уведомления для {{name}}: {{level}}. Активируйте, чтобы переключить на «{{next}}».",
+    "removeNamed": "Убрать {{name}}",
+    "yourCodeLabel": "Ваш код друга: {{code}}. Нажмите, чтобы скопировать.",
+    "statusLabel": "Сеть: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Дублировать круг {{name}}",
+    "deleteBucketNamed": "Удалить круг {{name}}",
+    "bucketPickCount": "{{feature}}: Выбор (выбрано: {{count}})",
+    "pickerTitle": "{{feature}} — Выбор",
+    "removeDeviceWarn": "Отвязать {{name}}? Синхронизация с этим устройством прекратится.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Вы уверены?",
@@ -289,7 +327,13 @@
     "shapeRect": "Прямоугольник",
     "shapeEllipse": "Эллипс",
     "shapePoly": "Многоугольник",
-    "bucket": "Заливка"
+    "bucket": "Заливка",
+    "strokeCount_one": "{{count}} штрих",
+    "strokeCount_few": "{{count}} штриха",
+    "strokeCount_many": "{{count}} штрихов",
+    "strokeCount_other": "{{count}} штриха",
+    "brushSizeN": "Размер кисти {{size}}",
+    "panHint": "Перемещайтесь по доске клавишами со стрелками."
   },
   "systemMap": {
     "showColors": "Цвета",
@@ -319,6 +363,14 @@
     "relationships_few": "{{count}} связи",
     "relationships_many": "{{count}} связей",
     "relationships": "{{count}} связей",
+    "relationships_other": "{{count}} связи",
+    "moveHint": "Перемещайте этого участника по карте клавишами со стрелками.",
+    "nodeArchived": "{{name}} (в архиве)",
+    "nodeHops_one": "{{name}}, в {{count}} шаге",
+    "nodeHops_few": "{{name}}, в {{count}} шагах",
+    "nodeHops_many": "{{name}}, в {{count}} шагах",
+    "nodeHops_other": "{{name}}, в {{count}} шага",
+    "deleteRelationshipWith": "Удалить связь с {{name}}",
     "relationshipOne": "1 связь",
     "from": "От",
     "to": "К",
@@ -371,7 +423,11 @@
     "emergencyDesc": "Критическая информация для экстренных служб. При включении добавляется в постоянное уведомление.",
     "deleteItemMsg": "Удалить эту запись?",
     "medReminderTitle": "Напоминание о лекарстве",
-    "apptReminderTitle": "Напоминание о приёме"
+    "apptReminderTitle": "Напоминание о приёме",
+    "remindersFor": "Напоминания: {{name}}",
+    "apptWhen": "Дата и время приёма",
+    "remind15m": "15 мин",
+    "historyDate": "Дата"
   },
   "common": {
     "durDaysHours": "{{d}} д {{h}} ч",
@@ -416,7 +472,20 @@
     "untitled": "Без названия",
     "notInExport": "Не в экспорте",
     "ok": "OK",
-    "edit": "Изменить"
+    "errorCode": "Код ошибки: {{code}}",
+    "edit": "Изменить",
+    "removeNamed": "Убрать {{name}}",
+    "dragReorderNamed": "Перетащите, чтобы изменить порядок: {{name}}",
+    "editNamed": "Изменить {{name}}",
+    "deleteNamed": "Удалить {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Включено",
+    "yes": "Да",
+    "no": "Нет",
+    "addNamed": "Добавить {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Переместить вверх: {{name}}",
+    "moveDownNamed": "Переместить вниз: {{name}}"
   },
   "errorBoundary": {
     "title": "Что-то пошло не так",
@@ -453,7 +522,10 @@
     "statusesDesc": "Статусы описывают ваше состояние — например, Сон, Работа или Тревога. Выбирайте их при обновлении статуса.",
     "noStatuses": "Статусов пока нет. Добавьте один, чтобы начать.",
     "activeStatus": "Активен",
-    "favoriteColor": "Любимый цвет"
+    "favoriteColor": "Любимый цвет",
+    "defaultSelfName": "Я",
+    "statusesCount": "Статусы ({{count}})",
+    "deleteActiveHint": "Прежде чем удалить этот статус, уберите его из текущего статуса."
   },
   "settings": {
     "observatory": "Интерфейс «Обсерватория» (индивидуальный)",
@@ -469,6 +541,7 @@
     "primaryShort": "Основной",
     "coFrontShort": "Со-фронт",
     "coConShort": "Со-созн",
+    "assignedTo": "({{tier}})",
     "editTier": "Редактировать {{tier}}"
   },
   "setup": {
@@ -489,7 +562,10 @@
     "noNote": "Нет заметки. Нажмите ✎, чтобы добавить.",
     "clearFront": "Очистить фронт",
     "clearFrontMsg": "Это очистит все уровни и зафиксирует окончание текущей сессии. Продолжить?",
-    "clearFrontTitle": "Очистить фронт?"
+    "clearFrontTitle": "Очистить фронт?",
+    "frontingForSince": "Во фронте {{dur}} · с {{time}}",
+    "editDetailsFor": "Изменить настроение и место: {{tier}}",
+    "editNoteFor": "Изменить заметку: {{tier}}"
   },
   "members": {
     "displayFields": "Отображаемые поля",
@@ -554,7 +630,28 @@
     "frontingLockTitle": "Сейчас во фронте",
     "frontingLockMsg": "Нельзя архивировать или удалить участника, пока он во фронте. Сначала уберите его из фронта.",
     "archive": "Архивировать",
-    "recentlyDeleted": "Недавно удалённые"
+    "recentlyDeleted": "Недавно удалённые",
+    "unnamed": "Участник без имени",
+    "archivedCount": "В архиве ({{count}})",
+    "viewProfileNamed": "Открыть профиль: {{name}}",
+    "titleCount": "Участники ({{count}})",
+    "facetsCount": "Грани ({{count}})",
+    "customFrontsCount": "Пользовательские фронты ({{count}})",
+    "removeFromFrontNamed": "Убрать {{name}} из фронта",
+    "addToFrontNamed": "Добавить {{name}} во фронт",
+    "restoreNamed": "Восстановить {{name}}",
+    "bulkArchiveMsg_one": "Архивировать {{count}} участника? Его можно восстановить позже.",
+    "bulkArchiveMsg_few": "Архивировать {{count}} участников? Их можно восстановить позже.",
+    "bulkArchiveMsg_many": "Архивировать {{count}} участников? Их можно восстановить позже.",
+    "bulkArchiveMsg_other": "Архивировать {{count}} участника? Их можно восстановить позже.",
+    "bulkRestoreMsg_one": "Восстановить {{count}} участника как активного?",
+    "bulkRestoreMsg_few": "Восстановить {{count}} участников как активных?",
+    "bulkRestoreMsg_many": "Восстановить {{count}} участников как активных?",
+    "bulkRestoreMsg_other": "Восстановить {{count}} участника как активных?",
+    "bulkDeleteMsg_one": "Удалить {{count}} участника навсегда? Это действие нельзя отменить.",
+    "bulkDeleteMsg_few": "Удалить {{count}} участников навсегда? Это действие нельзя отменить.",
+    "bulkDeleteMsg_many": "Удалить {{count}} участников навсегда? Это действие нельзя отменить.",
+    "bulkDeleteMsg_other": "Удалить {{count}} участника навсегда? Это действие нельзя отменить."
   },
   "history": {
     "title": "История",
@@ -582,7 +679,11 @@
     "allMembers": "Все участники",
     "byStatus": "По статусу",
     "noHistorySinglet": "Истории пока нет. Обновления статуса появятся здесь автоматически.",
-    "statusHistory": "История статусов"
+    "statusHistory": "История статусов",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Удалить запись от {{time}}",
+    "deleteEntryStep": "Удалить запись ({{step}}/{{total}})"
   },
   "journal": {
     "locked": "Журнал заблокирован",
@@ -615,7 +716,10 @@
     "templateName": "Название Шаблона *",
     "templateNamePlaceholder": "напр. Утренние страницы",
     "templateTitle": "Заголовок Записи (предустановка)",
-    "templateBody": "Текст Записи (предустановка)"
+    "templateBody": "Текст Записи (предустановка)",
+    "pinnedLabel": "Закреплена",
+    "lockedLabel": "Заблокирована",
+    "pinNamed": "Закрепить: {{title}}"
   },
   "share": {
     "statusSpImported": "SP-импорт: новых участников — {{members}}, записей истории — {{history}}",
@@ -687,6 +791,9 @@
     "frontEntries_many": "{{count}} записей фронта",
     "frontEntries": "{{count}} записей фронта",
     "groupsCount": "Групп: {{count}}",
+    "groupsCount_one": "{{count}} группа",
+    "groupsCount_few": "{{count}} группы",
+    "groupsCount_many": "{{count}} групп",
     "psImport": "Импорт из PluralSpace",
     "psHint": "Импорт из экспорта данных PluralSpace. Выберите .zip напрямую — распаковывать не нужно (или выберите data.json, если уже распаковали). Участники, пользовательские поля, история фронта, записи дневника, чат, опросы и аватары (из папки media экспорта) импортируются автоматически.",
     "pickPsFile": "Выбрать .zip или data.json",
@@ -718,6 +825,7 @@
     "importStopping": "Завершаем этот шаг, затем остановка…",
     "importStopped": "Импорт остановлен. Ничего не изменено.",
     "importCancelHint": "Остановится после завершения текущего шага. Уже выполненные шаги сохраняются.",
+    "importCancelTitle": "Остановить импорт?",
     "progressSavingMembers": "Восстановление участников…",
     "progressJournal": "Восстановление дневника…",
     "progressHistory": "Восстановление истории фронта…",
@@ -731,10 +839,15 @@
     "membersCountSimple": "{{count}} участников",
     "restoreDesc": "Загрузить ранее экспортированный JSON.",
     "spMergeDesc": "Объединить данные Simply Plural с текущей системой.",
-    "banners": "Баннеры участников"
+    "banners": "Баннеры участников",
+    "psFilterName": "Экспорт PluralSpace (.zip или data.json)",
+    "plurallogFilterName": "Экспорт PluralLog (.zip)",
+    "backupFileSuffix": "резервная-копия",
+    "errUnexpected": "Что-то пошло не так. Проверьте файл и попробуйте ещё раз.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "Импорт из PluralKit (токен)"
   },
   "hub": {
-    "discordBlurb": "Чат сообщества и поддержка",
     "supportPS": "Поддержать Plural Star",
     "supportPSBlurb": "Buy Me a Coffee",
     "addHistoryDesc": "Вручную добавить ретроспективную запись фронта.",
@@ -758,13 +871,17 @@
     "retroHistory": "Ретро-история",
     "statistics": "Статистика",
     "systemChat": "Чат системы",
-    "discord": "Discord",
     "dashboard": "← Панель",
     "credits": "Благодарности",
     "creditLogo": "Логотип Plural Star",
     "creditIos": "iOS-порт Plural Star",
     "creditsBlurb": "Участники сообщества",
-    "archive": "Архив"
+    "archive": "Архив",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Чат сообщества и поддержка",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "URL здесь",
@@ -782,7 +899,11 @@
     "toolCode": "Код",
     "brokenImage": "[повреждённое изображение]",
     "imageUnavailable": "[изображение недоступно]",
-    "spoiler": "Спойлер, нажмите, чтобы показать"
+    "spoiler": "Спойлер, нажмите, чтобы показать",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "appFont": "Шрифт приложения",
@@ -813,6 +934,8 @@
     "hue": "Оттенок",
     "invalidHex": "Неверный hex-цвет",
     "customColor": "Свой цвет",
+    "emoji": "Эмодзи",
+    "emojiPlaceholder": "например, 🦊",
     "descriptionBio": "Описание / Био",
     "descriptionPlaceholder": "Немного об этом участнике… можно вставлять ссылки на изображения и GIF",
     "preview": "Предпросмотр",
@@ -886,7 +1009,13 @@
     "textSizeDesc": "Размер шрифта в приложении.",
     "textScaleNormal": "Обычный",
     "textScaleLarge": "Большой",
-    "textScaleExtraLarge": "Огромный"
+    "textScaleExtraLarge": "Огромный",
+    "cropMove": "Переместить область обрезки (клавиши со стрелками)",
+    "cropResizeTopLeft": "Изменить размер от левого верхнего угла (клавиши со стрелками)",
+    "cropResizeTopRight": "Изменить размер от правого верхнего угла (клавиши со стрелками)",
+    "cropResizeBottomLeft": "Изменить размер от левого нижнего угла (клавиши со стрелками)",
+    "cropResizeBottomRight": "Изменить размер от правого нижнего угла (клавиши со стрелками)",
+    "fontDefault": "По умолчанию"
   },
   "notification": {
     "mood": "Настроение: {{mood}}",
@@ -897,7 +1026,8 @@
     "coFront": "Со-фронт: {{names}}",
     "coConscious": "Со-сознание: {{names}}",
     "cfShort": "СФ: {{names}}",
-    "ccShort": "СС: {{names}}"
+    "ccShort": "СС: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "it": "Italiano",
@@ -957,14 +1087,30 @@
     "subsystem": "Подсистема",
     "linkedFronter": "Связанный фронтер",
     "noLinkedFronter": "Нет",
-    "linkedSubsystems": "Связанные подсистемы"
+    "linkedSubsystems": "Связанные подсистемы",
+    "showSubgroups": "Подгруппы: {{name}} (выбрано: {{count}})",
+    "linkedToNamed": "{{group}}, связанный фронтер: {{name}}",
+    "deleteWithChildrenMsg_one": "Содержит {{count}} вложенный элемент. Сохранить его, подняв на уровень выше, или удалить всё?",
+    "deleteWithChildrenMsg_few": "Содержит {{count}} вложенных элемента. Сохранить их, подняв на уровень выше, или удалить всё?",
+    "deleteWithChildrenMsg_many": "Содержит {{count}} вложенных элементов. Сохранить их, подняв на уровень выше, или удалить всё?",
+    "deleteWithChildrenMsg_other": "Содержит {{count}} вложенного элемента. Сохранить их, подняв на уровень выше, или удалить всё?",
+    "memberCount_one": "{{count}} участник",
+    "memberCount_few": "{{count}} участника",
+    "memberCount_many": "{{count}} участников",
+    "memberCount_other": "{{count}} участника",
+    "moveNamed": "Переместить {{name}}",
+    "addMembersTo": "Добавить участников в {{name}}",
+    "kindToggle": "Тип: {{kind}} (активируйте, чтобы переключить)"
   },
   "systemManager": {
     "emptyFolder": "Здесь пока ничего нет.",
     "browse": "Обзор",
     "title": "Менеджер системы",
     "desc": "Создавайте, редактируйте, переставляйте и удаляйте группы и подсистемы. Нажмите ⇄ на элементе, затем выберите место назначения, чтобы вложить его.",
-    "subsystemsCount": "Подсистем: {{count}}"
+    "subsystemsCount": "Подсистем: {{count}}",
+    "subsystemsCount_one": "{{count}} подсистема",
+    "subsystemsCount_few": "{{count}} подсистемы",
+    "subsystemsCount_many": "{{count}} подсистем"
   },
   "stats": {
     "last90": "90 дней",
@@ -996,7 +1142,15 @@
     "noMoodsRecorded": "Настроения пока не записаны.",
     "totalFrontTime": "Общее время фронта",
     "totalSessions": "Всего сессий",
-    "uniqueFronters": "Уникальных фронтеров"
+    "uniqueFronters": "Уникальных фронтеров",
+    "showMoreCount": "Показать больше ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} сессия",
+    "sessionCount_few": "{{num}} сессии",
+    "sessionCount_many": "{{num}} сессий",
+    "sessionCount_other": "{{num}} сессии",
+    "avgEnergyValue": "{{num}} /10 энергии"
   },
   "chat": {
     "addReaction": "Добавить реакцию",
@@ -1022,7 +1176,25 @@
     "archiveChannel": "Архивировать канал",
     "noMessages": "Сообщений пока нет.",
     "editingHeader": "Редактирование сообщения",
-    "editPlaceholder": "Изменить сообщение…"
+    "editPlaceholder": "Изменить сообщение…",
+    "attachment": "Вложение",
+    "channelCount_one": "{{count}} канал",
+    "channelCount_few": "{{count}} канала",
+    "channelCount_many": "{{count}} каналов",
+    "channelCount_other": "{{count}} канала",
+    "importedChannel": "Импортированный",
+    "categoryWithCount_one": "{{name}} ({{count}} канал)",
+    "categoryWithCount_few": "{{name}} ({{count}} канала)",
+    "categoryWithCount_many": "{{name}} ({{count}} каналов)",
+    "categoryWithCount_other": "{{name}} ({{count}} канала)",
+    "speakingAsNamed": "Говорит как {{name}}",
+    "messagesIn": "Сообщения в #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Изображение от {{name}}",
+    "reactionCount": "Реакция {{emoji}}, {{count}}",
+    "replyingToName": "В ответ: {{name}}",
+    "cancelReply": "Отменить ответ",
+    "cancelEdit": "Отменить редактирование"
   },
   "customFields": {
     "title": "Пользовательские поля",
@@ -1056,7 +1228,12 @@
     "reorder": "Переупорядочить",
     "markdownSupport": "Поддержка Markdown",
     "markdownLabel": "Markdown",
-    "fieldCount": "{{count}} задано"
+    "fieldCount": "{{count}} задано",
+    "ageField": "Возраст",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Тип поля: {{name}}",
+    "moveUpNamed": "Переместить вверх: {{name}}, над {{above}}",
+    "moveDownNamed": "Переместить вниз: {{name}}, под {{below}}"
   },
   "noteboard": {
     "title": "Доска заметок",
@@ -1067,7 +1244,8 @@
     "placeholder": "Напишите заметку...",
     "by": "от {{name}}",
     "writingAs": "Пишет:",
-    "hasNotes": "У {{names}} есть почта в Почте"
+    "hasNotes": "У {{names}} есть почта в Почте",
+    "pinned": "Закреплена"
   },
   "polls": {
     "removeOption": "Убрать вариант",
@@ -1094,13 +1272,20 @@
     "forMember": "За участника:",
     "optionsLabel": "Варианты",
     "activeCount_one": "{{count}} активный",
-    "activeCount": "{{count}} активных"
+    "activeCount": "{{count}} активных",
+    "closePollNamed": "Закрыть опрос: {{question}}",
+    "reopenPollNamed": "Открыть опрос снова: {{question}}",
+    "optionN": "Вариант {{n}}",
+    "removeOptionN": "Убрать вариант {{n}}"
   },
   "energy": {
     "label": "Энергия",
     "level": "Уровень энергии",
     "avgEnergy": "Средняя энергия",
-    "outOf10": "/10 энергии"
+    "outOf10": "/10 энергии",
+    "outOfTen": "{{value}}/10",
+    "clear": "Сбросить уровень энергии",
+    "levelValue": "Уровень энергии {{value}}/10"
   },
   "systemProfile": {
     "read": "Просмотр",
@@ -1117,7 +1302,8 @@
     "changeAvatar": "Изменить аватар",
     "changeBanner": "Изменить баннер",
     "removeAvatar": "Убрать аватар",
-    "removeBanner": "Убрать баннер"
+    "removeBanner": "Убрать баннер",
+    "avatarAndBanner": "Аватар системы · Баннер системы"
   },
   "frontSort": {
     "label": "Упорядочить",
@@ -1150,5 +1336,55 @@
     "Irritable": "Раздражение",
     "Sad": "Грусть",
     "Focused": "Сосредоточенность"
+  },
+  "dnd": {
+    "instructions": "Чтобы взять элемент, нажмите Пробел или Enter. Перемещайте его клавишами со стрелками, затем нажмите Пробел или Enter, чтобы отпустить, или Escape, чтобы отменить.",
+    "picked": "Элемент {{name}} взят.",
+    "over": "Элемент {{name}} находится над {{over}}.",
+    "notOver": "Элемент {{name}} больше не над областью сброса.",
+    "dropped": "Элемент {{name}} отпущен над {{over}}.",
+    "droppedNoTarget": "Элемент {{name}} отпущен.",
+    "cancelled": "Перемещение {{name}} отменено."
+  },
+  "fileDialog": {
+    "jsonFiles": "Файлы JSON",
+    "textFiles": "Текстовые файлы",
+    "allFiles": "Все файлы",
+    "backup": "Резервная копия",
+    "images": "Изображения"
+  },
+  "tray": {
+    "open": "Открыть {{app}}",
+    "quit": "Выйти"
+  },
+  "menu": {
+    "edit": "Правка"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Разговорчивость",
+      "nonVerbal": "Невербальность",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Размытость",
+      "blendy": "Смешение",
+      "rapidSwitching": "Частые переключения",
+      "foggy": "Туман",
+      "grounded": "Заземление",
+      "dissociated": "Диссоциация",
+      "anxious": "Тревога",
+      "depressed": "Подавленность",
+      "cheerful": "Весёлость",
+      "happy": "Радость",
+      "sad": "Грусть",
+      "crisis": "Кризис",
+      "melancholy": "Меланхолия",
+      "stimming": "Стимминг",
+      "stressed": "Стресс",
+      "working": "Работа",
+      "traveling": "Путешествие",
+      "sleeping": "Сон",
+      "hyperfocus": "Гиперфокус"
+    }
   }
 }

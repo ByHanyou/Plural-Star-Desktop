@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn, clickable } from '../components/ui';
+import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn } from '../components/ui';
 import { TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex } from '../utils';
-import { CustomPalette, BUILTIN_PALETTES, MAX_CUSTOM_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, PALETTE, FONT_OPTIONS, FontChoice, applyFontChoice, ensureReadable, textFloor } from '../theme';
+import { CustomPalette, BUILTIN_PALETTES, MAX_CUSTOM_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, FONT_OPTIONS, FontChoice, applyFontChoice, ensureReadable, textFloor } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
@@ -59,14 +59,15 @@ const UpdatesSection = () => {
 const HexField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
   const [open, setOpen] = useState(false);
   const valid = isValidHex(normalizeHex(value));
+  const hexId = useId();
   return (
     <div style={{ flex: 1 }}>
-      <div className="field__label">{label}</div>
-      <button type="button" aria-haspopup="dialog" aria-label={`${label}, ${value}`} onClick={() => setOpen(true)}
+      <div className="field__label" id={`${hexId}-label`}>{label}</div>
+      <button type="button" aria-haspopup="dialog" aria-labelledby={`${hexId}-label ${hexId}-value`} onClick={() => setOpen(true)}
         className="field__input field__input--mono"
         style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', cursor: 'pointer', textAlign: 'left' }}>
         <span aria-hidden style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 4, background: valid ? normalizeHex(value) : '#333333', border: '1px solid var(--border)' }} />
-        <span>{value}</span>
+        <span id={`${hexId}-value`}>{value}</span>
       </button>
       <ColorPickerModal open={open} title={label} value={value}
         onSave={hex => { onChange(hex); setOpen(false); }}
@@ -220,7 +221,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
       )}
 
       <Section label={t('modal.palette')} />
-      <button type="button" aria-expanded={themesOpen} aria-label={`${t('modal.palette')}, ${activePalette.name}`} onClick={() => setThemesOpen(o => !o)}
+      <button type="button" aria-expanded={themesOpen} aria-label={t('common.labelValue', { label: t('modal.palette'), value: activePalette.name })} onClick={() => setThemesOpen(o => !o)}
         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: 8, textAlign: 'left', cursor: 'pointer',
           border: `1px solid ${themesOpen ? 'var(--accent)' : 'var(--border)'}`, background: 'var(--surface)', marginBottom: themesOpen ? 8 : 12 }}>
         <span aria-hidden style={{ display: 'flex', gap: 3 }}>
@@ -242,20 +243,22 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
               display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
               borderRadius: 8, border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
               background: isActive ? 'var(--accent-bg)' : 'var(--surface)', cursor: 'pointer',
-            }} aria-pressed={isActive} {...clickable(() => selectPalette(p.id), p.name)}>
-              <div style={{ display: 'flex', gap: 3 }}>
+            }} onClick={() => selectPalette(p.id)}>
+              <div aria-hidden style={{ display: 'flex', gap: 3 }}>
                 {[preview.bg, preview.accent, preview.text, preview.surface].map((c, i) => (
                   <div key={i} style={{ width: 14, height: 14, borderRadius: 3, background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
                 ))}
               </div>
-              <span style={{ flex: 1, fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text)', fontWeight: isActive ? 600 : 400 }}>
+              <span style={{ flex: 1, fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text)', fontWeight: isActive ? 600 : 400 }}
+                role="button" tabIndex={0} aria-pressed={isActive}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPalette(p.id); } }}>
                 {p.name}
               </span>
               {isActive && <span aria-hidden style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
               {!isBuiltin && (
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn btn--ghost" aria-label={`${t('common.edit')} ${p.name}`} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); startEditPalette(p); }}>✎</button>
-                  <button className="btn btn--danger" aria-label={`${t('common.delete')} ${p.name}`} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); deletePalette(p.id); }}>✕</button>
+                  <button className="btn btn--ghost" aria-label={t('common.editNamed', { name: p.name })} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); startEditPalette(p); }}>✎</button>
+                  <button className="btn btn--danger" aria-label={t('common.deleteNamed', { name: p.name })} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); deletePalette(p.id); }}>✕</button>
                 </div>
               )}
             </div>
@@ -306,7 +309,8 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
         value={fontChoice}
         options={FONT_OPTIONS.map(o => o.value)}
         onChange={setFontChoice}
-        renderOption={v => FONT_OPTIONS.find(o => o.value === v)?.label || v}
+        ariaLabel={t('modal.appFont', { defaultValue: 'App Font' })}
+        renderOption={v => v === 'default' ? t('modal.fontDefault') : (FONT_OPTIONS.find(o => o.value === v)?.label || v)}
         optionStyle={v => {
           if (v === 'default') return { fontFamily: 'var(--font-body-fallback)' };
           if (v === 'opendyslexic') return { fontFamily: "'OpenDyslexic', var(--font-body-fallback)" };
@@ -320,6 +324,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
         value={lang}
         options={[...SUPPORTED_LANGUAGES]}
         onChange={setLang}
+        ariaLabel={t('modal.language')}
         renderOption={v => t(`language.${v}`)}
       />
 

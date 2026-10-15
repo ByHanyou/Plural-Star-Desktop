@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, CustomFieldValue, NoteboardEntry, AppSettings, FrontState, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch, groupKind, groupParent, nameCompare, childrenOf, descendantsOf, tagKey, tagFromInput, mergeTags, isValidHex, linkedSubsystemsOf, setSubsystemLinks } from '../utils';
+import { Member, MemberGroup, MemberSortMode, CustomFieldDef, NoteboardEntry, AppSettings, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch, groupKind, groupParent, nameCompare, childrenOf, descendantsOf, tagKey, tagFromInput, mergeTags, isValidHex, linkedSubsystemsOf, setSubsystemLinks, normalizeMemberEmoji, fmtFieldValue, fmtNum } from '../utils';
 import { chooseImageTreatment } from '../components/ImageCropModal';
 import { PALETTE, ensureReadable, initialOn, profileTheme, themeVars, liveThemeBase } from '../theme';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable, useDndA11y, useEscapeKey, SrOnly , tabListKeyDown } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { CustomHexEntry, ProfileBgChip } from '../components/CustomHexEntry';
 import { MarkdownText } from '../components/MarkdownText';
@@ -38,10 +38,7 @@ function TagAssignDialog({ known, onApply, onClose }: { known: string[]; onApply
       const k = tagKey(tag);
       if (!seen.has(k)) seen.set(k, tag);
     }
-    return [...seen.values()].sort((a, b) => {
-      const ka = tagKey(a), kz = tagKey(b);
-      return ka < kz ? -1 : ka > kz ? 1 : 0;
-    });
+    return [...seen.values()].sort((a, b) => nameCompare(tagKey(a), tagKey(b)));
   }, [known, added]);
   const isOn = (tag: string) => sel.some(x => tagKey(x) === tagKey(tag));
   const toggle = (tag: string) => setSel(prev => (prev.some(x => tagKey(x) === tagKey(tag)) ? prev.filter(x => tagKey(x) !== tagKey(tag)) : [...prev, tag]));
@@ -212,10 +209,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         if (!seen.has(k)) seen.set(k, tag);
       }
     }
-    return [...seen.values()].sort((a, b) => {
-      const ka = tagKey(a), kb = tagKey(b);
-      return ka < kb ? -1 : ka > kb ? 1 : 0;
-    });
+    return [...seen.values()].sort((a, b) => nameCompare(tagKey(a), tagKey(b)));
   }, [members, listView, archiveOnly]);
   const activeTagKey = activeTag ? tagKey(activeTag) : null;
   const filtered = sorted.filter(m =>
@@ -230,6 +224,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+  const membersDndA11y = useDndA11y(id => members.find(m => m.id === id)?.name || '');
+  const fieldsPopoverId = useId();
+  useEscapeKey(showFields, () => setShowFields(false));
 
   const onDragEnd = async (e: DragEndEvent) => {
     const { active: dragged, over } = e;
@@ -297,7 +294,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
     const q = tagKey(tagInput.trim().replace(/^#/, ''));
     return [...seen.values()]
       .filter(tag => !q || tagKey(tag).includes(q))
-      .sort((a, b) => { const ka = tagKey(a), kb = tagKey(b); return ka < kb ? -1 : ka > kb ? 1 : 0; })
+      .sort((a, b) => nameCompare(tagKey(a), tagKey(b)))
       .slice(0, 30);
   }, [members, f.tags, tagInput]);
 
@@ -331,6 +328,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
       pronouns: cloneSel.pronouns ? (f.pronouns || '') : '',
       role: cloneSel.role ? (f.role || '') : '',
       color: cloneSel.color ? f.color : PALETTE[0],
+      emoji: cloneSel.color ? f.emoji : undefined,
       description: cloneSel.description ? (f.description || '') : '',
       tags: [],
       groupIds: [],
@@ -433,7 +431,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
   const pickAvatar = async () => {
     const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
+      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
@@ -444,7 +442,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
 
   const pickBanner = async () => {
     const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
+      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
@@ -478,6 +476,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           value={sortMode}
           options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}
           onChange={changeSortMode}
+          ariaLabel={t('memberSort.label')}
           renderOption={v => t(`memberSort.${v}`)}
         />
         {canReorder && (
@@ -492,14 +491,14 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             🤏
           </button>
         )}
-        <Btn variant={listView === 'active' ? 'info' : 'ghost'} onClick={() => switchListView('active')}>
-          {t('members.title')} ({active.length})
+        <Btn variant={listView === 'active' ? 'info' : 'ghost'} aria-pressed={listView === 'active'} onClick={() => switchListView('active')}>
+          {t('members.titleCount', { count: active.length })}
         </Btn>
-        <Btn variant={listView === 'facets' ? 'info' : 'ghost'} onClick={() => switchListView('facets')}>
-          {t('members.facets')} ({facets.length})
+        <Btn variant={listView === 'facets' ? 'info' : 'ghost'} aria-pressed={listView === 'facets'} onClick={() => switchListView('facets')}>
+          {t('members.facetsCount', { count: facets.length })}
         </Btn>
-        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} onClick={() => switchListView('customFronts')}>
-          {t('members.customFronts')} ({customFronts.length})
+        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} aria-pressed={listView === 'customFronts'} onClick={() => switchListView('customFronts')}>
+          {t('members.customFrontsCount', { count: customFronts.length })}
         </Btn>
         <Btn variant={selectionMode ? 'info' : 'ghost'} aria-pressed={selectionMode} onClick={() => selectionMode ? exitSelection() : setSelectionMode(true)}>
           {selectionMode ? t('common.cancel') : t('members.select')}
@@ -508,9 +507,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : listView === 'facets' ? t('members.addFacet') : t('members.add')}</Btn>
         )}
         <div style={{ position: 'relative' }}>
-          <Btn variant="ghost" onClick={() => setShowFields(v => !v)}>{t('members.displayFields')}</Btn>
+          <Btn variant="ghost" aria-expanded={showFields} aria-controls={showFields ? fieldsPopoverId : undefined} onClick={() => setShowFields(v => !v)}>{t('members.displayFields')}</Btn>
           {showFields && (
-            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 30, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
+            <div id={fieldsPopoverId} style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 30, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
               {(['pronouns', 'roles', 'groups', 'descriptions'] as const).map(k => (
                 <Toggle key={k} label={t(`members.field${k.charAt(0).toUpperCase()}${k.slice(1)}`)}
                   value={listFields[k] ?? false}
@@ -542,7 +541,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
       ) : (<>
       {selectionMode && (
         <div role="toolbar" aria-label={t('members.selectedCount', { count: selectedIds.size })} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 90 }}>{t('members.selectedCount', { count: selectedIds.size })}</span>
+          <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 90 }} aria-live="polite">{t('members.selectedCount', { count: selectedIds.size })}</span>
           <Btn variant="ghost" onClick={() => setSelectedIds(new Set(filtered.map(m => m.id)))}>{t('members.selectAll')}</Btn>
           <Btn variant="ghost" onClick={() => setSelectedIds(new Set())}>{t('members.selectNone')}</Btn>
           {selectedIds.size > 0 && (
@@ -590,7 +589,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         </div>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={membersDndA11y}>
       <SortableContext items={filtered.map(m => m.id)} strategy={rectSortingStrategy}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {filtered.map(m => (
@@ -598,9 +597,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <div className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer', position: 'relative', overflow: 'hidden',
             ...(selectionMode && selectedIds.has(m.id) ? { outline: '2px solid var(--accent)', outlineOffset: -2 } : {}),
             ...((listFields.background === 'color' || (listFields.background === 'banner' && !m.banner)) ? { background: `linear-gradient(${m.color}26, ${m.color}26), var(--card)` } : {}) }}
-            {...(selectionMode ? { 'aria-checked': selectedIds.has(m.id) } : {})}
-            {...clickable(() => selectionMode ? toggleSelected(m.id) : openEdit(m), m.name)}
-            {...(selectionMode ? { role: 'checkbox' as const } : {})}>
+            onClick={() => selectionMode ? toggleSelected(m.id) : openEdit(m)}>
             {selectionMode && (
               <div aria-hidden style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 20, height: 20, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
                 background: selectedIds.has(m.id) ? 'var(--accent)' : 'var(--surface)', color: selectedIds.has(m.id) ? 'var(--bg)' : 'transparent', border: `1px solid ${selectedIds.has(m.id) ? 'var(--accent)' : 'var(--border)'}` }}>
@@ -615,13 +612,15 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             )}
             <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="tile__avatar" style={{
+              <div className="tile__avatar" aria-hidden style={{
                 width: 40, height: 40, fontSize: 14, overflow: 'hidden',
                 ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
               }}>
                 {m.avatar ? <img src={m.avatar} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover' }} /> : getInitials(m.name)}
               </div>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ flex: 1, overflow: 'hidden' }} role={selectionMode ? 'checkbox' : 'button'} tabIndex={0}
+                aria-checked={selectionMode ? selectedIds.has(m.id) : undefined}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (selectionMode) toggleSelected(m.id); else openEdit(m); } }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{m.name}</div>
                 {(((listFields.pronouns && m.pronouns) || (listFields.roles && m.role))) && (
                   <div style={{ fontSize: 11, color: 'var(--muted)' }}>
@@ -632,7 +631,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               {quickFrontEnabled && !m.archived && !selectionMode && (
                 isFronting(m.id) ? (
                   <button
-                    aria-label={`${t('members.removeFromFront')} — ${m.name}`}
+                    aria-label={t('members.removeFromFrontNamed', { name: m.name })}
                     title={t('members.removeFromFront')}
                     onClick={e => { e.stopPropagation(); setConfirmRemoveFront(m); }}
                     style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--danger-bg, transparent)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 15, lineHeight: 1 }}>
@@ -640,7 +639,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   </button>
                 ) : (
                   <button
-                    aria-label={`${t('members.addToFront')} — ${m.name}`}
+                    aria-label={t('members.addToFrontNamed', { name: m.name })}
                     title={t('members.addToFront')}
                     onClick={e => { e.stopPropagation(); setQuickFrontFor(m); }}
                     style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 15, lineHeight: 1 }}>
@@ -672,7 +671,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   </span>
                 ))}
                 {(m.tags || []).length > 4 && (
-                  <span style={{ fontSize: 10, color: 'var(--muted)' }}>+{(m.tags || []).length - 4}</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted)' }}>+{fmtNum((m.tags || []).length - 4, 0)}</span>
                 )}
               </div>
             )}
@@ -700,7 +699,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                   {m.avatar ? <img src={m.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(m.name)}
                 </div>
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
-                <Btn variant="ghost" onClick={() => restoreDeleted(m.id)} aria-label={`${t('members.restore')} ${m.name}`}>{t('members.restore')}</Btn>
+                <Btn variant="ghost" onClick={() => restoreDeleted(m.id)} aria-label={t('members.restoreNamed', { name: m.name })}>{t('members.restore')}</Btn>
               </div>
             ))}
           </div>
@@ -764,13 +763,13 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           </div>
         )}
         {!isNew && !readMode && (
-          <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
+          <div role="tablist" style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
             {(['main', 'fields', 'connections', 'noteboard'] as MemberTab[]).map(tab => (
               <button key={tab} style={{
                 padding: '8px 16px', fontSize: 13, fontWeight: memberTab === tab ? 600 : 400, cursor: 'pointer',
                 color: memberTab === tab ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
                 borderBottom: `2px solid ${memberTab === tab ? 'var(--accent)' : 'transparent'}`,
-              }} aria-pressed={memberTab === tab} onClick={() => setMemberTab(tab)}>
+              }} role="tab" aria-selected={memberTab === tab} onClick={() => setMemberTab(tab)} onKeyDown={tabListKeyDown}>
                 {tab === 'main' ? t('modal.editMember')
                   : tab === 'fields' ? t('customFields.title')
                   : tab === 'connections' ? t('systemMap.connections')
@@ -795,7 +794,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           const gone = (i: string) => { const m = members.find(x => x.id === i); return !!m && !!m.deleted; };
           const mine = relationships.filter(r => (r.fromId === f.id || r.toId === f.id) && !gone(r.fromId === f.id ? r.toId : r.fromId));
           const readVal = (fd: CustomFieldDef, val: string | number | boolean | null) => {
-            if (fd.type === 'toggle') return <span style={{ fontSize: 14, color: val ? 'var(--accent)' : 'var(--muted)' }}>{val ? '✓' : '—'}</span>;
+            if (fd.type === 'toggle') return <span role="img" aria-label={val ? t('common.yes') : t('common.no')} style={{ fontSize: 14, color: val ? 'var(--accent)' : 'var(--muted)' }}>{val ? '✓' : '—'}</span>;
             if (fd.type === 'color') return (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 22, height: 22, borderRadius: 6, background: String(val || '#333'), border: '1px solid var(--border)', display: 'inline-block' }} />
@@ -803,9 +802,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               </span>
             );
             if (fd.type === 'image') return <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />;
-            if (fd.type === 'dateRange') { const [a, b] = String(val || '').split('|'); return <span style={{ fontSize: 13, color: 'var(--text)' }}>{[a, b].filter(Boolean).join(' – ')}</span>; }
+            if (fd.type === 'dateRange') return <span style={{ fontSize: 13, color: 'var(--text)' }}>{fmtFieldValue('dateRange', val)}</span>;
             if (fd.type === 'text' || fd.type === 'markdown') return <MarkdownText text={String(val)} members={members} />;
-            return <span style={{ fontSize: 13, color: 'var(--text)' }}>{String(val)}</span>;
+            return <span style={{ fontSize: 13, color: 'var(--text)' }}>{fmtFieldValue(fd.type, val)}</span>;
           };
           return (
             <div>
@@ -830,10 +829,13 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-                <span aria-label={`${t('modal.color')}: ${f.color}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 999, border: `1px solid ${edge}`, background: 'var(--surface)' }}>
+                <span role="img" aria-label={t('common.labelValue', { label: t('modal.color'), value: f.color })} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 999, border: `1px solid ${edge}`, background: 'var(--surface)' }}>
                   <span aria-hidden style={{ width: 12, height: 12, borderRadius: 6, background: f.color, border: profilePt ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }} />
                   <span aria-hidden style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'monospace' }}>{f.color}</span>
                 </span>
+                {f.emoji ? (
+                  <span role="img" aria-label={t('common.labelValue', { label: t('modal.emoji'), value: f.emoji })} style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 999, border: `1px solid ${edge}`, background: 'var(--surface)', fontSize: 14 }}>{f.emoji}</span>
+                ) : null}
               </div>
 
               {(f.tags || []).length > 0 && (
@@ -987,6 +989,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <Field label={t('modal.nickname')} value={f.nickname || ''} onChange={v => set('nickname' as any, v || undefined)} placeholder={t('modal.nickname')} />
           <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
           <Field label={t('modal.role')} value={f.role} onChange={v => set('role', v)} placeholder={t('modal.rolePlaceholder')} />
+          <Field label={t('modal.emoji')} value={f.emoji || ''} onChange={v => set('emoji', normalizeMemberEmoji(v))} placeholder={t('modal.emojiPlaceholder')} />
 
           <Section label={t('modal.color')} />
           <ColorCarousel value={f.color} onChange={v => set('color', v)} />
@@ -1040,7 +1043,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                       <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {chip(g)}
-                          <button type="button" className="chip" aria-expanded={open} aria-label={g.name} onClick={() => toggleOpen(g)}
+                          <button type="button" className="chip" aria-expanded={open} aria-label={t('memberGroups.showSubgroups', { name: g.name, count: activeKids })} onClick={() => toggleOpen(g)}
                             style={{ padding: '3px 8px', background: 'var(--surface)', color: 'var(--dim)', borderColor: 'var(--border)' }}>
                             {!open && activeKids > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: g.color || 'var(--accent)' }}>{activeKids}</span>}
                             <span aria-hidden style={{ fontSize: 10 }}>{open ? '▽' : '▷'}</span>
@@ -1083,7 +1086,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                       : undefined;
                     return (
                       <button key={g.id} className="chip" type="button" aria-pressed={on}
-                        aria-label={other ? `${g.name}, ${t('memberGroups.linkedFronter')}: ${other.name}` : g.name}
+                        aria-label={other ? t('memberGroups.linkedToNamed', { group: g.name, name: other.name }) : g.name}
                         title={g.description || undefined}
                         style={{
                           borderColor: on ? `${g.color || 'var(--accent)'}50` : 'var(--border)',
@@ -1106,9 +1109,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <ChipList items={f.tags || []} onRemove={tag => setF(x => ({ ...x, tags: (x.tags || []).filter(t => t !== tag) }))} />
           <AddRow value={tagInput} onChange={setTagInput} onAdd={addTag} placeholder={t('modal.memberTagPlaceholder')} />
           {tagSuggestions.length > 0 && (
-            <div role="list" aria-label={t('members.allTags')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6, marginBottom: 10 }}>
+            <div role="group" aria-label={t('members.allTags')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6, marginBottom: 10 }}>
               {tagSuggestions.map(tag => (
-                <button key={tagKey(tag)} type="button" className="chip" aria-label={`${t('common.add')} ${tag}`} onClick={() => applyTag(tag)}
+                <button key={tagKey(tag)} type="button" className="chip" aria-label={t('common.addNamed', { name: tag })} onClick={() => applyTag(tag)}
                   style={{ borderStyle: 'dashed', background: 'var(--surface)', color: 'var(--dim)', borderColor: 'var(--border)' }}>
                   {tag}
                 </button>
@@ -1117,7 +1120,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           )}
 
           <Section label={t('modal.descriptionBio')} />
-          <Field value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} multiline pictureTools />
+          <Field value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} ariaLabel={t('modal.descriptionBio')} multiline pictureTools />
 
           <Toggle label={t('modal.private')} description={t('modal.privateDesc')}
             value={!!f.private} onChange={v => set('private', v)} />
@@ -1200,9 +1203,9 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                       <div>
                         <label className="field__label">{fd.name}</label>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <input className="field__input" aria-label={`${fd.name} (${t('customFields.startDate')})`} type="date" value={String(val || '').split('|')[0] || ''}
+                          <input className="field__input" aria-label={t('customFields.rangePart', { field: fd.name, part: t('customFields.startDate') })} type="date" value={String(val || '').split('|')[0] || ''}
                             onChange={e => setFieldVal(`${e.target.value}|${String(val || '').split('|')[1] || ''}`)} style={{ flex: 1 }} />
-                          <input className="field__input" aria-label={`${fd.name} (${t('customFields.endDate')})`} type="date" value={String(val || '').split('|')[1] || ''}
+                          <input className="field__input" aria-label={t('customFields.rangePart', { field: fd.name, part: t('customFields.endDate') })} type="date" value={String(val || '').split('|')[1] || ''}
                             onChange={e => setFieldVal(`${String(val || '').split('|')[0] || ''}|${e.target.value}`)} style={{ flex: 1 }} />
                         </div>
                       </div>
@@ -1213,14 +1216,16 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                           <div>
                             <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />
                             <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
-                              <label style={{ fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }}>{t('common.change', { defaultValue: 'Change' })}
+                              <label style={{ fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }} tabIndex={0} role="button"
+                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.querySelector('input')?.click(); } }}>{t('common.change', { defaultValue: 'Change' })}
                                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
                               </label>
                               <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }} onClick={() => setFieldVal(null)}>{t('common.clear', { defaultValue: 'Clear' })}</button>
                             </div>
                           </div>
                         ) : (
-                          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--surface)', cursor: 'pointer' }}>
+                          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--surface)', cursor: 'pointer' }} tabIndex={0} role="button"
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.querySelector('input')?.click(); } }}>
                             <span aria-hidden style={{ fontSize: 20, color: 'var(--dim)' }}>＋</span>
                             <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.addImage', { defaultValue: 'Add image' })}</span>
                             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
@@ -1289,18 +1294,19 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                       border: `1px solid ${note.pinned ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <div style={{ width: 22, height: 22, borderRadius: 11, fontSize: 9, fontWeight: 700,
+                        <div aria-hidden style={{ width: 22, height: 22, borderRadius: 11, fontSize: 9, fontWeight: 700,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           background: author?.color || 'var(--muted)', color: author?.color ? initialOn(author.color) : 'var(--text)' }}>
                           {getInitials(author?.name || '?')}
                         </div>
                         <span style={{ fontSize: 12, color: author?.color || 'var(--dim)', fontWeight: 500 }}>{author?.name || '?'}</span>
+                        {note.pinned && <SrOnly>{t('noteboard.pinned')}</SrOnly>}
                         <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>{fmtTime(note.timestamp)}</span>
                       </div>
                       <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{note.content}</p>
                       <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                         <button style={{ background: 'none', border: 'none', fontSize: 11, color: note.pinned ? 'var(--accent)' : 'var(--dim)', cursor: 'pointer' }}
-                          onClick={() => togglePin(note.id)}>{note.pinned ? `📌 ${t('noteboard.unpin')}` : t('noteboard.pin')}</button>
+                          onClick={() => togglePin(note.id)}>{note.pinned ? <><span aria-hidden>📌 </span>{t('noteboard.unpin')}</> : t('noteboard.pin')}</button>
                         <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}
                           onClick={() => deleteNote(note.id)}>{t('noteboard.deleteNote')}</button>
                       </div>
@@ -1371,7 +1377,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         <Toggle value={cloneSel.description} onChange={v => setCloneSel(s => ({ ...s, description: v }))} label={t('modal.descriptionBio')} />
       </Modal>
 
-      <Modal open={!!quickFrontFor} title={quickFrontFor ? `${t('members.addToFront')} — ${quickFrontFor.name}` : t('members.addToFront')} onClose={() => setQuickFrontFor(null)}>
+      <Modal open={!!quickFrontFor} title={quickFrontFor ? t('members.addToFrontNamed', { name: quickFrontFor.name }) : t('members.addToFront')} onClose={() => setQuickFrontFor(null)}>
         {quickFrontFor && (['primary', 'coFront', 'coConscious'] as const)
           .map(tier => (
             <button key={tier}

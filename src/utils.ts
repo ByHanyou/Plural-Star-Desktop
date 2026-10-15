@@ -53,7 +53,7 @@ export const childrenOf = (nodes: MemberGroup[], parentId: string | null): Membe
     .filter(n => groupParent(n) === parentId)
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || nameCompare(a.name, b.name));
 
-export const groupDisplayOrder = (nodes: MemberGroup[]): Map<string, number> => {
+const groupDisplayOrder = (nodes: MemberGroup[]): Map<string, number> => {
   const order = new Map<string, number>();
   const walk = (parentId: string | null) => {
     for (const g of childrenOf(nodes, parentId)) {
@@ -105,7 +105,7 @@ export interface CustomFieldDef {
   markdown?: boolean;
 }
 
-export interface CustomFieldValue {
+interface CustomFieldValue {
   fieldId: string;
   value: string | number | boolean | null;
 }
@@ -120,7 +120,7 @@ export interface NoteboardEntry {
   read?: boolean;
 }
 
-export interface PollOption {
+interface PollOption {
   id: string;
   label: string;
   votes: string[];
@@ -147,6 +147,7 @@ export interface Member {
   pronouns: string;
   role: string;
   color: string;
+  emoji?: string;
   description: string;
   tags?: string[];
   groupIds?: string[];
@@ -161,6 +162,7 @@ export interface Member {
   createdAt?: number;
   nickname?: string;
   isCustomFront?: boolean;
+  seedKey?: string;
   isFacet?: boolean;
   sourceId?: string;
   mailboxPassword?: string;
@@ -170,7 +172,7 @@ export interface Member {
   pkKeepProxy?: boolean;
 }
 
-export type HistoryChangeType = 'front' | 'mood' | 'location' | 'note';
+type HistoryChangeType = 'front' | 'mood' | 'location' | 'note';
 export type FrontTierKey = 'primary' | 'coFront' | 'coConscious';
 
 export interface FrontTier {
@@ -248,24 +250,19 @@ export interface JournalTemplate {
   createdAt?: number;
 }
 
-export interface ShareSettings {
-  showFront: boolean;
-  showMembers: boolean;
-  showDescriptions: boolean;
-}
-
 export type TextScale = 1.0 | 1.25 | 1.5;
 
-export type AccountMode = 'system' | 'singlet';
+type AccountMode = 'system' | 'singlet';
 
 export const isRosterMember = (m: Member): boolean =>
   !m.isCustomFront && !m.isFacet && !m.deleted;
 
-export const rosterMembers = (members: Member[]): Member[] => members.filter(isRosterMember);
-
 export const SINGLET_HIDDEN_STATUS_NAMES = ['Blurry', 'Blendy', 'Rapid Switching', 'Dissociated'];
+const SINGLET_HIDDEN_SEED_KEYS = ['blurry', 'blendy', 'rapidSwitching', 'dissociated'];
+export const isSingletHiddenStatus = (m: Member): boolean =>
+  m.seedKey ? SINGLET_HIDDEN_SEED_KEYS.includes(m.seedKey) : SINGLET_HIDDEN_STATUS_NAMES.includes(m.name);
 export const singletStatuses = (members: Member[]): Member[] =>
-  members.filter(m => m.isCustomFront && !m.archived && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name));
+  members.filter(m => m.isCustomFront && !m.archived && !isSingletHiddenStatus(m));
 
 export interface AppSettings {
   accountMode?: AccountMode;
@@ -381,7 +378,7 @@ export const DEFAULT_PLANNER: PlannerData = {
 
 const plannerDayNumber = (d: Date): number => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
 
-export const daysInMonth = (year: number, monthZeroIndexed: number): number =>
+const daysInMonth = (year: number, monthZeroIndexed: number): number =>
   new Date(year, monthZeroIndexed + 1, 0).getDate();
 
 export const plannerOccursOnDay = (anchorTs: number, repeat: PlannerReminderRepeat | undefined, day: Date): boolean => {
@@ -409,7 +406,6 @@ export const plannerOccursOnDay = (anchorTs: number, repeat: PlannerReminderRepe
       return day.getDate() === dom;
     }
   }
-  return false;
 };
 
 export const plannerNextOccurrence = (anchorTs: number, repeat: PlannerReminderRepeat | undefined, after: number): number | null => {
@@ -441,15 +437,6 @@ export const time12to24 = (raw: string, ampm: 'AM' | 'PM'): string | null => {
   return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 };
 
-export const formatTime12 = (hhmm24: string): string => {
-  const m = /^(\d{1,2}):(\d{2})$/.exec((hhmm24 || '').trim());
-  if (!m) return hhmm24;
-  let h = parseInt(m[1], 10);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12; if (h === 0) h = 12;
-  return `${h}:${m[2]} ${ampm}`;
-};
-
 export interface RelationshipTypeDef {
   id: string;
   name: string;
@@ -473,7 +460,7 @@ export interface Relationship {
 export const DEFAULT_REL_COLOR = '#8A94A6';
 export const RELATIONSHIP_COLOR_CHOICES = ['#E05B5B', '#5BBF7A', '#D9B84A', '#E87BA8'];
 
-export const COLOR_NAMES: Record<string, string> = {
+const COLOR_NAMES: Record<string, string> = {
   '#FFFFFF': 'white',
   '#111111': 'black',
   '#E05B5B': 'red',
@@ -505,7 +492,7 @@ export const colorName = (hex: string, t: (k: string) => string): string => {
   return key ? t(`colors.${key}`) : hex;
 };
 
-export const BASE_COLORS = Object.keys(COLOR_NAMES);
+const BASE_COLORS = Object.keys(COLOR_NAMES);
 
 export type ColorSet = 'default' | 'darker' | 'pastel' | 'neon';
 export const COLOR_SETS: ColorSet[] = ['default', 'darker', 'pastel', 'neon'];
@@ -599,7 +586,7 @@ export const normalizeCustomColors = (raw: unknown): string[] => {
   return out;
 };
 
-export const contrastRatio = (hexA: string, hexB: string): number => {
+const contrastRatio = (hexA: string, hexB: string): number => {
   const lum = (hex: string): number => {
     const h = (hex || '').replace('#', '');
     const full = h.length === 3 ? h.split('').map(c => c + c).join('') : (h + '000000').slice(0, 6);
@@ -679,7 +666,7 @@ export interface ExportPayload {
   shareSettings?: any;
 }
 
-export type ChatMessageType = 'text' | 'image' | 'file' | 'reply' | 'reaction';
+type ChatMessageType = 'text' | 'image' | 'file' | 'reply' | 'reaction';
 
 export interface ChatMessage {
   id: string;
@@ -737,18 +724,12 @@ export const chatChannelsIn = (
     .sort(byOrderThenAge);
 };
 
-export const DEFAULT_CHANNELS: {name: string}[] = [
-  {name: 'General'},
-  {name: 'Venting'},
-  {name: 'Planning'},
-];
-
 export const DEFAULT_MOODS = [
   'Calm', 'Happy', 'Anxious', 'Tired', 'Energetic',
   'Dissociated', 'Grounded', 'Irritable', 'Sad', 'Focused',
 ];
 
-export const MOOD_DELIMITER = ', ';
+const MOOD_DELIMITER = ', ';
 export const parseMoodList = (mood: string | undefined): string[] =>
   (mood || '').split(',').map(s => s.trim()).filter(Boolean);
 export const serializeMoodList = (moods: string[]): string =>
@@ -773,17 +754,18 @@ export const translateMood = (mood: string, t: (k: string) => string): string =>
     }
     return one;
   };
-  return parts.map(translateOne).join(', ');
+  return fmtList(parts.map(translateOne));
 };
 
-export const DEFAULT_CUSTOM_FRONT_NAMES = ['Chatty', 'Non-Verbal', 'IWC', 'DNI', 'Blurry', 'Blendy', 'Rapid Switching', 'Foggy', 'Grounded', 'Dissociated', 'Anxious', 'Depressed', 'Cheerful', 'Happy', 'Sad', 'Crisis', 'Melancholy', 'Stimming', 'Stressed', 'Working', 'Traveling', 'Sleeping', 'Hyperfocus'];
+const DEFAULT_CUSTOM_FRONT_KEYS = ['chatty', 'nonVerbal', 'iwc', 'dni', 'blurry', 'blendy', 'rapidSwitching', 'foggy', 'grounded', 'dissociated', 'anxious', 'depressed', 'cheerful', 'happy', 'sad', 'crisis', 'melancholy', 'stimming', 'stressed', 'working', 'traveling', 'sleeping', 'hyperfocus'];
 
 const CUSTOM_FRONT_COLORS = ['#DAA520', '#7B9FE8', '#E87BA8', '#7BE8C4', '#A87BE8', '#E8A87B', '#6EC9A9', '#E87B7B', '#85B4E8', '#C97BE8', '#B4E885', '#E8C97B'];
 
 export const makeDefaultCustomFronts = (): Member[] =>
-  DEFAULT_CUSTOM_FRONT_NAMES.map((name, i) => ({
+  DEFAULT_CUSTOM_FRONT_KEYS.map((seedKey, i) => ({
     id: uid(),
-    name,
+    name: i18n.t(`customFronts.seed.${seedKey}`),
+    seedKey,
     pronouns: '',
     role: '',
     color: CUSTOM_FRONT_COLORS[i % CUSTOM_FRONT_COLORS.length],
@@ -805,41 +787,6 @@ export const migrateFrontState = (raw: any): FrontState | null => {
     coConscious: {memberIds: [], note: ''},
     startTime: raw.startTime || Date.now(),
   };
-};
-
-export const historyEntryToFrontState = (entry: HistoryEntry): FrontState => ({
-  primary: {
-    memberIds: entry.memberIds,
-    mood: entry.mood,
-    note: entry.note || '',
-    location: entry.location,
-    energyLevel: entry.energyLevel,
-  },
-  coFront: {
-    memberIds: entry.coFrontIds || [],
-    mood: entry.coFrontMood,
-    note: entry.coFrontNote || '',
-    location: entry.coFrontLocation,
-    energyLevel: entry.coFrontEnergy,
-  },
-  coConscious: {
-    memberIds: entry.coConsciousIds || [],
-    mood: entry.coConsciousMood,
-    note: entry.coConsciousNote || '',
-    location: entry.coConsciousLocation,
-    energyLevel: entry.coConsciousEnergy,
-  },
-  startTime: entry.startTime,
-});
-
-export const findOpenFrontInHistory = (history: HistoryEntry[]): FrontState | null => {
-  const openFrontEntry = history.find(entry =>
-    entry.endTime === null &&
-    entry.memberIds.length > 0 &&
-    (!entry.changeType || entry.changeType === 'front')
-  );
-
-  return openFrontEntry ? historyEntryToFrontState(openFrontEntry) : null;
 };
 
 export const isFrontEmpty = (f: FrontState | null): boolean =>
@@ -1063,6 +1010,58 @@ export const fmtDate = (ts: number): string =>
     weekday: 'short', month: 'short', day: 'numeric',
   });
 
+let listFormatCache: {tag: string; fmt: (items: string[]) => string} | null = null;
+
+export const fmtList = (items: string[]): string => {
+  const tag = getLocale();
+  if (!listFormatCache || listFormatCache.tag !== tag) {
+    let fmt: (xs: string[]) => string = xs => xs.join(', ');
+    try {
+      const IntlAny: any = typeof Intl !== 'undefined' ? Intl : null;
+      if (IntlAny && typeof IntlAny.ListFormat === 'function') {
+        const lf = new IntlAny.ListFormat(tag, {style: 'short', type: 'unit'});
+        fmt = xs => lf.format(xs);
+      }
+    } catch {}
+    listFormatCache = {tag, fmt};
+  }
+  return listFormatCache.fmt(items);
+};
+
+const fieldDate = (y: number, m: number, d: number, h = 0, min = 0): Date | null => {
+  const dt = new Date(y, m - 1, d, h, min, 0);
+  return dt.getMonth() === m - 1 && dt.getDate() === d ? dt : null;
+};
+
+export const fmtFieldValue = (type: CustomFieldType, val: unknown): string => {
+  const raw = String(val ?? '');
+  const tag = getLocale();
+  try {
+    if (type === 'dateRange') return raw.split('|').filter(Boolean).map(p => fmtFieldValue('date', p)).join(' – ');
+    if (type === 'date') {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+      const d = m && fieldDate(+m[1], +m[2], +m[3]);
+      if (d) return d.toLocaleDateString(tag, {year: 'numeric', month: 'short', day: 'numeric'});
+    } else if (type === 'timestamp') {
+      const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(raw);
+      const d = m && fieldDate(+m[1], +m[2], +m[3], +m[4], +m[5]);
+      if (d) return d.toLocaleString(tag, {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+    } else if (type === 'month' || type === 'monthYear') {
+      const m = /^(\d{4})-(\d{2})$/.exec(raw);
+      const d = m && fieldDate(+m[1], +m[2], 1);
+      if (d) return d.toLocaleDateString(tag, {month: 'long', year: 'numeric'});
+    } else if (type === 'monthDay') {
+      const m = /^(\d{1,2})-(\d{1,2})$/.exec(raw);
+      const d = m && fieldDate(2000, +m[1], +m[2]);
+      if (d) return d.toLocaleDateString(tag, {month: 'long', day: 'numeric'});
+    } else if (type === 'number') {
+      const n = Number(raw);
+      if (raw.trim() !== '' && Number.isFinite(n)) return new Intl.NumberFormat(tag, {useGrouping: false, maximumFractionDigits: 10}).format(n);
+    }
+  } catch {}
+  return raw;
+};
+
 export const fmtDur = (start: number, end?: number | null): string => {
   const ms = (end ?? Date.now()) - start;
   const h = Math.floor(ms / 3600000);
@@ -1082,7 +1081,45 @@ export const truncateRunes = (s: string, max: number, ellipsis = ''): string => 
   return runes.slice(0, Math.max(0, max)).join('') + ellipsis;
 };
 
-export const upperRune = (ch: string): string => {
+const isEmojiModifier = (cp: number): boolean =>
+  cp === 0x200d || cp === 0xfe0e || cp === 0xfe0f || (cp >= 0x1f3fb && cp <= 0x1f3ff) || cp === 0x20e3 || (cp >= 0xe0020 && cp <= 0xe007f);
+const isRegionalIndicator = (cp: number): boolean => cp >= 0x1f1e6 && cp <= 0x1f1ff;
+
+/** Splits text into emoji-sized clusters: a base code point plus its joiners, selectors, skin tones, keycaps, tags and paired flags. */
+export const emojiClusters = (s: string): string[] => {
+  const cps = Array.from(s);
+  const out: string[] = [];
+  let i = 0;
+  while (i < cps.length) {
+    let cluster = cps[i];
+    const cp = cps[i].codePointAt(0) ?? 0;
+    i++;
+    if (isRegionalIndicator(cp) && i < cps.length && isRegionalIndicator(cps[i].codePointAt(0) ?? 0)) {
+      cluster += cps[i];
+      i++;
+    }
+    while (i < cps.length) {
+      const next = cps[i].codePointAt(0) ?? 0;
+      if (!isEmojiModifier(next)) break;
+      cluster += cps[i];
+      i++;
+      if (next === 0x200d && i < cps.length) {
+        cluster += cps[i];
+        i++;
+      }
+    }
+    out.push(cluster);
+  }
+  return out;
+};
+
+/** Profile emoji: whitespace removed, at most 3 emoji (never cut inside a sequence), no dangling joiner; empty -> undefined. */
+export const normalizeMemberEmoji = (v: string): string | undefined => {
+  const s = emojiClusters(String(v ?? '').replace(/\s+/g, '')).slice(0, 3).join('').replace(/\u200D+$/, '');
+  return s || undefined;
+};
+
+const upperRune = (ch: string): string => {
   const up = ch.toUpperCase();
   const cp = up.codePointAt(0) ?? 0;
   if (cp >= 0x1c90 && cp <= 0x1cbf) return ch;
@@ -1091,7 +1128,7 @@ export const upperRune = (ch: string): string => {
 
 export const upperText = (s: string): string => Array.from(String(s ?? '')).map(upperRune).join('');
 
-export const lowerRune = (ch: string): string => {
+const lowerRune = (ch: string): string => {
   const low = ch.toLowerCase();
   const cp = low.codePointAt(0) ?? 0;
   if (cp >= 0xab70 && cp <= 0xabbf) return ch;
@@ -1162,22 +1199,16 @@ export const sortMembers = (members: Member[], mode: MemberSortMode = 'alphabeti
   }
 };
 
-export const TIER_LABELS: Record<FrontTierKey, string> = {
-  primary: 'Primary Front',
-  coFront: 'Co-Front',
-  coConscious: 'Co-Conscious',
-};
-
 export const TEXT_SCALE_OPTIONS: {label: string; value: TextScale}[] = [
   {label: 'Normal', value: 1.0},
   {label: 'Large', value: 1.25},
   {label: 'Extra Large', value: 1.5},
 ];
 
-export const BANNER_WIDTH = 900;
-export const BANNER_HEIGHT = 300;
+const BANNER_WIDTH = 900;
+const BANNER_HEIGHT = 300;
 
-export const MIRROR_THUMB_MAX = 128;
+const MIRROR_THUMB_MAX = 128;
 
 export const mirrorThumbDataUrl = (dataUrl: string, maxDim: number = MIRROR_THUMB_MAX, quality: number = 0.7): Promise<string | null> =>
   new Promise(resolve => {

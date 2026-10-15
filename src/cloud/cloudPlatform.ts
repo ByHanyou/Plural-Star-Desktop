@@ -5,6 +5,7 @@ import {SYNC_STATE_KEY, MIRROR_CACHE_PREFIX} from '../network/types';
 import {CloudService, CloudPlatform} from './cloudVault';
 import {CLOUD_LINK_KEY, CloudLinkState, CloudRequest, CloudResponse, CloudTransport} from './cloudTypes';
 import {splitDataUri} from './cloudCrypto';
+import i18n from '../i18n/i18n';
 
 const transport: CloudTransport = {
   async request(req: CloudRequest): Promise<CloudResponse> {
@@ -45,12 +46,12 @@ const reencodeImage = (dataUri: string): Promise<string> => new Promise(resolve 
 const deviceLabel = (): string => {
   try {
     const p = window.electronAPI.platform;
-    if (p === 'darwin') return 'Mac Desktop';
-    if (p === 'win32') return 'Windows Desktop';
-    if (p === 'linux') return 'Linux Desktop';
-    return 'Desktop';
+    if (p === 'darwin') return i18n.t('network.deviceMac');
+    if (p === 'win32') return i18n.t('network.deviceWindows');
+    if (p === 'linux') return i18n.t('network.deviceLinux');
+    return i18n.t('network.deviceDesktop');
   } catch {
-    return 'Desktop';
+    return i18n.t('network.deviceDesktop');
   }
 };
 

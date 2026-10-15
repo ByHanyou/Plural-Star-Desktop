@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HistoryEntry, ChatMessage, fmtDur, fmtNum, fmtClock, getInitials, translateMood, buildEffectiveEnd, SINGLET_HIDDEN_STATUS_NAMES } from '../utils';
-import { Section } from '../components/ui';
-import { store, chatMsgKey, KEYS } from '../storage';
+import { HistoryEntry, ChatMessage, fmtDur, fmtNum, fmtClock, translateMood, buildEffectiveEnd, isSingletHiddenStatus, fmtList } from '../utils';
+import { Interp, slots } from '../components/ui';
+import { store, chatMsgKey } from '../storage';
 import { useAppStore } from '../store/appStore';
 import { getTierNameOverride } from '../i18n/terminology';
 import type { TierNameKey } from '../i18n/terminology';
@@ -46,7 +46,10 @@ export default function StatsView({ singlet = false, selfId }: Props) {
 
   const getMember = (id: string) => members.find(m => m.id === id);
   const customFrontIds = useMemo(() => new Set(members.filter(m => m.isCustomFront).map(m => m.id)), [members]);
-  const hiddenStatusIds = useMemo(() => new Set(members.filter(m => m.isCustomFront && SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)).map(m => m.id)), [members]);
+  const hiddenStatusIds = useMemo(() => new Set(members.filter(m => m.isCustomFront && isSingletHiddenStatus(m)).map(m => m.id)), [members]);
+  const detailsHeadingId = React.useId();
+  const chartSummary = (title: string, items: string[]) =>
+    t('stats.chartSummary', { title, items: fmtList(items) });
   const rankExclude = (id: string): boolean => singlet
     ? (id === selfId || !customFrontIds.has(id) || hiddenStatusIds.has(id))
     : customFrontIds.has(id);
@@ -249,15 +252,15 @@ export default function StatsView({ singlet = false, selfId }: Props) {
           shown.map(([id, val]) => {
             const m = getMember(id);
             return (
-              <Bar key={id} label={m?.name || id} value={val} max={maxVal} color={m?.color || 'var(--accent)'}
-                suffix={mode === 'time' ? fmtDur(0, val) : `${val}`} />
+              <Bar key={id} label={m?.name || t('common.unknown')} value={val} max={maxVal} color={m?.color || 'var(--accent)'}
+                suffix={mode === 'time' ? fmtDur(0, val) : fmtNum(val, 0)} />
             );
           })
         )}
         {data.length > limit && limit < MAX_BOARD && (
           <button onClick={() => expandBoard(boardKey)}
             style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-            {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limit, data.length)}/{data.length})
+            {t('stats.showMoreCount', { shown: fmtNum(Math.min(limit, data.length), 0), total: fmtNum(data.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
           </button>
         )}
       </div>
@@ -277,11 +280,11 @@ export default function StatsView({ singlet = false, selfId }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
         {[
-          { label: t('stats.totalSessions'), value: totalSessions.toString() },
+          { label: t('stats.totalSessions'), value: fmtNum(totalSessions, 0) },
           { label: t('stats.totalFrontTime'), value: fmtDur(0, totalTime) },
           ...(singlet ? [] : [
-            { label: t('stats.uniqueFronters'), value: fronterTotals.length.toString() },
-            { label: t('stats.chatMessages'), value: totalMsgs.toString() },
+            { label: t('stats.uniqueFronters'), value: fmtNum(fronterTotals.length, 0) },
+            { label: t('stats.chatMessages'), value: fmtNum(totalMsgs, 0) },
           ]),
         ].map(({ label, value }) => (
           <div key={label} style={{
@@ -305,11 +308,11 @@ export default function StatsView({ singlet = false, selfId }: Props) {
         <div>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.topMoods')}</h3>
           {moodTotals.slice(0, limitFor('moods')).map(([mood, count]) => (
-            <Bar key={mood} label={translateMood(mood, t)} value={count} max={moodTotals[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
+            <Bar key={mood} label={translateMood(mood, t)} value={count} max={moodTotals[0]?.[1] || 1} color="var(--info)" suffix={fmtNum(count, 0)} />
           ))}
           {moodTotals.length > limitFor('moods') && limitFor('moods') < MAX_BOARD && (
             <button onClick={() => expandBoard('moods')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-              {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limitFor('moods'), moodTotals.length)}/{moodTotals.length})
+              {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('moods'), moodTotals.length), 0), total: fmtNum(moodTotals.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
             </button>
           )}
           {moodTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noMoodsRecorded')}</span>}
@@ -317,11 +320,11 @@ export default function StatsView({ singlet = false, selfId }: Props) {
         <div>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.topLocations')}</h3>
           {locationTotals.slice(0, limitFor('locations')).map(([loc, count]) => (
-            <Bar key={loc} label={loc} value={count} max={locationTotals[0]?.[1] || 1} color="var(--success)" suffix={`${count}`} />
+            <Bar key={loc} label={loc} value={count} max={locationTotals[0]?.[1] || 1} color="var(--success)" suffix={fmtNum(count, 0)} />
           ))}
           {locationTotals.length > limitFor('locations') && limitFor('locations') < MAX_BOARD && (
             <button onClick={() => expandBoard('locations')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-              {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limitFor('locations'), locationTotals.length)}/{locationTotals.length})
+              {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('locations'), locationTotals.length), 0), total: fmtNum(locationTotals.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
             </button>
           )}
           {locationTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noLocationsRecorded')}</span>}
@@ -333,23 +336,24 @@ export default function StatsView({ singlet = false, selfId }: Props) {
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('energy.avgEnergy')}</h3>
           {energyStats.slice(0, 8).map(([id, avg]) => {
             const m = getMember(id);
-            return <Bar key={id} label={m?.name || '?'} value={avg} max={10} color={m?.color || 'var(--accent)'} suffix={`${fmtNum(avg, 1)}/10`} />;
+            return <Bar key={id} label={m?.name || '?'} value={avg} max={10} color={m?.color || 'var(--accent)'} suffix={t('energy.outOfTen', { value: fmtNum(avg, 1) })} />;
           })}
         </div>
       )}
 
       <div style={{ marginTop: 20 }}>
         <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.peakHours')}</h3>
-        <div role="img" aria-label={`${t('stats.peakHours')}: ${peakHours.map((c, h) => c > 0 ? `${fmtClock(h, 0)} (${fmtNum(c)})` : '').filter(Boolean).join(', ')}`}
+        <div role="img" aria-label={chartSummary(t('stats.peakHours'), peakHours.map((c, h) => c > 0 ? t('stats.chartItem', { label: fmtClock(h, 0), value: fmtNum(c) }) : '').filter(Boolean))}
           style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
           {peakHours.map((count, h) => (
             <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{
                 width: '100%', background: count === peakMax ? 'var(--accent)' : 'var(--border)',
+                border: count === peakMax ? '1px solid var(--text)' : 'none', boxSizing: 'border-box',
                 borderRadius: 2, height: `${Math.max((count / peakMax) * 100, 2)}%`,
                 minHeight: 2, transition: 'height 0.3s ease',
               }} />
-              {h % 4 === 0 && <span style={{ fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>{h}</span>}
+              {h % 4 === 0 && <span style={{ fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>{fmtNum(h, 0)}</span>}
             </div>
           ))}
         </div>
@@ -358,12 +362,12 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       {energyByHour.some(v => v > 0) && (
         <div style={{ marginTop: 20 }}>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.energyByHour', { defaultValue: 'Energy by Hour' })}</h3>
-          <div role="img" aria-label={`${t('stats.energyByHour')}, ${t('energy.outOf10')}: ${energyByHour.map((avg, h) => avg > 0 ? `${fmtClock(h, 0)} (${fmtNum(avg, 1)})` : '').filter(Boolean).join(', ')}`}
+          <div role="img" aria-label={chartSummary(t('stats.energyByHour', { defaultValue: 'Energy by Hour' }), energyByHour.map((avg, h) => avg > 0 ? t('stats.chartItem', { label: fmtClock(h, 0), value: t('energy.outOfTen', { value: fmtNum(avg, 1) }) }) : '').filter(Boolean))}
             style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
             {energyByHour.map((avg, h) => (
               <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ width: '100%', background: avg > 0 ? 'var(--accent)' : 'var(--border)', borderRadius: 2, height: `${avg > 0 ? Math.max((avg / 10) * 100, 3) : 2}%`, minHeight: 2, transition: 'height 0.3s ease' }} />
-                {h % 4 === 0 && <span style={{ fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>{h}</span>}
+                {h % 4 === 0 && <span style={{ fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>{fmtNum(h, 0)}</span>}
               </div>
             ))}
           </div>
@@ -371,9 +375,9 @@ export default function StatsView({ singlet = false, selfId }: Props) {
       )}
 
       <div style={{ marginTop: 20 }}>
-        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{singlet ? t('stats.statusDetails') : t('stats.memberDetails')}</h3>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {members.filter(m => !m.archived && !m.isFacet && (singlet ? (m.isCustomFront && !SINGLET_HIDDEN_STATUS_NAMES.includes(m.name)) : !m.isCustomFront)).map(m => (
+        <h3 id={detailsHeadingId} style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{singlet ? t('stats.statusDetails') : t('stats.memberDetails')}</h3>
+        <div role="group" aria-labelledby={detailsHeadingId} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          {members.filter(m => !m.archived && !m.isFacet && (singlet ? (m.isCustomFront && !isSingletHiddenStatus(m)) : !m.isCustomFront)).map(m => (
             <button key={m.id} className={`chip`} aria-pressed={selectedStatMember === m.id}
               style={{
                 borderColor: selectedStatMember === m.id ? `${m.color}60` : 'var(--border)',
@@ -391,8 +395,8 @@ export default function StatsView({ singlet = false, selfId }: Props) {
           [t('members.customFronts'), members.filter(m => !m.archived && m.isCustomFront && !m.isFacet)],
         ] as [string, typeof members][]).map(([label, list]) => list.length > 0 && (
           <React.Fragment key={label}>
-            <label className="field__label">{label}</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="field__label" id={`${detailsHeadingId}-${label === t('members.facets') ? 'facets' : 'cf'}`}>{label}</div>
+            <div role="group" aria-labelledby={`${detailsHeadingId}-${label === t('members.facets') ? 'facets' : 'cf'}`} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
               {list.map(m => (
                 <button key={m.id} className={`chip`} aria-pressed={selectedStatMember === m.id}
                   style={{
@@ -414,8 +418,10 @@ export default function StatsView({ singlet = false, selfId }: Props) {
           return (
             <div style={{ padding: 14, background: 'var(--card)', borderRadius: 10, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-                <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.sessions}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>{t('stats.sessionsSuffix')}</span></div>
-                {memberSpecific.avgEnergy !== null && <div><span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{memberSpecific.avgEnergy}</span><span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 4 }}>{t('energy.outOf10')}</span></div>}
+                <div><Interp text={t('stats.sessionCount', { count: memberSpecific.sessions, ...slots('num') })} textStyle={{ fontSize: 11, color: 'var(--muted)' }}
+                  nodes={{ num: <span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{fmtNum(memberSpecific.sessions, 0)}</span> }} /></div>
+                {memberSpecific.avgEnergy !== null && <div><Interp text={t('stats.avgEnergyValue', slots('num'))} textStyle={{ fontSize: 11, color: 'var(--muted)' }}
+                  nodes={{ num: <span style={{ fontSize: 20, fontWeight: 700, color: m?.color || 'var(--accent)' }}>{fmtNum(memberSpecific.avgEnergy, 1)}</span> }} /></div>}
               </div>
               {(() => {
                 const kindOf = (id: string): 'member' | 'facet' | 'customFront' => {
@@ -439,11 +445,11 @@ export default function StatsView({ singlet = false, selfId }: Props) {
                       <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{g.label}</div>
                       {g.all.slice(0, limit).map(([id, count]) => {
                         const cm = getMember(id);
-                        return <Bar key={id} label={cm?.name || '?'} value={count} max={g.all[0]?.[1] || 1} color={cm?.color || 'var(--info)'} suffix={`${count}`} />;
+                        return <Bar key={id} label={cm?.name || '?'} value={count} max={g.all[0]?.[1] || 1} color={cm?.color || 'var(--info)'} suffix={fmtNum(count, 0)} />;
                       })}
                       {g.all.length > limit && limit < MAX_BOARD && (
                         <button onClick={() => expandBoard(g.key)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-                          {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limit, g.all.length)}/{g.all.length})
+                          {t('stats.showMoreCount', { shown: fmtNum(Math.min(limit, g.all.length), 0), total: fmtNum(g.all.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
                         </button>
                       )}
                     </div>
@@ -454,11 +460,11 @@ export default function StatsView({ singlet = false, selfId }: Props) {
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('stats.topMoods')}</div>
                   {memberSpecific.moods.slice(0, limitFor('coMoods')).map(([mood, count]) => (
-                    <Bar key={mood} label={translateMood(mood, t)} value={count} max={memberSpecific.moods[0]?.[1] || 1} color="var(--info)" suffix={`${count}`} />
+                    <Bar key={mood} label={translateMood(mood, t)} value={count} max={memberSpecific.moods[0]?.[1] || 1} color="var(--info)" suffix={fmtNum(count, 0)} />
                   ))}
                   {memberSpecific.moods.length > limitFor('coMoods') && limitFor('coMoods') < MAX_BOARD && (
                     <button onClick={() => expandBoard('coMoods')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-                      {t('stats.showMore', { defaultValue: 'Show more' })} ({Math.min(limitFor('coMoods'), memberSpecific.moods.length)}/{memberSpecific.moods.length})
+                      {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('coMoods'), memberSpecific.moods.length), 0), total: fmtNum(memberSpecific.moods.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
                     </button>
                   )}
                 </div>

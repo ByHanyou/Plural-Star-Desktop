@@ -7,6 +7,10 @@
     "outDir": "dist-electron",
     "rootDir": "electron",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true

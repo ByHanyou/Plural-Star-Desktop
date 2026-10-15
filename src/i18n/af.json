@@ -34,7 +34,7 @@
     "goldenrod": "Goudgeel",
     "periwinkle": "Periwinkel",
     "pink": "Pienk",
-    "mint": "Mint",
+    "mint": "Mintgroen",
     "lavender": "Laventel",
     "peach": "Perske",
     "seaGreen": "Seegroen",
@@ -42,7 +42,9 @@
     "skyBlue": "Hemelsblou",
     "orchid": "Orgidee",
     "lime": "Lemmetjie",
-    "sand": "Sand"
+    "sand": "Sand",
+    "customCount": "Pasgemaak {{count}}/{{max}}",
+    "customSlotValue": "Pasgemaak {{n}}, {{hex}}"
   },
   "common": {
     "durDaysHours": "{{d}} d {{h}} u",
@@ -87,7 +89,20 @@
     "untitled": "Sonder titel",
     "notInExport": "Nie in uitvoer nie",
     "ok": "OK",
-    "edit": "Wysig"
+    "errorCode": "Foutkode: {{code}}",
+    "edit": "Wysig",
+    "removeNamed": "Verwyder {{name}}",
+    "dragReorderNamed": "Sleep om {{name}} te herrangskik",
+    "editNamed": "Wysig {{name}}",
+    "deleteNamed": "Skrap {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Ingesluit",
+    "yes": "Ja",
+    "no": "Nee",
+    "addNamed": "Voeg {{name}} by",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Skuif {{name}} op",
+    "moveDownNamed": "Skuif {{name}} af"
   },
   "errorBoundary": {
     "title": "Iets het skeefgeloop",
@@ -124,7 +139,10 @@
     "statusesDesc": "Statusse beskryf hoe dit met jou gaan — soos Slaap, Werk of Angstig. Kies hulle wanneer jy jou status bywerk.",
     "noStatuses": "Nog geen statusse nie. Voeg een by om te begin.",
     "activeStatus": "Aktief",
-    "favoriteColor": "Gunstelingkleur"
+    "favoriteColor": "Gunstelingkleur",
+    "defaultSelfName": "Ek",
+    "statusesCount": "Statusse ({{count}})",
+    "deleteActiveHint": "Verwyder hierdie status uit jou huidige status voordat jy dit skrap."
   },
   "settings": {
     "observatory": "Observatorium-koppelvlak (Singlet)",
@@ -140,6 +158,7 @@
     "primaryShort": "Primêr",
     "coFrontShort": "Co-front",
     "coConShort": "Co-bewus",
+    "assignedTo": "({{tier}})",
     "editTier": "Wysig {{tier}}"
   },
   "setup": {
@@ -160,7 +179,10 @@
     "noNote": "Geen nota nie. Tik ✎ om een by te voeg.",
     "clearFront": "Maak front leeg",
     "clearFrontMsg": "Dit sal al die vlakke leegmaak en die einde van die huidige sessie aanteken. Gaan voort?",
-    "clearFrontTitle": "Maak front leeg?"
+    "clearFrontTitle": "Maak front leeg?",
+    "frontingForSince": "Fronting vir {{dur}} · sedert {{time}}",
+    "editDetailsFor": "Wysig bui en ligging vir {{tier}}",
+    "editNoteFor": "Wysig nota vir {{tier}}"
   },
   "members": {
     "title": "Lede",
@@ -225,7 +247,22 @@
     "frontingLockTitle": "Tans fronting",
     "frontingLockMsg": "Jy kan nie 'n lid argiveer of skrap terwyl hulle fronting is nie. Verwyder hulle eers uit die front.",
     "archive": "Argiveer",
-    "recentlyDeleted": "Onlangs geskrap"
+    "recentlyDeleted": "Onlangs geskrap",
+    "unnamed": "Naamlose lid",
+    "archivedCount": "Geargiveer ({{count}})",
+    "viewProfileNamed": "Bekyk {{name}} se profiel",
+    "titleCount": "Lede ({{count}})",
+    "facetsCount": "Fasette ({{count}})",
+    "customFrontsCount": "Pasgemaakte fronte ({{count}})",
+    "removeFromFrontNamed": "Verwyder {{name}} uit die front",
+    "addToFrontNamed": "Voeg {{name}} by die front",
+    "restoreNamed": "Herstel {{name}}",
+    "bulkArchiveMsg_one": "Argiveer {{count}} lid? Dit kan later herstel word.",
+    "bulkArchiveMsg_other": "Argiveer {{count}} lede? Hulle kan later herstel word.",
+    "bulkRestoreMsg_one": "Herstel {{count}} lid na aktief?",
+    "bulkRestoreMsg_other": "Herstel {{count}} lede na aktief?",
+    "bulkDeleteMsg_one": "Skrap {{count}} lid permanent? Dit kan nie ontdoen word nie.",
+    "bulkDeleteMsg_other": "Skrap {{count}} lede permanent? Dit kan nie ontdoen word nie."
   },
   "history": {
     "title": "Geskiedenis",
@@ -251,7 +288,11 @@
     "allMembers": "Alle lede",
     "byStatus": "Per status",
     "noHistorySinglet": "Nog geen geskiedenis nie. Statusopdaterings sal outomaties hier verskyn.",
-    "statusHistory": "Statusgeskiedenis"
+    "statusHistory": "Statusgeskiedenis",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Skrap inskrywing van {{time}}",
+    "deleteEntryStep": "Skrap inskrywing ({{step}}/{{total}})"
   },
   "journal": {
     "locked": "Joernaal gesluit",
@@ -284,12 +325,16 @@
     "templateName": "Sjabloonnaam *",
     "templateNamePlaceholder": "bv. Oggendbladsye",
     "templateTitle": "Inskrywingstitel (vooraf gestel)",
-    "templateBody": "Inskrywingsinhoud (vooraf gestel)"
+    "templateBody": "Inskrywingsinhoud (vooraf gestel)",
+    "pinnedLabel": "Vasgespeld",
+    "lockedLabel": "Gesluit",
+    "pinNamed": "Speld {{title}} vas"
   },
   "share": {
     "importStopping": "Voltooi hierdie stap, stop dan…",
     "importStopped": "Invoer gestop. Niks is verander nie.",
     "importCancelHint": "Stop nadat die huidige stap klaar is. Stappe wat reeds klaar is, word gehou.",
+    "importCancelTitle": "Stop die invoer?",
     "progressSavingMembers": "Herstel lede…",
     "progressJournal": "Herstel joernaal…",
     "progressHistory": "Herstel frontgeskiedenis…",
@@ -391,7 +436,13 @@
     "membersCountSimple": "{{count}} lede",
     "restoreDesc": "Laai 'n voorheen uitgevoerde JSON-rugsteun.",
     "spMergeDesc": "Smelt Simply Plural-rugsteundata met jou huidige sisteem saam.",
-    "banners": "Lidbaniere"
+    "banners": "Lidbaniere",
+    "psFilterName": "PluralSpace-uitvoer (.zip of data.json)",
+    "plurallogFilterName": "PluralLog-uitvoer (.zip)",
+    "backupFileSuffix": "rugsteun",
+    "errUnexpected": "Iets het skeefgeloop. Kontroleer die lêer en probeer weer.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit-invoer (token)"
   },
   "hub": {
     "addHistoryDesc": "Voeg self 'n terugwerkende frontgeskiedenisinskrywing by.",
@@ -415,8 +466,6 @@
     "retroHistory": "Retro-geskiedenis",
     "statistics": "Statistiek",
     "systemChat": "Sisteemklets",
-    "discord": "Discord",
-    "discordBlurb": "Gemeenskapsklets en ondersteuning",
     "dashboard": "← Paneelbord",
     "supportPS": "Ondersteun Plural Star",
     "supportPSBlurb": "Buy Me a Coffee",
@@ -424,7 +473,12 @@
     "creditLogo": "Plural Star-logo",
     "creditIos": "Plural Star iOS-weergawe",
     "creditsBlurb": "Gemeenskapsbydraers",
-    "archive": "Argief"
+    "archive": "Argief",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Gemeenskapsklets en ondersteuning",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "URL hier",
@@ -442,7 +496,11 @@
     "toolCode": "Kode",
     "brokenImage": "[gebroke prent]",
     "imageUnavailable": "[prent nie beskikbaar nie]",
-    "spoiler": "Bederwer, klik om te onthul"
+    "spoiler": "Bederwer, klik om te onthul",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "changePfp": "Verander profielfoto",
@@ -473,6 +531,8 @@
     "hue": "Tint",
     "invalidHex": "Ongeldige hex-kleur",
     "customColor": "Pasgemaakte kleur",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "bv. 🦊",
     "descriptionBio": "Beskrywing / bio",
     "descriptionPlaceholder": "'n Bietjie oor hierdie headmate… plak prent-/GIF-URL's inlyn",
     "preview": "Voorskou",
@@ -539,14 +599,20 @@
     "removePfp": "Verwyder foto",
     "viewPfp": "Bekyk foto",
     "viewPfpOf": "Foto van {{name}}",
-    "fancyPants": "Fancy Pants",
+    "fancyPants": "Visuele redigeerder",
     "selectedText": "teks",
     "searchAuthors": "Soek skrywers…",
     "textSize": "Teksgrootte",
     "textSizeDesc": "Verstel teksgrootte deur die hele app.",
     "textScaleNormal": "Normaal",
     "textScaleLarge": "Groot",
-    "textScaleExtraLarge": "Ekstra groot"
+    "textScaleExtraLarge": "Ekstra groot",
+    "cropMove": "Skuif snyarea (pyltjiesleutels)",
+    "cropResizeTopLeft": "Verander grootte vanaf die linkerbohoek (pyltjiesleutels)",
+    "cropResizeTopRight": "Verander grootte vanaf die regterbohoek (pyltjiesleutels)",
+    "cropResizeBottomLeft": "Verander grootte vanaf die linkeronderhoek (pyltjiesleutels)",
+    "cropResizeBottomRight": "Verander grootte vanaf die regteronderhoek (pyltjiesleutels)",
+    "fontDefault": "Verstek"
   },
   "notification": {
     "mood": "Bui: {{mood}}",
@@ -557,7 +623,8 @@
     "coFront": "Co-front: {{names}}",
     "coConscious": "Co-bewus: {{names}}",
     "cfShort": "CF: {{names}}",
-    "ccShort": "CC: {{names}}"
+    "ccShort": "CC: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "en": "English",
@@ -617,7 +684,16 @@
     "subsystem": "Subsisteem",
     "linkedFronter": "Gekoppelde Fronter",
     "noLinkedFronter": "Geen",
-    "linkedSubsystems": "Gekoppelde subsisteme"
+    "linkedSubsystems": "Gekoppelde subsisteme",
+    "showSubgroups": "Subgroepe van {{name}} ({{count}} gekies)",
+    "linkedToNamed": "{{group}}, gekoppelde fronter: {{name}}",
+    "deleteWithChildrenMsg_one": "Dit bevat {{count}} geneste item. Hou dit en skuif dit een vlak op, of skrap alles?",
+    "deleteWithChildrenMsg_other": "Dit bevat {{count}} geneste items. Hou hulle en skuif hulle een vlak op, of skrap alles?",
+    "memberCount_one": "{{count}} lid",
+    "memberCount_other": "{{count}} lede",
+    "moveNamed": "Skuif {{name}}",
+    "addMembersTo": "Voeg lede by {{name}}",
+    "kindToggle": "Tipe: {{kind}} (aktiveer om te wissel)"
   },
   "systemManager": {
     "title": "Sisteembestuurder",
@@ -699,7 +775,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Beplanner-herinnering",
-    "reminderTitlePlaceholder": "Wat moet dit sê?"
+    "reminderTitlePlaceholder": "Wat moet dit sê?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Herinnering vir {{title}}"
   },
   "mailbox": {
     "title": "Posbus",
@@ -722,7 +800,14 @@
     "messageCount_other": "{{count}} boodskappe",
     "unreadCount": "{{count}} ongelees",
     "deleteTitle": "Skrap boodskap",
-    "deleteMsg": "Verwyder hierdie boodskap? Dit kan nie ontdoen word nie."
+    "deleteMsg": "Verwyder hierdie boodskap? Dit kan nie ontdoen word nie.",
+    "allOthersCount": "Alle ander Lede ({{count}})",
+    "lockedLabel": "Gesluit",
+    "lockButtonLocked": "Posbusslot (aan)",
+    "lockButtonUnlocked": "Posbusslot (af)",
+    "fromName": "Van: {{name}}",
+    "deleteFrom": "Skrap boodskap van {{name}}",
+    "unlockTitle": "Ontsluit {{name}} se posbus"
   },
   "network": {
     "cloudConfirmTitle": "Bevestig weer",
@@ -736,6 +821,7 @@
     "cloudErrRate": "Te veel pogings. Wag 'n minuut en probeer weer.",
     "cloudErrFull": "Die kluis of die node het nie meer spasie nie.",
     "cloudErrTooLarge": "Uitgelaat, groter as 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Uitgelaat, die kluis het nie meer spasie nie: {{keys}}",
     "cloudErrBadPassword": "Die kluis bestaan, maar hierdie wagwoord maak dit nie oop nie.",
     "cloudErrCorrupt": "Die kluis kon nie op hierdie toestel gelees word nie. Ontkoppel en koppel weer met dieselfde wagwoord.",
     "cloudUnavailable": "Die node waaraan jy gekoppel is, bied nie Wolkdienste nie.",
@@ -847,7 +933,32 @@
     "syncRoleMismatchMsg": "Jy en {{device}} het albei dieselfde rigting gekies, so die aanvanklike kopie is oorgeslaan. Nuwe veranderinge sal steeds sinkroniseer. Om alles te kopieer, verwyder die koppeling en koppel weer — kies \"stuur\" op een toestel en \"ontvang\" op die ander.",
     "syncCloneSending": "Stuur eerste kopie…",
     "syncCloneReceiving": "Ontvang eerste kopie…",
-    "publishFailed": "Kon nie jou kode publiseer nie — kontroleer jou verbinding en probeer weer."
+    "publishFailed": "Kon nie jou kode publiseer nie — kontroleer jou verbinding en probeer weer.",
+    "tileFriends": "Vriende: {{count}}",
+    "tileOnline": "{{count}} aanlyn",
+    "tileDevices": "Gekoppelde toestelle: {{count}}",
+    "deviceMac": "Mac-rekenaar",
+    "deviceWindows": "Windows-rekenaar",
+    "deviceLinux": "Linux-rekenaar",
+    "deviceDesktop": "Rekenaar",
+    "defaultSystemName": "Plural Star-gebruiker",
+    "unnamedDevice": "Toestel",
+    "unnamedFriend": "Vriend",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Iets het met wolksinkronisasie skeefgeloop. Probeer asseblief weer.",
+    "viewSharedNamed": "Bekyk wat {{name}} deel",
+    "notifyLevelCycle": "Kennisgewings vir {{name}}: {{level}}. Aktiveer om na {{next}} oor te skakel.",
+    "removeNamed": "Verwyder {{name}}",
+    "yourCodeLabel": "Jou vriendkode: {{code}}. Klik om te kopieer.",
+    "statusLabel": "Netwerk: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Kloon emmer {{name}}",
+    "deleteBucketNamed": "Skrap emmer {{name}}",
+    "bucketPickCount": "{{feature}}: Kies ({{count}} gekies)",
+    "pickerTitle": "{{feature}} — Kies",
+    "removeDeviceWarn": "Ontkoppel {{name}}? Dit sal ophou om met hierdie toestel te sinkroniseer.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Is jy seker?",
@@ -867,7 +978,11 @@
     "shapeRect": "Reghoek",
     "shapeEllipse": "Ellips",
     "shapePoly": "Veelhoek",
-    "bucket": "Vulemmer"
+    "bucket": "Vulemmer",
+    "strokeCount_one": "{{count}} haal",
+    "strokeCount_other": "{{count}} hale",
+    "brushSizeN": "Kwasgrootte {{size}}",
+    "panHint": "Gebruik die pyltjiesleutels om oor die witbord te beweeg."
   },
   "systemMap": {
     "showColors": "Kleure",
@@ -900,6 +1015,12 @@
     "duplicate": "Hierdie lede het reeds hierdie verhouding.",
     "relationships_one": "{{count}} verhouding",
     "relationships": "{{count}} verhoudings",
+    "relationships_other": "{{count}} verhoudings",
+    "moveHint": "Gebruik die pyltjiesleutels om hierdie lid op die kaart te skuif.",
+    "nodeArchived": "{{name}} (geargiveer)",
+    "nodeHops_one": "{{name}}, {{count}} stap weg",
+    "nodeHops_other": "{{name}}, {{count}} stappe weg",
+    "deleteRelationshipWith": "Skrap verhouding met {{name}}",
     "relationshipOne": "1 verhouding",
     "zoomIn": "Zoem in",
     "zoomOut": "Zoem uit"
@@ -945,7 +1066,11 @@
     "emergencyDesc": "Kritieke inligting vir nooddienste. Wanneer dit aan is, word dit by die blywende kennisgewing gevoeg.",
     "deleteItemMsg": "Verwyder hierdie inskrywing?",
     "medReminderTitle": "Medisyneherinnering",
-    "apptReminderTitle": "Afspraakherinnering"
+    "apptReminderTitle": "Afspraakherinnering",
+    "remindersFor": "Herinneringe vir {{name}}",
+    "apptWhen": "Datum en tyd van afspraak",
+    "remind15m": "15m",
+    "historyDate": "Datum"
   },
   "stats": {
     "last90": "90 dae",
@@ -977,7 +1102,13 @@
     "noMoodsRecorded": "Nog geen buie aangeteken nie.",
     "totalFrontTime": "Totale fronttyd",
     "totalSessions": "Totale sessies",
-    "uniqueFronters": "Unieke fronters"
+    "uniqueFronters": "Unieke fronters",
+    "showMoreCount": "Wys meer ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} sessie",
+    "sessionCount_other": "{{num}} sessies",
+    "avgEnergyValue": "{{num}} /10 energie"
   },
   "chat": {
     "addReaction": "Voeg reaksie by",
@@ -1003,7 +1134,21 @@
     "archiveChannel": "Argiveer kanaal",
     "noMessages": "Nog geen boodskappe nie.",
     "editingHeader": "Wysig boodskap",
-    "editPlaceholder": "Wysig boodskap…"
+    "editPlaceholder": "Wysig boodskap…",
+    "attachment": "Aanhegsel",
+    "channelCount_one": "{{count}} kanaal",
+    "channelCount_other": "{{count}} kanale",
+    "importedChannel": "Ingevoer",
+    "categoryWithCount_one": "{{name}} ({{count}} kanaal)",
+    "categoryWithCount_other": "{{name}} ({{count}} kanale)",
+    "speakingAsNamed": "Praat as {{name}}",
+    "messagesIn": "Boodskappe in #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Prent van {{name}}",
+    "reactionCount": "{{emoji}}-reaksie, {{count}}",
+    "replyingToName": "Antwoord op {{name}}",
+    "cancelReply": "Kanselleer antwoord",
+    "cancelEdit": "Kanselleer wysiging"
   },
   "customFields": {
     "title": "Pasgemaakte velde",
@@ -1037,7 +1182,12 @@
     "reorder": "Herrangskik",
     "markdownSupport": "Markdown-ondersteuning",
     "markdownLabel": "Markdown",
-    "fieldCount": "{{count}} gedefinieer"
+    "fieldCount": "{{count}} gedefinieer",
+    "ageField": "Ouderdom",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Veldtipe vir {{name}}",
+    "moveUpNamed": "Skuif {{name}} op, bo {{above}}",
+    "moveDownNamed": "Skuif {{name}} af, onder {{below}}"
   },
   "noteboard": {
     "title": "Notabord",
@@ -1048,7 +1198,8 @@
     "placeholder": "Skryf 'n nota...",
     "by": "deur {{name}}",
     "writingAs": "Skryf as:",
-    "hasNotes": "{{names}} het pos in hul Posbus"
+    "hasNotes": "{{names}} het pos in hul Posbus",
+    "pinned": "Vasgespeld"
   },
   "polls": {
     "removeOption": "Verwyder opsie",
@@ -1072,13 +1223,20 @@
     "votingAs": "Stem as:",
     "forMember": "Vir lid:",
     "optionsLabel": "Opsies",
-    "activeCount": "{{count}} aktief"
+    "activeCount": "{{count}} aktief",
+    "closePollNamed": "Sluit peiling: {{question}}",
+    "reopenPollNamed": "Heropen peiling: {{question}}",
+    "optionN": "Opsie {{n}}",
+    "removeOptionN": "Verwyder opsie {{n}}"
   },
   "energy": {
     "label": "Energie",
     "level": "Energievlak",
     "avgEnergy": "Gem. energie",
-    "outOf10": "/10 energie"
+    "outOf10": "/10 energie",
+    "outOfTen": "{{value}}/10",
+    "clear": "Vee energievlak uit",
+    "levelValue": "Energievlak {{value}}/10"
   },
   "systemProfile": {
     "read": "Lees",
@@ -1095,7 +1253,8 @@
     "changeAvatar": "Verander avatar",
     "changeBanner": "Verander banier",
     "removeAvatar": "Verwyder avatar",
-    "removeBanner": "Verwyder banier"
+    "removeBanner": "Verwyder banier",
+    "avatarAndBanner": "Sisteem-avatar · Sisteembanier"
   },
   "frontSort": {
     "label": "Organiseer",
@@ -1128,5 +1287,55 @@
     "Irritable": "Prikkelbaar",
     "Sad": "Hartseer",
     "Focused": "Gefokus"
+  },
+  "dnd": {
+    "instructions": "Druk Spasie of Enter om 'n item op te tel. Gebruik die pyltjiesleutels om dit te skuif, en druk dan Spasie of Enter om dit neer te sit, of Escape om te kanselleer.",
+    "picked": "{{name}} opgetel.",
+    "over": "{{name}} is oor {{over}}.",
+    "notOver": "{{name}} is nie meer oor 'n neersitarea nie.",
+    "dropped": "{{name}} is op {{over}} neergesit.",
+    "droppedNoTarget": "{{name}} is neergesit.",
+    "cancelled": "Die skuif van {{name}} is gekanselleer."
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON-lêers",
+    "textFiles": "Tekslêers",
+    "allFiles": "Alle lêers",
+    "backup": "Rugsteun",
+    "images": "Prente"
+  },
+  "tray": {
+    "open": "Maak {{app}} oop",
+    "quit": "Sluit af"
+  },
+  "menu": {
+    "edit": "Wysig"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Spraaksaam",
+      "nonVerbal": "Nie-verbaal",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Vaag",
+      "blendy": "Vermeng",
+      "rapidSwitching": "Vinnige wisseling",
+      "foggy": "Mistig",
+      "grounded": "Geanker",
+      "dissociated": "Gedissosieerd",
+      "anxious": "Angstig",
+      "depressed": "Depressief",
+      "cheerful": "Vrolik",
+      "happy": "Gelukkig",
+      "sad": "Hartseer",
+      "crisis": "Krisis",
+      "melancholy": "Melancholies",
+      "stimming": "Selfstimulering",
+      "stressed": "Gestres",
+      "working": "Aan die werk",
+      "traveling": "Op reis",
+      "sleeping": "Slapend",
+      "hyperfocus": "Hiperfokus"
+    }
   }
 }

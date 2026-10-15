@@ -1,7 +1,7 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BUILTIN_PALETTES } from '../theme';
 import { useAppStore } from '../store/appStore';
+import { fmtNum } from '../utils';
 
 interface Props { onClick: () => void; }
 
@@ -9,14 +9,14 @@ export default function SettingsTile({ onClick }: Props) {
   const { t } = useTranslation();
   const settings = useAppStore(s => s.state.settings);
   const palette = BUILTIN_PALETTES.find(p => p.id === settings.activePaletteId);
-  const paletteName = palette?.name || 'Custom';
+  const paletteName = palette?.name || t('colors.custom');
   return (
     <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
       <div className="tile__header"><div className="tile__glyph" aria-hidden>⚙</div><span className="tile__title">{t('modal.systemSettings')}</span></div>
       <div className="tile__body">
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.palette')}</span><span className="tile__stat-value">{paletteName}</span></div>
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.language')}</span><span className="tile__stat-value">{t(`language.${settings.language}`)}</span></div>
-        <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.textSize')}</span><span className="tile__stat-value">{settings.textScale}×</span></div>
+        <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.textSize')}</span><span className="tile__stat-value">{fmtNum(settings.textScale, 2)}×</span></div>
         <div className="tile__stat-row"><span className="tile__stat-label">{t('modal.notifications')}</span><span className="tile__stat-value">{settings.notificationsEnabled ? t('common.on') : t('common.off')}</span></div>
       </div>
     </div>

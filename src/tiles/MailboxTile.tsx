@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NoteboardEntry } from '../utils';
+import { NoteboardEntry, fmtNum } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
 
@@ -36,7 +36,7 @@ export default function MailboxTile({ onClick }: Props) {
               <div key={p.name} style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, display: 'flex', gap: 6 }}>
                 <span aria-hidden>✉</span>
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                <span>{p.count}</span>
+                <span>{fmtNum(p.count, 0)}</span>
               </div>
             ))}
           </>

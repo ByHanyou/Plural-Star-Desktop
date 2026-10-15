@@ -73,6 +73,7 @@ const ColorCarouselInner = ({ value, onChange, size = 26 }: { value: string; onC
         {data.map((item, i) => (
           <button key={i} onClick={() => onChangeRef.current(item.hex)}
             aria-label={item.label} title={item.label} aria-pressed={item.selected}
+            {...(i < entries.length || i >= 2 * entries.length ? { tabIndex: -1, 'aria-hidden': true } : {})}
             style={{
               width: size, height: size, minWidth: size, borderRadius: '50%', backgroundColor: item.hex,
               border: item.selected ? '2px solid #fff' : '1px solid var(--border)', cursor: 'pointer', padding: 0,

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MemberPoll, PollOption, uid, fmtTime, fmtPercent, isRosterMember } from '../utils';
+import { MemberPoll, uid, fmtTime, fmtPercent, isRosterMember, fmtList } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
@@ -152,7 +152,7 @@ export default function PollsView({ onUpdate }: Props) {
                         </div>
                         {!poll.hideVoterNames && opt.votes.length > 0 && (
                           <div style={{ position: 'relative', fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>
-                            {opt.votes.map(v => getName(v)).join(', ')}
+                            {fmtList(opt.votes.map(v => getName(v)))}
                           </div>
                         )}
                       </button>
@@ -162,10 +162,12 @@ export default function PollsView({ onUpdate }: Props) {
 
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', cursor: 'pointer' }}
+                    aria-label={isClosed ? t('polls.reopenPollNamed', { question: poll.question }) : t('polls.closePollNamed', { question: poll.question })}
                     onClick={() => toggleClose(poll.id)}>
                     {isClosed ? t('polls.reopenPoll') : t('polls.closePoll')}
                   </button>
                   <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}
+                    aria-label={t('common.deleteNamed', { name: poll.question })}
                     onClick={() => setConfirmDelete(poll.id)}>
                     {t('polls.deletePoll')}
                   </button>
@@ -201,9 +203,9 @@ export default function PollsView({ onUpdate }: Props) {
         {options.map((opt, i) => (
           <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
             <input className="field__input" value={opt} onChange={e => { const u = [...options]; u[i] = e.target.value; setOptions(u); }}
-              aria-label={t('polls.optionPlaceholder')} placeholder={`${t('polls.optionPlaceholder')} ${i + 1}`} style={{ flex: 1 }} />
+              aria-label={t('polls.optionN', { n: i + 1 })} placeholder={t('polls.optionN', { n: i + 1 })} style={{ flex: 1 }} />
             {options.length > 2 && (
-              <button aria-label={t('polls.removeOption', {defaultValue: 'Remove option'})} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 14 }}
+              <button aria-label={t('polls.removeOptionN', { n: i + 1, defaultValue: 'Remove option {{n}}' })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 14 }}
                 onClick={() => setOptions(options.filter((_, j) => j !== i))}>✕</button>
             )}
           </div>

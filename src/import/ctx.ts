@@ -1,7 +1,25 @@
 import type { TFunction } from 'i18next';
+import { logError } from '../log';
 import { Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ExportPayload } from '../utils';
 import { CustomPalette } from '../theme';
 import { ImportControl } from './progress';
+
+export class ImportUserError extends Error {}
+
+/** The support code for an unexpected import failure: what kind of thing went wrong, not the raw message. */
+export const importErrorCode = (e: unknown): string => {
+  if (e instanceof SyntaxError) return 'IMPORT-PARSE';
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/network request failed|fetch|network|timed out|timeout/i.test(msg)) return 'IMPORT-NET';
+  if (/zip|file|ENOENT|EACCES|EISDIR|read|permission|directory/i.test(msg)) return 'IMPORT-FILE';
+  return 'IMPORT-APP';
+};
+
+export const importErrorText = (e: unknown, t: TFunction): string => {
+  if (e instanceof ImportUserError) return e.message;
+  logError('import', e);
+  return `${t('share.errUnexpected')} ${t('common.errorCode', { code: importErrorCode(e) })}`;
+};
 
 export type ImportCtx = {
   system: SystemInfo;

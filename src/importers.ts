@@ -1,4 +1,6 @@
-import { Member, HistoryEntry, MemberGroup, CustomFieldDef, CustomFieldType, JournalEntry, uid } from './utils';
+import { Member, HistoryEntry, MemberGroup, CustomFieldDef, CustomFieldType, uid } from './utils';
+import { importNameKey } from './import/names';
+import i18n from './i18n/i18n';
 import { bytesToDataUri } from './exportUtils';
 import { strFromU8 } from 'fflate';
 
@@ -32,7 +34,7 @@ const buildHistory = (
     }))
     .filter(h => h.memberIds.length > 0 && h.startTime > 0) as HistoryEntry[];
 
-export type ForeignFormat = 'ourcana' | 'multiplicity' | 'octocon' | 'parallax';
+type ForeignFormat = 'ourcana' | 'multiplicity' | 'octocon' | 'parallax';
 
 export const detectForeignFormat = (text: string): ForeignFormat | null => {
   try {
@@ -106,7 +108,7 @@ const convertOurcanaGraph = (d: any, zipFiles?: Record<string, Uint8Array>): Con
     const p = n.properties || {};
     const gid = uid();
     gmap[String(n.id)] = gid;
-    groups.push({ id: gid, name: String(p.label || 'Group'), color: p.color ? hex(p.color) : undefined });
+    groups.push({ id: gid, name: String(p.label || i18n.t('memberGroups.group')), color: p.color ? hex(p.color) : undefined });
   });
   tagNodes.forEach((n: any) => {
     const p = n.properties || {};
@@ -149,7 +151,7 @@ const convertOurcanaGraph = (d: any, zipFiles?: Record<string, Uint8Array>): Con
     return {
       id,
       sourceId: String(p.ourcanaId || n.id),
-      name: (useDisplay ? String(p.displayName) : String(p.name || '')).trim() || 'Unnamed member',
+      name: (useDisplay ? String(p.displayName) : String(p.name || '')).trim() || i18n.t('members.unnamed'),
       pronouns: String(p.pronouns || ''),
       role: '',
       color: hex(p.color),
@@ -205,7 +207,7 @@ export const convertOurcana = (d: any, zipFiles?: Record<string, Uint8Array>): C
     const useDisplay = m.showOnlyDisplayName && m.displayName;
     return {
       id, sourceId: String(m.id),
-      name: (useDisplay ? String(m.displayName) : String(m.name || '')).trim() || 'Unnamed member',
+      name: (useDisplay ? String(m.displayName) : String(m.name || '')).trim() || i18n.t('members.unnamed'),
       pronouns: String(m.pronouns || ''), role: '', color: hex(m.color), description: String(m.desc || ''),
       archived: !!m.archived, avatar: /^https?:\/\//.test(String(m.avatarUrl || '')) ? m.avatarUrl : undefined,
       tags: [], groupIds: [], customFields: [],
@@ -213,7 +215,7 @@ export const convertOurcana = (d: any, zipFiles?: Record<string, Uint8Array>): C
   });
   const groups: MemberGroup[] = [];
   const gmap: Record<string, string> = {};
-  tags.forEach((tg: any) => { const gid = uid(); gmap[String(tg.id)] = gid; groups.push({ id: gid, name: String(tg.label || tg.name || 'Group'), color: tg.color ? hex(tg.color) : undefined }); });
+  tags.forEach((tg: any) => { const gid = uid(); gmap[String(tg.id)] = gid; groups.push({ id: gid, name: String(tg.label || tg.name || i18n.t('memberGroups.group')), color: tg.color ? hex(tg.color) : undefined }); });
   mem.forEach((m: any) => {
     if (!Array.isArray(m.tagIds)) return;
     const lm = members.find(x => x.id === idMap[String(m.id)]);
@@ -236,7 +238,7 @@ export const convertParallax = (d: any): ConvertedImport => {
       return {
         id,
         sourceId: /^[0-9a-f]{24}$/i.test(spId) ? spId : `px:${String(m.id)}`,
-        name: String(m.name || '').trim() || 'Unnamed member',
+        name: String(m.name || '').trim() || i18n.t('members.unnamed'),
         pronouns: String(m.pronouns || ''),
         role: String(m.role || ''),
         color: hex(m.color_theme),
@@ -283,7 +285,7 @@ export const convertMultiplicity = (d: any): ConvertedImport => {
     const id = uid(); idMap[String(a.alter_id)] = id;
     return {
       id, sourceId: 'mx:' + String(a.alter_id),
-      name: (a.name && String(a.name).trim()) || (a.display_name && String(a.display_name).trim()) || 'Unnamed member',
+      name: (a.name && String(a.name).trim()) || (a.display_name && String(a.display_name).trim()) || i18n.t('members.unnamed'),
       pronouns: String(a.pronouns || ''), role: '', color: hex(a.colour), description: String(a.description || ''),
       archived: !!a.is_archived,
       avatar: a.avatar_data ? `data:image/png;base64,${a.avatar_data}` : (/^https?:\/\//.test(String(a.avatar_url || '')) ? a.avatar_url : undefined),
@@ -303,7 +305,7 @@ export const convertOctocon = (d: any): ConvertedImport => {
     const id = uid(); idMap[String(a.id)] = id;
     return {
       id, sourceId: String(a.id),
-      name: (a.name && String(a.name).trim()) || 'Unnamed member',
+      name: (a.name && String(a.name).trim()) || i18n.t('members.unnamed'),
       pronouns: String(a.pronouns || ''), role: '', color: hex(a.color), description: String(a.description || ''),
       avatar: /^https?:\/\//.test(String(a.avatar_url || '')) ? a.avatar_url : undefined,
       tags: [], groupIds: [], customFields: [],
@@ -313,7 +315,7 @@ export const convertOctocon = (d: any): ConvertedImport => {
   return { sourceLabel: 'Octocon', members, history, systemName: u.username, systemDesc: u.description };
 };
 
-export interface PluralSpaceImport extends ConvertedImport {
+interface PluralSpaceImport extends ConvertedImport {
   journal: { title: string; body: string; authorIds: string[]; timestamp: number }[];
   chatChannels: { name: string; createdAt: number; messages: { authorId: string; content: string; timestamp: number }[] }[];
   polls: { question: string; createdBy: string; createdAt: number; closedAt?: number; options: { text: string; votes: string[] }[] }[];
@@ -499,7 +501,7 @@ export const convertPluralSpace = (d: any): PluralSpaceImport => {
     if (mediaPath) avatarMediaPaths[id] = mediaPath;
     return {
       id, sourceId: 'ps:' + String(m.id),
-      name: (m.name && String(m.name).trim()) || (m.display_name && String(m.display_name).trim()) || 'Unnamed member',
+      name: (m.name && String(m.name).trim()) || (m.display_name && String(m.display_name).trim()) || i18n.t('members.unnamed'),
       pronouns: String(m.pronouns || ''),
       role: Array.isArray(m.role) ? m.role.join(', ') : String(m.role || ''),
       color: hex(m.color), description: String(m.description || ''),
@@ -513,7 +515,7 @@ export const convertPluralSpace = (d: any): PluralSpaceImport => {
   const groups: MemberGroup[] = [];
   const gmap: Record<string, string> = {};
   groupsSrc.forEach((g: any) => {
-    const gid = uid(); const name = String(g?.name || 'Group');
+    const gid = uid(); const name = String(g?.name || i18n.t('memberGroups.group'));
     gmap[String(g?.id)] = gid; gmap[name.toLowerCase()] = gid;
     groups.push({ id: gid, name, color: g?.color ? hex(g.color) : undefined });
   });
@@ -584,7 +586,7 @@ export const convertPluralSpace = (d: any): PluralSpaceImport => {
   }));
 
   const chatChannels = (Array.isArray(d.chat_channels) ? d.chat_channels : []).map((ch: any) => ({
-    name: String(ch?.name || '').trim() || 'Imported',
+    name: String(ch?.name || '').trim() || i18n.t('chat.importedChannel'),
     createdAt: psTime(ch?.created_at) || Date.now(),
     messages: (Array.isArray(ch?.messages) ? ch.messages : []).map((msg: any) => ({
       authorId: nameToLocal[String(msg?.member_name || '').trim().toLowerCase()] || '',
@@ -643,7 +645,7 @@ export const convertTupperbox = (d: any): ConvertedImport => {
     return {
       id: uid(),
       sourceId: 'tb:' + String(tp?.id ?? uid()),
-      name: (tp?.name && String(tp.name).trim()) || 'Unnamed member',
+      name: (tp?.name && String(tp.name).trim()) || i18n.t('members.unnamed'),
       pronouns: '', role: '', color: hex(undefined),
       description: String(tp?.description || ''),
       tags: [], customFields: [],
@@ -685,7 +687,7 @@ const utf8 = (b: Uint8Array, start: number, len: number): string => {
   return out;
 };
 
-export const decodeAmpar = (bytes: Uint8Array): {table: string; data: any}[] => {
+const decodeAmpar = (bytes: Uint8Array): {table: string; data: any}[] => {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let p = 10;
 
@@ -825,10 +827,11 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
   fieldDefs.forEach((f: any, i: number) => { cfIdMap[String(f?.uuid)] = cfDefs[i].id; });
 
   let ageFieldId = '';
+  const ageFieldName = i18n.t('customFields.ageField');
   if (mem.some((a: any) => a?.age != null && String(a.age).trim() !== '')
-      && !cfDefs.some(f => f.name.toLowerCase() === 'age')) {
+      && !cfDefs.some(f => importNameKey(f.name) === importNameKey(ageFieldName))) {
     ageFieldId = uid();
-    cfDefs.push({ id: ageFieldId, name: 'Age', type: 'text' as CustomFieldType, sortOrder: cfDefs.length });
+    cfDefs.push({ id: ageFieldId, name: ageFieldName, type: 'text' as CustomFieldType, sortOrder: cfDefs.length });
   }
 
   const usedTags = new Set<string>();
@@ -876,7 +879,7 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
       return {
         id,
         sourceId: 'amp:' + String(a.uuid),
-        name: (a.name && String(a.name).trim()) || 'Unnamed member',
+        name: (a.name && String(a.name).trim()) || i18n.t('members.unnamed'),
         pronouns: String(a.pronouns || ''),
         role: String(a.role || ''),
         color: hex(a.color),

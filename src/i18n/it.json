@@ -42,7 +42,9 @@
     "skyBlue": "Azzurro cielo",
     "orchid": "Orchidea",
     "lime": "Verde lime",
-    "sand": "Sabbia"
+    "sand": "Sabbia",
+    "customCount": "Personalizzati {{count}}/{{max}}",
+    "customSlotValue": "Colore personalizzato {{n}}, {{hex}}"
   },
   "terminology": {
     "fronter": "Fronter",
@@ -116,7 +118,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Promemoria dell'agenda",
-    "reminderTitlePlaceholder": "Cosa deve dire?"
+    "reminderTitlePlaceholder": "Cosa deve dire?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Promemoria per {{title}}"
   },
   "mailbox": {
     "title": "Posta",
@@ -140,7 +144,14 @@
     "unreadCount_one": "{{count}} non letto",
     "unreadCount": "{{count}} non letti",
     "deleteTitle": "Elimina messaggio",
-    "deleteMsg": "Rimuovere questo messaggio? L'azione non può essere annullata."
+    "deleteMsg": "Rimuovere questo messaggio? L'azione non può essere annullata.",
+    "allOthersCount": "Tutti gli altri Membri ({{count}})",
+    "lockedLabel": "Bloccata",
+    "lockButtonLocked": "Blocco della casella (attivo)",
+    "lockButtonUnlocked": "Blocco della casella (disattivo)",
+    "fromName": "Da: {{name}}",
+    "deleteFrom": "Elimina messaggio di {{name}}",
+    "unlockTitle": "Sblocca la posta di {{name}}"
   },
   "network": {
     "cloudConfirmTitle": "Conferma di nuovo",
@@ -154,6 +165,7 @@
     "cloudErrRate": "Troppi tentativi. Attendi un minuto e riprova.",
     "cloudErrFull": "La cassaforte o il nodo non ha più spazio.",
     "cloudErrTooLarge": "Escluso, supera i 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Escluso, la cassaforte non ha più spazio: {{keys}}",
     "cloudErrBadPassword": "La cassaforte esiste, ma questa password non la apre.",
     "cloudErrCorrupt": "Impossibile leggere la cassaforte su questo dispositivo. Scollega e ricollega con la stessa password.",
     "cloudUnavailable": "Il nodo a cui sei connesso non offre i Servizi cloud.",
@@ -265,7 +277,32 @@
     "syncRoleMismatchMsg": "Tu e {{device}} avete scelto la stessa direzione, quindi la prima copia è stata saltata. Le nuove modifiche verranno comunque sincronizzate. Per copiare tutto, rimuovi il collegamento e ripeti l'abbinamento — scegli «invia» su un dispositivo e «ricevi» sull'altro.",
     "syncCloneSending": "Invio della prima copia…",
     "syncCloneReceiving": "Ricezione della prima copia…",
-    "publishFailed": "Impossibile pubblicare il tuo codice — controlla la connessione e riprova."
+    "publishFailed": "Impossibile pubblicare il tuo codice — controlla la connessione e riprova.",
+    "tileFriends": "Amici: {{count}}",
+    "tileOnline": "{{count}} online",
+    "tileDevices": "Dispositivi collegati: {{count}}",
+    "deviceMac": "Computer Mac",
+    "deviceWindows": "Computer Windows",
+    "deviceLinux": "Computer Linux",
+    "deviceDesktop": "Computer",
+    "defaultSystemName": "Utente Plural Star",
+    "unnamedDevice": "Dispositivo",
+    "unnamedFriend": "Amico",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Si è verificato un problema con la sincronizzazione cloud. Riprova.",
+    "viewSharedNamed": "Vedi cosa condivide {{name}}",
+    "notifyLevelCycle": "Notifiche per {{name}}: {{level}}. Attiva per passare a {{next}}.",
+    "removeNamed": "Rimuovi {{name}}",
+    "yourCodeLabel": "Il tuo codice amicizia: {{code}}. Clicca per copiare.",
+    "statusLabel": "Rete: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Duplica cerchia {{name}}",
+    "deleteBucketNamed": "Elimina cerchia {{name}}",
+    "bucketPickCount": "{{feature}}: Selezione ({{count}} selezionati)",
+    "pickerTitle": "{{feature}} — Selezione",
+    "removeDeviceWarn": "Scollegare {{name}}? Smetterà di sincronizzarsi con questo dispositivo.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "common": {
     "durDaysHours": "{{d}} g {{h}} h",
@@ -298,6 +335,18 @@
     "change": "Cambia",
     "save": "Salva",
     "edit": "Modifica",
+    "removeNamed": "Rimuovi {{name}}",
+    "dragReorderNamed": "Trascina per riordinare {{name}}",
+    "editNamed": "Modifica {{name}}",
+    "deleteNamed": "Elimina {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Incluso",
+    "yes": "Sì",
+    "no": "No",
+    "addNamed": "Aggiungi {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Sposta {{name}} in su",
+    "moveDownNamed": "Sposta {{name}} in giù",
     "cancel": "Annulla",
     "delete": "Elimina",
     "add": "Aggiungi",
@@ -310,6 +359,7 @@
     "untitled": "Senza titolo",
     "notInExport": "Non nell'esportazione",
     "ok": "OK",
+    "errorCode": "Codice errore: {{code}}",
     "search": "Cerca…"
   },
   "errorBoundary": {
@@ -336,6 +386,7 @@
     "primaryShort": "Primario",
     "coFrontShort": "Co-Front",
     "coConShort": "Co-Cos",
+    "assignedTo": "({{tier}})",
     "editTier": "Modifica {{tier}}"
   },
   "setup": {
@@ -363,7 +414,10 @@
     "statusesDesc": "Gli stati descrivono come stai — come Dormendo, Lavorando o In ansia. Selezionali quando aggiorni il tuo stato.",
     "noStatuses": "Nessuno stato ancora. Aggiungine uno per iniziare.",
     "activeStatus": "Attivo",
-    "favoriteColor": "Colore Preferito"
+    "favoriteColor": "Colore Preferito",
+    "defaultSelfName": "Io",
+    "statusesCount": "Stati ({{count}})",
+    "deleteActiveHint": "Rimuovi questo stato dal tuo stato attuale prima di eliminarlo."
   },
   "settings": {
     "observatory": "Interfaccia Osservatorio (Singlet)",
@@ -383,7 +437,10 @@
     "noNote": "Nessuna nota. Tocca Modifica per aggiungerne una.",
     "clearFront": "Svuota Front",
     "clearFrontMsg": "Questo svuoterà tutti i livelli e registrerà la fine della sessione attuale. Continuare?",
-    "clearFrontTitle": "Svuotare il Front?"
+    "clearFrontTitle": "Svuotare il Front?",
+    "frontingForSince": "{{dur}} al front · da {{time}}",
+    "editDetailsFor": "Modifica umore e luogo per {{tier}}",
+    "editNoteFor": "Modifica nota per {{tier}}"
   },
   "members": {
     "clone": "Clona",
@@ -449,7 +506,22 @@
     "frontingLockTitle": "Attualmente al front",
     "frontingLockMsg": "Non puoi archiviare o eliminare un membro mentre è al front. Prima rimuovilo dal front.",
     "archive": "Archivia",
-    "recentlyDeleted": "Eliminati di recente"
+    "recentlyDeleted": "Eliminati di recente",
+    "unnamed": "Membro senza nome",
+    "archivedCount": "Archiviati ({{count}})",
+    "viewProfileNamed": "Vedi il profilo di {{name}}",
+    "titleCount": "Membri ({{count}})",
+    "facetsCount": "Sfaccettature ({{count}})",
+    "customFrontsCount": "Front Personalizzati ({{count}})",
+    "removeFromFrontNamed": "Rimuovi {{name}} dal front",
+    "addToFrontNamed": "Aggiungi {{name}} al front",
+    "restoreNamed": "Ripristina {{name}}",
+    "bulkArchiveMsg_one": "Archiviare {{count}} membro? Potrà essere ripristinato in seguito.",
+    "bulkArchiveMsg_other": "Archiviare {{count}} membri? Potranno essere ripristinati in seguito.",
+    "bulkRestoreMsg_one": "Ripristinare {{count}} membro tra gli attivi?",
+    "bulkRestoreMsg_other": "Ripristinare {{count}} membri tra gli attivi?",
+    "bulkDeleteMsg_one": "Eliminare definitivamente {{count}} membro? Questa azione non può essere annullata.",
+    "bulkDeleteMsg_other": "Eliminare definitivamente {{count}} membri? Questa azione non può essere annullata."
   },
   "history": {
     "title": "Cronologia",
@@ -457,6 +529,10 @@
     "noHistory": "Nessuna cronologia ancora. I cambi di front appariranno qui automaticamente.",
     "searchMember": "Cerca membri…",
     "statusHistory": "Cronologia Stati",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Elimina la voce di {{time}}",
+    "deleteEntryStep": "Elimina voce ({{step}}/{{total}})",
     "byStatus": "Per Stato",
     "noHistorySinglet": "Nessuna cronologia ancora. Gli aggiornamenti di stato appariranno qui automaticamente.",
     "entryCount": "{{count}} voci",
@@ -508,7 +584,10 @@
     "templateName": "Nome del Modello *",
     "templateNamePlaceholder": "es. Pagine del Mattino",
     "templateTitle": "Titolo Voce (preimpostato)",
-    "templateBody": "Corpo Voce (preimpostato)"
+    "templateBody": "Corpo Voce (preimpostato)",
+    "pinnedLabel": "Fissata",
+    "lockedLabel": "Bloccata",
+    "pinNamed": "Fissa {{title}}"
   },
   "share": {
     "statusSpImported": "Importazione SP: {{members}} nuovi membri, {{history}} voci di cronologia",
@@ -549,6 +628,12 @@
     "psUseSection": "Sembra un'esportazione PluralSpace. Usa la sezione Importazione PluralSpace qui sotto per importarla.",
     "mergeLogs": "Unisci i registri (mantieni cronologia, diario, chat e sondaggi esistenti; aggiungi solo i nuovi). I membri vengono comunque sostituiti.",
     "banners": "Banner",
+    "psFilterName": "Esportazione PluralSpace (.zip o data.json)",
+    "plurallogFilterName": "Esportazione PluralLog (.zip)",
+    "backupFileSuffix": "backup",
+    "errUnexpected": "Qualcosa è andato storto. Controlla il file e riprova.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "Importazione PluralKit (token)",
     "psImport": "Importazione PluralSpace",
     "psHint": "Importa da un'esportazione dati PluralSpace. Scegli direttamente il file .zip — non serve decomprimerlo (oppure scegli un data.json se l'hai già estratto). Membri, campi personalizzati, cronologia di front, voci di diario, chat, sondaggi e avatar (dalla cartella media dell'esportazione) vengono importati automaticamente.",
     "pickPsFile": "Scegli .zip o data.json",
@@ -607,6 +692,7 @@
     "importStopping": "Completamento di questo passaggio, poi arresto…",
     "importStopped": "Importazione interrotta. Non è stato modificato nulla.",
     "importCancelHint": "Si ferma al termine del passaggio corrente. I passaggi già eseguiti vengono mantenuti.",
+    "importCancelTitle": "Interrompere l'importazione?",
     "progressSavingMembers": "Ripristino dei membri…",
     "progressJournal": "Ripristino del diario…",
     "progressHistory": "Ripristino della cronologia dei front…",
@@ -619,7 +705,6 @@
   },
   "hub": {
     "creditsBlurb": "Contributori della community",
-    "discordBlurb": "Chat della community e supporto",
     "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} altri",
     "addHistoryDesc": "Aggiungi manualmente una voce retroattiva alla cronologia di front.",
@@ -643,7 +728,11 @@
     "statistics": "Statistiche",
     "systemChat": "Chat di Sistema",
     "archive": "Archivio",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
     "discord": "Discord",
+    "discordBlurb": "Chat della community e supporto",
+    "overlapEntry": "{{names}} ({{time}})",
     "dashboard": "← Dashboard",
     "credits": "Crediti",
     "creditLogo": "Logo di Plural Star",
@@ -666,7 +755,11 @@
     "toolCode": "Codice",
     "brokenImage": "[immagine danneggiata]",
     "imageUnavailable": "[immagine non disponibile]",
-    "spoiler": "Spoiler, clicca per rivelare"
+    "spoiler": "Spoiler, clicca per rivelare",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "appFont": "Font dell'App",
@@ -698,6 +791,8 @@
     "hue": "Tonalità",
     "invalidHex": "Colore hex non valido",
     "customColor": "Colore personalizzato",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "es. 🦊",
     "descriptionBio": "Descrizione / Bio",
     "descriptionPlaceholder": "Qualcosa su questo headmate… incolla URL di immagini/GIF in linea",
     "preview": "Anteprima",
@@ -761,7 +856,7 @@
     "removePfp": "Rimuovi Foto",
     "viewPfp": "Vedi Foto",
     "viewPfpOf": "Foto di {{name}}",
-    "fancyPants": "Fancy Pants",
+    "fancyPants": "Editor visivo",
     "selectedText": "testo",
     "searchAuthors": "Cerca autori…",
     "textSize": "Dimensione del Testo",
@@ -769,6 +864,12 @@
     "textScaleNormal": "Normale",
     "textScaleLarge": "Grande",
     "textScaleExtraLarge": "Molto Grande",
+    "cropMove": "Sposta l'area di ritaglio (tasti freccia)",
+    "cropResizeTopLeft": "Ridimensiona dall'angolo in alto a sinistra (tasti freccia)",
+    "cropResizeTopRight": "Ridimensiona dall'angolo in alto a destra (tasti freccia)",
+    "cropResizeBottomLeft": "Ridimensiona dall'angolo in basso a sinistra (tasti freccia)",
+    "cropResizeBottomRight": "Ridimensiona dall'angolo in basso a destra (tasti freccia)",
+    "fontDefault": "Predefinito",
     "dyslexicFont": "Font per Dislessia",
     "dyslexicFontDesc": "Passa il testo del corpo a OpenDyslexic. I titoli mantengono il loro font stilizzato."
   },
@@ -781,7 +882,8 @@
     "coFront": "Co-Front: {{names}}",
     "coConscious": "Co-Cosciente: {{names}}",
     "cfShort": "CF: {{names}}",
-    "ccShort": "CC: {{names}}"
+    "ccShort": "CC: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "en": "English",
@@ -834,6 +936,9 @@
     "linkedFronter": "Fronter collegato",
     "noLinkedFronter": "Nessuno",
     "linkedSubsystems": "Sotto-sistemi collegati",
+    "showSubgroups": "Sottogruppi di {{name}} ({{count}} selezionati)",
+    "linkedToNamed": "{{group}}, fronter collegato: {{name}}",
+    "deleteWithChildrenMsg_one": "Contiene {{count}} elemento annidato. Mantenerlo spostandolo di un livello in su, o eliminare tutto?",
     "toRoot": "Livello superiore",
     "title": "Gruppi",
     "addPlaceholder": "Nome del nuovo gruppo…",
@@ -841,7 +946,13 @@
     "removeMembers": "Rimuovi membri",
     "deleteGroup": "Elimina Gruppo",
     "deleteGroupMsg": "Rimuovere questo gruppo? I membri non saranno eliminati.",
-    "deleteWithChildrenMsg": "Contiene {{count}} elemento/i annidato/i. Mantenerli spostandoli di un livello in su, o eliminare tutto?"
+    "deleteWithChildrenMsg": "Contiene {{count}} elemento/i annidato/i. Mantenerli spostandoli di un livello in su, o eliminare tutto?",
+    "deleteWithChildrenMsg_other": "Contiene {{count}} elementi annidati. Mantenerli spostandoli di un livello in su, o eliminare tutto?",
+    "memberCount_one": "{{count}} membro",
+    "memberCount_other": "{{count}} membri",
+    "moveNamed": "Sposta {{name}}",
+    "addMembersTo": "Aggiungi membri a {{name}}",
+    "kindToggle": "Tipo: {{kind}} (attiva per cambiare)"
   },
   "stats": {
     "last90": "90 Giorni",
@@ -873,7 +984,13 @@
     "noMoodsRecorded": "Nessun umore registrato ancora.",
     "totalFrontTime": "Tempo Totale di Front",
     "totalSessions": "Sessioni Totali",
-    "uniqueFronters": "Fronter Unici"
+    "uniqueFronters": "Fronter Unici",
+    "showMoreCount": "Mostra di più ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} sessione",
+    "sessionCount_other": "{{num}} sessioni",
+    "avgEnergyValue": "{{num}} /10 energia"
   },
   "chat": {
     "messagePlaceholder": "Messaggio a #{{name}}...",
@@ -899,7 +1016,21 @@
     "archiveChannel": "Archivia Canale",
     "noMessages": "Nessun messaggio ancora.",
     "editingHeader": "Modifica messaggio",
-    "editPlaceholder": "Modifica messaggio…"
+    "editPlaceholder": "Modifica messaggio…",
+    "attachment": "Allegato",
+    "channelCount_one": "{{count}} canale",
+    "channelCount_other": "{{count}} canali",
+    "importedChannel": "Importato",
+    "categoryWithCount_one": "{{name}} ({{count}} canale)",
+    "categoryWithCount_other": "{{name}} ({{count}} canali)",
+    "speakingAsNamed": "Parla come {{name}}",
+    "messagesIn": "Messaggi in #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Immagine di {{name}}",
+    "reactionCount": "Reazione {{emoji}}, {{count}}",
+    "replyingToName": "In risposta a {{name}}",
+    "cancelReply": "Annulla risposta",
+    "cancelEdit": "Annulla modifica"
   },
   "systemManager": {
     "subsystemsCount_one": "{{count}} sotto-sistema",
@@ -942,7 +1073,12 @@
     "markdownSupport": "Supporto Markdown",
     "markdownLabel": "Markdown",
     "fieldCount_one": "{{count}} definito",
-    "fieldCount": "{{count}} definiti"
+    "fieldCount": "{{count}} definiti",
+    "ageField": "Età",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Tipo di campo per {{name}}",
+    "moveUpNamed": "Sposta {{name}} in su, sopra {{above}}",
+    "moveDownNamed": "Sposta {{name}} in giù, sotto {{below}}"
   },
   "noteboard": {
     "title": "Bacheca",
@@ -953,7 +1089,8 @@
     "placeholder": "Scrivi una nota...",
     "by": "di {{name}}",
     "writingAs": "Scrivi come:",
-    "hasNotes": "{{names}} hanno posta nella loro Posta"
+    "hasNotes": "{{names}} hanno posta nella loro Posta",
+    "pinned": "Fissata"
   },
   "whiteboard": {
     "clearConfirm2Title": "Sei sicurə?",
@@ -973,7 +1110,11 @@
     "shapeRect": "Rettangolo",
     "shapeEllipse": "Ellisse",
     "shapePoly": "Poligono",
-    "bucket": "Secchiello"
+    "bucket": "Secchiello",
+    "strokeCount_one": "{{count}} tratto",
+    "strokeCount_other": "{{count}} tratti",
+    "brushSizeN": "Dimensione pennello {{size}}",
+    "panHint": "Usa i tasti freccia per muoverti sulla lavagna."
   },
   "systemMap": {
     "showColors": "Colori",
@@ -999,6 +1140,12 @@
     "duplicate": "Questi membri hanno già questa relazione.",
     "relationships_one": "{{count}} relazione",
     "relationships": "{{count}} relazioni",
+    "relationships_other": "{{count}} relazioni",
+    "moveHint": "Usa i tasti freccia per spostare questo membro sulla mappa.",
+    "nodeArchived": "{{name}} (archiviato)",
+    "nodeHops_one": "{{name}}, a {{count}} passo",
+    "nodeHops_other": "{{name}}, a {{count}} passi",
+    "deleteRelationshipWith": "Elimina relazione con {{name}}",
     "relationshipOne": "1 relazione",
     "from": "Da",
     "to": "A",
@@ -1051,7 +1198,11 @@
     "emergencyDesc": "Informazioni critiche per i soccorritori. Quando attivato, vengono aggiunte alla notifica persistente, visibili dalla schermata di blocco.",
     "deleteItemMsg": "Rimuovere questa voce?",
     "medReminderTitle": "Promemoria farmaco",
-    "apptReminderTitle": "Promemoria appuntamento"
+    "apptReminderTitle": "Promemoria appuntamento",
+    "remindersFor": "Promemoria per {{name}}",
+    "apptWhen": "Data e ora dell'appuntamento",
+    "remind15m": "15 min",
+    "historyDate": "Data"
   },
   "polls": {
     "removeOption": "Rimuovi opzione",
@@ -1076,13 +1227,20 @@
     "forMember": "Per membro:",
     "optionsLabel": "Opzioni",
     "activeCount_one": "{{count}} attivo",
-    "activeCount": "{{count}} attivi"
+    "activeCount": "{{count}} attivi",
+    "closePollNamed": "Chiudi sondaggio: {{question}}",
+    "reopenPollNamed": "Riapri sondaggio: {{question}}",
+    "optionN": "Opzione {{n}}",
+    "removeOptionN": "Rimuovi opzione {{n}}"
   },
   "energy": {
     "label": "Energia",
     "level": "Livello di Energia",
     "avgEnergy": "Energia Media",
-    "outOf10": "/10 energia"
+    "outOf10": "/10 energia",
+    "outOfTen": "{{value}}/10",
+    "clear": "Cancella livello di energia",
+    "levelValue": "Livello di energia {{value}}/10"
   },
   "systemProfile": {
     "read": "Lettura",
@@ -1099,7 +1257,8 @@
     "changeAvatar": "Cambia Avatar",
     "changeBanner": "Cambia Banner",
     "removeAvatar": "Rimuovi Avatar",
-    "removeBanner": "Rimuovi Banner"
+    "removeBanner": "Rimuovi Banner",
+    "avatarAndBanner": "Avatar del Sistema · Banner del Sistema"
   },
   "frontSort": {
     "label": "Organizza",
@@ -1132,5 +1291,55 @@
     "Irritable": "Irritabile",
     "Sad": "Triste",
     "Focused": "Concentrato"
+  },
+  "dnd": {
+    "instructions": "Per prendere un elemento, premi Spazio o Invio. Usa i tasti freccia per spostarlo, poi premi Spazio o Invio per rilasciarlo, oppure Esc per annullare.",
+    "picked": "Hai preso {{name}}.",
+    "over": "{{name}} è sopra {{over}}.",
+    "notOver": "{{name}} non è più sopra un'area di rilascio.",
+    "dropped": "{{name}} è stato rilasciato su {{over}}.",
+    "droppedNoTarget": "{{name}} è stato rilasciato.",
+    "cancelled": "Lo spostamento di {{name}} è stato annullato."
+  },
+  "fileDialog": {
+    "jsonFiles": "File JSON",
+    "textFiles": "File di testo",
+    "allFiles": "Tutti i file",
+    "backup": "Backup",
+    "images": "Immagini"
+  },
+  "tray": {
+    "open": "Apri {{app}}",
+    "quit": "Esci"
+  },
+  "menu": {
+    "edit": "Modifica"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Chiacchierone",
+      "nonVerbal": "Non verbale",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Sfocato",
+      "blendy": "Mescolato",
+      "rapidSwitching": "Cambi rapidi",
+      "foggy": "Annebbiato",
+      "grounded": "Radicato",
+      "dissociated": "Dissociato",
+      "anxious": "Ansioso",
+      "depressed": "Depresso",
+      "cheerful": "Allegro",
+      "happy": "Felice",
+      "sad": "Triste",
+      "crisis": "Crisi",
+      "melancholy": "Malinconico",
+      "stimming": "Autostimolazione",
+      "stressed": "Stressato",
+      "working": "Al lavoro",
+      "traveling": "In viaggio",
+      "sleeping": "Addormentato",
+      "hyperfocus": "Iperfocus"
+    }
   }
 } 

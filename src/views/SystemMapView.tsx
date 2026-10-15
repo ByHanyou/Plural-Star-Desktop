@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Member, Relationship, RelationshipTypeDef, uid,
@@ -7,7 +7,7 @@ import {
 } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { Btn, Modal, ConfirmDialog, Dropdown, clickable, SrOnly } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
@@ -30,6 +30,8 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({});
   const svgRef = useRef<SVGSVGElement>(null);
+  const mapId = useId();
+  const [focusedNode, setFocusedNode] = useState<string | null>(null);
   const dragRef = useRef<{ id: string; pointerId: number; startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
   const lastDragMovedRef = useRef(false);
 
@@ -184,6 +186,20 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
       setPosOverrides(prev => { persistPositions(prev); return prev; });
     }
   };
+  const nudgeNode = (e: React.KeyboardEvent, id: string, p: { x: number; y: number }) => {
+    if (lockPositions) return;
+    const step = e.shiftKey ? 50 : 10;
+    const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+    const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+    if (!dx && !dy) return;
+    e.preventDefault();
+    const clamp = (v: number) => Math.max(-HALF_WORLD, Math.min(HALF_WORLD, Math.round(v)));
+    setPosOverrides(prev => { const next = { ...prev, [id]: { x: clamp(p.x + dx), y: clamp(p.y + dy) } }; persistPositions(next); return next; });
+  };
+  const nodeLabel = (mem: Member, hops: number | undefined): string => {
+    const base = mem.archived ? t('systemMap.nodeArchived', { name: mem.name }) : mem.name;
+    return selectedId && hops !== undefined && hops > 0 ? t('systemMap.nodeHops', { name: base, count: hops }) : base;
+  };
 
   const degrees = useMemo(() => relationshipDegrees(mapMembers.map(m => m.id), mapRels), [mapMembers, mapRels]);
 
@@ -238,7 +254,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
     <div style={{ maxWidth: 980, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: 18, fontFamily: 'var(--font-display)', color: 'var(--text)', margin: 0 }}>{t('systemMap.title')}</h2>
-        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{mapRels.length === 1 ? t('systemMap.relationshipOne') : t('systemMap.relationships', { count: mapRels.length })}</span>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{t('systemMap.relationships', { count: mapRels.length })}</span>
         <div style={{ flex: 1 }} />
         <Btn variant="solid" disabled={off.length === 0 && offFacets.length === 0} onClick={() => setShowAddMember(true)}>{t('systemMap.addMember')}</Btn>
         <Btn variant="ghost" onClick={() => setRelEditor({ from: selectedId || mapIds[0] || '', toIds: [], typeId: types[0]?.id || 'friend', note: '' })}>{t('systemMap.addRelationship')}</Btn>
@@ -275,7 +291,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         </div>
       ) : (
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          <svg ref={svgRef} viewBox={`${-extX} ${-extY} ${extX * 2} ${extY * 2}`} style={{ width: '100%', display: 'block' }} onClick={() => { if (lastDragMovedRef.current) { lastDragMovedRef.current = false; return; } setSelectedId(null); }}>
+          <svg ref={svgRef} role="group" aria-label={t('systemMap.title')} viewBox={`${-extX} ${-extY} ${extX * 2} ${extY * 2}`} style={{ width: '100%', display: 'block' }} onClick={() => { if (lastDragMovedRef.current) { lastDragMovedRef.current = false; return; } setSelectedId(null); }}>
             {mapRels.map(r => {
               const a = pos.get(r.fromId), b = pos.get(r.toId);
               if (!a || !b) return null;
@@ -285,7 +301,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               const ty = typeById.get(r.typeId);
               const color = (selectedId ? active : false) || colorAll ? (ty?.color || DEFAULT_REL_COLOR) : DEFAULT_REL_COLOR;
               const opacity = !selectedId ? 0.5 : active ? 0.95 : 0.12;
-              return <line key={r.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} strokeWidth={active ? 3 : 2} opacity={opacity} />;
+              return <line key={r.id} aria-hidden x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} strokeWidth={active ? 3 : 2} opacity={opacity} />;
             })}
             {mapMembers.map(mem => {
               const p = pos.get(mem.id)!;
@@ -294,14 +310,20 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               const isSel = mem.id === selectedId;
               return (
                 <g key={mem.id} style={{ cursor: 'pointer' }} opacity={dim ? 0.3 : mem.archived ? 0.55 : 1}
-                  role="button" tabIndex={0} aria-label={mem.name} aria-pressed={isSel}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(isSel ? null : mem.id); } }}
+                  role="button" tabIndex={0} aria-label={nodeLabel(mem, d)} aria-pressed={isSel}
+                  aria-describedby={lockPositions ? undefined : `${mapId}-movehint`}
+                  onFocus={e => { if (e.currentTarget.matches(':focus-visible')) setFocusedNode(mem.id); }}
+                  onBlur={() => setFocusedNode(f => (f === mem.id ? null : f))}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(isSel ? null : mem.id); } else nudgeNode(e, mem.id, p); }}
                   onPointerDown={onNodePointerDown(mem.id, p)}
                   onPointerMove={onNodePointerMove}
                   onPointerUp={onNodePointerUp}
                   onClick={e => { e.stopPropagation(); if (lastDragMovedRef.current) { lastDragMovedRef.current = false; return; } setSelectedId(isSel ? null : mem.id); }}>
                   <circle cx={p.x} cy={p.y} r={isSel ? 26 : 22} fill={mem.color || 'var(--accent)'}
                     stroke={isSel ? '#fff' : 'rgba(255,255,255,0.25)'} strokeWidth={isSel ? 3 : 1.5} />
+                  {focusedNode === mem.id && (
+                    <circle cx={p.x} cy={p.y} r={(isSel ? 26 : 22) + 5} fill="none" stroke="var(--accent)" strokeWidth={2} />
+                  )}
                   <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize={12} fontWeight={700} fill="#0a0508">{getInitials(mem.name)}</text>
                   <text x={p.x} y={p.y + 40} textAnchor="middle" fontSize={11} fill="var(--text)">{mem.name}</text>
                   {selectedId && d !== undefined && d > 0 && (
@@ -311,6 +333,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               );
             })}
           </svg>
+          <SrOnly id={`${mapId}-movehint`}>{t('systemMap.moveHint')}</SrOnly>
         </div>
       )}
 
@@ -338,7 +361,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
                 <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{ty ? typeLabel(ty) : '?'}</span>
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', cursor: onViewMember ? 'pointer' : 'default' }}
                   {...(onViewMember ? clickable(() => onViewMember(otherId), other?.name) : {})}>{other?.name || '?'}</span>
-                <button onClick={() => setConfirmDelRel(r.id)} aria-label={t('systemMap.deleteRelationship')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                <button onClick={() => setConfirmDelRel(r.id)} aria-label={t('systemMap.deleteRelationshipWith', { name: other?.name || '?' })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }}>✕</button>
               </div>
             );
           })}
@@ -348,7 +371,8 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
       <Modal open={showAddMember} title={t('systemMap.addMember')} onClose={() => setShowAddMember(false)}>
         {off.length === 0 && offFacets.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('systemMap.allOnMap')}</p> : (
           <>
-            {off.length > 0 && <label className="field__label">{t('members.title')}</label>}
+            {off.length > 0 && <div className="field__label" id={`${mapId}-addm`}>{t('members.title')}</div>}
+            <div role="group" aria-labelledby={off.length > 0 ? `${mapId}-addm` : undefined}>
             {off.map(m => (
               <button key={m.id} onClick={() => { saveMapIds([...mapIds, m.id]); setShowAddMember(false); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -356,9 +380,11 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
                 <span style={{ fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
               </button>
             ))}
+            </div>
             {offFacets.length > 0 && (
               <>
-                <label className="field__label" style={{ marginTop: 12 }}>{t('members.facets')}</label>
+                <div className="field__label" id={`${mapId}-addf`} style={{ marginTop: 12 }}>{t('members.facets')}</div>
+                <div role="group" aria-labelledby={`${mapId}-addf`}>
                 {offFacets.map(m => (
                   <button key={m.id} onClick={() => { saveMapIds([...mapIds, m.id]); setShowAddMember(false); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -366,6 +392,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
                     <span style={{ fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
                   </button>
                 ))}
+                </div>
               </>
             )}
           </>
@@ -377,13 +404,12 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         {relEditor && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <label className="field__label">{t('systemMap.from')}</label>
-              <Dropdown<string> value={relEditor.from} options={[...mapIds, ...off.map(m => m.id), ...offFacets.map(m => m.id)]} onChange={v => setRelEditor({ ...relEditor, from: v })} renderOption={id => memberById.get(id)?.name || '?'} />
+              <Dropdown<string> label={t('systemMap.from')} value={relEditor.from} options={[...mapIds, ...off.map(m => m.id), ...offFacets.map(m => m.id)]} onChange={v => setRelEditor({ ...relEditor, from: v })} renderOption={id => memberById.get(id)?.name || '?'} />
             </div>
             <div>
-              <label className="field__label">{t('systemMap.to')}</label>
-              <div className="field__label" style={{ marginTop: 4 }}>{t('members.title')}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="field__label" id={`${mapId}-to`}>{t('systemMap.to')}</div>
+              <div className="field__label" id={`${mapId}-tom`} style={{ marginTop: 4 }}>{t('members.title')}</div>
+              <div role="group" aria-labelledby={`${mapId}-to ${mapId}-tom`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {[...mapIds, ...off.map(m => m.id)].filter(id => id !== relEditor.from).map(id => {
                   const m = memberById.get(id);
                   if (!m) return null;
@@ -401,8 +427,8 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               </div>
               {offFacets.filter(m => m.id !== relEditor.from).length > 0 && (
                 <>
-                  <div className="field__label" style={{ marginTop: 8 }}>{t('members.facets')}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <div className="field__label" id={`${mapId}-tof`} style={{ marginTop: 8 }}>{t('members.facets')}</div>
+                  <div role="group" aria-labelledby={`${mapId}-to ${mapId}-tof`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {offFacets.filter(m => m.id !== relEditor.from).map(m => {
                       const on = relEditor.toIds.includes(m.id);
                       return (
@@ -420,8 +446,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               )}
             </div>
             <div>
-              <label className="field__label">{t('systemMap.type')}</label>
-              <Dropdown<string> value={relEditor.typeId} options={types.map(ty => ty.id)} onChange={v => setRelEditor({ ...relEditor, typeId: v })} renderOption={id => { const ty = typeById.get(id); return ty ? typeLabel(ty) : id; }} />
+              <Dropdown<string> label={t('systemMap.type')} value={relEditor.typeId} options={types.map(ty => ty.id)} onChange={v => setRelEditor({ ...relEditor, typeId: v })} renderOption={id => { const ty = typeById.get(id); return ty ? typeLabel(ty) : id; }} />
             </div>
             {relDup && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{t('systemMap.duplicate')}</div>}
           </div>
@@ -435,8 +460,9 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
             <span style={{ width: 12, height: 12, borderRadius: 6, background: ty.color || DEFAULT_REL_COLOR }} />
             <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{typeLabel(ty)}{ty.preset ? ` · ${t('systemMap.preset')}` : ''}</span>
             <button onClick={() => setTypeDraft({ id: ty.id, name: typeLabel(ty), inverseName: ty.inverseName || '', directional: !!ty.directional, color: ty.color || RELATIONSHIP_COLOR_CHOICES[0], preset: !!ty.preset })}
+              aria-label={t('common.editNamed', { name: typeLabel(ty) })}
               style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>{t('common.edit')}</button>
-            <button onClick={() => setConfirmDelType(ty)} aria-label={`${t('common.delete')} ${typeLabel(ty)}`} style={{ fontSize: 12, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+            <button onClick={() => setConfirmDelType(ty)} aria-label={t('common.deleteNamed', { name: typeLabel(ty) })} style={{ fontSize: 12, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
           </div>
         ))}
       </Modal>

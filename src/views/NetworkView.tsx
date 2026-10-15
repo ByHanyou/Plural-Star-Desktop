@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMinuteTick } from '../useMinuteTick';
-import { Btn, Field, Toggle, Section, Modal, ConfirmDialog } from '../components/ui';
+import { cloudErrorCode } from '../cloud/cloudTypes';
+import { Btn, Field, Toggle, Section, Modal, ConfirmDialog, SrOnly } from '../components/ui';
 import { useNetwork } from '../network/useNetwork';
 import { NetworkManager } from '../network/NetworkManager';
 import { Friend, PrivacyBucket, PrivacyScope, PrivacyScopeMode, PRIVACY_BUCKETS_KEY, MirrorFeature, MAX_NOTIF_FRIENDS, friendNotifyLevel } from '../network/types';
 import { MirrorView } from './MirrorView';
-import { fmtDur, fmtTime, fmtPercent, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES, memberMatchesSearch } from '../utils';
+import { fmtDur, fmtTime, fmtPercent, fmtList, uid, CustomFieldDef, Relationship, RelationshipTypeDef, PRESET_RELATIONSHIP_TYPES, memberMatchesSearch, translateMood } from '../utils';
 import { store, KEYS } from '../storage';
 import { logError } from '../log';
 import { useAppStore } from '../store/appStore';
@@ -78,6 +79,7 @@ export default function NetworkView() {
   const [cloudPw, setCloudPw] = useState('');
   const [cloudMedia, setCloudMedia] = useState(false);
   const [cloudError, setCloudError] = useState<string | null>(null);
+  const [cloudErrCode, setCloudErrCode] = useState<string | null>(null);
   const [cloudExists, setCloudExists] = useState(false);
   const [cloudImportConfirm, setCloudImportConfirm] = useState(false);
   const [cloudUnlinkStep, setCloudUnlinkStep] = useState<0 | 1 | 2>(0);
@@ -156,7 +158,7 @@ export default function NetworkView() {
   const cloneBucket = (b: Bucket) => {
     setEditBucket({
       id: uid(),
-      name: `${b.name} 2`,
+      name: t('network.bucketCopyName', { name: b.name }),
       front: { mode: b.front.mode, ids: [] },
       frontMood: b.frontMood,
       frontLocation: b.frontLocation,
@@ -195,7 +197,8 @@ export default function NetworkView() {
   const relLabel = (r: Relationship): string => {
     const rt = relTypes.find(x => x.id === r.typeId) || PRESET_RELATIONSHIP_TYPES.find(x => x.id === r.typeId);
     const arrow = rt?.directional ? '→' : '↔';
-    return `${memberName(r.fromId)} ${arrow} ${memberName(r.toId)}${rt ? `  ·  ${rt.name}` : ''}`;
+    const rtName = rt ? ((rt.preset && !rt.overridden) ? t(`relType.${rt.id}`, { defaultValue: rt.name }) : rt.name) : '';
+    return `${memberName(r.fromId)} ${arrow} ${memberName(r.toId)}${rt ? `  ·  ${rtName}` : ''}`;
   };
   const pickerItems: { id: string; name: string }[] = !pickerFeature ? [] : (pickerFeature === 'groups'
     ? groups.map(g => ({ id: g.id, name: g.name }))
@@ -269,30 +272,30 @@ export default function NetworkView() {
       setCloudError(t('network.cloudWarning'));
       return;
     }
-    setCloudError(null);
+    setCloudError(null); setCloudErrCode(null);
     setCloudOn(v);
     if (!v) { setCloudPw(''); CloudServices.cancelPendingLink(); }
   };
   const onCloudSubmit = async () => {
     if (cloudRule || cloudBusy) return;
-    setCloudError(null);
+    setCloudError(null); setCloudErrCode(null);
     try {
       const outcome = await CloudServices.linkWithPassword(cloudPw, cloudMedia);
       if (outcome.kind === 'created') { setCloudPw(''); return; }
       setCloudExists(true);
     } catch (e: any) {
-      setCloudError(String(e?.message || e));
+      setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e));
     }
   };
   const onCloudImportFinal = () => {
     setCloudImportConfirm(false);
     CloudServices.importExisting(cloudMedia)
       .then(() => setCloudPw(''))
-      .catch((e: any) => setCloudError(String(e?.message || e)));
+      .catch((e: any) => { setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e)); });
   };
   const onCloudUnlinkFinal = () => {
     setCloudUnlinkStep(0);
-    CloudServices.unlink().then(() => setCloudOn(false)).catch((e: any) => setCloudError(String(e?.message || e)));
+    CloudServices.unlink().then(() => setCloudOn(false)).catch((e: any) => { setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e)); });
   };
 
   const guard = async (fn: () => Promise<void>, kind?: Kind) => {
@@ -336,17 +339,26 @@ export default function NetworkView() {
     setError(t('network.cloudBlocksSync'));
     return true;
   };
-  const cloudErrorText = (raw: string): string => {
+  const cloudErrorText = (raw: string, code: string): string => {
     const s = raw.toLowerCase();
-    const m = raw.match(/^Left out, larger than \d+ MB: (.*)$/);
-    if (m) return t('network.cloudErrTooLarge', { keys: m[1] });
-    if (s.includes('object too large')) return t('network.cloudErrTooLarge', { keys: '' });
+    const m = raw.match(/^Left out, larger than (\d+) MB: (.*)$/);
+    if (m) return t('network.cloudErrTooLarge', { keys: m[2], mb: Number(m[1]) });
+    const q = raw.match(/^Left out, over the vault's space: (.*)$/);
+    if (q) return t('network.cloudErrOverQuota', { keys: q[1] });
+    if (s.includes('object too large')) return t('network.cloudErrTooLarge', { keys: '', mb: 25 });
     if (s.includes('rate limited') || s.includes('429')) return t('network.cloudErrRate');
     if (s.includes('quota') || s.includes('watermark') || s.includes('507')) return t('network.cloudErrFull');
     if (s.includes('does not open it') || s.includes('bad password') || s.includes('bad auth')) return t('network.cloudErrBadPassword');
     if (s.includes('undecryptable') || s.includes('malformed') || s.includes('hash mismatch') || s.includes('did not match its id') || s.includes('could not be decrypted')) return t('network.cloudErrCorrupt');
     if (s.includes('kept changing the vault') || s.includes('conflict') || s.includes('network') || s.includes('timed out') || s.includes('failed') || s.includes('fetch') || s.includes('not connected') || s.includes('unreach') || /http 5\d\d/.test(s)) return t('network.cloudErrNetwork');
-    return raw;
+    logError('cloud', raw);
+    return `${t('network.cloudErrGeneric')} ${t('common.errorCode', { code })}`;
+  };
+  const cloudShownError = (): string => {
+    if (cloudError && cloudError === t('network.cloudWarning')) return cloudError;
+    const raw = cloudError || cloud.lastError;
+    if (raw) return cloudErrorText(raw, cloudError ? (cloudErrCode || 'CLOUD-APP') : (cloud.lastErrorCode || 'CLOUD-APP'));
+    return '';
   };
   const onGenerate = (kind: Kind) => {
     if (cloudBlocksSync(kind)) return;
@@ -407,7 +419,7 @@ export default function NetworkView() {
     if (tierLines.length === 0) tierLines.push(s.fronters);
     tierLines[0] = `◈ ${tierLines[0]}${dur ? `  ·  ${dur}` : ''}`;
     lines.push(...tierLines);
-    if (s.mood) lines.push(t('notification.mood', { mood: s.mood, defaultValue: `Mood: ${s.mood}` }));
+    if (s.mood) { const mood = translateMood(s.mood, t); lines.push(t('notification.mood', { mood, defaultValue: `Mood: ${mood}` })); }
     if (s.location) lines.push(t('notification.at', { location: s.location, defaultValue: `At: ${s.location}` }));
     if (s.note) lines.push(t('notification.note', { note: s.note, defaultValue: `Note: ${s.note}` }));
     if (s.startTime) lines.push(t('notification.since', { time: fmtTime(s.startTime), defaultValue: `Since ${fmtTime(s.startTime)}` }));
@@ -439,14 +451,14 @@ export default function NetworkView() {
           [-1, orderIdx === 0, '▲', t('members.moveUp')],
           [1, orderIdx === orderCount - 1, '▼', t('members.moveDown')],
         ] as [(-1 | 1), boolean, string, string][]).map(([dir, atEnd, glyph, label]) => (
-          <button key={glyph} className="icon-btn" aria-label={`${label}, ${f.displayName}`} title={label} disabled={atEnd}
+          <button key={glyph} className="icon-btn" aria-label={dir < 0 ? t('common.moveUpNamed', { name: f.displayName }) : t('common.moveDownNamed', { name: f.displayName })} title={label} disabled={atEnd}
             onClick={() => { if (!atEnd) NetworkManager.moveFriend(f.peerId, dir); }}
             style={{ background: 'none', border: 'none', color: 'var(--muted)', opacity: atEnd ? 0.3 : 1, fontSize: 13, cursor: atEnd ? 'default' : 'pointer', padding: 8 }}>{glyph}</button>
         ))}
         {f.kind !== 'device' && f.status === 'accepted' && (
           <button
             className="icon-btn"
-            aria-label={`${t('network.viewShared')}, ${f.displayName}`}
+            aria-label={t('network.viewSharedNamed', { name: f.displayName })}
             onClick={() => setMirrorMenuFor(f)}
             style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>⋯</button>
         )}
@@ -455,16 +467,17 @@ export default function NetworkView() {
           const atCap = level !== 'full' && net.friends.filter(x => friendNotifyLevel(x) === 'full').length >= MAX_NOTIF_FRIENDS;
           const nextLevel = level === 'full' ? 'alerts' : level === 'alerts' ? 'off' : atCap ? 'alerts' : 'full';
           const levelLabel = level === 'full' ? t('network.notifFull') : level === 'alerts' ? t('network.notifAlerts') : t('network.notifOff');
+          const nextLabel = nextLevel === 'full' ? t('network.notifFull') : nextLevel === 'alerts' ? t('network.notifAlerts') : t('network.notifOff');
           return (
             <button
               className="icon-btn"
-              aria-label={`${levelLabel}, ${f.displayName}`}
+              aria-label={t('network.notifyLevelCycle', { name: f.displayName, level: levelLabel, next: nextLabel })}
               title={levelLabel}
               onClick={() => NetworkManager.setFriendNotifyLevel(f.peerId, nextLevel)}
               style={{ background: 'none', border: 'none', color: level === 'full' ? 'var(--accent)' : 'var(--muted)', opacity: level === 'off' ? 0.45 : 1, fontSize: 15, cursor: 'pointer', padding: 8 }}>{level === 'full' ? '🔔' : level === 'alerts' ? '📳' : '🔕'}</button>
           );
         })()}
-        <button className="icon-btn" aria-label={`${t('network.remove')}, ${f.displayName}`} onClick={() => setRemoveTarget(f)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
+        <button className="icon-btn" aria-label={t('network.removeNamed', { name: f.displayName })} onClick={() => setRemoveTarget(f)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
       </div>
     );
   };
@@ -484,10 +497,11 @@ export default function NetworkView() {
         <Btn onClick={() => onEnter(kind, theirVal, () => setTheirVal(''))} disabled={busy || !theirVal.trim()}>{t('network.add')}</Btn>
       </div>
       <div style={{ marginTop: 10 }}>
+        <SrOnly><span role="status">{code && copiedKind === kind ? t('network.codeCopied') : ''}</span></SrOnly>
         {code ? (
           <button
             onClick={() => onCopy(kind, code)}
-            aria-label={`${t('network.yourCode')}: ${code}. ${t('network.tapToCopy')}`}
+            aria-label={t('network.yourCodeLabel', { code })}
             style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--accent)', borderRadius: 8, padding: '12px 8px', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: kind === 'device' ? 16 : 19, fontWeight: 700, letterSpacing: 2, color: 'var(--text)', fontFamily: 'var(--font-mono, monospace)' }}>{code}</div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
@@ -511,9 +525,10 @@ export default function NetworkView() {
 
       <Section label={t('network.enable')} />
       <Toggle value={net.enabled} onChange={v => guard(() => NetworkManager.setEnabled(v))} label={t('network.enable')} description={t('network.enableDesc')} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 20 }} role="status" aria-label={`${t('network.enable')} — ${statusLabel()}`}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 20 }} role="status">
         <span style={{ width: 9, height: 9, borderRadius: 5, background: statusColor() }} aria-hidden />
-        <span style={{ fontSize: 13, color: 'var(--text)' }}>{statusLabel()}</span>
+        <span style={{ fontSize: 13, color: 'var(--text)' }} aria-hidden>{statusLabel()}</span>
+        <SrOnly>{t('network.statusLabel', { status: statusLabel() })}</SrOnly>
       </div>
 
       <Section label={t('network.addFriend')} />
@@ -565,7 +580,7 @@ export default function NetworkView() {
               </p>
             )}
             {(cloud.lastError || cloudError) && (
-              <p style={{ fontSize: 11, color: 'var(--danger)', margin: '6px 0 0' }}>{t('network.cloudError', { error: cloudErrorText(cloudError || cloud.lastError || '') })}</p>
+              <p role="alert" style={{ fontSize: 11, color: 'var(--danger)', margin: '6px 0 0' }}>{t('network.cloudError', { error: cloudShownError() })}</p>
             )}
             <div style={{ marginTop: 12 }}>
               <Toggle value={cloud.mediaTier} onChange={v => CloudServices.setMediaTier(v).catch(() => {})} label={t('network.cloudMediaTier')} description={t('network.cloudMediaTierDesc')} />
@@ -595,7 +610,7 @@ export default function NetworkView() {
               </div>
             )}
             {(cloudError || cloud.lastError) && (
-              <p style={{ fontSize: 11, color: 'var(--danger)', margin: '8px 0 0' }}>{t('network.cloudError', { error: cloudErrorText(cloudError || cloud.lastError || '') })}</p>
+              <p role="alert" style={{ fontSize: 11, color: 'var(--danger)', margin: '8px 0 0' }}>{t('network.cloudError', { error: cloudShownError() })}</p>
             )}
           </>
         )}
@@ -635,14 +650,14 @@ export default function NetworkView() {
               <div role="button" tabIndex={0} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                 onClick={() => setEditBucket(splitKinds({ ...b }))}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditBucket(splitKinds({ ...b })); } }}
-                aria-label={`${b.name}. ${BUCKET_ROWS.map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join(', ')}`}>
+                aria-label={t('network.bucketLabel', { name: b.name, scopes: fmtList(BUCKET_ROWS.map(f => t('network.bucketScope', { feature: featureLabel(f), scope: scopeSummary(b[f]) }))) })}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  {BUCKET_ROWS.map(f => `${featureLabel(f)}: ${scopeSummary(b[f])}`).join('  ·  ')}
+                  {BUCKET_ROWS.map(f => t('network.bucketScope', { feature: featureLabel(f), scope: scopeSummary(b[f]) })).join('  ·  ')}
                 </div>
               </div>
-              <Btn variant="ghost" aria-label={`${t('network.cloneBucket')} — ${b.name}`} onClick={() => cloneBucket(b)}>⧉</Btn>
-              <button className="btn btn--danger" aria-label={`${t('network.deleteBucket')} — ${b.name}`} onClick={() => setDeleteBucketTarget(b)}>✕</button>
+              <Btn variant="ghost" aria-label={t('network.cloneBucketNamed', { name: b.name })} onClick={() => cloneBucket(b)}>⧉</Btn>
+              <button className="btn btn--danger" aria-label={t('network.deleteBucketNamed', { name: b.name })} onClick={() => setDeleteBucketTarget(b)}>✕</button>
             </div>
           ))}
         </div>
@@ -666,7 +681,7 @@ export default function NetworkView() {
               const sel = editBucket[f].mode === mode;
               const label = mode === 'all' ? t('network.scopeAll') : mode === 'select' ? t('network.scopeSelect') : t('network.scopeNone');
               return (
-                <button key={mode} className="chip" aria-pressed={sel} aria-label={`${featureLabel(f)}: ${label}`}
+                <button key={mode} className="chip" aria-pressed={sel} aria-label={t('network.bucketScope', { feature: featureLabel(f), scope: label })}
                   style={{
                     borderColor: sel ? 'var(--accent)' : 'var(--border)',
                     background: sel ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'var(--surface)',
@@ -678,7 +693,7 @@ export default function NetworkView() {
               );
             })}
             {editBucket[f].mode === 'select' && (
-              <Btn variant="ghost" aria-label={`${featureLabel(f)}: ${t('network.scopeSelect')}, ${editBucket[f].ids.length}`}
+              <Btn variant="ghost" aria-label={t('network.bucketPickCount', { feature: featureLabel(f), count: editBucket[f].ids.length })}
                 onClick={() => { setPickerSearch(''); setPickerFeature(f); }}>
                 {editBucket[f].ids.length} ✎
               </Btn>
@@ -731,7 +746,7 @@ export default function NetworkView() {
 
       <Modal
         open={!!editBucket && !!pickerFeature}
-        title={`${pickerFeature ? featureLabel(pickerFeature) : ''} — ${t('network.scopeSelect')}`}
+        title={t('network.pickerTitle', { feature: pickerFeature ? featureLabel(pickerFeature) : '' })}
         onClose={() => setPickerFeature(null)}
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -804,7 +819,7 @@ export default function NetworkView() {
         title={t('network.remove')}
         message={
           !removeTarget ? ''
-            : removeTarget.kind === 'device' ? removeTarget.displayName
+            : removeTarget.kind === 'device' ? t('network.removeDeviceWarn', { name: removeTarget.displayName })
             : t('network.removeFriendWarn', { name: removeTarget.displayName })
         }
         danger
@@ -827,12 +842,12 @@ export default function NetworkView() {
 
       <Modal
         open={!!mirrorMenuFor}
-        title={`${mirrorMenuFor?.displayName || ''} — ${t('network.viewShared')}`}
+        title={t('network.viewSharedNamed', { name: mirrorMenuFor?.displayName || '' })}
         onClose={() => setMirrorMenuFor(null)}>
         {mirrorMenuFor && (
           <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 0 }}>
             {BUCKET_ROWS
-              .map(f => `${featureLabel(f)}: ${scopeSummary(effectiveShare(mirrorMenuFor.peerId, f))}`)
+              .map(f => t('network.bucketScope', { feature: featureLabel(f), scope: scopeSummary(effectiveShare(mirrorMenuFor.peerId, f)) }))
               .join('  ·  ')}
           </p>
         )}

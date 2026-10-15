@@ -16,7 +16,7 @@ const getTierField = (front: any, tier: string, field: string): string | undefin
 const resolveNames = (ids: string[], members: Member[]): string =>
   ids.map(id => members.find(m => m.id === id)?.name).filter(Boolean).join(', ');
 
-export interface FrontShareDetails { mood?: boolean; location?: boolean; note?: boolean }
+interface FrontShareDetails { mood?: boolean; location?: boolean; note?: boolean }
 
 export const buildFrontShare = (front: any, members: Member[], allowedIds?: Set<string> | null, facetAllowedIds?: Set<string> | null, customFrontAllowedIds?: Set<string> | null, details?: FrontShareDetails): FrontShare | null => {
   if (!front) return null;

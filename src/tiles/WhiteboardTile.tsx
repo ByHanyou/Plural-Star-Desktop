@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { store, KEYS } from '../storage';
+import { SrOnly } from '../components/ui';
 
 interface Props { onClick: () => void; }
 
@@ -18,7 +19,7 @@ export default function WhiteboardTile({ onClick }: Props) {
         {strokeCount === 0 ? (
           <span className="tile__empty">{t('whiteboard.draw')}</span>
         ) : (
-          <div style={{ fontSize: 13, color: 'var(--text)' }}>✎ {strokeCount}</div>
+          <div style={{ fontSize: 13, color: 'var(--text)' }}><span aria-hidden>✎ {strokeCount}</span><SrOnly>{t('whiteboard.strokeCount', { count: strokeCount })}</SrOnly></div>
         )}
       </div>
     </div>

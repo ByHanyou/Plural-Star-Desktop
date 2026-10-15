@@ -12,7 +12,7 @@ declare global {
       };
       dialog: {
         openFile: (filters?: any[]) => Promise<string | null>;
-        saveFile: (defaultName: string) => Promise<string | null>;
+        saveFile: (defaultName: string, filters?: any[]) => Promise<string | null>;
       };
       file: {
         readAsBase64: (filePath: string) => Promise<string | null>;
@@ -34,6 +34,9 @@ declare global {
         minimize: () => void;
         maximize: () => void;
         close: () => void;
+      };
+      shell: {
+        setLabels: (labels: Record<string, string>) => void;
       };
       platform: string;
     };

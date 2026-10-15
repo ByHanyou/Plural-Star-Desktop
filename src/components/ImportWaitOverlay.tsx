@@ -1,7 +1,8 @@
-import React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImportProgress, progressFraction } from '../import/progress';
-import { fmtPercent } from '../utils';
+import { fmtPercent, fmtNum } from '../utils';
+import { ConfirmDialog, useDialogFocus, useEscapeKey } from './ui';
 
 interface Props {
   visible: boolean;
@@ -11,16 +12,23 @@ interface Props {
 
 export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
   const { t } = useTranslation();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const stopping = !!progress?.stopping;
+  const [confirmStop, setConfirmStop] = useState(false);
+  useDialogFocus(visible, dialogRef);
+  // Escape asks first; the import only stops once the warning is confirmed.
+  useEscapeKey(visible && !!onCancel && !stopping && !confirmStop, () => setConfirmStop(true));
+  useEffect(() => { if (!visible || stopping) setConfirmStop(false); }, [visible, stopping]);
   if (!visible) return null;
   const fraction = progressFraction(progress);
   const pct = fraction === null ? null : Math.round(fraction * 100);
-  const stopping = !!progress?.stopping;
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      aria-busy="true"
       aria-label={t('share.importing')}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
@@ -35,11 +43,13 @@ export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
           {t('share.importing')}
         </div>
         {!!progress?.label && (
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>{progress.label}</div>
+          <div role="status" style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>{progress.label}</div>
         )}
 
         <div
           role="progressbar"
+          aria-label={t('share.importing')}
+          aria-valuetext={pct === null ? (progress?.label || undefined) : undefined}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={pct ?? undefined}
@@ -53,11 +63,11 @@ export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--dim)' }}>
           <span>{pct === null ? '' : fmtPercent(pct / 100, 0)}</span>
-          {!!progress?.total && progress.total > 0 && <span>{`${progress.done ?? 0}/${progress.total}`}</span>}
+          {!!progress?.total && progress.total > 0 && <span>{t('share.importProgressCount', { done: fmtNum(progress.done ?? 0, 0), total: fmtNum(progress.total, 0) })}</span>}
         </div>
 
         {stopping ? (
-          <div style={{ marginTop: 12, fontSize: 12, color: 'var(--accent)' }}>
+          <div role="status" style={{ marginTop: 12, fontSize: 12, color: 'var(--accent)' }}>
             {t('share.importStopping', { defaultValue: 'Finishing this step, then stopping…' })}
           </div>
         ) : onCancel ? (
@@ -73,6 +83,9 @@ export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
           </button>
         ) : null}
       </div>
+      <ConfirmDialog open={confirmStop} title={t('share.importCancelTitle')} message={t('share.importCancelHint')}
+        onConfirm={() => { setConfirmStop(false); onCancel?.(); }}
+        onCancel={() => setConfirmStop(false)} />
     </div>
   );
 }

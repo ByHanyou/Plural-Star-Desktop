@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, MemberGroup, GroupNodeKind, MemberSortMode, uid, childrenOf, descendantsOf, isDescendant, groupKind, isRosterMember, sortMembers, nameCompare, memberMatchesSearch, getInitials } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Modal, ConfirmDialog, Dropdown, useEscapeKey } from '../components/ui';
+import { Btn, Modal, ConfirmDialog, Dropdown, useEscapeKey, useDialogFocus, SrOnly } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { NetworkManager } from '../network/NetworkManager';
 import { PALETTE, initialOn } from '../theme';
@@ -134,6 +134,9 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
 
   const confirmTarget = confirmDeleteId ? groups.find(g => g.id === confirmDeleteId) : null;
   const confirmKids = confirmDeleteId ? descendantsOf(groups, confirmDeleteId) : [];
+  const smId = useId();
+  const kidsDialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(!!confirmTarget && confirmKids.length > 0, kidsDialogRef);
 
   const renderNode = (g: MemberGroup, depth: number, seen: Set<string> = new Set()): React.ReactNode => {
     if (seen.has(g.id)) return null;
@@ -164,7 +167,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
           ) : (
             <>
               <span style={{ flex: 1, fontSize: 14, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isSub ? '⊟ ' : ''}{g.name}
+                {isSub ? <><span aria-hidden>⊟ </span><SrOnly>{t('memberGroups.subsystem')}</SrOnly></> : ''}{g.name}
               </span>
               {canDrop ? (
                 <button onClick={() => moveNode(moving!, g.id)}
@@ -175,14 +178,14 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{t('memberGroups.moving')}</span>
               ) : (
                 <>
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>{memberCount}</span>
-                  <button onClick={() => setMovingId(g.id)} title={`${t('memberGroups.move')} ${g.name}`} aria-label={`${t('memberGroups.move')} ${g.name}`}
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }} title={t('memberGroups.memberCount', { count: memberCount })}><span aria-hidden>{memberCount}</span><SrOnly>{t('memberGroups.memberCount', { count: memberCount })}</SrOnly></span>
+                  <button onClick={() => setMovingId(g.id)} title={t('memberGroups.moveNamed', { name: g.name })} aria-label={t('memberGroups.moveNamed', { name: g.name })}
                     style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 15, cursor: 'pointer', padding: 2 }}>⇄</button>
-                  <button onClick={() => { setEditId(g.id); setEditName(g.name); setEditColor(g.color || PALETTE[0]); setEditDesc(g.description || ''); setEditLinked(g.linkedMemberId || ''); setShowEditColor(false); }}
+                  <button aria-label={t('common.editNamed', { name: g.name })} onClick={() => { setEditId(g.id); setEditName(g.name); setEditColor(g.color || PALETTE[0]); setEditDesc(g.description || ''); setEditLinked(g.linkedMemberId || ''); setShowEditColor(false); }}
                     style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--accent-bg)', color: 'var(--accent)', cursor: 'pointer' }}>
                     {t('common.edit')}
                   </button>
-                  <button onClick={() => setConfirmDeleteId(g.id)} title={`${t('common.delete')} ${g.name}`} aria-label={`${t('common.delete')} ${g.name}`}
+                  <button onClick={() => setConfirmDeleteId(g.id)} title={t('common.deleteNamed', { name: g.name })} aria-label={t('common.deleteNamed', { name: g.name })}
                     style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 4 }}>✕</button>
                 </>
               )}
@@ -224,7 +227,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <p style={{ flex: 1, fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, margin: 0 }}>{t('systemManager.desc')}</p>
-        <Btn variant={browse ? 'info' : 'ghost'} onClick={() => { setBrowse(b => !b); goBrowseTo(null); }}>🗂 {t('systemManager.browse')}</Btn>
+        <Btn variant={browse ? 'info' : 'ghost'} aria-pressed={browse} onClick={() => { setBrowse(b => !b); goBrowseTo(null); }}><span aria-hidden>🗂</span> {t('systemManager.browse')}</Btn>
       </div>
 
       {browse && (() => {
@@ -266,6 +269,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 value={groupSortMode}
                 options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}
                 onChange={saveGroupSortMode}
+                ariaLabel={t('memberSort.label')}
                 renderOption={v => t(`memberSort.${v}`)}
               />
               {folder && !removeMode && (
@@ -283,7 +287,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 : null;
               if (!linked) return null;
               return (
-                <button onClick={() => onViewMember?.(linked.id)} disabled={!onViewMember} aria-label={`${t('memberGroups.linkedFronter')}: ${linked.name}`}
+                <button onClick={() => onViewMember?.(linked.id)} disabled={!onViewMember} aria-label={t('common.labelValue', { label: t('memberGroups.linkedFronter'), value: linked.name })}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', marginBottom: 10, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', cursor: onViewMember ? 'pointer' : 'default', textAlign: 'left' }}>
                   {linked.avatar
                     ? <img src={linked.avatar} alt="" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover', flexShrink: 0 }} />
@@ -308,12 +312,14 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
             {subFolders.map(g => (
               <button key={g.id} onClick={() => goBrowseTo(g.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
-                <span style={{ fontSize: 14 }}>{groupKind(g) === 'subsystem' ? '⊟' : '📁'}</span>
+                <span style={{ fontSize: 14 }} aria-hidden>{groupKind(g) === 'subsystem' ? '⊟' : '📁'}</span>
+                <SrOnly>{groupKind(g) === 'subsystem' ? t('memberGroups.subsystem') : t('memberGroups.group')}</SrOnly>
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{g.name}</span>
                 <span aria-hidden style={{ fontSize: 11, color: 'var(--muted)' }}>›</span>
               </button>
             ))}
-            {folderMembers.length > 0 && <label className="field__label" style={{ marginTop: 10 }}>{t('members.title')}</label>}
+            {folderMembers.length > 0 && <div className="field__label" id={`${smId}-fm`} style={{ marginTop: 10 }}>{t('members.title')}</div>}
+            <div role="group" aria-labelledby={folderMembers.length > 0 ? `${smId}-fm` : undefined}>
             {folderMembers.map(m => removeMode ? (
               <button key={m.id} onClick={() => toggleRemovePick(m.id)} role="checkbox" aria-checked={removeIds.includes(m.id)} aria-label={m.name}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -330,18 +336,20 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 </button>
                 {onQuickFront && onRemoveFromFront && (
                   isFronting(m.id) ? (
-                    <button onClick={() => setConfirmRemoveFront(m)} aria-label={`${t('members.removeFromFront')} — ${m.name}`} title={t('members.removeFromFront')}
+                    <button onClick={() => setConfirmRemoveFront(m)} aria-label={t('members.removeFromFrontNamed', { name: m.name })} title={t('members.removeFromFront')}
                       style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>−</button>
                   ) : (
-                    <button onClick={() => setQuickFrontFor(m)} aria-label={`${t('members.addToFront')} — ${m.name}`} title={t('members.addToFront')}
+                    <button onClick={() => setQuickFrontFor(m)} aria-label={t('members.addToFrontNamed', { name: m.name })} title={t('members.addToFront')}
                       style={{ width: 22, height: 22, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 12, lineHeight: 1, marginRight: 4 }}>＋</button>
                   )
                 )}
               </div>
             ))}
+            </div>
             {folderFacets.length > 0 && (
               <>
-                <label className="field__label" style={{ marginTop: 10 }}>{t('members.facets')}</label>
+                <div className="field__label" id={`${smId}-ff`} style={{ marginTop: 10 }}>{t('members.facets')}</div>
+                <div role="group" aria-labelledby={`${smId}-ff`}>
                 {folderFacets.map(m => removeMode ? (
                   <button key={m.id} onClick={() => toggleRemovePick(m.id)} role="checkbox" aria-checked={removeIds.includes(m.id)} aria-label={m.name}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -358,11 +366,13 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                     </button>
                   </div>
                 ))}
+                </div>
               </>
             )}
             {folderCustomFronts.length > 0 && (
               <>
-                <label className="field__label" style={{ marginTop: 10 }}>{t('members.customFronts')}</label>
+                <div className="field__label" id={`${smId}-fcf`} style={{ marginTop: 10 }}>{t('members.customFronts')}</div>
+                <div role="group" aria-labelledby={`${smId}-fcf`}>
                 {folderCustomFronts.map(m => removeMode ? (
                   <button key={m.id} onClick={() => toggleRemovePick(m.id)} role="checkbox" aria-checked={removeIds.includes(m.id)} aria-label={m.name}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -379,13 +389,14 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                     </button>
                   </div>
                 ))}
+                </div>
               </>
             )}
             {subFolders.length === 0 && folderMembers.length === 0 && folderFacets.length === 0 && folderCustomFronts.length === 0 && (
               <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('systemManager.emptyFolder')}</p>
             )}
 
-            <Modal open={addPickOpen} title={`${t('memberGroups.addMembers')} — ${folder?.name || ''}`} onClose={() => setAddPickOpen(false)}
+            <Modal open={addPickOpen} title={t('memberGroups.addMembersTo', { name: folder?.name || '' })} onClose={() => setAddPickOpen(false)}
               footer={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
                   <span style={{ flex: 1, fontSize: 11, color: 'var(--dim)' }}>{t('members.selectedCount', { count: addPickIds.length })}</span>
@@ -395,7 +406,8 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
               }>
               <input className="field__input" value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} style={{ marginBottom: 10, width: '100%' }} />
               <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                {addCandidates.length > 0 && <label className="field__label">{t('members.title')}</label>}
+                {addCandidates.length > 0 && <div className="field__label" id={`${smId}-am`}>{t('members.title')}</div>}
+                <div role="group" aria-labelledby={addCandidates.length > 0 ? `${smId}-am` : undefined}>
                 {addCandidates.map(m => (
                   <button key={m.id} onClick={() => toggleAddPick(m.id)} role="checkbox" aria-checked={addPickIds.includes(m.id)} aria-label={m.name}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -404,9 +416,11 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
                   </button>
                 ))}
+                </div>
                 {addFacetCandidates.length > 0 && (
                   <>
-                    <label className="field__label" style={{ marginTop: 10 }}>{t('members.facets')}</label>
+                    <div className="field__label" id={`${smId}-af`} style={{ marginTop: 10 }}>{t('members.facets')}</div>
+                    <div role="group" aria-labelledby={`${smId}-af`}>
                     {addFacetCandidates.map(m => (
                       <button key={m.id} onClick={() => toggleAddPick(m.id)} role="checkbox" aria-checked={addPickIds.includes(m.id)} aria-label={m.name}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -415,11 +429,13 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                         <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
                       </button>
                     ))}
+                    </div>
                   </>
                 )}
                 {addCfCandidates.length > 0 && (
                   <>
-                    <label className="field__label" style={{ marginTop: 10 }}>{t('members.customFronts')}</label>
+                    <div className="field__label" id={`${smId}-acf`} style={{ marginTop: 10 }}>{t('members.customFronts')}</div>
+                    <div role="group" aria-labelledby={`${smId}-acf`}>
                     {addCfCandidates.map(m => (
                       <button key={m.id} onClick={() => toggleAddPick(m.id)} role="checkbox" aria-checked={addPickIds.includes(m.id)} aria-label={m.name}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -428,6 +444,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                         <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
                       </button>
                     ))}
+                    </div>
                   </>
                 )}
                 {addCandidates.length === 0 && addFacetCandidates.length === 0 && addCfCandidates.length === 0 && (
@@ -436,7 +453,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
               </div>
             </Modal>
 
-            <Modal open={!!quickFrontFor} title={`${t('members.addToFront')} — ${quickFrontFor?.name || ''}`} onClose={() => setQuickFrontFor(null)}>
+            <Modal open={!!quickFrontFor} title={t('members.addToFrontNamed', { name: quickFrontFor?.name || '' })} onClose={() => setQuickFrontFor(null)}>
               {(['primary', 'coFront', 'coConscious'] as const).map(tier => (
                 <button key={tier} onClick={() => { const m = quickFrontFor; setQuickFrontFor(null); if (m) onQuickFront?.(m.id, tier); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 10, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
@@ -464,7 +481,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
       })()}
 
       {!browse && movingId && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: 8, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--accent)' }}>
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: 8, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--accent)' }}>
           <span style={{ flex: 1, fontSize: 11, color: 'var(--dim)' }}>{t('memberGroups.movePrompt')}</span>
           <button onClick={() => moveNode(movingId!, null)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{t('memberGroups.toRoot')}</button>
           <button onClick={() => setMovingId(null)} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 11, cursor: 'pointer' }}>{t('common.cancel')}</button>
@@ -482,7 +499,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
           aria-label={t('memberGroups.addPlaceholder')} placeholder={t('memberGroups.addPlaceholder')}
           onKeyDown={e => { if (e.key === 'Enter') addNode(); }}
           style={{ flex: 1, fontSize: 13 }} />
-        <Btn variant="ghost" onClick={() => setNewKind(k => k === 'group' ? 'subsystem' : 'group')}>
+        <Btn variant="ghost" aria-label={t('memberGroups.kindToggle', { kind: newKind === 'subsystem' ? t('memberGroups.subsystem') : t('memberGroups.group') })} onClick={() => setNewKind(k => k === 'group' ? 'subsystem' : 'group')}>
           {newKind === 'subsystem' ? t('memberGroups.subsystem') : t('memberGroups.group')}
         </Btn>
         <Btn variant="solid" onClick={addNode}>{t('common.add')}</Btn>
@@ -502,10 +519,10 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
       )}
       {confirmTarget && confirmKids.length > 0 && (
         <div className="modal-overlay" role="presentation" onClick={() => setConfirmDeleteId(null)}>
-          <div className="modal modal--sm" role="presentation" onClick={e => e.stopPropagation()}>
-            <div className="modal__header"><span className="modal__title">{t('memberGroups.deleteGroup')}</span></div>
+          <div ref={kidsDialogRef} className="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby={`${smId}-del-title`} aria-describedby={`${smId}-del-msg`} tabIndex={-1} onClick={e => e.stopPropagation()}>
+            <div className="modal__header"><span className="modal__title" id={`${smId}-del-title`} role="heading" aria-level={2}>{t('memberGroups.deleteGroup')}</span></div>
             <div className="modal__body">
-              <p style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5 }}>{t('memberGroups.deleteWithChildrenMsg', { count: confirmKids.length })}</p>
+              <p id={`${smId}-del-msg`} style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5 }}>{t('memberGroups.deleteWithChildrenMsg', { count: confirmKids.length })}</p>
             </div>
             <div className="modal__footer">
               <Btn variant="ghost" onClick={() => setConfirmDeleteId(null)}>{t('common.cancel')}</Btn>

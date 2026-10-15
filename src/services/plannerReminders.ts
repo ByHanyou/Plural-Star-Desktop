@@ -1,6 +1,6 @@
 import i18n from '../i18n/i18n';
 import { store, KEYS } from '../storage';
-import { PlannerData, AppSettings, plannerOccursOnDay, plannerNextOccurrence } from '../utils';
+import { PlannerData, AppSettings, plannerOccursOnDay, plannerNextOccurrence, fmtClock } from '../utils';
 import { logError } from '../log';
 
 const fired = new Set<string>();
@@ -10,7 +10,7 @@ const notify = (title: string, body: string) => {
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const clockOf = (d: Date) => fmtClock(d.getHours(), d.getMinutes());
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 const CATCH_UP_MS = 3 * 60 * 60 * 1000;
@@ -59,8 +59,8 @@ const tick = async () => {
     if (fired.has(key)) continue;
     fired.add(key);
     notify(`🗓 ${appt.title}`, appt.location
-      ? i18n.t('planner.notifApptAt', { time: hhmm(new Date(occ)), location: appt.location })
-      : i18n.t('planner.notifAppt', { time: hhmm(new Date(occ)) }));
+      ? i18n.t('planner.notifApptAt', { time: clockOf(new Date(occ)), location: appt.location })
+      : i18n.t('planner.notifAppt', { time: clockOf(new Date(occ)) }));
   }
 };
 

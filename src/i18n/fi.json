@@ -42,7 +42,9 @@
     "skyBlue": "Taivaansininen",
     "orchid": "Orkidea",
     "lime": "Limetti",
-    "sand": "Hiekka"
+    "sand": "Hiekka",
+    "customCount": "Omat {{count}}/{{max}}",
+    "customSlotValue": "Oma väri {{n}}, {{hex}}"
   },
   "terminology": {
     "fronter": "Edessä oleva",
@@ -116,7 +118,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Suunnittelijan muistutus",
-    "reminderTitlePlaceholder": "Mitä sen pitäisi sanoa?"
+    "reminderTitlePlaceholder": "Mitä sen pitäisi sanoa?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Muistutus: {{title}}"
   },
   "mailbox": {
     "title": "Postilaatikko",
@@ -139,7 +143,14 @@
     "messageCount_other": "{{count}} viestiä",
     "unreadCount": "{{count}} lukematta",
     "deleteTitle": "Poista viesti",
-    "deleteMsg": "Poistetaanko tämä viesti? Tätä ei voi kumota."
+    "deleteMsg": "Poistetaanko tämä viesti? Tätä ei voi kumota.",
+    "allOthersCount": "Kaikki muut Jäsenet ({{count}})",
+    "lockedLabel": "Lukittu",
+    "lockButtonLocked": "Postilaatikon lukko (päällä)",
+    "lockButtonUnlocked": "Postilaatikon lukko (pois)",
+    "fromName": "Lähettäjä: {{name}}",
+    "deleteFrom": "Poista viesti lähettäjältä {{name}}",
+    "unlockTitle": "Avaa postilaatikon lukitus: {{name}}"
   },
   "network": {
     "cloudConfirmTitle": "Vahvista uudelleen",
@@ -153,6 +164,7 @@
     "cloudErrRate": "Liian monta yritystä. Odota minuutti ja yritä uudelleen.",
     "cloudErrFull": "Holvissa tai solmussa ei ole tilaa.",
     "cloudErrTooLarge": "Jätetty pois, yli 25 Mt: {{keys}}",
+    "cloudErrOverQuota": "Jätetty pois, holvissa ei ole tilaa: {{keys}}",
     "cloudErrBadPassword": "Holvi on olemassa, mutta tämä salasana ei avaa sitä.",
     "cloudErrCorrupt": "Holvia ei voitu lukea tällä laitteella. Poista linkitys ja linkitä uudelleen samalla salasanalla.",
     "cloudUnavailable": "Solmu, johon olet yhteydessä, ei tarjoa Pilvipalveluita.",
@@ -264,7 +276,32 @@
     "syncRoleMismatchMsg": "Sinä ja {{device}} valitsitte saman suunnan, joten ensimmäinen kopio ohitettiin. Uudet muutokset synkronoituvat silti. Kopioidaksesi kaiken poista linkitys ja parita uudelleen — valitse ”lähetä” toisella ja ”vastaanota” toisella laitteella.",
     "syncCloneSending": "Lähetetään ensimmäistä kopiota…",
     "syncCloneReceiving": "Vastaanotetaan ensimmäistä kopiota…",
-    "publishFailed": "Koodin julkaisu epäonnistui — tarkista yhteytesi ja yritä uudelleen."
+    "publishFailed": "Koodin julkaisu epäonnistui — tarkista yhteytesi ja yritä uudelleen.",
+    "tileFriends": "Ystävät: {{count}}",
+    "tileOnline": "{{count}} yhteydessä",
+    "tileDevices": "Linkitetyt laitteet: {{count}}",
+    "deviceMac": "Mac-tietokone",
+    "deviceWindows": "Windows-tietokone",
+    "deviceLinux": "Linux-tietokone",
+    "deviceDesktop": "Tietokone",
+    "defaultSystemName": "Plural Star -käyttäjä",
+    "unnamedDevice": "Laite",
+    "unnamedFriend": "Ystävä",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Pilvisynkronoinnissa tapahtui virhe. Yritä uudelleen.",
+    "viewSharedNamed": "Näytä, mitä {{name}} jakaa",
+    "notifyLevelCycle": "Ilmoitukset ({{name}}): {{level}}. Aktivoi vaihtaaksesi tasoon {{next}}.",
+    "removeNamed": "Poista: {{name}}",
+    "yourCodeLabel": "Ystäväkoodisi: {{code}}. Kopioi napsauttamalla.",
+    "statusLabel": "Verkko: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Monista piiri {{name}}",
+    "deleteBucketNamed": "Poista piiri {{name}}",
+    "bucketPickCount": "{{feature}}: Valinta ({{count}} valittu)",
+    "pickerTitle": "{{feature}} — Valinta",
+    "removeDeviceWarn": "Poistetaanko linkitys: {{name}}? Se lakkaa synkronoimasta tämän laitteen kanssa.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Oletko varma?",
@@ -284,7 +321,11 @@
     "shapeRect": "Suorakulmio",
     "shapeEllipse": "Ellipsi",
     "shapePoly": "Monikulmio",
-    "bucket": "Täyttötyökalu"
+    "bucket": "Täyttötyökalu",
+    "strokeCount_one": "{{count}} veto",
+    "strokeCount_other": "{{count}} vetoa",
+    "brushSizeN": "Siveltimen koko {{size}}",
+    "panHint": "Liiku piirtotaululla nuolinäppäimillä."
   },
   "systemMap": {
     "showColors": "Värit",
@@ -310,6 +351,12 @@
     "duplicate": "Näillä jäsenillä on jo tämä suhde.",
     "relationships_one": "{{count}} suhde",
     "relationships": "{{count}} suhdetta",
+    "relationships_other": "{{count}} suhdetta",
+    "moveHint": "Siirrä tätä jäsentä kartalla nuolinäppäimillä.",
+    "nodeArchived": "{{name}} (arkistoitu)",
+    "nodeHops_one": "{{name}}, {{count}} askeleen päässä",
+    "nodeHops_other": "{{name}}, {{count}} askeleen päässä",
+    "deleteRelationshipWith": "Poista suhde: {{name}}",
     "relationshipOne": "1 suhde",
     "from": "Keneltä",
     "to": "Kenelle",
@@ -362,7 +409,11 @@
     "emergencyDesc": "Kriittiset tiedot ensihoitajille. Kun käytössä, ne lisätään pysyvään ilmoitukseen.",
     "deleteItemMsg": "Poistetaanko tämä merkintä?",
     "medReminderTitle": "Lääkemuistutus",
-    "apptReminderTitle": "Ajanvarausmuistutus"
+    "apptReminderTitle": "Ajanvarausmuistutus",
+    "remindersFor": "Muistutukset: {{name}}",
+    "apptWhen": "Ajanvarauksen päivä ja aika",
+    "remind15m": "15 min",
+    "historyDate": "Päivämäärä"
   },
   "common": {
     "durDaysHours": "{{d}} pv {{h}} t",
@@ -407,7 +458,20 @@
     "untitled": "Nimetön",
     "notInExport": "Ei viennissä",
     "ok": "OK",
-    "edit": "Muokkaa"
+    "errorCode": "Virhekoodi: {{code}}",
+    "edit": "Muokkaa",
+    "removeNamed": "Poista: {{name}}",
+    "dragReorderNamed": "Järjestä vetämällä: {{name}}",
+    "editNamed": "Muokkaa: {{name}}",
+    "deleteNamed": "Poista: {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Mukana",
+    "yes": "Kyllä",
+    "no": "Ei",
+    "addNamed": "Lisää: {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Siirrä ylös: {{name}}",
+    "moveDownNamed": "Siirrä alas: {{name}}"
   },
   "errorBoundary": {
     "title": "Jotain meni pieleen",
@@ -444,7 +508,10 @@
     "statusesDesc": "Tilat kuvaavat, miten voit — kuten Nukkumassa, Töissä tai Ahdistunut. Valitse ne tilaa päivittäessäsi.",
     "noStatuses": "Ei vielä tiloja. Lisää yksi aloittaaksesi.",
     "activeStatus": "Aktiivinen",
-    "favoriteColor": "Lempiväri"
+    "favoriteColor": "Lempiväri",
+    "defaultSelfName": "Minä",
+    "statusesCount": "Tilat ({{count}})",
+    "deleteActiveHint": "Poista tämä tila nykyisestä tilastasi ennen kuin poistat sen."
   },
   "settings": {
     "observatory": "Observatorio-käyttöliittymä (yksilö)",
@@ -460,6 +527,7 @@
     "primaryShort": "Ensisijainen",
     "coFrontShort": "Rinnakkais",
     "coConShort": "Rinn-Tiet",
+    "assignedTo": "({{tier}})",
     "editTier": "Muokkaa: {{tier}}"
   },
   "setup": {
@@ -480,7 +548,10 @@
     "noNote": "Ei muistiinpanoa. Napauta ✎ lisätäksesi.",
     "clearFront": "Tyhjennä front",
     "clearFrontMsg": "Tämä tyhjentää kaikki tasot ja kirjaa istunnon loppumisen. Jatketaanko?",
-    "clearFrontTitle": "Tyhjennetäänkö front?"
+    "clearFrontTitle": "Tyhjennetäänkö front?",
+    "frontingForSince": "Edessä {{dur}} · alkaen {{time}}",
+    "editDetailsFor": "Muokkaa mielialaa ja sijaintia: {{tier}}",
+    "editNoteFor": "Muokkaa muistiinpanoa: {{tier}}"
   },
   "members": {
     "clone": "Kloonaa",
@@ -545,7 +616,22 @@
     "frontingLockTitle": "Tällä hetkellä edessä",
     "frontingLockMsg": "Et voi arkistoida tai poistaa jäsentä, kun hän on edessä. Poista hänet ensin edestä.",
     "archive": "Arkistoi",
-    "recentlyDeleted": "Äskettäin poistetut"
+    "recentlyDeleted": "Äskettäin poistetut",
+    "unnamed": "Nimetön jäsen",
+    "archivedCount": "Arkistoitu ({{count}})",
+    "viewProfileNamed": "Näytä profiili: {{name}}",
+    "titleCount": "Jäsenet ({{count}})",
+    "facetsCount": "Puolet ({{count}})",
+    "customFrontsCount": "Mukautetut frontit ({{count}})",
+    "removeFromFrontNamed": "Poista {{name}} frontista",
+    "addToFrontNamed": "Lisää {{name}} frontiin",
+    "restoreNamed": "Palauta: {{name}}",
+    "bulkArchiveMsg_one": "Arkistoidaanko {{count}} jäsen? Hänet voi palauttaa myöhemmin.",
+    "bulkArchiveMsg_other": "Arkistoidaanko {{count}} jäsentä? Heidät voi palauttaa myöhemmin.",
+    "bulkRestoreMsg_one": "Palautetaanko {{count}} jäsen aktiiviseksi?",
+    "bulkRestoreMsg_other": "Palautetaanko {{count}} jäsentä aktiivisiksi?",
+    "bulkDeleteMsg_one": "Poistetaanko {{count}} jäsen pysyvästi? Tätä ei voi kumota.",
+    "bulkDeleteMsg_other": "Poistetaanko {{count}} jäsentä pysyvästi? Tätä ei voi kumota."
   },
   "history": {
     "title": "Historia",
@@ -568,6 +654,10 @@
     "byStatus": "Tilan mukaan",
     "noHistorySinglet": "Ei vielä historiaa. Tilapäivitykset näkyvät täällä automaattisesti.",
     "statusHistory": "Tilahistoria",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Poista merkintä ajalta {{time}}",
+    "deleteEntryStep": "Poista merkintä ({{step}}/{{total}})",
     "deleteConfirm1": "Haluatko varmasti poistaa tämän merkinnän?",
     "deleteConfirm2": "Tätä ei voi perua. Poistetaanko?",
     "deleteConfirm3": "Lopullinen vahvistus: poistetaanko pysyvästi?",
@@ -604,7 +694,10 @@
     "templateName": "Mallipohjan Nimi *",
     "templateNamePlaceholder": "esim. Aamusivut",
     "templateTitle": "Merkinnän Otsikko (esiasetus)",
-    "templateBody": "Merkinnän Sisältö (esiasetus)"
+    "templateBody": "Merkinnän Sisältö (esiasetus)",
+    "pinnedLabel": "Kiinnitetty",
+    "lockedLabel": "Lukittu",
+    "pinNamed": "Kiinnitä: {{title}}"
   },
   "share": {
     "statusSpImported": "SP-tuonti: {{members}} uutta jäsentä, {{history}} historiamerkintää",
@@ -702,6 +795,7 @@
     "importStopping": "Viimeistellään tämä vaihe, sitten pysäytetään…",
     "importStopped": "Tuonti pysäytettiin. Mitään ei muutettu.",
     "importCancelHint": "Pysähtyy, kun nykyinen vaihe on valmis. Jo tehdyt vaiheet säilyvät.",
+    "importCancelTitle": "Pysäytetäänkö tuonti?",
     "progressSavingMembers": "Palautetaan jäseniä…",
     "progressJournal": "Palautetaan päiväkirjaa…",
     "progressHistory": "Palautetaan fronttihistoriaa…",
@@ -711,10 +805,15 @@
     "membersCountSimple": "{{count}} jäsentä",
     "restoreDesc": "Lataa aiemmin viety JSON-varmuuskopio.",
     "spMergeDesc": "Yhdistä Simply Plural -varmuuskopio nykyiseen järjestelmään.",
-    "banners": "Jäsenten Bannerit"
+    "banners": "Jäsenten Bannerit",
+    "psFilterName": "PluralSpace-vienti (.zip tai data.json)",
+    "plurallogFilterName": "PluralLog-vienti (.zip)",
+    "backupFileSuffix": "varmuuskopio",
+    "errUnexpected": "Jotain meni pieleen. Tarkista tiedosto ja yritä uudelleen.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit-tuonti (tunnus)"
   },
   "hub": {
-    "discordBlurb": "Yhteisöchat ja tuki",
     "supportPS": "Tue Plural Staria",
     "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} lisää",
@@ -738,13 +837,17 @@
     "retroHistory": "Takautuva historia",
     "statistics": "Tilastot",
     "systemChat": "Järjestelmäkeskustelu",
-    "discord": "Discord",
     "dashboard": "← Hallintapaneeli",
     "credits": "Tekijät",
     "creditLogo": "Plural Star -logo",
     "creditIos": "Plural Starin iOS-portti",
     "creditsBlurb": "Yhteisön avustajat",
-    "archive": "Arkisto"
+    "archive": "Arkisto",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Yhteisöchat ja tuki",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "URL tähän",
@@ -762,7 +865,11 @@
     "toolCode": "Koodi",
     "brokenImage": "[rikkinäinen kuva]",
     "imageUnavailable": "[kuva ei saatavilla]",
-    "spoiler": "Spoileri, napsauta paljastaaksesi"
+    "spoiler": "Spoileri, napsauta paljastaaksesi",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "appFont": "Sovelluksen fontti",
@@ -782,6 +889,8 @@
     "hue": "Sävy",
     "invalidHex": "Virheellinen heksakoodi",
     "customColor": "Oma väri",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "esim. 🦊",
     "descriptionBio": "Kuvaus / Bio",
     "descriptionPlaceholder": "Kerro tästä jäsenestä…",
     "preview": "Esikatselu",
@@ -857,6 +966,12 @@
     "textScaleNormal": "Normaali",
     "textScaleLarge": "Suuri",
     "textScaleExtraLarge": "Erittäin suuri",
+    "cropMove": "Siirrä rajausaluetta (nuolinäppäimet)",
+    "cropResizeTopLeft": "Muuta kokoa vasemmasta yläkulmasta (nuolinäppäimet)",
+    "cropResizeTopRight": "Muuta kokoa oikeasta yläkulmasta (nuolinäppäimet)",
+    "cropResizeBottomLeft": "Muuta kokoa vasemmasta alakulmasta (nuolinäppäimet)",
+    "cropResizeBottomRight": "Muuta kokoa oikeasta alakulmasta (nuolinäppäimet)",
+    "fontDefault": "Oletus",
     "addMembersFirst": "Lisää jäseniä ensin",
     "custom": "Mukautettu",
     "descriptionFieldPlaceholder": "Lyhyt kuvaus…",
@@ -877,7 +992,8 @@
     "coFront": "Rinnakkais-Front: {{names}}",
     "coConscious": "Rinnakkais-Tietoinen: {{names}}",
     "cfShort": "RF: {{names}}",
-    "ccShort": "RT: {{names}}"
+    "ccShort": "RT: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "it": "Italiano",
@@ -937,7 +1053,16 @@
     "subsystem": "Alijärjestelmä",
     "linkedFronter": "Linkitetty edessä oleva",
     "noLinkedFronter": "Ei mitään",
-    "linkedSubsystems": "Linkitetyt alijärjestelmät"
+    "linkedSubsystems": "Linkitetyt alijärjestelmät",
+    "showSubgroups": "Alaryhmät: {{name}} ({{count}} valittu)",
+    "linkedToNamed": "{{group}}, linkitetty edessä oleva: {{name}}",
+    "deleteWithChildrenMsg_one": "Sisältää {{count}} sisäkkäisen kohteen. Säilytetäänkö se ja siirretään taso ylöspäin, vai poistetaanko kaikki?",
+    "deleteWithChildrenMsg_other": "Sisältää {{count}} sisäkkäistä kohdetta. Säilytetäänkö ne ja siirretään taso ylöspäin, vai poistetaanko kaikki?",
+    "memberCount_one": "{{count}} jäsen",
+    "memberCount_other": "{{count}} jäsentä",
+    "moveNamed": "Siirrä: {{name}}",
+    "addMembersTo": "Lisää jäseniä: {{name}}",
+    "kindToggle": "Tyyppi: {{kind}} (vaihda aktivoimalla)"
   },
   "systemManager": {
     "emptyFolder": "Täällä ei ole vielä mitään.",
@@ -977,7 +1102,13 @@
     "noMoodsRecorded": "Ei tallennettuja mielialoja.",
     "totalFrontTime": "Kokonaisaika frontissa",
     "totalSessions": "Istuntoja yhteensä",
-    "uniqueFronters": "Uniikit frontaajat"
+    "uniqueFronters": "Uniikit frontaajat",
+    "showMoreCount": "Näytä lisää ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} istunto",
+    "sessionCount_other": "{{num}} istuntoa",
+    "avgEnergyValue": "{{num}} /10 energiaa"
   },
   "chat": {
     "addReaction": "Lisää reaktio",
@@ -1003,7 +1134,21 @@
     "archiveChannel": "Arkistoi kanava",
     "noMessages": "Ei viestejä vielä.",
     "editingHeader": "Muokataan viestiä",
-    "editPlaceholder": "Muokkaa viestiä…"
+    "editPlaceholder": "Muokkaa viestiä…",
+    "attachment": "Liite",
+    "channelCount_one": "{{count}} kanava",
+    "channelCount_other": "{{count}} kanavaa",
+    "importedChannel": "Tuotu",
+    "categoryWithCount_one": "{{name}} ({{count}} kanava)",
+    "categoryWithCount_other": "{{name}} ({{count}} kanavaa)",
+    "speakingAsNamed": "Puhuu nimellä {{name}}",
+    "messagesIn": "Viestit kanavalla #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Kuva lähettäjältä {{name}}",
+    "reactionCount": "Reaktio {{emoji}}, {{count}}",
+    "replyingToName": "Vastataan: {{name}}",
+    "cancelReply": "Peruuta vastaus",
+    "cancelEdit": "Peruuta muokkaus"
   },
   "noteboard": {
     "title": "Muistitaulu",
@@ -1014,6 +1159,7 @@
     "deleteNote": "Poista muistiinpano",
     "writingAs": "Kirjoittajana:",
     "hasNotes": "{{names}} Postilaatikossa on postia",
+    "pinned": "Kiinnitetty",
     "by": "kirjoittanut {{name}}"
   },
   "customFields": {
@@ -1027,6 +1173,11 @@
     "markdownSupport": "Markdown-tuki",
     "markdownLabel": "Markdown",
     "fieldCount": "{{count}} määritelty",
+    "ageField": "Ikä",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Kentän tyyppi: {{name}}",
+    "moveUpNamed": "Siirrä ylös: {{name}}, kentän {{above}} yläpuolelle",
+    "moveDownNamed": "Siirrä alas: {{name}}, kentän {{below}} alapuolelle",
     "typeText": "Teksti",
     "typeImage": "Kuva",
     "addImage": "Lisää kuva",
@@ -1072,11 +1223,18 @@
     "optionsLabel": "Vaihtoehdot",
     "activeCount_one": "{{count}} aktiivinen",
     "activeCount": "{{count}} aktiivista",
+    "closePollNamed": "Sulje kysely: {{question}}",
+    "reopenPollNamed": "Avaa kysely uudelleen: {{question}}",
+    "optionN": "Vaihtoehto {{n}}",
+    "removeOptionN": "Poista vaihtoehto {{n}}",
     "question": "Kysymys",
     "vote": "Äänestä"
   },
   "energy": {
     "outOf10": "/10 energiaa",
+    "outOfTen": "{{value}}/10",
+    "clear": "Tyhjennä energiataso",
+    "levelValue": "Energiataso {{value}}/10",
     "avgEnergy": "Keskim. energia",
     "label": "Energia",
     "level": "Energiataso"
@@ -1116,6 +1274,7 @@
     "changeBanner": "Vaihda banneri",
     "removeAvatar": "Poista avatar",
     "removeBanner": "Poista banneri",
+    "avatarAndBanner": "Järjestelmän avatar · Järjestelmän banneri",
     "title": "Järjestelmäprofiili"
   },
   "mood": {
@@ -1129,5 +1288,55 @@
     "Irritable": "Ärtynyt",
     "Sad": "Surullinen",
     "Focused": "Keskittynyt"
+  },
+  "dnd": {
+    "instructions": "Poimi kohde painamalla välilyöntiä tai Enteriä. Siirrä sitä nuolinäppäimillä ja pudota se painamalla välilyöntiä tai Enteriä, tai peruuta painamalla Esc.",
+    "picked": "Poimittu: {{name}}.",
+    "over": "{{name}} on kohteen {{over}} päällä.",
+    "notOver": "{{name}} ei ole enää pudotusalueen päällä.",
+    "dropped": "{{name}} pudotettiin kohteen {{over}} päälle.",
+    "droppedNoTarget": "{{name}} pudotettiin.",
+    "cancelled": "Kohteen {{name}} siirto peruttiin."
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON-tiedostot",
+    "textFiles": "Tekstitiedostot",
+    "allFiles": "Kaikki tiedostot",
+    "backup": "Varmuuskopio",
+    "images": "Kuvat"
+  },
+  "tray": {
+    "open": "Avaa {{app}}",
+    "quit": "Lopeta"
+  },
+  "menu": {
+    "edit": "Muokkaa"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Puhelias",
+      "nonVerbal": "Sanaton",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Sumea",
+      "blendy": "Sekoittunut",
+      "rapidSwitching": "Nopea vaihtelu",
+      "foggy": "Sumuinen",
+      "grounded": "Maadoittunut",
+      "dissociated": "Dissosioitunut",
+      "anxious": "Ahdistunut",
+      "depressed": "Masentunut",
+      "cheerful": "Iloinen",
+      "happy": "Onnellinen",
+      "sad": "Surullinen",
+      "crisis": "Kriisi",
+      "melancholy": "Melankolinen",
+      "stimming": "Stimmaus",
+      "stressed": "Stressaantunut",
+      "working": "Töissä",
+      "traveling": "Matkalla",
+      "sleeping": "Nukkumassa",
+      "hyperfocus": "Hyperfokus"
+    }
   }
 }

@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ChatChannel, ChatCategory, ChatMessage, DEFAULT_CHANNELS, Member,
-  uid, getInitials, fmtTime, frontersFirst, sortChatCategories, chatChannelsIn, isRosterMember, memberMatchesSearch, mirrorThumbDataUrl, truncateRunes,
+  ChatChannel, ChatCategory, ChatMessage, Member,
+  uid, getInitials, fmtTime, frontersFirst, sortChatCategories, chatChannelsIn, memberMatchesSearch, mirrorThumbDataUrl, truncateRunes,
 } from '../utils';
 import { store, KEYS, chatMsgKey } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Field, Modal, ConfirmDialog, Dropdown, clickable } from '../components/ui';
+import { Btn, Field, Modal, ConfirmDialog, Dropdown, clickable, useDndA11y, useEscapeKey, Interp, slots } from '../components/ui';
 import { MarkdownText } from '../components/MarkdownText';
 import { initialOn } from '../theme';
 import { useAppStore } from '../store/appStore';
@@ -50,6 +50,7 @@ export default function ChatView({ onUpdate }: Props) {
   const [confirmDeleteCategory, setConfirmDeleteCategory] = useState<string | null>(null);
   const [editChannelCategory, setEditChannelCategory] = useState<string>('__none__');
   const msgEndRef = useRef<HTMLDivElement>(null);
+  const [loadedChannelId, setLoadedChannelId] = useState<string | null>(null);
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
   const activeMember = members.find(m => m.id === activeMemberId);
@@ -57,6 +58,9 @@ export default function ChatView({ onUpdate }: Props) {
   const archivedChannels = channels.filter(c => c.archived);
   const getMember = (id: string) => members.find(m => m.id === id);
   const sortedCategories = sortChatCategories(categories);
+  const chatDndA11y = useDndA11y(id => channels.find(c => c.id === id)?.name || categories.find(c => c.id === id)?.name || '');
+  const speakerTriggerRef = useRef<HTMLButtonElement>(null);
+  useEscapeKey(showMemberPicker, () => { setShowMemberPicker(false); speakerTriggerRef.current?.focus(); });
   const uncategorized = chatChannelsIn(activeChannels, null, categories);
   const channelsOf = (categoryId: string | null | undefined) => chatChannelsIn(activeChannels, categoryId, categories);
   const reorderActive = !reorderLocked;
@@ -69,6 +73,7 @@ export default function ChatView({ onUpdate }: Props) {
   const loadMessages = useCallback(async (channelId: string) => {
     const msgs = await store.get<ChatMessage[]>(chatMsgKey(channelId), []);
     setMessages(msgs || []);
+    setLoadedChannelId(channelId);
   }, []);
 
   useEffect(() => {
@@ -285,7 +290,7 @@ export default function ChatView({ onUpdate }: Props) {
 
 
   const insertFormat = (before: string, after: string) => {
-    setInput(prev => prev + before + (after ? 'text' : '') + after);
+    setInput(prev => prev + before + (after ? t('editor.textPlaceholder') : '') + after);
   };
 
   const openChannelEditor = (ch: ChatChannel) => {
@@ -332,14 +337,14 @@ export default function ChatView({ onUpdate }: Props) {
               <button aria-label={t('chat.newCategory')} title={t('chat.newCategory')}
                 style={{ background: 'none', border: 'none', color: 'var(--dim)', cursor: 'pointer', fontSize: 13, padding: 2 }}
                 onClick={() => setShowNewCategory(true)}>🗂</button>
-              <button aria-label={t('common.add')} title={t('chat.newChannel')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16, padding: 2 }}
+              <button aria-label={t('chat.newChannel')} title={t('chat.newChannel')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16, padding: 2 }}
                 onClick={() => setShowNewChannel(true)}>+</button>
             </div>
           </div>
         </div>
 
         <div className="chan-list" style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={chatDndA11y}>
             {sortedCategories.length > 0 && uncategorized.length > 0 && (
               <div style={{ padding: '6px 12px 2px', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--muted)', fontWeight: 600 }}>
                 {t('chat.uncategorized')}
@@ -356,16 +361,16 @@ export default function ChatView({ onUpdate }: Props) {
                   <SortableCard key={cat.id} id={cat.id} label={cat.name} disabled={!reorderActive}>
                     <div style={{ flex: 1, minWidth: 0, borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '2px 8px 2px 12px' }}>
-                        <button onClick={() => toggleCategory(cat.id)} aria-expanded={!cat.collapsed} aria-label={cat.name}
+                        <button onClick={() => toggleCategory(cat.id)} aria-expanded={!cat.collapsed} aria-label={t('chat.categoryWithCount', { name: cat.name, count: list.length })}
                           style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', textAlign: 'left' }}>
                           <span aria-hidden style={{ fontSize: 9, color: 'var(--dim)' }}>{cat.collapsed ? '▶' : '▼'}</span>
                           <span style={{ flex: 1, minWidth: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--dim)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</span>
                           <span style={{ fontSize: 10, color: 'var(--muted)' }}>{list.length}</span>
                         </button>
-                        <button aria-label={`${t('common.edit')} ${cat.name}`} title={t('common.edit')}
+                        <button aria-label={t('common.editNamed', { name: cat.name })} title={t('common.edit')}
                           style={{ background: 'none', border: 'none', color: 'var(--dim)', cursor: 'pointer', fontSize: 11, padding: 2 }}
                           onClick={() => { setEditCategoryId(cat.id); setEditCategoryName(cat.name); }}>✎</button>
-                        <button aria-label={`${t('common.delete')} ${cat.name}`} title={t('common.delete')}
+                        <button aria-label={t('common.deleteNamed', { name: cat.name })} title={t('common.delete')}
                           style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11, padding: 2 }}
                           onClick={() => setConfirmDeleteCategory(cat.id)}>✕</button>
                       </div>
@@ -390,7 +395,7 @@ export default function ChatView({ onUpdate }: Props) {
                 display: 'block', width: '100%', padding: '8px 12px', background: 'none', border: 'none',
                 color: 'var(--muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, cursor: 'pointer', textAlign: 'left',
               }} aria-expanded={showArchived} onClick={() => setShowArchived(!showArchived)}>
-                {t('members.archived')} ({archivedChannels.length}) <span aria-hidden>{showArchived ? '▲' : '▼'}</span>
+                {t('members.archivedCount', { count: archivedChannels.length })} <span aria-hidden>{showArchived ? '▲' : '▼'}</span>
               </button>
               {showArchived && archivedChannels.map(ch => (
                 <div key={ch.id} style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.5 }}
@@ -411,7 +416,7 @@ export default function ChatView({ onUpdate }: Props) {
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '6px 8px', background: 'var(--card)', border: '1px solid var(--border)',
             borderRadius: 6, cursor: 'pointer',
-          }} onClick={() => setShowMemberPicker(!showMemberPicker)} aria-expanded={showMemberPicker} aria-label={`${t('common.speakingAs')}${activeMember ? `, ${activeMember.name}` : ''}`}>
+          }} ref={speakerTriggerRef} onClick={() => setShowMemberPicker(!showMemberPicker)} aria-expanded={showMemberPicker} aria-label={activeMember ? t('chat.speakingAsNamed', { name: activeMember.name }) : t('common.speakingAs')}>
             {activeMember && (
               <>
                 <div className="tile__avatar" aria-hidden style={{
@@ -428,7 +433,7 @@ export default function ChatView({ onUpdate }: Props) {
 
           {showMemberPicker && (
             <div style={{ marginTop: 4, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 200, overflowY: 'auto' }}>
-              <input className="field__input" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
+              <input className="field__input" value={memberSearch} onChange={e => setMemberSearch(e.target.value)} autoFocus
                 aria-label={t('common.search', {defaultValue: 'Search…'})} placeholder={t('common.search', {defaultValue: 'Search…'})} style={{ fontSize: 11, padding: '6px 8px', borderRadius: 0, border: 'none', borderBottom: '1px solid var(--border)' }} />
               {(() => {
                 const q = memberSearch.toLowerCase();
@@ -486,92 +491,98 @@ export default function ChatView({ onUpdate }: Props) {
         )}
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-          {!activeChannelId ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-              {t('common.selectChannel')}
-            </div>
-          ) : messages.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-              {t('chat.noMessages')}
-            </div>
-          ) : (
-            messages.map(msg => {
-              const author = getMember(msg.authorId);
-              const replyMsg = msg.replyToId ? messages.find(m => m.id === msg.replyToId) : null;
-              const replyAuthor = replyMsg ? getMember(replyMsg.authorId) : null;
+          <div key={(activeChannelId && loadedChannelId) || 'none'} role="log" aria-live="polite" aria-label={t('chat.messagesIn', { name: activeChannel?.name || '' })}>
+            {!activeChannelId ? (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
+                {t('common.selectChannel')}
+              </div>
+            ) : messages.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
+                {t('chat.noMessages')}
+              </div>
+            ) : (
+              messages.map(msg => {
+                const author = getMember(msg.authorId);
+                const replyMsg = msg.replyToId ? messages.find(m => m.id === msg.replyToId) : null;
+                const replyAuthor = replyMsg ? getMember(replyMsg.authorId) : null;
 
-              return (
-                <div key={msg.id} style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
-                  <div className="tile__avatar" style={{
-                    width: 32, height: 32, fontSize: 12, flexShrink: 0, marginTop: 2, overflow: 'hidden',
-                    ...(!author?.avatar ? { backgroundColor: author?.color || 'var(--muted)', color: initialOn(author?.color || '#888888') } : {}),
-                  }}>
-                    {author?.avatar ? <img src={author.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(author?.name || '?')}
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: author?.color || 'var(--text)' }}>{author?.name || t('common.unknown')}</span>
-                      <span style={{ fontSize: 10, color: 'var(--muted)' }}>{fmtTime(msg.timestamp)}</span>
+                return (
+                  <div key={msg.id} style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
+                    <div className="tile__avatar" aria-hidden style={{
+                      width: 32, height: 32, fontSize: 12, flexShrink: 0, marginTop: 2, overflow: 'hidden',
+                      ...(!author?.avatar ? { backgroundColor: author?.color || 'var(--muted)', color: initialOn(author?.color || '#888888') } : {}),
+                    }}>
+                      {author?.avatar ? <img src={author.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(author?.name || '?')}
                     </div>
 
-                    {replyMsg && (
-                      <div style={{ fontSize: 11, color: 'var(--muted)', borderLeft: `2px solid ${replyAuthor?.color || 'var(--border)'}`, paddingLeft: 8, marginBottom: 4, marginTop: 2 }}>
-                        <span style={{ color: replyAuthor?.color || 'var(--dim)' }}>{replyAuthor?.name}</span>
-                        {': '}{replyMsg.type === 'text' ? truncateRunes(replyMsg.content, 80, '...') : '📎'}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: author?.color || 'var(--text)' }}>{author?.name || t('common.unknown')}</span>
+                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>{fmtTime(msg.timestamp)}</span>
                       </div>
-                    )}
 
-                    {msg.type === 'image' ? (
-                      msg.content && msg.content !== 'cloud:media'
-                        ? <img src={msg.content} alt="" style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8, marginTop: 4 }} />
-                        : <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', margin: '4px 0 0' }}>{t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</p>
-                    ) : (
-                      <MarkdownText text={msg.content} members={members} />
-                    )}
-
-                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                        {Object.entries(msg.reactions).map(([emoji, userIds]) => (
-                          <button key={emoji} aria-pressed={(userIds as string[]).includes(activeMemberId || '')} style={{
-                            padding: '2px 6px', borderRadius: 999, fontSize: 12, cursor: 'pointer',
-                            background: (userIds as string[]).includes(activeMemberId || '') ? 'var(--accent-bg)' : 'var(--surface)',
-                            border: `1px solid ${(userIds as string[]).includes(activeMemberId || '') ? 'var(--accent)' : 'var(--border)'}`,
-                          }} onClick={() => addReaction(msg.id, emoji)}>
-                            {emoji} {(userIds as string[]).length}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', gap: 4, marginTop: 4, opacity: 0.4, transition: 'opacity 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                      onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}>
-                      <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
-                        onClick={() => setReplyTo(msg)}><span aria-hidden>↩ </span>{t('chat.reply', {defaultValue: 'Reply'})}</button>
-                      {(msg.type === 'text' || msg.type === 'reply') && (
-                        <button style={{ background: 'none', border: 'none', fontSize: 11, color: editingMessageId === msg.id ? 'var(--accent)' : 'var(--dim)', cursor: 'pointer' }}
-                          onClick={() => startEditMessage(msg)}><span aria-hidden>✎ </span>{t('common.edit')}</button>
+                      {replyMsg && (
+                        <div style={{ fontSize: 11, color: 'var(--muted)', borderLeft: `2px solid ${replyAuthor?.color || 'var(--border)'}`, paddingLeft: 8, marginBottom: 4, marginTop: 2 }}>
+                          <Interp text={t('chat.replyQuote', slots('name', 'text'))} nodes={{
+                            name: <span style={{ color: replyAuthor?.color || 'var(--dim)' }}>{replyAuthor?.name}</span>,
+                            text: replyMsg.type === 'text' ? truncateRunes(replyMsg.content, 80, '...') : <span role="img" aria-label={t('chat.attachment')}>📎</span>,
+                          }} />
+                        </div>
                       )}
-                      <button aria-label={t('chat.addReaction', {defaultValue: 'Add reaction'})} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
-                        onClick={() => setShowEmojiFor(showEmojiFor === msg.id ? null : msg.id)}>😊</button>
-                      <button aria-label={t('chat.deleteMsg')} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}
-                        onClick={() => setConfirmDeleteMsg(msg)}><span aria-hidden>✕ </span>{t('common.delete')}</button>
-                    </div>
 
-                    {showEmojiFor === msg.id && (
-                      <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                        {EMOJI_QUICK.map(e => (
-                          <button key={e} type="button" aria-label={e} style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
-                            onClick={() => addReaction(msg.id, e)}>{e}</button>
-                        ))}
+                      {msg.type === 'image' ? (
+                        msg.content && msg.content !== 'cloud:media'
+                          ? <img src={msg.content} alt={t('chat.imageFrom', { name: author?.name || t('common.unknown') })} style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8, marginTop: 4 }} />
+                          : <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', margin: '4px 0 0' }}>{t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</p>
+                      ) : (
+                        <MarkdownText text={msg.content} members={members} />
+                      )}
+
+                      {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                          {Object.entries(msg.reactions).map(([emoji, userIds]) => (
+                            <button key={emoji} aria-label={t('chat.reactionCount', { emoji, count: (userIds as string[]).length })} aria-pressed={(userIds as string[]).includes(activeMemberId || '')} style={{
+                              padding: '2px 6px', borderRadius: 999, fontSize: 12, cursor: 'pointer',
+                              background: (userIds as string[]).includes(activeMemberId || '') ? 'var(--accent-bg)' : 'var(--surface)',
+                              border: `1px solid ${(userIds as string[]).includes(activeMemberId || '') ? 'var(--accent)' : 'var(--border)'}`,
+                            }} onClick={() => addReaction(msg.id, emoji)}>
+                              {emoji} {(userIds as string[]).length}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: 4, marginTop: 4, opacity: 0.4, transition: 'opacity 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                        onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}
+                        onFocus={e => (e.currentTarget.style.opacity = '1')}
+                        onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) e.currentTarget.style.opacity = '0.4'; }}>
+                        <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
+                          onClick={() => setReplyTo(msg)}><span aria-hidden>↩ </span>{t('chat.reply', {defaultValue: 'Reply'})}</button>
+                        {(msg.type === 'text' || msg.type === 'reply') && (
+                          <button style={{ background: 'none', border: 'none', fontSize: 11, color: editingMessageId === msg.id ? 'var(--accent)' : 'var(--dim)', cursor: 'pointer' }}
+                            onClick={() => startEditMessage(msg)}><span aria-hidden>✎ </span>{t('common.edit')}</button>
+                        )}
+                        <button aria-label={t('chat.addReaction', {defaultValue: 'Add reaction'})} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--dim)', cursor: 'pointer' }}
+                          onClick={() => setShowEmojiFor(showEmojiFor === msg.id ? null : msg.id)}>😊</button>
+                        <button aria-label={t('chat.deleteMsg')} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}
+                          onClick={() => setConfirmDeleteMsg(msg)}><span aria-hidden>✕ </span>{t('common.delete')}</button>
                       </div>
-                    )}
+
+                      {showEmojiFor === msg.id && (
+                        <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                          {EMOJI_QUICK.map(e => (
+                            <button key={e} type="button" aria-label={e} style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                              onClick={() => addReaction(msg.id, e)}>{e}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
           <div ref={msgEndRef} />
         </div>
 
@@ -579,22 +590,22 @@ export default function ChatView({ onUpdate }: Props) {
           <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
             {replyTo && !editingMessageId && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11, color: 'var(--muted)' }}>
-                <span>{t('chat.replyingTo', {defaultValue: 'Replying to'})} <strong style={{ color: getMember(replyTo.authorId)?.color }}>{getMember(replyTo.authorId)?.name}</strong></span>
-                <button aria-label={t('common.cancel')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
+                <span><Interp text={t('chat.replyingToName', { ...slots('name'), defaultValue: 'Replying to {{name}}' })} nodes={{ name: <strong style={{ color: getMember(replyTo.authorId)?.color }}>{getMember(replyTo.authorId)?.name}</strong> }} /></span>
+                <button aria-label={t('chat.cancelReply')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
                   onClick={() => setReplyTo(null)}>✕</button>
               </div>
             )}
             {editingMessageId && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11 }}>
-                <span style={{ color: 'var(--accent)', fontWeight: 500 }}>✎ {t('chat.editingHeader')}</span>
-                <button aria-label={t('common.cancel')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
+                <span role="status" style={{ color: 'var(--accent)', fontWeight: 500 }}><span aria-hidden>✎</span> {t('chat.editingHeader')}</span>
+                <button aria-label={t('chat.cancelEdit')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11 }}
                   onClick={cancelEditMessage}>✕</button>
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
               {[['**', '**'], ['*', '*'], ['~~', '~~'], ['`', '`'], ['> ', ''], ['- ', ''], ['# ', '']].map(([b, a], i) => {
-                const labels = ['B', 'I', 'S', '<>', '❝', '•', 'H'];
+                const labels = [t('markdown.toolBoldShort'), t('markdown.toolItalicShort'), t('markdown.toolStrikeShort'), '<>', '❝', '•', t('markdown.toolH1Short')];
                 const names = ['markdown.toolBold', 'markdown.toolItalic', 'markdown.toolStrike', 'markdown.toolCode', 'markdown.toolQuote', 'markdown.toolBullets', 'markdown.toolH1'];
                 return (
                   <button key={i} aria-label={t(names[i])} title={t(names[i])} style={{

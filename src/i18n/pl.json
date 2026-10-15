@@ -42,7 +42,9 @@
     "skyBlue": "Błękitny",
     "orchid": "Orchidea",
     "lime": "Limonkowy",
-    "sand": "Piaskowy"
+    "sand": "Piaskowy",
+    "customCount": "Własne {{count}}/{{max}}",
+    "customSlotValue": "Własny {{n}}, {{hex}}"
   },
   "common": {
     "durDaysHours": "{{d}} d. {{h}} godz.",
@@ -87,7 +89,20 @@
     "untitled": "Bez tytułu",
     "notInExport": "Brak w eksporcie",
     "ok": "OK",
-    "edit": "Edytuj"
+    "errorCode": "Kod błędu: {{code}}",
+    "edit": "Edytuj",
+    "removeNamed": "Usuń: {{name}}",
+    "dragReorderNamed": "Przeciągnij, aby zmienić kolejność: {{name}}",
+    "editNamed": "Edytuj: {{name}}",
+    "deleteNamed": "Usuń: {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Uwzględnione",
+    "yes": "Tak",
+    "no": "Nie",
+    "addNamed": "Dodaj: {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Przenieś w górę: {{name}}",
+    "moveDownNamed": "Przenieś w dół: {{name}}"
   },
   "errorBoundary": {
     "title": "Coś poszło nie tak",
@@ -124,7 +139,10 @@
     "statusesDesc": "Statusy opisują, jak się czujesz — na przykład Śpi, Pracuje albo Niespokojny. Wybierasz je przy aktualizacji statusu.",
     "noStatuses": "Nie ma jeszcze statusów. Dodaj jeden, aby zacząć.",
     "activeStatus": "Aktywny",
-    "favoriteColor": "Ulubiony kolor"
+    "favoriteColor": "Ulubiony kolor",
+    "defaultSelfName": "Ja",
+    "statusesCount": "Statusy ({{count}})",
+    "deleteActiveHint": "Zanim usuniesz ten status, usuń go ze swojego bieżącego statusu."
   },
   "settings": {
     "observatory": "Interfejs Obserwatorium (singlet)",
@@ -140,6 +158,7 @@
     "primaryShort": "Główny",
     "coFrontShort": "Współfront",
     "coConShort": "Współśw.",
+    "assignedTo": "({{tier}})",
     "editTier": "Edytuj: {{tier}}"
   },
   "setup": {
@@ -160,7 +179,10 @@
     "noNote": "Brak notatki. Dotknij ✎, aby ją dodać.",
     "clearFront": "Wyczyść front",
     "clearFrontMsg": "To wyczyści wszystkie poziomy i zapisze koniec bieżącej sesji. Kontynuować?",
-    "clearFrontTitle": "Wyczyścić front?"
+    "clearFrontTitle": "Wyczyścić front?",
+    "frontingForSince": "Na froncie przez {{dur}} · od {{time}}",
+    "editDetailsFor": "Edytuj nastrój i lokalizację: {{tier}}",
+    "editNoteFor": "Edytuj notatkę: {{tier}}"
   },
   "members": {
     "title": "Członkowie",
@@ -225,7 +247,28 @@
     "frontingLockTitle": "Obecnie frontuje",
     "frontingLockMsg": "Nie możesz zarchiwizować ani usunąć członka, gdy frontuje. Najpierw usuń go z frontu.",
     "archive": "Archiwizuj",
-    "recentlyDeleted": "Ostatnio usunięte"
+    "recentlyDeleted": "Ostatnio usunięte",
+    "unnamed": "Członek bez nazwy",
+    "archivedCount": "Zarchiwizowani ({{count}})",
+    "viewProfileNamed": "Zobacz profil: {{name}}",
+    "titleCount": "Członkowie ({{count}})",
+    "facetsCount": "Aspekty ({{count}})",
+    "customFrontsCount": "Własne fronty ({{count}})",
+    "removeFromFrontNamed": "Usuń {{name}} z frontu",
+    "addToFrontNamed": "Dodaj {{name}} do frontu",
+    "restoreNamed": "Przywróć: {{name}}",
+    "bulkArchiveMsg_one": "Zarchiwizować {{count}} członka? Można go później przywrócić.",
+    "bulkArchiveMsg_few": "Zarchiwizować {{count}} członków? Można ich później przywrócić.",
+    "bulkArchiveMsg_many": "Zarchiwizować {{count}} członków? Można ich później przywrócić.",
+    "bulkArchiveMsg_other": "Zarchiwizować {{count}} członka? Można ich później przywrócić.",
+    "bulkRestoreMsg_one": "Przywrócić {{count}} członka jako aktywnego?",
+    "bulkRestoreMsg_few": "Przywrócić {{count}} członków jako aktywnych?",
+    "bulkRestoreMsg_many": "Przywrócić {{count}} członków jako aktywnych?",
+    "bulkRestoreMsg_other": "Przywrócić {{count}} członka jako aktywnych?",
+    "bulkDeleteMsg_one": "Trwale usunąć {{count}} członka? Tego nie da się cofnąć.",
+    "bulkDeleteMsg_few": "Trwale usunąć {{count}} członków? Tego nie da się cofnąć.",
+    "bulkDeleteMsg_many": "Trwale usunąć {{count}} członków? Tego nie da się cofnąć.",
+    "bulkDeleteMsg_other": "Trwale usunąć {{count}} członka? Tego nie da się cofnąć."
   },
   "history": {
     "title": "Historia",
@@ -253,7 +296,11 @@
     "allMembers": "Wszyscy członkowie",
     "byStatus": "Według statusu",
     "noHistorySinglet": "Nie ma jeszcze historii. Aktualizacje statusu pojawią się tu automatycznie.",
-    "statusHistory": "Historia statusów"
+    "statusHistory": "Historia statusów",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Usuń wpis z {{time}}",
+    "deleteEntryStep": "Usuń wpis ({{step}}/{{total}})"
   },
   "journal": {
     "locked": "Dziennik zablokowany",
@@ -286,12 +333,16 @@
     "templateName": "Nazwa szablonu *",
     "templateNamePlaceholder": "np. Poranne strony",
     "templateTitle": "Tytuł wpisu (wstępnie)",
-    "templateBody": "Treść wpisu (wstępnie)"
+    "templateBody": "Treść wpisu (wstępnie)",
+    "pinnedLabel": "Przypięty",
+    "lockedLabel": "Zablokowany",
+    "pinNamed": "Przypnij: {{title}}"
   },
   "share": {
     "importStopping": "Kończenie tego kroku, potem zatrzymanie…",
     "importStopped": "Import zatrzymany. Nic nie zostało zmienione.",
     "importCancelHint": "Zatrzymuje się po zakończeniu bieżącego kroku. Kroki już wykonane zostają zachowane.",
+    "importCancelTitle": "Zatrzymać import?",
     "progressSavingMembers": "Przywracanie członków…",
     "progressJournal": "Przywracanie dziennika…",
     "progressHistory": "Przywracanie historii frontu…",
@@ -356,8 +407,17 @@
     "authFailed": "Uwierzytelnianie nie powiodło się ({{status}}). Sprawdź swój token.",
     "importSelected": "Importuj wybrane",
     "membersCount": "Członkowie: {{count}}",
+    "membersCount_one": "{{count}} członek",
+    "membersCount_few": "{{count}} członków",
+    "membersCount_many": "{{count}} członków",
     "frontEntries": "Wpisy frontu: {{count}}",
+    "frontEntries_one": "{{count}} wpis frontu",
+    "frontEntries_few": "{{count}} wpisy frontu",
+    "frontEntries_many": "{{count}} wpisów frontu",
     "groupsCount": "Grupy: {{count}}",
+    "groupsCount_one": "{{count}} grupa",
+    "groupsCount_few": "{{count}} grupy",
+    "groupsCount_many": "{{count}} grup",
     "psImport": "Import z PluralSpace",
     "psHint": "Importuj z eksportu danych PluralSpace. Wybierz .zip bezpośrednio — nie trzeba rozpakowywać (lub wybierz data.json, jeśli już rozpakowano). Członkowie, pola własne, historia frontu, wpisy dziennika, czat, ankiety i awatary (z folderu media eksportu) zostaną zaimportowane automatycznie.",
     "pickPsFile": "Wybierz .zip lub data.json",
@@ -380,14 +440,29 @@
     "exportBackup": "Eksportuj kopię",
     "exportDesc": "Pobierz pełną kopię JSON danych twojego systemu.",
     "historyCount": "Wpisy historii: {{count}}",
+    "historyCount_one": "{{count}} wpis historii",
+    "historyCount_few": "{{count}} wpisy historii",
+    "historyCount_many": "{{count}} wpisów historii",
     "importFromSP": "Importuj z Simply Plural",
     "importPSBackup": "Dotknij, aby wybrać plik kopii .json",
     "importing": "Importowanie…",
     "journalCount": "Wpisy dziennika: {{count}}",
+    "journalCount_one": "{{count}} wpis dziennika",
+    "journalCount_few": "{{count}} wpisy dziennika",
+    "journalCount_many": "{{count}} wpisów dziennika",
     "membersCountSimple": "Członkowie: {{count}}",
+    "membersCountSimple_one": "{{count}} członek",
+    "membersCountSimple_few": "{{count}} członków",
+    "membersCountSimple_many": "{{count}} członków",
     "restoreDesc": "Wczytaj wcześniej wyeksportowaną kopię JSON.",
     "spMergeDesc": "Scal dane kopii Simply Plural z twoim obecnym systemem.",
-    "banners": "Banery członków"
+    "banners": "Banery członków",
+    "psFilterName": "Eksport z PluralSpace (.zip lub data.json)",
+    "plurallogFilterName": "Eksport z PluralLog (.zip)",
+    "backupFileSuffix": "kopia-zapasowa",
+    "errUnexpected": "Coś poszło nie tak. Sprawdź plik i spróbuj ponownie.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "Import z PluralKit (token)"
   },
   "hub": {
     "addHistoryDesc": "Ręcznie dodaj wsteczny wpis historii frontu.",
@@ -411,8 +486,6 @@
     "retroHistory": "Historia wsteczna",
     "statistics": "Statystyki",
     "systemChat": "Czat systemu",
-    "discord": "Discord",
-    "discordBlurb": "Czat społeczności i wsparcie",
     "dashboard": "← Pulpit",
     "supportPS": "Wesprzyj Plural Star",
     "supportPSBlurb": "Buy Me a Coffee",
@@ -420,7 +493,12 @@
     "creditLogo": "Logo Plural Star",
     "creditIos": "Port Plural Star na iOS",
     "creditsBlurb": "Współtwórcy ze społeczności",
-    "archive": "Archiwum"
+    "archive": "Archiwum",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Czat społeczności i wsparcie",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "Tutaj URL",
@@ -438,7 +516,11 @@
     "toolCode": "Kod",
     "brokenImage": "[uszkodzony obraz]",
     "imageUnavailable": "[obraz niedostępny]",
-    "spoiler": "Spoiler, kliknij, aby odsłonić"
+    "spoiler": "Spoiler, kliknij, aby odsłonić",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "changePfp": "Zmień zdjęcie profilowe",
@@ -469,6 +551,8 @@
     "hue": "Odcień",
     "invalidHex": "Nieprawidłowy kolor hex",
     "customColor": "Własny kolor",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "np. 🦊",
     "descriptionBio": "Opis / bio",
     "descriptionPlaceholder": "Coś o tym headmacie… wklejaj linki do obrazów/GIF-ów bezpośrednio",
     "preview": "Podgląd",
@@ -535,14 +619,20 @@
     "removePfp": "Usuń zdjęcie",
     "viewPfp": "Zobacz zdjęcie",
     "viewPfpOf": "Zdjęcie: {{name}}",
-    "fancyPants": "Fancy Pants",
+    "fancyPants": "Edytor wizualny",
     "selectedText": "tekst",
     "searchAuthors": "Szukaj autorów…",
     "textSize": "Rozmiar tekstu",
     "textSizeDesc": "Dostosuj rozmiar tekstu w całej aplikacji.",
     "textScaleNormal": "Normalny",
     "textScaleLarge": "Duży",
-    "textScaleExtraLarge": "Bardzo duży"
+    "textScaleExtraLarge": "Bardzo duży",
+    "cropMove": "Przesuń obszar przycinania (klawisze strzałek)",
+    "cropResizeTopLeft": "Zmień rozmiar od lewego górnego rogu (klawisze strzałek)",
+    "cropResizeTopRight": "Zmień rozmiar od prawego górnego rogu (klawisze strzałek)",
+    "cropResizeBottomLeft": "Zmień rozmiar od lewego dolnego rogu (klawisze strzałek)",
+    "cropResizeBottomRight": "Zmień rozmiar od prawego dolnego rogu (klawisze strzałek)",
+    "fontDefault": "Domyślna"
   },
   "notification": {
     "mood": "Nastrój: {{mood}}",
@@ -553,7 +643,8 @@
     "coFront": "Współfront: {{names}}",
     "coConscious": "Współświadomość: {{names}}",
     "cfShort": "WF: {{names}}",
-    "ccShort": "WŚ: {{names}}"
+    "ccShort": "WŚ: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "en": "English",
@@ -613,12 +704,28 @@
     "subsystem": "Podsystem",
     "linkedFronter": "Powiązany frontujący",
     "noLinkedFronter": "Brak",
-    "linkedSubsystems": "Powiązane podsystemy"
+    "linkedSubsystems": "Powiązane podsystemy",
+    "showSubgroups": "Podgrupy: {{name}} (wybrano: {{count}})",
+    "linkedToNamed": "{{group}}, powiązany frontujący: {{name}}",
+    "deleteWithChildrenMsg_one": "To zawiera {{count}} zagnieżdżony element. Zachować go i przenieść o poziom wyżej, czy usunąć wszystko?",
+    "deleteWithChildrenMsg_few": "To zawiera {{count}} zagnieżdżone elementy. Zachować je i przenieść o poziom wyżej, czy usunąć wszystko?",
+    "deleteWithChildrenMsg_many": "To zawiera {{count}} zagnieżdżonych elementów. Zachować je i przenieść o poziom wyżej, czy usunąć wszystko?",
+    "deleteWithChildrenMsg_other": "To zawiera {{count}} zagnieżdżonego elementu. Zachować je i przenieść o poziom wyżej, czy usunąć wszystko?",
+    "memberCount_one": "{{count}} członek",
+    "memberCount_few": "{{count}} członków",
+    "memberCount_many": "{{count}} członków",
+    "memberCount_other": "{{count}} członka",
+    "moveNamed": "Przenieś: {{name}}",
+    "addMembersTo": "Dodaj członków do: {{name}}",
+    "kindToggle": "Typ: {{kind}} (aktywuj, aby przełączyć)"
   },
   "systemManager": {
     "title": "Menedżer systemu",
     "desc": "Twórz, edytuj, porządkuj i usuwaj grupy oraz podsystemy. Kliknij ⇄ na elemencie, a potem miejsce docelowe, aby go zagnieździć.",
     "subsystemsCount": "Podsystemy: {{count}}",
+    "subsystemsCount_one": "{{count}} podsystem",
+    "subsystemsCount_few": "{{count}} podsystemy",
+    "subsystemsCount_many": "{{count}} podsystemów",
     "browse": "Przeglądaj",
     "emptyFolder": "Nie ma tu jeszcze nic."
   },
@@ -696,7 +803,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Przypomnienie planera",
-    "reminderTitlePlaceholder": "Co ma mówić?"
+    "reminderTitlePlaceholder": "Co ma mówić?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Przypomnienie: {{title}}"
   },
   "mailbox": {
     "title": "Skrzynka",
@@ -716,10 +825,20 @@
     "inboxOf": "Skrzynka: {{name}}",
     "replyFrom": "Wyślij do {{name}}",
     "messageCount": "Wiadomości: {{count}}",
+    "messageCount_one": "{{count}} wiadomość",
+    "messageCount_few": "{{count}} wiadomości",
+    "messageCount_many": "{{count}} wiadomości",
     "messageCount_other": "Wiadomości: {{count}}",
     "unreadCount": "Nieprzeczytane: {{count}}",
     "deleteTitle": "Usuń wiadomość",
-    "deleteMsg": "Usunąć tę wiadomość? Tego nie da się cofnąć."
+    "deleteMsg": "Usunąć tę wiadomość? Tego nie da się cofnąć.",
+    "allOthersCount": "Wszyscy pozostali Członkowie ({{count}})",
+    "lockedLabel": "Zablokowana",
+    "lockButtonLocked": "Blokada skrzynki (włączona)",
+    "lockButtonUnlocked": "Blokada skrzynki (wyłączona)",
+    "fromName": "Od: {{name}}",
+    "deleteFrom": "Usuń wiadomość od: {{name}}",
+    "unlockTitle": "Odblokuj skrzynkę: {{name}}"
   },
   "network": {
     "cloudConfirmTitle": "Potwierdź ponownie",
@@ -733,6 +852,7 @@
     "cloudErrRate": "Zbyt wiele prób. Odczekaj minutę i spróbuj ponownie.",
     "cloudErrFull": "W sejfie lub na węźle brakuje miejsca.",
     "cloudErrTooLarge": "Pominięto, ponad 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Pominięto, w sejfie brakuje miejsca: {{keys}}",
     "cloudErrBadPassword": "Sejf istnieje, ale to hasło go nie otwiera.",
     "cloudErrCorrupt": "Nie udało się odczytać sejfu na tym urządzeniu. Odłącz i połącz ponownie tym samym hasłem.",
     "cloudUnavailable": "Węzeł, z którym masz połączenie, nie oferuje Usług w chmurze.",
@@ -844,7 +964,32 @@
     "syncRoleMismatchMsg": "Ty i {{device}} wybraliście ten sam kierunek, więc pierwszą kopię pominięto. Nowe zmiany nadal się synchronizują. Aby skopiować wszystko, usuń połączenie i sparuj ponownie — wybierz „wyślij” na jednym urządzeniu i „odbierz” na drugim.",
     "syncCloneSending": "Wysyłanie pierwszej kopii…",
     "syncCloneReceiving": "Odbieranie pierwszej kopii…",
-    "publishFailed": "Nie udało się opublikować twojego kodu — sprawdź połączenie i spróbuj ponownie."
+    "publishFailed": "Nie udało się opublikować twojego kodu — sprawdź połączenie i spróbuj ponownie.",
+    "tileFriends": "Znajomi: {{count}}",
+    "tileOnline": "Online: {{count}}",
+    "tileDevices": "Połączone urządzenia: {{count}}",
+    "deviceMac": "Komputer Mac",
+    "deviceWindows": "Komputer z Windows",
+    "deviceLinux": "Komputer z Linuksem",
+    "deviceDesktop": "Komputer",
+    "defaultSystemName": "Użytkownik Plural Star",
+    "unnamedDevice": "Urządzenie",
+    "unnamedFriend": "Znajomy",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Coś poszło nie tak z synchronizacją w chmurze. Spróbuj ponownie.",
+    "viewSharedNamed": "Zobacz, co udostępnia {{name}}",
+    "notifyLevelCycle": "Powiadomienia ({{name}}): {{level}}. Aktywuj, aby przełączyć na: {{next}}.",
+    "removeNamed": "Usuń: {{name}}",
+    "yourCodeLabel": "Twój kod znajomego: {{code}}. Kliknij, aby skopiować.",
+    "statusLabel": "Sieć: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Klonuj kubełek {{name}}",
+    "deleteBucketNamed": "Usuń kubełek {{name}}",
+    "bucketPickCount": "{{feature}}: Wybór (wybrano: {{count}})",
+    "pickerTitle": "{{feature}} — Wybór",
+    "removeDeviceWarn": "Odłączyć {{name}}? Przestanie synchronizować się z tym urządzeniem.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Na pewno?",
@@ -864,7 +1009,13 @@
     "shapeRect": "Prostokąt",
     "shapeEllipse": "Elipsa",
     "shapePoly": "Wielokąt",
-    "bucket": "Wiadro wypełnienia"
+    "bucket": "Wiadro wypełnienia",
+    "strokeCount_one": "{{count}} pociągnięcie",
+    "strokeCount_few": "{{count}} pociągnięcia",
+    "strokeCount_many": "{{count}} pociągnięć",
+    "strokeCount_other": "{{count}} pociągnięcia",
+    "brushSizeN": "Rozmiar pędzla {{size}}",
+    "panHint": "Użyj klawiszy strzałek, aby poruszać się po tablicy."
   },
   "systemMap": {
     "showColors": "Kolory",
@@ -880,6 +1031,9 @@
     "viewProfile": "Zobacz profil",
     "noneForMember": "Ten członek nie ma jeszcze relacji.",
     "connectionsCount": "Połączenia: {{count}}",
+    "connectionsCount_one": "{{count}} połączenie",
+    "connectionsCount_few": "{{count}} połączenia",
+    "connectionsCount_many": "{{count}} połączeń",
     "allOnMap": "Wszyscy członkowie są już na mapie.",
     "editType": "Edytuj typ",
     "newType": "+ Nowy typ",
@@ -895,6 +1049,17 @@
     "deleteTypeMsg": "To usunie także wszystkie relacje używające tego typu.",
     "duplicate": "Ci członkowie mają już taką relację.",
     "relationships": "Relacje: {{count}}",
+    "relationships_one": "{{count}} relacja",
+    "relationships_few": "{{count}} relacje",
+    "relationships_many": "{{count}} relacji",
+    "relationships_other": "{{count}} relacji",
+    "moveHint": "Użyj klawiszy strzałek, aby przesunąć tego członka na mapie.",
+    "nodeArchived": "{{name}} (zarchiwizowany)",
+    "nodeHops_one": "{{name}}, {{count}} krok stąd",
+    "nodeHops_few": "{{name}}, {{count}} kroki stąd",
+    "nodeHops_many": "{{name}}, {{count}} kroków stąd",
+    "nodeHops_other": "{{name}}, {{count}} kroku stąd",
+    "deleteRelationshipWith": "Usuń relację z: {{name}}",
     "relationshipOne": "1 relacja",
     "zoomIn": "Powiększ",
     "zoomOut": "Pomniejsz"
@@ -940,7 +1105,11 @@
     "emergencyDesc": "Kluczowe informacje dla ratowników. Po włączeniu są dodawane do stałego powiadomienia.",
     "deleteItemMsg": "Usunąć ten wpis?",
     "medReminderTitle": "Przypomnienie o leku",
-    "apptReminderTitle": "Przypomnienie o wizycie"
+    "apptReminderTitle": "Przypomnienie o wizycie",
+    "remindersFor": "Przypomnienia: {{name}}",
+    "apptWhen": "Data i godzina wizyty",
+    "remind15m": "15m",
+    "historyDate": "Data"
   },
   "stats": {
     "last90": "90 dni",
@@ -972,7 +1141,15 @@
     "noMoodsRecorded": "Nie zapisano jeszcze nastrojów.",
     "totalFrontTime": "Łączny czas frontu",
     "totalSessions": "Łącznie sesji",
-    "uniqueFronters": "Unikalni frontujący"
+    "uniqueFronters": "Unikalni frontujący",
+    "showMoreCount": "Pokaż więcej ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} sesja",
+    "sessionCount_few": "{{num}} sesje",
+    "sessionCount_many": "{{num}} sesji",
+    "sessionCount_other": "{{num}} sesji",
+    "avgEnergyValue": "{{num}} /10 energii"
   },
   "chat": {
     "addReaction": "Dodaj reakcję",
@@ -998,7 +1175,25 @@
     "archiveChannel": "Archiwizuj kanał",
     "noMessages": "Nie ma jeszcze wiadomości.",
     "editingHeader": "Edytowanie wiadomości",
-    "editPlaceholder": "Edytuj wiadomość…"
+    "editPlaceholder": "Edytuj wiadomość…",
+    "attachment": "Załącznik",
+    "channelCount_one": "{{count}} kanał",
+    "channelCount_few": "{{count}} kanały",
+    "channelCount_many": "{{count}} kanałów",
+    "channelCount_other": "{{count}} kanału",
+    "importedChannel": "Zaimportowany",
+    "categoryWithCount_one": "{{name}} ({{count}} kanał)",
+    "categoryWithCount_few": "{{name}} ({{count}} kanały)",
+    "categoryWithCount_many": "{{name}} ({{count}} kanałów)",
+    "categoryWithCount_other": "{{name}} ({{count}} kanału)",
+    "speakingAsNamed": "Mówi jako {{name}}",
+    "messagesIn": "Wiadomości na #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Obraz od: {{name}}",
+    "reactionCount": "Reakcja {{emoji}}, {{count}}",
+    "replyingToName": "Odpowiedź do: {{name}}",
+    "cancelReply": "Anuluj odpowiedź",
+    "cancelEdit": "Anuluj edycję"
   },
   "customFields": {
     "title": "Pola własne",
@@ -1032,7 +1227,12 @@
     "reorder": "Zmień kolejność",
     "markdownSupport": "Obsługa markdown",
     "markdownLabel": "Markdown",
-    "fieldCount": "Zdefiniowane: {{count}}"
+    "fieldCount": "Zdefiniowane: {{count}}",
+    "ageField": "Wiek",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Typ pola: {{name}}",
+    "moveUpNamed": "Przenieś w górę: {{name}}, nad {{above}}",
+    "moveDownNamed": "Przenieś w dół: {{name}}, pod {{below}}"
   },
   "noteboard": {
     "title": "Tablica notatek",
@@ -1043,7 +1243,8 @@
     "placeholder": "Napisz notatkę...",
     "by": "od: {{name}}",
     "writingAs": "Piszesz jako:",
-    "hasNotes": "{{names}} mają pocztę w swojej Skrzynce"
+    "hasNotes": "{{names}} mają pocztę w swojej Skrzynce",
+    "pinned": "Przypięta"
   },
   "polls": {
     "removeOption": "Usuń opcję",
@@ -1069,13 +1270,20 @@
     "votingAs": "Głosujesz jako:",
     "forMember": "Dla członka:",
     "optionsLabel": "Opcje",
-    "activeCount": "Aktywne: {{count}}"
+    "activeCount": "Aktywne: {{count}}",
+    "closePollNamed": "Zamknij ankietę: {{question}}",
+    "reopenPollNamed": "Otwórz ankietę ponownie: {{question}}",
+    "optionN": "Opcja {{n}}",
+    "removeOptionN": "Usuń opcję {{n}}"
   },
   "energy": {
     "label": "Energia",
     "level": "Poziom energii",
     "avgEnergy": "Śr. energia",
-    "outOf10": "/10 energii"
+    "outOf10": "/10 energii",
+    "outOfTen": "{{value}}/10",
+    "clear": "Wyczyść poziom energii",
+    "levelValue": "Poziom energii {{value}}/10"
   },
   "systemProfile": {
     "read": "Podgląd",
@@ -1092,7 +1300,8 @@
     "changeAvatar": "Zmień awatar",
     "changeBanner": "Zmień baner",
     "removeAvatar": "Usuń awatar",
-    "removeBanner": "Usuń baner"
+    "removeBanner": "Usuń baner",
+    "avatarAndBanner": "Awatar systemu · Baner systemu"
   },
   "frontSort": {
     "label": "Porządkuj",
@@ -1125,5 +1334,55 @@
     "Irritable": "Rozdrażnienie",
     "Sad": "Smutek",
     "Focused": "Skupienie"
+  },
+  "dnd": {
+    "instructions": "Aby podnieść element, naciśnij Spację lub Enter. Przesuwaj go klawiszami strzałek, a następnie naciśnij Spację lub Enter, aby go upuścić, lub Escape, aby anulować.",
+    "picked": "Podniesiono: {{name}}.",
+    "over": "{{name}} znajduje się nad: {{over}}.",
+    "notOver": "{{name}} nie znajduje się już nad obszarem upuszczania.",
+    "dropped": "{{name}} upuszczono nad: {{over}}.",
+    "droppedNoTarget": "Upuszczono: {{name}}.",
+    "cancelled": "Anulowano przenoszenie: {{name}}."
+  },
+  "fileDialog": {
+    "jsonFiles": "Pliki JSON",
+    "textFiles": "Pliki tekstowe",
+    "allFiles": "Wszystkie pliki",
+    "backup": "Kopia zapasowa",
+    "images": "Obrazy"
+  },
+  "tray": {
+    "open": "Otwórz {{app}}",
+    "quit": "Zakończ"
+  },
+  "menu": {
+    "edit": "Edycja"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Gadatliwość",
+      "nonVerbal": "Bez słów",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Rozmycie",
+      "blendy": "Zlewanie się",
+      "rapidSwitching": "Szybkie przełączanie",
+      "foggy": "Mgła",
+      "grounded": "Uziemienie",
+      "dissociated": "Dysocjacja",
+      "anxious": "Niepokój",
+      "depressed": "Przygnębienie",
+      "cheerful": "Wesołość",
+      "happy": "Radość",
+      "sad": "Smutek",
+      "crisis": "Kryzys",
+      "melancholy": "Melancholia",
+      "stimming": "Stimowanie",
+      "stressed": "Stres",
+      "working": "Praca",
+      "traveling": "Podróż",
+      "sleeping": "Sen",
+      "hyperfocus": "Hiperfokus"
+    }
   }
 }

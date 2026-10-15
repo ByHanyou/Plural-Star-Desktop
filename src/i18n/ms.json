@@ -42,7 +42,9 @@
     "skyBlue": "Biru langit",
     "orchid": "Ungu orkid",
     "lime": "Hijau limau",
-    "sand": "Pasir"
+    "sand": "Pasir",
+    "customCount": "Tersuai {{count}}/{{max}}",
+    "customSlotValue": "Warna tersuai {{n}}, {{hex}}"
   },
   "terminology": {
     "fronter": "Fronter",
@@ -115,7 +117,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Peringatan perancang",
-    "reminderTitlePlaceholder": "Apa yang patut disebut?"
+    "reminderTitlePlaceholder": "Apa yang patut disebut?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Peringatan untuk {{title}}"
   },
   "mailbox": {
     "title": "Peti mel",
@@ -138,7 +142,14 @@
     "messageCount_other": "{{count}} mesej",
     "unreadCount": "{{count}} belum dibaca",
     "deleteTitle": "Padam mesej",
-    "deleteMsg": "Buang mesej ini? Tindakan ini tidak boleh dibuat asal."
+    "deleteMsg": "Buang mesej ini? Tindakan ini tidak boleh dibuat asal.",
+    "allOthersCount": "Semua Ahli lain ({{count}})",
+    "lockedLabel": "Dikunci",
+    "lockButtonLocked": "Kunci peti mel (hidup)",
+    "lockButtonUnlocked": "Kunci peti mel (mati)",
+    "fromName": "Daripada: {{name}}",
+    "deleteFrom": "Padam mesej daripada {{name}}",
+    "unlockTitle": "Buka kunci peti mel {{name}}"
   },
   "network": {
     "cloudConfirmTitle": "Sahkan sekali lagi",
@@ -152,6 +163,7 @@
     "cloudErrRate": "Terlalu banyak percubaan. Tunggu seminit dan cuba lagi.",
     "cloudErrFull": "Bilik kebal atau nod kehabisan ruang.",
     "cloudErrTooLarge": "Ditinggalkan, melebihi 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Ditinggalkan, bilik kebal kehabisan ruang: {{keys}}",
     "cloudErrBadPassword": "Bilik kebal wujud tetapi kata laluan ini tidak dapat membukanya.",
     "cloudErrCorrupt": "Bilik kebal tidak dapat dibaca pada peranti ini. Nyahpaut dan paut semula dengan kata laluan yang sama.",
     "cloudUnavailable": "Nod yang anda sambungkan tidak menawarkan Perkhidmatan Awan.",
@@ -263,7 +275,32 @@
     "syncRoleMismatchMsg": "Anda dan {{device}} memilih arah yang sama, jadi salinan pertama dilangkau. Perubahan baharu masih akan disegerakkan. Untuk menyalin semuanya, buang pautan dan pasangkan semula — pilih \"hantar\" pada satu peranti dan \"terima\" pada yang satu lagi.",
     "syncCloneSending": "Menghantar salinan pertama…",
     "syncCloneReceiving": "Menerima salinan pertama…",
-    "publishFailed": "Kod anda tidak dapat diterbitkan — semak sambungan anda dan cuba lagi."
+    "publishFailed": "Kod anda tidak dapat diterbitkan — semak sambungan anda dan cuba lagi.",
+    "tileFriends": "Rakan: {{count}}",
+    "tileOnline": "{{count}} dalam talian",
+    "tileDevices": "Peranti berpaut: {{count}}",
+    "deviceMac": "Komputer Mac",
+    "deviceWindows": "Komputer Windows",
+    "deviceLinux": "Komputer Linux",
+    "deviceDesktop": "Komputer",
+    "defaultSystemName": "Pengguna Plural Star",
+    "unnamedDevice": "Peranti",
+    "unnamedFriend": "Rakan",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Ada yang tidak kena dengan penyegerakan awan. Sila cuba lagi.",
+    "viewSharedNamed": "Lihat apa yang {{name}} kongsi",
+    "notifyLevelCycle": "Pemberitahuan untuk {{name}}: {{level}}. Aktifkan untuk bertukar kepada {{next}}.",
+    "removeNamed": "Buang {{name}}",
+    "yourCodeLabel": "Kod rakan anda: {{code}}. Klik untuk salin.",
+    "statusLabel": "Rangkaian: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Salin bulatan {{name}}",
+    "deleteBucketNamed": "Padam bulatan {{name}}",
+    "bucketPickCount": "{{feature}}: Pilihan ({{count}} dipilih)",
+    "pickerTitle": "{{feature}} — Pilihan",
+    "removeDeviceWarn": "Nyahpaut {{name}}? Ia akan berhenti menyegerak dengan peranti ini.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "common": {
     "durDaysHours": "{{d}} hari {{h}} jam",
@@ -296,6 +333,18 @@
     "change": "Tukar",
     "save": "Simpan",
     "edit": "Sunting",
+    "removeNamed": "Buang {{name}}",
+    "dragReorderNamed": "Seret untuk menyusun semula {{name}}",
+    "editNamed": "Sunting {{name}}",
+    "deleteNamed": "Padam {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Disertakan",
+    "yes": "Ya",
+    "no": "Tidak",
+    "addNamed": "Tambah {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Alih {{name}} ke atas",
+    "moveDownNamed": "Alih {{name}} ke bawah",
     "cancel": "Batal",
     "delete": "Padam",
     "add": "Tambah",
@@ -308,6 +357,7 @@
     "untitled": "Tanpa tajuk",
     "notInExport": "Tiada dalam eksport",
     "ok": "OK",
+    "errorCode": "Kod ralat: {{code}}",
     "search": "Cari…"
   },
   "errorBoundary": {
@@ -334,6 +384,7 @@
     "primaryShort": "Utama",
     "coFrontShort": "Ko-Front",
     "coConShort": "Ko-Sedar",
+    "assignedTo": "({{tier}})",
     "editTier": "Sunting {{tier}}"
   },
   "setup": {
@@ -361,7 +412,10 @@
     "statusesDesc": "Status menerangkan keadaan anda — seperti Tidur, Bekerja, atau Cemas. Pilihnya semasa mengemas kini status anda.",
     "noStatuses": "Tiada status lagi. Tambah satu untuk bermula.",
     "activeStatus": "Aktif",
-    "favoriteColor": "Warna Kegemaran"
+    "favoriteColor": "Warna Kegemaran",
+    "defaultSelfName": "Saya",
+    "statusesCount": "Status ({{count}})",
+    "deleteActiveHint": "Buang status ini daripada status semasa anda sebelum memadamnya."
   },
   "settings": {
     "observatory": "Antara Muka Balai Cerap (Singlet)",
@@ -381,7 +435,10 @@
     "noNote": "Tiada nota. Ketik Sunting untuk menambah.",
     "clearFront": "Kosongkan Front",
     "clearFrontMsg": "Ini akan mengosongkan semua peringkat dan merekod tamatnya sesi semasa. Teruskan?",
-    "clearFrontTitle": "Kosongkan Front?"
+    "clearFrontTitle": "Kosongkan Front?",
+    "frontingForSince": "Front selama {{dur}} · sejak {{time}}",
+    "editDetailsFor": "Sunting mood dan lokasi untuk {{tier}}",
+    "editNoteFor": "Sunting nota untuk {{tier}}"
   },
   "members": {
     "clone": "Klon",
@@ -436,17 +493,29 @@
     "selectNone": "Tiada",
     "bulkArchive": "Arkibkan ahli",
     "bulkArchiveMsg": "Arkibkan {{count}} ahli? Mereka boleh dipulihkan kemudian.",
+    "bulkArchiveMsg_other": "Arkibkan {{count}} ahli? Mereka boleh dipulihkan kemudian.",
     "bulkRestore": "Pulihkan ahli",
     "bulkRestoreMsg": "Pulihkan {{count}} ahli kepada aktif?",
+    "bulkRestoreMsg_other": "Pulihkan {{count}} ahli kepada aktif?",
     "bulkDelete": "Padam ahli",
     "bulkDeleteMsg": "Padam {{count}} ahli secara kekal? Ini tidak boleh dibuat asal.",
+    "bulkDeleteMsg_other": "Padam {{count}} ahli secara kekal? Ini tidak boleh dibuat asal.",
     "assignGroup": "Kumpulan",
     "assignTag": "Tag",
     "addTags": "Tambah tag",
     "frontingLockTitle": "Sedang front",
     "frontingLockMsg": "Anda tidak boleh mengarkib atau memadam ahli semasa mereka front. Keluarkan mereka dari front dahulu.",
     "archive": "Arkib",
-    "recentlyDeleted": "Dipadam baru-baru ini"
+    "recentlyDeleted": "Dipadam baru-baru ini",
+    "unnamed": "Ahli tanpa nama",
+    "archivedCount": "Diarkib ({{count}})",
+    "viewProfileNamed": "Lihat profil {{name}}",
+    "titleCount": "Ahli ({{count}})",
+    "facetsCount": "Facet ({{count}})",
+    "customFrontsCount": "Front Tersuai ({{count}})",
+    "removeFromFrontNamed": "Keluarkan {{name}} daripada front",
+    "addToFrontNamed": "Tambah {{name}} ke front",
+    "restoreNamed": "Pulihkan {{name}}"
   },
   "history": {
     "title": "Sejarah",
@@ -454,6 +523,10 @@
     "noHistory": "Tiada sejarah lagi. Perubahan front akan muncul di sini secara automatik.",
     "searchMember": "Cari ahli…",
     "statusHistory": "Sejarah Status",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Padam entri pada {{time}}",
+    "deleteEntryStep": "Padam entri ({{step}}/{{total}})",
     "byStatus": "Mengikut Status",
     "noHistorySinglet": "Tiada sejarah lagi. Kemas kini status akan muncul di sini secara automatik.",
     "entryCount": "{{count}} entri",
@@ -504,7 +577,10 @@
     "templateName": "Nama Templat *",
     "templateNamePlaceholder": "cth. Halaman Pagi",
     "templateTitle": "Tajuk Entri (praset)",
-    "templateBody": "Isi Entri (praset)"
+    "templateBody": "Isi Entri (praset)",
+    "pinnedLabel": "Disemat",
+    "lockedLabel": "Dikunci",
+    "pinNamed": "Semat {{title}}"
   },
   "share": {
     "statusSpImported": "Import SP: {{members}} ahli baharu, {{history}} entri sejarah",
@@ -545,6 +621,12 @@
     "psUseSection": "Ini kelihatan seperti eksport PluralSpace. Guna bahagian Import PluralSpace di bawah untuk mengimportnya.",
     "mergeLogs": "Gabungkan log (kekalkan sejarah, jurnal, sembang & undian sedia ada; tambah yang baharu sahaja). Ahli tetap digantikan.",
     "banners": "Sepanduk",
+    "psFilterName": "Eksport PluralSpace (.zip atau data.json)",
+    "plurallogFilterName": "Eksport PluralLog (.zip)",
+    "backupFileSuffix": "sandaran",
+    "errUnexpected": "Ada yang tidak kena. Sila semak fail dan cuba lagi.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "Import PluralKit (Token)",
     "psImport": "Import PluralSpace",
     "psHint": "Import daripada eksport data PluralSpace. Pilih fail .zip terus — tidak perlu nyahzip (atau pilih data.json jika anda sudah mengekstraknya). Ahli, medan tersuai, sejarah front, entri jurnal, sembang, undian dan avatar (daripada folder media eksport) diimport secara automatik.",
     "pickPsFile": "Pilih .zip atau data.json",
@@ -599,6 +681,7 @@
     "importStopping": "Menyelesaikan langkah ini, kemudian berhenti…",
     "importStopped": "Import dihentikan. Tiada apa-apa yang diubah.",
     "importCancelHint": "Berhenti selepas langkah semasa selesai. Langkah yang sudah siap dikekalkan.",
+    "importCancelTitle": "Hentikan import?",
     "progressSavingMembers": "Memulihkan ahli…",
     "progressJournal": "Memulihkan jurnal…",
     "progressHistory": "Memulihkan sejarah front…",
@@ -609,7 +692,6 @@
   },
   "hub": {
     "creditsBlurb": "Penyumbang komuniti",
-    "discordBlurb": "Sembang komuniti & sokongan",
     "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} lagi",
     "addHistoryDesc": "Tambah entri sejarah front retroaktif secara manual.",
@@ -633,7 +715,11 @@
     "statistics": "Statistik",
     "systemChat": "Sembang Sistem",
     "archive": "Arkib",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
     "discord": "Discord",
+    "discordBlurb": "Sembang komuniti & sokongan",
+    "overlapEntry": "{{names}} ({{time}})",
     "dashboard": "← Papan Pemuka",
     "credits": "Kredit",
     "creditLogo": "Logo Plural Star",
@@ -656,7 +742,11 @@
     "toolCode": "Kod",
     "brokenImage": "[imej rosak]",
     "imageUnavailable": "[imej tidak tersedia]",
-    "spoiler": "Spoiler, klik untuk dedahkan"
+    "spoiler": "Spoiler, klik untuk dedahkan",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "read": "Baca",
@@ -688,6 +778,8 @@
     "hue": "Rona",
     "invalidHex": "Warna hex tidak sah",
     "customColor": "Warna tersuai",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "cth. 🦊",
     "descriptionBio": "Penerangan / Bio",
     "descriptionPlaceholder": "Sedikit tentang headmate ini… tampal URL imej/GIF terus",
     "preview": "Pratonton",
@@ -751,7 +843,7 @@
     "removePfp": "Buang Foto",
     "viewPfp": "Lihat Foto",
     "viewPfpOf": "Foto {{name}}",
-    "fancyPants": "Fancy Pants",
+    "fancyPants": "Penyunting visual",
     "selectedText": "teks",
     "searchAuthors": "Cari penulis…",
     "textSize": "Saiz Teks",
@@ -759,6 +851,12 @@
     "textScaleNormal": "Biasa",
     "textScaleLarge": "Besar",
     "textScaleExtraLarge": "Sangat Besar",
+    "cropMove": "Alih kawasan pangkas (kekunci anak panah)",
+    "cropResizeTopLeft": "Ubah saiz dari penjuru kiri atas (kekunci anak panah)",
+    "cropResizeTopRight": "Ubah saiz dari penjuru kanan atas (kekunci anak panah)",
+    "cropResizeBottomLeft": "Ubah saiz dari penjuru kiri bawah (kekunci anak panah)",
+    "cropResizeBottomRight": "Ubah saiz dari penjuru kanan bawah (kekunci anak panah)",
+    "fontDefault": "Lalai",
     "dyslexicFont": "Fon Mesra Disleksia",
     "dyslexicFontDesc": "Menukar teks badan kepada OpenDyslexic. Tajuk mengekalkan fon bergaya mereka."
   },
@@ -771,7 +869,8 @@
     "coFront": "Ko-Front: {{names}}",
     "coConscious": "Ko-Sedar: {{names}}",
     "cfShort": "KF: {{names}}",
-    "ccShort": "KS: {{names}}"
+    "ccShort": "KS: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "en": "English",
@@ -824,6 +923,8 @@
     "linkedFronter": "Fronter dipautkan",
     "noLinkedFronter": "Tiada",
     "linkedSubsystems": "Sub-sistem dipautkan",
+    "showSubgroups": "Subkumpulan {{name}} ({{count}} dipilih)",
+    "linkedToNamed": "{{group}}, fronter dipautkan: {{name}}",
     "toRoot": "Peringkat atas",
     "title": "Kumpulan",
     "addPlaceholder": "Nama kumpulan baharu…",
@@ -831,7 +932,12 @@
     "removeMembers": "Keluarkan ahli",
     "deleteGroup": "Padam Kumpulan",
     "deleteGroupMsg": "Buang kumpulan ini? Ahli tidak akan dipadam.",
-    "deleteWithChildrenMsg": "Ini mengandungi {{count}} item bersarang. Kekalkan dan naikkan satu peringkat, atau padam semuanya?"
+    "deleteWithChildrenMsg": "Ini mengandungi {{count}} item bersarang. Kekalkan dan naikkan satu peringkat, atau padam semuanya?",
+    "deleteWithChildrenMsg_other": "Ini mengandungi {{count}} item bersarang. Kekalkan dan naikkan satu peringkat, atau padam semuanya?",
+    "memberCount_other": "{{count}} ahli",
+    "moveNamed": "Alih {{name}}",
+    "addMembersTo": "Tambah ahli ke {{name}}",
+    "kindToggle": "Jenis: {{kind}} (aktifkan untuk menukar)"
   },
   "stats": {
     "last90": "90 Hari",
@@ -863,7 +969,12 @@
     "noMoodsRecorded": "Tiada mood direkodkan lagi.",
     "totalFrontTime": "Jumlah Masa Front",
     "totalSessions": "Jumlah Sesi",
-    "uniqueFronters": "Fronter Unik"
+    "uniqueFronters": "Fronter Unik",
+    "showMoreCount": "Tunjuk lagi ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_other": "{{num}} sesi",
+    "avgEnergyValue": "{{num}} /10 tenaga"
   },
   "chat": {
     "messagePlaceholder": "Mesej ke #{{name}}...",
@@ -889,7 +1000,19 @@
     "archiveChannel": "Arkibkan Saluran",
     "noMessages": "Tiada mesej lagi.",
     "editingHeader": "Menyunting mesej",
-    "editPlaceholder": "Sunting mesej…"
+    "editPlaceholder": "Sunting mesej…",
+    "attachment": "Lampiran",
+    "channelCount_other": "{{count}} saluran",
+    "importedChannel": "Diimport",
+    "categoryWithCount_other": "{{name}} ({{count}} saluran)",
+    "speakingAsNamed": "Bercakap sebagai {{name}}",
+    "messagesIn": "Mesej dalam #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Imej daripada {{name}}",
+    "reactionCount": "Reaksi {{emoji}}, {{count}}",
+    "replyingToName": "Membalas kepada {{name}}",
+    "cancelReply": "Batalkan balasan",
+    "cancelEdit": "Batalkan suntingan"
   },
   "systemManager": {
     "subsystemsCount": "{{count}} sub-sistem",
@@ -930,7 +1053,12 @@
     "reorder": "Susun semula",
     "markdownSupport": "Sokongan Markdown",
     "markdownLabel": "Markdown",
-    "fieldCount": "{{count}} ditakrifkan"
+    "fieldCount": "{{count}} ditakrifkan",
+    "ageField": "Umur",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Jenis medan untuk {{name}}",
+    "moveUpNamed": "Alih {{name}} ke atas, di atas {{above}}",
+    "moveDownNamed": "Alih {{name}} ke bawah, di bawah {{below}}"
   },
   "noteboard": {
     "title": "Papan Nota",
@@ -941,7 +1069,8 @@
     "placeholder": "Tulis nota...",
     "by": "oleh {{name}}",
     "writingAs": "Menulis sebagai:",
-    "hasNotes": "{{names}} mempunyai mel dalam Peti mel mereka"
+    "hasNotes": "{{names}} mempunyai mel dalam Peti mel mereka",
+    "pinned": "Disemat"
   },
   "whiteboard": {
     "clearConfirm2Title": "Anda pasti?",
@@ -961,7 +1090,10 @@
     "shapeRect": "Segi empat",
     "shapeEllipse": "Elips",
     "shapePoly": "Poligon",
-    "bucket": "Baldi cat"
+    "bucket": "Baldi cat",
+    "strokeCount_other": "{{count}} garisan",
+    "brushSizeN": "Saiz berus {{size}}",
+    "panHint": "Gunakan kekunci anak panah untuk bergerak di sekitar papan."
   },
   "systemMap": {
     "showColors": "Warna",
@@ -985,6 +1117,11 @@
     "deleteTypeMsg": "Ini juga akan membuang semua hubungan yang menggunakan jenis ini.",
     "duplicate": "Ahli-ahli ini sudah mempunyai hubungan ini.",
     "relationships": "{{count}} hubungan",
+    "relationships_other": "{{count}} hubungan",
+    "moveHint": "Gunakan kekunci anak panah untuk mengalihkan ahli ini pada peta.",
+    "nodeArchived": "{{name}} (diarkib)",
+    "nodeHops_other": "{{name}}, {{count}} langkah jauhnya",
+    "deleteRelationshipWith": "Padam hubungan dengan {{name}}",
     "relationshipOne": "1 hubungan",
     "from": "Dari",
     "to": "Kepada",
@@ -1035,6 +1172,10 @@
     "deleteItemMsg": "Buang catatan ini?",
     "medReminderTitle": "Peringatan Ubat",
     "apptReminderTitle": "Peringatan Temu Janji",
+    "remindersFor": "Peringatan untuk {{name}}",
+    "apptWhen": "Tarikh dan masa temu janji",
+    "remind15m": "15 min",
+    "historyDate": "Tarikh",
     "remind30m": "30 min",
     "remind1h": "1 jam",
     "remind1d": "1 hari"
@@ -1060,13 +1201,20 @@
     "votingAs": "Mengundi sebagai:",
     "forMember": "Untuk ahli:",
     "optionsLabel": "Pilihan",
-    "activeCount": "{{count}} aktif"
+    "activeCount": "{{count}} aktif",
+    "closePollNamed": "Tutup undian: {{question}}",
+    "reopenPollNamed": "Buka semula undian: {{question}}",
+    "optionN": "Pilihan {{n}}",
+    "removeOptionN": "Buang pilihan {{n}}"
   },
   "energy": {
     "label": "Tenaga",
     "level": "Tahap Tenaga",
     "avgEnergy": "Purata Tenaga",
-    "outOf10": "/10 tenaga"
+    "outOf10": "/10 tenaga",
+    "outOfTen": "{{value}}/10",
+    "clear": "Kosongkan tahap tenaga",
+    "levelValue": "Tahap tenaga {{value}}/10"
   },
   "systemProfile": {
     "read": "Baca",
@@ -1083,7 +1231,8 @@
     "changeAvatar": "Tukar Avatar",
     "changeBanner": "Tukar Sepanduk",
     "removeAvatar": "Buang Avatar",
-    "removeBanner": "Buang Sepanduk"
+    "removeBanner": "Buang Sepanduk",
+    "avatarAndBanner": "Avatar Sistem · Sepanduk Sistem"
   },
   "frontSort": {
     "label": "Susun",
@@ -1116,5 +1265,55 @@
     "Irritable": "Mudah marah",
     "Sad": "Sedih",
     "Focused": "Fokus"
+  },
+  "dnd": {
+    "instructions": "Untuk mengangkat item, tekan Space atau Enter. Gunakan kekunci anak panah untuk mengalihkannya, kemudian tekan Space atau Enter untuk meletakkannya, atau Escape untuk membatalkan.",
+    "picked": "{{name}} diangkat.",
+    "over": "{{name}} berada di atas {{over}}.",
+    "notOver": "{{name}} tidak lagi berada di atas kawasan letak.",
+    "dropped": "{{name}} diletakkan di atas {{over}}.",
+    "droppedNoTarget": "{{name}} diletakkan.",
+    "cancelled": "Pengalihan {{name}} dibatalkan."
+  },
+  "fileDialog": {
+    "jsonFiles": "Fail JSON",
+    "textFiles": "Fail Teks",
+    "allFiles": "Semua Fail",
+    "backup": "Sandaran",
+    "images": "Imej"
+  },
+  "tray": {
+    "open": "Buka {{app}}",
+    "quit": "Keluar"
+  },
+  "menu": {
+    "edit": "Sunting"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Peramah",
+      "nonVerbal": "Bukan Lisan",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Kabur",
+      "blendy": "Bercampur",
+      "rapidSwitching": "Pertukaran Pantas",
+      "foggy": "Berkabus",
+      "grounded": "Berpijak",
+      "dissociated": "Terdisosiasi",
+      "anxious": "Cemas",
+      "depressed": "Murung",
+      "cheerful": "Ceria",
+      "happy": "Gembira",
+      "sad": "Sedih",
+      "crisis": "Krisis",
+      "melancholy": "Muram",
+      "stimming": "Rangsangan kendiri",
+      "stressed": "Tertekan",
+      "working": "Bekerja",
+      "traveling": "Dalam Perjalanan",
+      "sleeping": "Tidur",
+      "hyperfocus": "Hiperfokus"
+    }
   }
 }

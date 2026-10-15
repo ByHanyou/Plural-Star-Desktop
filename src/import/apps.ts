@@ -1,13 +1,14 @@
 import { store, KEYS, chatMsgKey } from '../storage';
+import { importNameKey } from './names';
 import {
   Member, HistoryEntry, JournalEntry, ChatChannel, ChatMessage,
-  CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, NoteboardEntry, uid, truncateRunes,
+  CustomFieldDef, CustomFieldType, MemberGroup, MemberPoll, NoteboardEntry, uid, truncateRunes, fmtList,
 } from '../utils';
 import { detectForeignFormat, convertOurcana, convertParallax, convertMultiplicity, convertOctocon, detectAmpersandJson, convertAmpersandJson, detectTupperbox, convertTupperbox, ConvertedImport, detectPluralSpace, convertPluralSpace, isOpenPluralSystem, normalizeOpenPlural, isAmparBytes, amparToDatabaseJson, findOurcanaJsonEntry } from '../importers';
 import { isImportStopped } from './progress';
 import { unzipSync, strFromU8 } from 'fflate';
 import { bytesToDataUri, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
-import { ImportCtx } from './ctx';
+import { ImportCtx, ImportUserError, importErrorText } from './ctx';
 
 export const handleImportSP = async (ctx: ImportCtx) => {
   const { setImporting, extSel, showStatus, onUpdate, t } = ctx;
@@ -31,7 +32,7 @@ export const handleImportSP = async (ctx: ImportCtx) => {
             const m = entry.content || entry;
             return {
               id: m.id || m._id || uid(),
-              name: m.name || 'Unknown',
+              name: m.name || t('common.unknown'),
               pronouns: m.pronouns || '',
               role: m.role || '',
               color: m.color || '#DAA520',
@@ -79,14 +80,14 @@ export const handleImportSP = async (ctx: ImportCtx) => {
           showStatus(t('share.statusSpImported', {members: newMembers.length, history: importedHistory.length}));
           onUpdate();
         } catch (e: any) {
-          showStatus(t('share.statusImportErrorSafe', {msg: e.message}), true);
+          showStatus(t('share.statusImportErrorSafe', {msg: importErrorText(e, t)}), true);
         } finally {
           setImporting(false);
         }
       };
       input.click();
     } catch (e: any) {
-      showStatus(t('share.statusImportError', {msg: e.message}), true);
+      showStatus(t('share.statusImportError', {msg: importErrorText(e, t)}), true);
       setImporting(false);
     }
 };
@@ -143,7 +144,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         const toAdd: Member[] = [];
         conv.members.forEach(nm => {
           const claimed = new Set(Object.values(idRemap));
-          const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && e.name.toLowerCase() === nm.name.toLowerCase();
+          const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && importNameKey(e.name) === importNameKey(nm.name);
           let di = nm.sourceId ? merged.findIndex(e => e.sourceId === nm.sourceId) : -1;
           if (di < 0) di = merged.findIndex(e => !e.sourceId && nameMatch(e));
           if (di < 0) di = merged.findIndex(nameMatch);
@@ -219,7 +220,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
           const existingCh = await store.getStrict<ChatChannel[]>(KEYS.chatChannels, []) || [];
           const mergedCh: ChatChannel[] = [...existingCh];
           for (const ch of conv.chat) {
-            let local = mergedCh.find(c => c.name.toLowerCase() === ch.name.toLowerCase());
+            let local = mergedCh.find(c => importNameKey(c.name) === importNameKey(ch.name));
             if (!local) { local = { id: uid(), name: ch.name, createdAt: ch.createdAt }; mergedCh.push(local); }
             if (ch.messages.length === 0) continue;
             const cur = await store.getStrict<ChatMessage[]>(chatMsgKey(local.id), []) || [];
@@ -244,7 +245,7 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
         showStatus(t('share.statusForeignImported', {label: conv.sourceLabel, members: toAdd.length, history: conv.history.length}));
         onUpdate();
       } catch (e: any) {
-        showStatus(t('share.statusImportErrorSafe', {msg: e.message}), true);
+        showStatus(t('share.statusImportErrorSafe', {msg: importErrorText(e, t)}), true);
       } finally {
         setImporting(false);
       }
@@ -255,14 +256,14 @@ export const handleImportForeign = async (ctx: ImportCtx) => {
 export const handleImportPluralSpace = async (ctx: ImportCtx) => {
   const { t, setImporting, showStatus, history, system, onUpdate } = ctx;
     const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'PluralSpace export (.zip or data.json)', extensions: ['zip', 'json'] },
-      { name: 'All Files', extensions: ['*'] },
+      { name: t('share.psFilterName'), extensions: ['zip', 'json'] },
+      { name: t('fileDialog.allFiles'), extensions: ['*'] },
     ]);
     if (!filePath) return;
     setImporting(true);
     try {
       const dataUri = await window.electronAPI.file.readAsBase64(filePath);
-      if (!dataUri) throw new Error(t('share.psNotExport'));
+      if (!dataUri) throw new ImportUserError(t('share.psNotExport'));
       const b64 = dataUri.split(',')[1] || '';
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
@@ -276,16 +277,16 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
         const jsonEntry = zipFiles['data.json']
           ? 'data.json'
           : Object.keys(zipFiles).find(k => /(^|\/)data\.json$/i.test(k)) || openPlural || Object.keys(zipFiles).find(k => /\.json$/i.test(k));
-        if (!jsonEntry) throw new Error(t('share.psNotExport'));
+        if (!jsonEntry) throw new ImportUserError(t('share.psNotExport'));
         if (jsonEntry === openPlural) openPluralPrefix = jsonEntry.replace(/openplural\.json$/i, '');
         text = strFromU8(zipFiles[jsonEntry]);
       } else {
         text = new TextDecoder('utf-8').decode(bytes);
       }
       let d: any;
-      try { d = JSON.parse(text); } catch { throw new Error(t('share.psNotExport')); }
+      try { d = JSON.parse(text); } catch { throw new ImportUserError(t('share.psNotExport')); }
       if (isOpenPluralSystem(d)) d = normalizeOpenPlural(d, openPluralPrefix);
-      if (!detectPluralSpace(d)) throw new Error(t('share.psNotExport'));
+      if (!detectPluralSpace(d)) throw new ImportUserError(t('share.psNotExport'));
       const conv = convertPluralSpace(d);
 
       const batch: Record<string, unknown> = {};
@@ -294,14 +295,13 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
       const defRemap: Record<string, string> = {};
       const defsToAdd: CustomFieldDef[] = [];
       (conv.customFieldDefs || []).forEach(dd => {
-        const ex = existingDefs.find(e => e.name.toLowerCase() === dd.name.toLowerCase());
+        const ex = existingDefs.find(e => importNameKey(e.name) === importNameKey(dd.name));
         if (ex) { defRemap[dd.id] = ex.id; } else { defRemap[dd.id] = dd.id; defsToAdd.push(dd); }
       });
       if (defsToAdd.length > 0) batch[KEYS.customFieldDefs] = [...existingDefs, ...defsToAdd];
 
       const existingGroups = await store.getStrict<MemberGroup[]>(KEYS.groups, []) || [];
       const groupRemap: Record<string, string> = {};
-      const groupsToAdd: MemberGroup[] = [];
       const mergedGroupList = [...existingGroups];
       let groupsChanged = false;
       (conv.groups || []).forEach(g => {
@@ -332,7 +332,7 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
           groupIds: (nm.groupIds || []).map(g => groupRemap[g] || g),
         };
         const claimed = new Set(Object.values(idRemap));
-        const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && e.name.toLowerCase() === nm.name.toLowerCase();
+        const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && importNameKey(e.name) === importNameKey(nm.name);
         let di = nm.sourceId ? merged.findIndex(e => e.sourceId === nm.sourceId) : -1;
         if (di < 0) di = merged.findIndex(e => !e.sourceId && nameMatch(e));
         if (di < 0) di = merged.findIndex(nameMatch);
@@ -410,7 +410,7 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
         const existingCh = await store.getStrict<ChatChannel[]>(KEYS.chatChannels, []) || [];
         const mergedCh: ChatChannel[] = [...existingCh];
         for (const ch of conv.chatChannels) {
-          let local = mergedCh.find(c => c.name.toLowerCase() === ch.name.toLowerCase());
+          let local = mergedCh.find(c => importNameKey(c.name) === importNameKey(ch.name));
           if (!local) { local = { id: uid(), name: ch.name, createdAt: ch.createdAt }; mergedCh.push(local); }
           if (ch.messages.length > 0) {
             const existingMsgs = await store.getStrict<ChatMessage[]>(chatMsgKey(local.id), []) || [];
@@ -452,7 +452,7 @@ export const handleImportPluralSpace = async (ctx: ImportCtx) => {
       showStatus(t('share.psImportDone', { members: toAdd.length, history: conv.history.length, avatars: avatarsLoaded }));
       onUpdate();
     } catch (e: any) {
-      showStatus(t('share.statusError', {msg: e.message}), true);
+      showStatus(t('share.statusError', {msg: importErrorText(e, t)}), true);
     } finally {
       setImporting(false);
     }
@@ -472,14 +472,14 @@ const isPluralLogDb = (o: any): boolean =>
 export const handleImportPluralLog = async (ctx: ImportCtx) => {
   const { t, setImporting, showStatus, history, system, onUpdate } = ctx;
   const filePath = await window.electronAPI.dialog.openFile([
-    { name: 'PluralLog export (.zip)', extensions: ['zip'] },
-    { name: 'All Files', extensions: ['*'] },
+    { name: t('share.plurallogFilterName'), extensions: ['zip'] },
+    { name: t('fileDialog.allFiles'), extensions: ['*'] },
   ]);
   if (!filePath) return;
   setImporting(true);
   try {
     const dataUri = await window.electronAPI.file.readAsBase64(filePath);
-    if (!dataUri) throw new Error(t('share.plurallogNeedsZip'));
+    if (!dataUri) throw new ImportUserError(t('share.plurallogNeedsZip'));
     const b64 = dataUri.split(',')[1] || '';
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
@@ -492,7 +492,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       : Object.keys(files).find(n => /(^|\/)plurallog_export.*\.json$/i.test(n));
     let db: any = null;
     if (dbName && files[dbName]) { try { db = JSON.parse(strFromU8(files[dbName])); } catch {} }
-    if (!isPluralLogDb(db)) throw new Error(t('share.plurallogNeedsZip'));
+    if (!isPluralLogDb(db)) throw new ImportUserError(t('share.plurallogNeedsZip'));
 
     const batch: Record<string, unknown> = {};
     const plMembers: any[] = db.members;
@@ -508,7 +508,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       if (!m || !m.id) return;
       const srcId = 'pl:' + String(m.id);
       const incoming: Partial<Member> = {
-        name: (m.name && String(m.name).trim()) || 'Unnamed member',
+        name: (m.name && String(m.name).trim()) || t('members.unnamed'),
         pronouns: String(m.pronouns || ''),
         role: String(m.role || ''),
         color: plArgbToHex(m.color),
@@ -517,7 +517,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
         ...(m.parentMemberId ? { isFacet: true } : {}),
       };
       const claimed = new Set(Object.values(idMap));
-      const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && e.name.toLowerCase() === String(incoming.name).toLowerCase();
+      const nameMatch = (e: Member) => !claimed.has(e.id) && !e.isCustomFront && !e.isFacet && importNameKey(e.name) === importNameKey(incoming.name);
       let di = merged.findIndex(e => e.sourceId === srcId);
       if (di < 0) di = merged.findIndex(e => !e.sourceId && nameMatch(e));
       if (di < 0) di = merged.findIndex(nameMatch);
@@ -553,7 +553,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       const folderIdMap: Record<string, string> = {};
       db.folders.forEach((f: any, i: number) => {
         const name = (f?.name && String(f.name).trim()) || `Group ${i + 1}`;
-        const found = groups.find(g => g.name.toLowerCase() === name.toLowerCase());
+        const found = groups.find(g => importNameKey(g.name) === importNameKey(name));
         const localId = found ? found.id : uid();
         if (!found) groups.push({ id: localId, name, color: plArgbToHex(f.colorValue), sortOrder: f.sortOrder ?? i });
         folderIdMap[String(f.id)] = localId;
@@ -638,7 +638,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
       const chMap: Record<string, string> = {};
       db.channels.forEach((c: any, i: number) => {
         const name = (c?.name && String(c.name).trim()) || `Channel ${i + 1}`;
-        const found = channels.find(x => x.name.toLowerCase() === name.toLowerCase());
+        const found = channels.find(x => importNameKey(x.name) === importNameKey(name));
         const localId = found ? found.id : uid();
         if (!found) channels.push({ id: localId, name, createdAt: Date.now() });
         chMap[String(c.id)] = localId;
@@ -681,7 +681,7 @@ export const handleImportPluralLog = async (ctx: ImportCtx) => {
     showStatus(t('share.statusImportedCounts', { members: plMembers.length, switches: historyAdded }));
     onUpdate();
   } catch (e: any) {
-    showStatus(t('share.statusError', { msg: e.message }), true);
+    showStatus(t('share.statusError', { msg: importErrorText(e, t) }), true);
   } finally {
     setImporting(false);
   }
@@ -693,7 +693,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
     setExtLoading(true); setExtPreview(null);
     const netFetch = async (url: string, headers: Record<string, string>) => {
       const res = await window.electronAPI.net.fetch(url, { headers });
-      if (!res.ok) throw new Error(t('share.authFailed', {status: res.status}));
+      if (!res.ok) throw new ImportUserError(t('share.authFailed', {status: res.status}));
       try { return JSON.parse(res.text); } catch { return {}; }
     };
     try {
@@ -705,7 +705,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
         const sData = await spGet(`https://v2.apparyllis.com/v1/frontHistory/${userId}?startTime=0&endTime=${Date.now()}`, headers);
         const cfData = await spGet(`https://v2.apparyllis.com/v1/customFields/${userId}`, headers);
         const gData = await spGet(`https://v2.apparyllis.com/v1/groups/${userId}`, headers);
-        if (mData == null) throw new Error(t('share.spFetchPartial', {categories: t('share.memberProfiles')}));
+        if (mData == null) throw new ImportUserError(t('share.spFetchPartial', {categories: t('share.memberProfiles')}));
         const failedCats: string[] = [];
         if (sData == null) failedCats.push(t('share.frontHistory'));
         if (cfData == null) failedCats.push(t('customFields.title'));
@@ -717,7 +717,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
           customFields: Array.isArray(cfData) ? cfData : (cfData?.customFields || []),
           groups: Array.isArray(gData) ? gData : (gData?.groups || []),
         });
-        if (failedCats.length > 0) showStatus(t('share.statusError', {msg: t('share.spFetchPartial', {categories: failedCats.join(', ')})}), true);
+        if (failedCats.length > 0) showStatus(t('share.statusError', {msg: t('share.spFetchPartial', {categories: fmtList(failedCats)})}), true);
       } else {
         const headers = {Authorization: extToken.trim(), 'Content-Type': 'application/json'};
         const [sData, mData] = await Promise.all([
@@ -749,7 +749,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
       }
     } catch (e: any) {
       if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
-      else showStatus(`${t('share.importFailed')}: ${e.message}`, true);
+      else showStatus(t('share.statusImportError', {msg: importErrorText(e, t)}), true);
     }
     finally { setExtLoading(false); }
 };
@@ -771,7 +771,7 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       const spUid = String(extPreview.system?.id || extPreview.system?.uid || '');
       let newM: Member[] = extSel.members && extPreview.members.length > 0
         ? extPreview.members.map((m: any) => ({
-            id: uid(), name: isPK ? ((extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) || 'Unknown') : (m.content?.name || m.name || 'Unknown'),
+            id: uid(), name: isPK ? ((extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) || t('common.unknown')) : (m.content?.name || m.name || t('common.unknown')),
             pronouns: isPK ? (extSel.pronouns !== false ? (m.pronouns || '') : '') : (m.content?.pronouns || ''),
             role: isPK ? '' : (m.content?.role || ''),
             color: isPK ? (m.color ? `#${m.color}` : '#DAA520') : (m.content?.color || '#DAA520'),
@@ -788,11 +788,11 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       let membersAfter: Member[] = members;
       let membersDirty = false;
       if (newM.length > 0) {
-        membersAfter = [...members, ...newM.filter(nm => !members.find(em => em.name.toLowerCase() === nm.name.toLowerCase()))];
+        membersAfter = [...members, ...newM.filter(nm => !members.find(em => importNameKey(em.name) === importNameKey(nm.name)))];
         membersDirty = true;
       }
       if (ctx.importMode === 'overwrite' && extSel.members && extPreview.members.length > 0) {
-        const importNames = new Set(extPreview.members.map((m: any) => String((isPK ? (extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) : (m.content?.name || m.name)) || 'Unknown').trim().toLowerCase()));
+        const importNames = new Set(extPreview.members.map((m: any) => String((isPK ? (extSel.displayNames ? (m.display_name || m.name) : (m.name || m.display_name)) : (m.content?.name || m.name)) || t('common.unknown')).trim().toLowerCase()));
         membersAfter = membersAfter.map(m => (importNames.has(String(m.name || '').trim().toLowerCase()) || m.isCustomFront || m.isFacet || m.deleted) ? m : { ...m, archived: true, deleted: true });
         membersDirty = true;
       }
@@ -810,8 +810,8 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
         return '';
       };
       const spLocalByName = (spm: any): Member | undefined => {
-        const nm = String(spm.content?.name || spm.name || '').trim().toLowerCase();
-        return nm ? membersAfter.find(l => l.name.toLowerCase() === nm) : undefined;
+        const nm = importNameKey(spm.content?.name || spm.name || '');
+        return nm ? membersAfter.find(l => importNameKey(l.name) === nm) : undefined;
       };
 
       if (!isPK && extSel.customFields && extPreview.customFields && extPreview.customFields.length > 0) {
@@ -823,7 +823,7 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
           const candidates = [cf.id, cf.uuid, cf._id, cf.content?._id, cf.content?.id, cf.content?.uuid, cf.content?.order, cf.order, String(i)];
           const spIds = candidates.map(normId).filter(Boolean);
           const spName = String(cf.content?.name || cf.name || `Field ${i + 1}`);
-          const ex = existingDefs.find(dd => dd.name.toLowerCase() === spName.toLowerCase());
+          const ex = existingDefs.find(dd => importNameKey(dd.name) === importNameKey(spName));
           let localId: string;
           if (ex) { localId = ex.id; } else {
             localId = uid();
@@ -864,7 +864,7 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
         const mergedGroups: MemberGroup[] = [...existingGroups];
         const groupMemberSets: {localGroupId: string; extMemberIds: string[]}[] = [];
         extPreview.groups.forEach((g: any) => {
-          const gName = String(g.content?.name || g.name || 'Group');
+          const gName = String(g.content?.name || g.name || t('memberGroups.group'));
           const gColorRaw = String(g.content?.color || g.color || '').trim();
           const extMembers: string[] = Array.isArray(g.content?.members) ? g.content.members : (Array.isArray(g.members) ? g.members : []);
           let lg = mergedGroups.find(x => String(x.name).toLowerCase() === gName.toLowerCase());
@@ -894,10 +894,10 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       if (extSel.frontHistory && extPreview.switches.length > 0) {
         const allMembers = membersAfter;
         const idMap: Record<string, string> = {};
-        extPreview.members.forEach((m: any, i: number) => {
+        extPreview.members.forEach((m: any) => {
           const eid = isPK ? (m.uuid || m.id) : m.id;
           const name = isPK ? (m.display_name || m.name || '') : (m.content?.name || m.name || '');
-          const lm = allMembers.find(l => l.name.toLowerCase() === name.toLowerCase());
+          const lm = allMembers.find(l => importNameKey(l.name) === importNameKey(name));
           if (eid && lm) idMap[eid] = lm.id;
           if (isPK && m.id && lm) idMap[m.id] = lm.id;
         });
@@ -934,7 +934,7 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       onUpdate();
     } catch (e: any) {
       if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
-      else showStatus(t('share.statusImportErrorSafe', {msg: e.message}), true);
+      else showStatus(t('share.statusImportErrorSafe', {msg: importErrorText(e, t)}), true);
     }
     finally { setImporting(false); }
 };

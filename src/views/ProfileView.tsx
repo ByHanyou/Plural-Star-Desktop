@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl, isValidHex } from '../utils';
+import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl, isValidHex, normalizeMemberEmoji, colorName } from '../utils';
 import { PALETTE, initialOn, profileTheme, themeVars, liveThemeBase } from '../theme';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Section, Modal, ConfirmDialog, Toggle, clickable } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, Toggle, clickable, SrOnly , tabListKeyDown } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { chooseImageTreatment } from '../components/ImageCropModal';
 import { CustomHexEntry, ProfileBgChip } from '../components/CustomHexEntry';
@@ -32,6 +32,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
   const activeIds = allFrontMemberIds(front);
   const set = (k: keyof Member, v: any) => setF(x => ({ ...x, [k]: v }));
   const profilePt = member?.profileBg && isValidHex(member.color) ? profileTheme(liveThemeBase(), member.color) : null;
+  const deleteHintId = useId();
 
   const openEditProfile = async () => {
     const self = await onEnsureSelf();
@@ -79,7 +80,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
 
   const pickAvatar = async () => {
     const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
+      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
@@ -90,7 +91,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
 
   const pickBanner = async () => {
     const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
+      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
@@ -106,7 +107,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)' }}>
+        <span role="heading" aria-level={2} style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)' }}>
           {t('tabs.profile')}
         </span>
         {subTab === 'profile' ? (
@@ -116,9 +117,9 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 0, margin: '8px 0 16px', borderBottom: '1px solid var(--border)' }}>
+      <div role="tablist" style={{ display: 'flex', gap: 0, margin: '8px 0 16px', borderBottom: '1px solid var(--border)' }}>
         {(['profile', 'statuses'] as SubTab[]).map(id => (
-          <button key={id} aria-pressed={subTab === id} onClick={() => setSubTab(id)} style={{
+          <button key={id} role="tab" aria-selected={subTab === id} onClick={() => setSubTab(id)} onKeyDown={tabListKeyDown} style={{
             padding: '10px 20px', fontSize: 13, fontWeight: subTab === id ? 600 : 400, cursor: 'pointer',
             color: subTab === id ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
             borderBottom: `2px solid ${subTab === id ? 'var(--accent)' : 'transparent'}`,
@@ -137,7 +138,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
             {member?.avatar ? (
               <img src={member.avatar} alt="" style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: `2px solid ${profilePt ? 'var(--border)' : (member.color || 'var(--accent)')}` }} />
             ) : (
-              <div style={{ width: 88, height: 88, borderRadius: 20, background: profilePt ? 'var(--surface)' : (member?.color || 'var(--accent)'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: profilePt ? '2px solid var(--border)' : '2px solid rgba(255,255,255,0.15)' }}>
+              <div aria-hidden style={{ width: 88, height: 88, borderRadius: 20, background: profilePt ? 'var(--surface)' : (member?.color || 'var(--accent)'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: profilePt ? '2px solid var(--border)' : '2px solid rgba(255,255,255,0.15)' }}>
                 <span style={{ fontSize: 30, fontWeight: 700, color: profilePt ? 'var(--text)' : (member?.color ? initialOn(member.color) : 'var(--bg)') }}>{getInitials(member?.name || '?')}</span>
               </div>
             )}
@@ -148,7 +149,8 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
             {member && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>{t('profile.favoriteColor')}</span>
-                <span style={{ width: 16, height: 16, borderRadius: '50%', background: member.color || 'var(--accent)', border: profilePt ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }} />
+                <span role="img" aria-label={colorName(member.color || '', t)} style={{ width: 16, height: 16, borderRadius: '50%', background: member.color || 'var(--accent)', border: profilePt ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }} />
+                {member.emoji ? <span role="img" aria-label={t('common.labelValue', { label: t('modal.emoji'), value: member.emoji })} style={{ fontSize: 16 }}>{member.emoji}</span> : null}
               </div>
             )}
           </div>
@@ -235,6 +237,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
 
         <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} placeholder={t('modal.headmateName')} />
         <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
+        <Field label={t('modal.emoji')} value={f.emoji || ''} onChange={v => set('emoji', normalizeMemberEmoji(v))} placeholder={t('modal.emojiPlaceholder')} />
         <Section label={t('profile.favoriteColor')} />
         <ColorCarousel value={f.color} onChange={v => set('color', v)} />
         <CustomHexEntry value={f.color} onApply={v => set('color', v)}
@@ -247,7 +250,12 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
           <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
             <div>
               {!isNewStatus && (
-                <Btn variant="danger" disabled={activeIds.includes(f.id)} onClick={() => setConfirmDeleteStatus(f.id)}>{t('common.delete')}</Btn>
+                <>
+                  <Btn variant="danger" disabled={activeIds.includes(f.id)} onClick={() => setConfirmDeleteStatus(f.id)}
+                    title={activeIds.includes(f.id) ? t('profile.deleteActiveHint') : undefined}
+                    aria-describedby={activeIds.includes(f.id) ? deleteHintId : undefined}>{t('common.delete')}</Btn>
+                  {activeIds.includes(f.id) && <SrOnly id={deleteHintId}>{t('profile.deleteActiveHint')}</SrOnly>}
+                </>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -257,6 +265,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
           </div>
         }>
         <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} />
+        <Field label={t('modal.emoji')} value={f.emoji || ''} onChange={v => set('emoji', normalizeMemberEmoji(v))} placeholder={t('modal.emojiPlaceholder')} />
         <Section label={t('modal.color')} />
         <ColorCarousel value={f.color} onChange={v => set('color', v)} />
         <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} multiline pictureTools />

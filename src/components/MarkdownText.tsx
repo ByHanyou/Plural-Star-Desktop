@@ -30,22 +30,22 @@ const isValidImageUri = (u: unknown): u is string => {
   return /^https?:\/\//i.test(s) || /^file:\/\//i.test(s) || s.startsWith('data:image/');
 };
 
-const Img = ({ uri }: { uri: string }) => {
+const Img = ({ uri, alt = '' }: { uri: string; alt?: string }) => {
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => { setFailed(false); }, [uri]);
   if (failed) {
     return <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{i18n.t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</span>;
   }
-  return <img src={uri} alt="" style={{ display: 'block', maxWidth: 300, maxHeight: 300, borderRadius: 8, margin: '2px 0' }} onError={() => setFailed(true)} />;
+  return <img src={uri} alt={alt} style={{ display: 'block', maxWidth: 300, maxHeight: 300, borderRadius: 8, margin: '2px 0' }} onError={() => setFailed(true)} />;
 };
 
-const SideImg = ({ uri, w, h }: { uri: string; w?: number; h?: number }) => {
+const SideImg = ({ uri, w, h, alt = '' }: { uri: string; w?: number; h?: number; alt?: string }) => {
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => { setFailed(false); }, [uri]);
   if (failed) {
     return <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', maxWidth: '45%' }}>{i18n.t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</span>;
   }
-  return <img src={uri} alt="" style={{ display: 'block', flexShrink: 0, width: w || 110, maxWidth: '45%', height: 'auto', aspectRatio: w && h ? `${w} / ${h}` : undefined, objectFit: 'contain', borderRadius: 8 }} onError={() => setFailed(true)} />;
+  return <img src={uri} alt={alt} style={{ display: 'block', flexShrink: 0, width: w || 110, maxWidth: '45%', height: 'auto', aspectRatio: w && h ? `${w} / ${h}` : undefined, objectFit: 'contain', borderRadius: 8 }} onError={() => setFailed(true)} />;
 };
 
 const SideRow = ({ side, image, children }: { side: Side; image: React.ReactNode; children: React.ReactNode }) => (
@@ -92,7 +92,7 @@ const renderInline = (text: string, members?: Member[]): React.ReactNode => {
     [new RegExp(MD_IMAGE_RE.source), m => {
       const url = m[2].replace(/[)]+$/, '').replace(/#\d+x\d+$/, '').trim();
       if (!isValidImageUri(url)) return <span key={key++} style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{i18n.t('markdown.brokenImage', { defaultValue: '[broken image]' })}</span>;
-      return <Img key={key++} uri={url} />;
+      return <Img key={key++} uri={url} alt={m[1].startsWith(SIDE_ALT) ? '' : m[1]} />;
     }],
     [/\[(.+?)\]\((.+?)\)/, m => {
       const href = m[2].trim();
@@ -119,9 +119,9 @@ const renderInline = (text: string, members?: Member[]): React.ReactNode => {
 const baseLine: React.CSSProperties = { fontSize: 13, color: 'var(--text)', lineHeight: 1.5, wordBreak: 'break-word', margin: 0 };
 
 const renderLine = (line: string, i: React.Key, members?: Member[]): React.ReactNode => {
-  if (line.startsWith('### ')) return <p key={i} style={{ ...baseLine, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(4), members)}</p>;
-  if (line.startsWith('## ')) return <p key={i} style={{ ...baseLine, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(3), members)}</p>;
-  if (line.startsWith('# ')) return <p key={i} style={{ ...baseLine, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(2), members)}</p>;
+  if (line.startsWith('### ')) return <p key={i} role="heading" aria-level={3} style={{ ...baseLine, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(4), members)}</p>;
+  if (line.startsWith('## ')) return <p key={i} role="heading" aria-level={2} style={{ ...baseLine, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(3), members)}</p>;
+  if (line.startsWith('# ')) return <p key={i} role="heading" aria-level={1} style={{ ...baseLine, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{renderInline(line.slice(2), members)}</p>;
   if (line.startsWith('> ')) return <div key={i} style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 10, margin: '2px 0' }}><p style={{ ...baseLine, color: 'var(--dim)', fontStyle: 'italic' }}>{renderInline(line.slice(2), members)}</p></div>;
   if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) return <hr key={i} style={{ border: 'none', height: 1, background: 'var(--border)', margin: '8px 0' }} />;
   if (line.match(/^[-*] /)) return <div key={i} style={{ display: 'flex', gap: 6, margin: '1px 0' }}><span aria-hidden style={{ ...baseLine, color: 'var(--dim)' }}>•</span><p style={{ ...baseLine, flex: 1 }}>{renderInline(line.slice(2), members)}</p></div>;
@@ -153,6 +153,7 @@ export const MarkdownText = ({ text, members }: { text: string; members?: Member
       const before = line.slice(0, md.index).trim();
       const after = line.slice(md.index + md[0].length).trim();
       const side = altSide(md[1]);
+      const imgAlt = md[1].startsWith(SIDE_ALT) ? '' : md[1];
       const { url, w, h } = parseImageRef(md[2]);
       if (isValidImageUri(url) && (side || before || after)) {
         const start = i;
@@ -162,12 +163,12 @@ export const MarkdownText = ({ text, members }: { text: string; members?: Member
         }
         if (beside.length > 0) {
           elements.push(
-            <SideRow key={`s${start}`} side={side || 'left'} image={<SideImg uri={url} w={w} h={h} />}>
+            <SideRow key={`s${start}`} side={side || 'left'} image={<SideImg uri={url} w={w} h={h} alt={imgAlt} />}>
               {beside.map((b, j) => renderLine(b, `s${start}-${j}`, members))}
             </SideRow>,
           );
         } else {
-          elements.push(<div key={`m${i}`} style={{ display: 'flex', justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}><Img uri={url} /></div>);
+          elements.push(<div key={`m${i}`} style={{ display: 'flex', justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}><Img uri={url} alt={imgAlt} /></div>);
         }
         continue;
       }

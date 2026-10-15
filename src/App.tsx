@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n/i18n';
 import { store, KEYS } from './storage';
 import { deriveTheme, applyThemeToDOM, applyTextScale, applyFontChoice, DARK_PALETTE, BUILTIN_PALETTES, CustomPalette } from './theme';
 import {
-  Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatCategory, ChatMessage,
+  Member, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatCategory,
   AppSettings, SystemInfo, MemberGroup, migrateFrontState, isFrontEmpty,
-  fmtDur, getInitials, DEFAULT_CHANNELS, DEFAULT_MOODS, makeDefaultCustomFronts,
+  DEFAULT_MOODS, makeDefaultCustomFronts,
   uid, singletStatuses, readableAccent,
 } from './utils';
 import { changeLanguage, getDeviceLanguage } from './i18n/i18n';
@@ -67,7 +67,7 @@ import WhiteboardView from './views/WhiteboardView';
 import ColorsView from './views/ColorsView';
 import { NetworkManager } from './network/NetworkManager';
 import { CloudServices, bootCloudServices } from './cloud/cloudPlatform';
-import { Modal, Btn } from './components/ui';
+import { Modal, Btn, useDndA11y, Interp, slots } from './components/ui';
 import { useAppStore, DEFAULT_SETTINGS } from './store/appStore';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -91,7 +91,7 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
     const err = this.state.error as Error;
     const msg = err?.message || String(err);
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#0a0a0a', color: '#fff', textAlign: 'center', fontFamily: 'var(--font-body)' }}>
+      <div role="alert" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#0a0a0a', color: '#fff', textAlign: 'center', fontFamily: 'var(--font-body)' }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, fontFamily: 'var(--font-display)' }}>
           {i18n.t('errorBoundary.title', { defaultValue: 'Something went wrong' })}
         </h1>
@@ -205,12 +205,21 @@ function AppInner() {
       .catch(e => console.error('[NETWORK] init failed:', e))
       .finally(() => bootCloudServices());
   }, []);
-  useEffect(() => { if (state.loaded) NetworkManager.updateMyFront(state.front, state.members).catch(() => {}); }, [state.loaded, state.front, state.members]);
+  const membersRef = useRef(state.members);
+  membersRef.current = state.members;
+  const shareSig = useMemo(() => state.members.map(m => `${m.id}|${m.name}|${m.private ? 1 : 0}|${m.isFacet ? 1 : 0}|${m.isCustomFront ? 1 : 0}`).join('\n'), [state.members]);
+  useEffect(() => { if (state.loaded) NetworkManager.updateMyFront(state.front, membersRef.current).catch(() => {}); }, [state.loaded, state.front, shareSig]);
   useEffect(() => {
     NetworkManager.notifyDataChanged();
     CloudServices.schedulePush();
   }, [state.system, state.members, state.groups, state.front, state.history, state.journal, state.channels, state.chatCategories, state.settings, state.palettes]);
-  useEffect(() => NetworkManager.onSyncApplied(() => { loadData(); }), [loadData]);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsub = NetworkManager.onSyncApplied(() => {
+      if (!timer) timer = setTimeout(() => { timer = null; loadData(); }, 400);
+    });
+    return () => { if (timer) clearTimeout(timer); unsub(); };
+  }, [loadData]);
   useEffect(() => NetworkManager.onSyncConflict(c => setSyncConflict({peerId: c.peerId, deviceName: c.deviceName})), []);
   useEffect(() => NetworkManager.onSyncRoleMismatch(c => setRoleMismatch({deviceName: c.deviceName})), []);
 
@@ -267,6 +276,46 @@ function AppInner() {
       return next;
     });
   };
+  const tileTitle = (id: string): string =>
+    id === 'discord' ? t('hub.discord') : id === 'support' ? t('hub.supportPS') : viewTitle(id as ViewId);
+  const tileDndA11y = useDndA11y(id => tileTitle(String(id)));
+
+  const viewTitleRef = useRef<HTMLSpanElement>(null);
+  const lastTileRef = useRef<string | null>(null);
+  const prevViewRef = useRef<ViewId>(view);
+  useEffect(() => {
+    const prev = prevViewRef.current;
+    prevViewRef.current = view;
+    if (prev === view) return;
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    if (view !== 'dashboard') { viewTitleRef.current?.focus(); return; }
+    const id = lastTileRef.current;
+    if (!id) return;
+    const wrap = Array.from(document.querySelectorAll<HTMLElement>('[data-tile-id]')).find(el => el.dataset.tileId === id);
+    wrap?.querySelector<HTMLElement>('[role="button"], button:not(.tile__grip)')?.focus();
+  }, [view]);
+  const rememberTile = (e: React.SyntheticEvent) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-tile-id]')?.dataset.tileId;
+    if (id) lastTileRef.current = id;
+  };
+
+  useEffect(() => {
+    if (!state.loaded) return;
+    document.title = view === 'dashboard' ? systemName : t('hub.windowTitle', { view: viewTitle(view), system: systemName });
+  });
+
+  useEffect(() => {
+    window.electronAPI?.shell?.setLabels({
+      trayOpen: t('tray.open', { app: 'Plural Star' }),
+      trayQuit: t('tray.quit'),
+      menuEdit: t('menu.edit'),
+      jsonFiles: t('fileDialog.jsonFiles'),
+      textFiles: t('fileDialog.textFiles'),
+      allFiles: t('fileDialog.allFiles'),
+      backup: t('fileDialog.backup'),
+    });
+  }, [t, i18n.language]);
 
   const ensureSelfMember = async (): Promise<Member> => {
     if (selfMember) {
@@ -276,7 +325,7 @@ function AppInner() {
       }
       return selfMember;
     }
-    const nm: Member = { id: uid(), name: state.system.name || 'Me', pronouns: '', role: '', color: '#DAA520', description: '', tags: [], groupIds: [], customFields: [], createdAt: Date.now() };
+    const nm: Member = { id: uid(), name: state.system.name || t('profile.defaultSelfName'), pronouns: '', role: '', color: '#DAA520', description: '', tags: [], groupIds: [], customFields: [], createdAt: Date.now() };
     await store.set(KEYS.members, [...state.members, nm]);
     await store.set(KEYS.settings, { ...state.settings, selfMemberId: nm.id });
     await loadData();
@@ -352,7 +401,7 @@ function AppInner() {
       <div className="app-shell">
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {loadError ? (
-            <div style={{ textAlign: 'center', maxWidth: 480, padding: 24 }}>
+            <div role="alert" style={{ textAlign: 'center', maxWidth: 480, padding: 24 }}>
               <p style={{ color: 'var(--text)', fontSize: 14, marginBottom: 12 }}>{i18n.t('errorBoundary.body', { defaultValue: 'The app hit an unexpected error. Try again, or restart if it persists.' })}</p>
               <p style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 20, whiteSpace: 'pre-wrap' }}>{loadError}</p>
               <button onClick={() => window.location.reload()} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--bg)', fontSize: 14, cursor: 'pointer' }}>
@@ -360,7 +409,7 @@ function AppInner() {
               </button>
             </div>
           ) : (
-            <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: 18 }}>
+            <span role="status" style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: 18 }}>
               {i18n.t('common.loading', { defaultValue: 'Loading…' })}
             </span>
           )}
@@ -369,19 +418,19 @@ function AppInner() {
     );
   }
 
+  const titleName = isSinglet ? systemName : (
+    <button className="titlebar__name" onClick={() => setView('system-profile')}
+      aria-label={systemName} title={t('systemProfile.openHint')}>
+      {systemName}
+    </button>
+  );
+  const titleView = view === 'system-profile' ? t('systemProfile.title') : view !== 'dashboard' ? viewTitle(view) : '';
+
   return (
     <div className="app-shell">
       <div className="titlebar">
         <span className="titlebar__title" style={{ color: titleColor }}>
-          {isSinglet ? systemName : (
-            <button className="titlebar__name" onClick={() => setView('system-profile')}
-              aria-label={systemName} title={t('systemProfile.openHint')}>
-              {systemName}
-            </button>
-          )}
-          {view === 'system-profile'
-            ? ` — ${t('systemProfile.title')}`
-            : view !== 'dashboard' && ` — ${viewTitle(view)}`}
+          {titleView ? <Interp text={t('hub.titleBar', { view: titleView, ...slots('name'), applyPostProcessor: false })} nodes={{ name: titleName }} /> : titleName}
         </span>
         <div className="titlebar__controls">
           <button className="titlebar__btn titlebar__btn--minimize" aria-label={t('common.minimize', {defaultValue: 'Minimize'})} onClick={() => window.electronAPI.window.minimize()} />
@@ -400,12 +449,12 @@ function AppInner() {
       )}
 
       {view === 'dashboard' ? (
-        <div className="dashboard">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTileDragEnd}>
+        <div className="dashboard" onFocus={rememberTile} onClickCapture={rememberTile}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTileDragEnd} accessibility={tileDndA11y}>
             <SortableContext items={visibleTileIds} strategy={rectSortingStrategy}>
               <div className="tile-grid">
                 {visibleTileIds.map(id => (
-                  <SortableTile key={id} id={id}>{tileNodes[id]}</SortableTile>
+                  <SortableTile key={id} id={id} label={tileTitle(id)}>{tileNodes[id]}</SortableTile>
                 ))}
               </div>
             </SortableContext>
@@ -417,7 +466,7 @@ function AppInner() {
             <button className="full-view__back" onClick={() => setView('dashboard')}>
               {t('hub.dashboard')}
             </button>
-            <span className="full-view__title">
+            <span className="full-view__title" ref={viewTitleRef} role="heading" aria-level={1} tabIndex={-1}>
               {viewTitle(view)}
             </span>
           </div>
@@ -524,7 +573,6 @@ function AppInner() {
           onClose={() => setShowQuickFront(false)}
           onSave={saveQuickFront}
           members={state.members.filter(m => !m.archived)}
-          groups={state.groups}
           current={state.front}
           settings={state.settings}
           allMoods={[...DEFAULT_MOODS, ...(state.settings.customMoods || [])]}

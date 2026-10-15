@@ -1,8 +1,31 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Announcements, ScreenReaderInstructions, UniqueIdentifier } from '@dnd-kit/core';
 import './ui.css';
 import { colorName } from '../utils';
 import { CloudServices } from '../cloud/cloudPlatform';
+
+export const srOnly: React.CSSProperties = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0,
+};
+
+export function SrOnly({ children, id }: { children: React.ReactNode; id?: string }) {
+  return <span id={id} style={srOnly}>{children}</span>;
+}
+
+const SLOT = '\u0001';
+
+export const slots = (...names: string[]): Record<string, string> =>
+  Object.fromEntries(names.map(n => [n, `${SLOT}${n}${SLOT}`]));
+
+export function Interp({ text, nodes, textStyle }: { text: string; nodes: Record<string, React.ReactNode>; textStyle?: React.CSSProperties }) {
+  const parts = text.split(new RegExp(`${SLOT}(\\w+)${SLOT}`));
+  return <>{parts.map((part, i) => (i % 2 === 1
+    ? <React.Fragment key={i}>{nodes[part]}</React.Fragment>
+    : textStyle && part ? <span key={i} style={textStyle}>{part}</span> : part))}</>;
+}
 
 export const clickable = (onClick?: () => void, label?: string) => ({
   role: 'button' as const,
@@ -14,7 +37,39 @@ export const clickable = (onClick?: () => void, label?: string) => ({
   },
 });
 
+export function useDndA11y(nameOf: (id: UniqueIdentifier) => string): { announcements: Announcements; screenReaderInstructions: ScreenReaderInstructions } {
+  const { t } = useTranslation();
+  const name = (id: UniqueIdentifier) => nameOf(id) || String(id);
+  return {
+    screenReaderInstructions: { draggable: t('dnd.instructions') },
+    announcements: {
+      onDragStart: ({ active }) => t('dnd.picked', { name: name(active.id) }),
+      onDragOver: ({ active, over }) => over
+        ? t('dnd.over', { name: name(active.id), over: name(over.id) })
+        : t('dnd.notOver', { name: name(active.id) }),
+      onDragEnd: ({ active, over }) => over
+        ? t('dnd.dropped', { name: name(active.id), over: name(over.id) })
+        : t('dnd.droppedNoTarget', { name: name(active.id) }),
+      onDragCancel: ({ active }) => t('dnd.cancelled', { name: name(active.id) }),
+    },
+  };
+}
+
 const escapeStack: Array<() => void> = [];
+
+/** Arrow keys, Home and End move between the tabs of the enclosing tablist and select the one reached. Tab still visits every tab. */
+export const tabListKeyDown = (e: ReactKeyboardEvent<HTMLElement>): void => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  const list = e.currentTarget.closest('[role="tablist"]');
+  if (!list) return;
+  const tabs = Array.from(list.querySelectorAll<HTMLElement>('[role="tab"]'));
+  const i = tabs.indexOf(e.currentTarget);
+  if (i < 0) return;
+  const n = e.key === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length : e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'Home' ? 0 : tabs.length - 1;
+  e.preventDefault();
+  tabs[n].focus();
+  tabs[n].click();
+};
 
 export function useEscapeKey(active: boolean, onEscape: () => void) {
   const onEscapeRef = useRef(onEscape);
@@ -75,8 +130,8 @@ export function Btn({ children, onClick, variant = 'primary', disabled = false, 
 }
 
 
-export function Field({ label, value, onChange, placeholder, multiline = false, type = 'text', mono = false, pictureTools = false }: {
-  label?: string; value: string; onChange: (v: string) => void; placeholder?: string;
+export function Field({ label, ariaLabel, value, onChange, placeholder, multiline = false, type = 'text', mono = false, pictureTools = false }: {
+  label?: string; ariaLabel?: string; value: string; onChange: (v: string) => void; placeholder?: string;
   multiline?: boolean; type?: string; mono?: boolean; pictureTools?: boolean;
 }) {
   const id = useId();
@@ -117,11 +172,11 @@ export function Field({ label, value, onChange, placeholder, multiline = false, 
         </div>
       )}
       {multiline ? (
-        <textarea ref={areaRef} id={id} aria-label={label ? undefined : placeholder} className="field__input field__input--multi" value={value} onChange={e => onChange(e.target.value)}
+        <textarea ref={areaRef} id={id} aria-label={label ? undefined : (ariaLabel || placeholder)} className="field__input field__input--multi" value={value} onChange={e => onChange(e.target.value)}
           onSelect={pictureTools ? e => { selRef.current = e.currentTarget.selectionEnd; } : undefined}
           placeholder={placeholder} rows={4} />
       ) : (
-        <input id={id} aria-label={label ? undefined : placeholder} className={`field__input ${mono ? 'field__input--mono' : ''}`} type={type} value={value}
+        <input id={id} aria-label={label ? undefined : (ariaLabel || placeholder)} className={`field__input ${mono ? 'field__input--mono' : ''}`} type={type} value={value}
           onChange={e => onChange(e.target.value)} placeholder={placeholder} />
       )}
     </div>
@@ -132,13 +187,14 @@ export function Field({ label, value, onChange, placeholder, multiline = false, 
 export function Toggle({ value, onChange, label, description }: {
   value: boolean; onChange: (v: boolean) => void; label: string; description?: string;
 }) {
+  const descId = useId();
   return (
     <div className="toggle-row">
       <div className="toggle-row__text">
         <span className="toggle-row__label">{label}</span>
-        {description && <span className="toggle-row__desc">{description}</span>}
+        {description && <span className="toggle-row__desc" id={descId}>{description}</span>}
       </div>
-      <button className={`toggle ${value ? 'toggle--on' : ''}`} role="switch" aria-checked={value} aria-label={label} onClick={() => onChange(!value)}>
+      <button className={`toggle ${value ? 'toggle--on' : ''}`} role="switch" aria-checked={value} aria-label={label} aria-describedby={description ? descId : undefined} onClick={() => onChange(!value)}>
         <span className="toggle__knob" />
       </button>
     </div>
@@ -148,7 +204,7 @@ export function Toggle({ value, onChange, label, description }: {
 
 export type PickerKind = 'members' | 'facets' | 'customFronts';
 export type PickerKinds = Record<PickerKind, boolean>;
-export const PICKER_KIND_ORDER: PickerKind[] = ['members', 'facets', 'customFronts'];
+const PICKER_KIND_ORDER: PickerKind[] = ['members', 'facets', 'customFronts'];
 export const ALL_PICKER_KINDS: PickerKinds = { members: true, facets: true, customFronts: true };
 
 export function KindToggles({ kinds, setKinds, labels }: { kinds: PickerKinds; setKinds: (k: PickerKinds) => void; labels: Record<PickerKind, string> }) {
@@ -167,21 +223,51 @@ export function KindToggles({ kinds, setKinds, labels }: { kinds: PickerKinds; s
 export function Section({ label, color }: { label: string; color?: string }) {
   return (
     <div className="section-div">
-      <span className="section-div__dot" style={{ background: color || 'var(--accent)' }} />
-      <span className="section-div__label" style={{ color: color || 'var(--accent)' }}>{label}</span>
-      <span className="section-div__line" />
+      <span className="section-div__dot" aria-hidden style={{ background: color || 'var(--accent)' }} />
+      <span className="section-div__label" role="heading" aria-level={3} style={{ color: color || 'var(--accent)' }}>{label}</span>
+      <span className="section-div__line" aria-hidden />
     </div>
   );
 }
 
 
-export function Dropdown<T extends string>({ value, options, onChange, label, renderOption, optionStyle }: {
-  value: T; options: T[]; onChange: (v: T) => void; label?: string;
+export function Dropdown<T extends string>({ value, options, onChange, label, ariaLabel, renderOption, optionStyle }: {
+  value: T; options: T[]; onChange: (v: T) => void; label?: string; ariaLabel?: string;
   renderOption?: (v: T) => string;
   optionStyle?: (v: T) => React.CSSProperties | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEscapeKey(open, () => { setOpen(false); triggerRef.current?.focus(); });
+
+  useEffect(() => {
+    if (!open) return;
+    const menu = menuRef.current;
+    const target = menu?.querySelector<HTMLElement>('[aria-selected="true"]') || menu?.querySelector<HTMLElement>('[role="option"]');
+    target?.focus({ preventScroll: true });
+  }, [open]);
+
+  const onMenuKey = (e: React.KeyboardEvent) => {
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="option"]') || []);
+    if (items.length === 0) return;
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    let next: number;
+    if (e.key === 'ArrowDown') next = i < 0 ? 0 : Math.min(items.length - 1, i + 1);
+    else if (e.key === 'ArrowUp') next = i < 0 ? 0 : Math.max(0, i - 1);
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = items.length - 1;
+    else return;
+    e.preventDefault();
+    items[next].focus();
+  };
+  const onTriggerKey = (e: React.KeyboardEvent) => {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); setOpen(true); }
+  };
+  const onContainerBlur = (e: React.FocusEvent) => {
+    if (open && !ref.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -195,21 +281,23 @@ export function Dropdown<T extends string>({ value, options, onChange, label, re
   const labelId = useId();
   const valueId = useId();
 
+  const named = !!(label || ariaLabel);
   return (
-    <div className="dropdown" ref={ref}>
+    <div className="dropdown" ref={ref} onBlur={onContainerBlur}>
       {label && <label className="field__label" id={labelId}>{label}</label>}
-      <button className={`dropdown__trigger ${open ? 'dropdown__trigger--open' : ''}`} onClick={() => setOpen(!open)}
-        aria-haspopup="true" aria-expanded={open} aria-labelledby={label ? `${labelId} ${valueId}` : undefined}>
+      {!label && ariaLabel && <SrOnly id={labelId}>{ariaLabel}</SrOnly>}
+      <button ref={triggerRef} className={`dropdown__trigger ${open ? 'dropdown__trigger--open' : ''}`} onClick={() => setOpen(!open)} onKeyDown={onTriggerKey}
+        aria-haspopup="listbox" aria-expanded={open} aria-labelledby={named ? `${labelId} ${valueId}` : undefined}>
         <span id={valueId}>{display(value)}</span>
         <span className="dropdown__arrow" aria-hidden>{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="dropdown__menu">
+        <div ref={menuRef} className="dropdown__menu" role="listbox" aria-labelledby={named ? labelId : undefined} onKeyDown={onMenuKey}>
           {options.map(opt => (
             <button key={opt} className={`dropdown__item ${opt === value ? 'dropdown__item--active' : ''}`}
-              aria-pressed={opt === value}
+              role="option" aria-selected={opt === value}
               style={optionStyle ? optionStyle(opt) : undefined}
-              onClick={() => { onChange(opt); setOpen(false); }}>
+              onClick={() => { onChange(opt); setOpen(false); triggerRef.current?.focus(); }}>
               {display(opt)}
             </button>
           ))}
@@ -227,7 +315,7 @@ export function ChipList({ items, onRemove, color = 'var(--info)' }: {
   return (
     <div className="chip-list">
       {items.map(item => (
-        <button key={item} className="chip" aria-label={`${t('common.remove')} ${item}`} style={{ borderColor: `${color}50`, background: `${color}18` }} onClick={() => onRemove(item)}>
+        <button key={item} className="chip" aria-label={t('common.removeNamed', { name: item })} style={{ borderColor: `${color}50`, background: `${color}18` }} onClick={() => onRemove(item)}>
           <span style={{ color }}>{item}</span>
           <span className="chip__x" aria-hidden>✕</span>
         </button>
@@ -445,6 +533,7 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, dange
   useEscapeKey(open, onCancel);
   useDialogFocus(open, dialogRef);
   useEffect(() => { if (!open) setSecond(false); }, [open]);
+  useEffect(() => { if (second) dialogRef.current?.focus(); }, [second]);
   if (!open) return null;
   const doubled = danger && !single && CloudServices.isLinked();
   const confirm = () => {

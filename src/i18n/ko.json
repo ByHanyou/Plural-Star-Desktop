@@ -42,7 +42,9 @@
     "skyBlue": "하늘색",
     "orchid": "오키드",
     "lime": "라임",
-    "sand": "모래색"
+    "sand": "모래색",
+    "customCount": "사용자 지정 {{count}}/{{max}}",
+    "customSlotValue": "사용자 지정 {{n}}, {{hex}}"
   },
   "common": {
     "durDaysHours": "{{d}}일 {{h}}시간",
@@ -87,7 +89,20 @@
     "untitled": "제목 없음",
     "notInExport": "내보내기에 없음",
     "ok": "확인",
-    "edit": "편집"
+    "errorCode": "오류 코드: {{code}}",
+    "edit": "편집",
+    "removeNamed": "{{name}} 삭제",
+    "dragReorderNamed": "드래그해서 {{name}} 순서 변경",
+    "editNamed": "{{name}} 편집",
+    "deleteNamed": "{{name}} 삭제",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "포함됨",
+    "yes": "예",
+    "no": "아니요",
+    "addNamed": "{{name}} 추가",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "{{name}} 위로 이동",
+    "moveDownNamed": "{{name}} 아래로 이동"
   },
   "errorBoundary": {
     "title": "문제가 발생했어요",
@@ -124,7 +139,10 @@
     "statusesDesc": "상태는 지금 어떤지를 나타내요 — 자는 중, 일하는 중, 불안함 같은 것들요. 상태를 업데이트할 때 선택하세요.",
     "noStatuses": "아직 상태가 없어요. 하나 추가해서 시작하세요.",
     "activeStatus": "활성",
-    "favoriteColor": "좋아하는 색"
+    "favoriteColor": "좋아하는 색",
+    "defaultSelfName": "나",
+    "statusesCount": "상태 ({{count}})",
+    "deleteActiveHint": "삭제하기 전에 현재 상태에서 이 상태를 빼 주세요."
   },
   "settings": {
     "observatory": "옵저버토리(싱글렛) 인터페이스",
@@ -140,6 +158,7 @@
     "primaryShort": "메인",
     "coFrontShort": "코프런트",
     "coConShort": "코컨",
+    "assignedTo": "({{tier}})",
     "editTier": "{{tier}} 편집"
   },
   "setup": {
@@ -160,7 +179,10 @@
     "noNote": "메모가 없어요. ✎를 눌러 추가하세요.",
     "clearFront": "프런트 지우기",
     "clearFrontMsg": "모든 단계가 지워지고 현재 세션 종료가 기록돼요. 계속할까요?",
-    "clearFrontTitle": "프런트를 지울까요?"
+    "clearFrontTitle": "프런트를 지울까요?",
+    "frontingForSince": "프런팅 시간 {{dur}} · {{time}} 시작",
+    "editDetailsFor": "{{tier}} 기분 및 위치 편집",
+    "editNoteFor": "{{tier}} 메모 편집"
   },
   "members": {
     "title": "멤버",
@@ -215,17 +237,29 @@
     "selectNone": "없음",
     "bulkArchive": "멤버 보관",
     "bulkArchiveMsg": "멤버 {{count}}명을 보관할까요? 나중에 복원할 수 있어요.",
+    "bulkArchiveMsg_other": "멤버 {{count}}명을 보관할까요? 나중에 복원할 수 있어요.",
     "bulkRestore": "멤버 복원",
     "bulkRestoreMsg": "멤버 {{count}}명을 활성으로 복원할까요?",
+    "bulkRestoreMsg_other": "멤버 {{count}}명을 활성으로 복원할까요?",
     "bulkDelete": "멤버 삭제",
     "bulkDeleteMsg": "멤버 {{count}}명을 영구 삭제할까요? 되돌릴 수 없어요.",
+    "bulkDeleteMsg_other": "멤버 {{count}}명을 영구 삭제할까요? 되돌릴 수 없어요.",
     "assignGroup": "그룹",
     "assignTag": "태그",
     "addTags": "태그 추가",
     "frontingLockTitle": "현재 프런팅 중",
     "frontingLockMsg": "프런팅 중인 멤버는 보관하거나 삭제할 수 없어요. 먼저 프런트에서 빼 주세요.",
     "archive": "보관",
-    "recentlyDeleted": "최근 삭제된 항목"
+    "recentlyDeleted": "최근 삭제된 항목",
+    "unnamed": "이름 없는 멤버",
+    "archivedCount": "보관됨 ({{count}})",
+    "viewProfileNamed": "{{name}} 님의 프로필 보기",
+    "titleCount": "멤버 ({{count}})",
+    "facetsCount": "패싯 ({{count}})",
+    "customFrontsCount": "커스텀 프런트 ({{count}})",
+    "removeFromFrontNamed": "{{name}} 님을 프런트에서 내보내기",
+    "addToFrontNamed": "{{name}} 님을 프런트에 추가",
+    "restoreNamed": "{{name}} 복원"
   },
   "history": {
     "title": "기록",
@@ -250,7 +284,11 @@
     "allMembers": "모든 멤버",
     "byStatus": "상태별",
     "noHistorySinglet": "아직 기록이 없어요. 상태 업데이트가 자동으로 여기에 나타나요.",
-    "statusHistory": "상태 기록"
+    "statusHistory": "상태 기록",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "{{time}} 기록 삭제",
+    "deleteEntryStep": "기록 삭제 ({{step}}/{{total}})"
   },
   "journal": {
     "locked": "일지 잠김",
@@ -283,12 +321,16 @@
     "templateName": "템플릿 이름 *",
     "templateNamePlaceholder": "예: 아침 일기",
     "templateTitle": "글 제목 (미리 설정)",
-    "templateBody": "글 본문 (미리 설정)"
+    "templateBody": "글 본문 (미리 설정)",
+    "pinnedLabel": "고정됨",
+    "lockedLabel": "잠김",
+    "pinNamed": "{{title}} 고정"
   },
   "share": {
     "importStopping": "이 단계를 마치고 중단할게요…",
     "importStopped": "가져오기가 중단됐어요. 변경된 것은 없어요.",
     "importCancelHint": "현재 단계를 마친 뒤 중단해요. 이미 완료된 단계는 유지돼요.",
+    "importCancelTitle": "가져오기를 중단할까요?",
     "progressSavingMembers": "멤버 복원 중…",
     "progressJournal": "일지 복원 중…",
     "progressHistory": "프런트 기록 복원 중…",
@@ -384,7 +426,13 @@
     "membersCountSimple": "멤버 {{count}}명",
     "restoreDesc": "이전에 내보낸 JSON 백업을 불러와요.",
     "spMergeDesc": "Simply Plural 백업 데이터를 현재 시스템에 병합해요.",
-    "banners": "멤버 배너"
+    "banners": "멤버 배너",
+    "psFilterName": "PluralSpace 내보내기 (.zip 또는 data.json)",
+    "plurallogFilterName": "PluralLog 내보내기 (.zip)",
+    "backupFileSuffix": "백업",
+    "errUnexpected": "문제가 발생했어요. 파일을 확인하고 다시 시도해 주세요.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit 가져오기 (토큰)"
   },
   "hub": {
     "addHistoryDesc": "과거의 프런트 기록을 수동으로 추가해요.",
@@ -408,8 +456,6 @@
     "retroHistory": "레트로 기록",
     "statistics": "통계",
     "systemChat": "시스템 채팅",
-    "discord": "Discord",
-    "discordBlurb": "커뮤니티 채팅 및 지원",
     "dashboard": "← 대시보드",
     "supportPS": "Plural Star 후원하기",
     "supportPSBlurb": "Buy Me a Coffee",
@@ -417,7 +463,12 @@
     "creditLogo": "Plural Star 로고",
     "creditIos": "Plural Star iOS 포팅",
     "creditsBlurb": "커뮤니티 기여자",
-    "archive": "보관함"
+    "archive": "보관함",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "커뮤니티 채팅 및 지원",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "URL 입력",
@@ -435,7 +486,11 @@
     "toolCode": "코드",
     "brokenImage": "[깨진 이미지]",
     "imageUnavailable": "[이미지를 사용할 수 없음]",
-    "spoiler": "스포일러, 클릭하여 표시"
+    "spoiler": "스포일러, 클릭하여 표시",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "changePfp": "프로필 사진 변경",
@@ -466,6 +521,8 @@
     "hue": "색조",
     "invalidHex": "잘못된 hex 색상",
     "customColor": "사용자 지정 색상",
+    "emoji": "이모지",
+    "emojiPlaceholder": "예: 🦊",
     "descriptionBio": "설명 / 소개",
     "descriptionPlaceholder": "이 헤드메이트에 대한 이야기… 이미지/GIF URL을 붙여 넣을 수 있어요",
     "preview": "미리보기",
@@ -539,7 +596,13 @@
     "textSizeDesc": "앱 전체의 글자 크기를 조절해요.",
     "textScaleNormal": "보통",
     "textScaleLarge": "크게",
-    "textScaleExtraLarge": "아주 크게"
+    "textScaleExtraLarge": "아주 크게",
+    "cropMove": "자르기 영역 이동 (화살표 키)",
+    "cropResizeTopLeft": "왼쪽 위 모서리에서 크기 조절 (화살표 키)",
+    "cropResizeTopRight": "오른쪽 위 모서리에서 크기 조절 (화살표 키)",
+    "cropResizeBottomLeft": "왼쪽 아래 모서리에서 크기 조절 (화살표 키)",
+    "cropResizeBottomRight": "오른쪽 아래 모서리에서 크기 조절 (화살표 키)",
+    "fontDefault": "기본값"
   },
   "notification": {
     "mood": "기분: {{mood}}",
@@ -550,7 +613,8 @@
     "coFront": "코프런트: {{names}}",
     "coConscious": "코컨셔스: {{names}}",
     "cfShort": "CF: {{names}}",
-    "ccShort": "CC: {{names}}"
+    "ccShort": "CC: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "en": "English",
@@ -597,6 +661,11 @@
     "deleteGroup": "그룹 삭제",
     "deleteGroupMsg": "이 그룹을 삭제할까요? 멤버는 삭제되지 않아요.",
     "deleteWithChildrenMsg": "여기에 중첩된 항목 {{count}}개가 있어요. 유지하고 한 단계 위로 옮길까요, 아니면 전부 삭제할까요?",
+    "deleteWithChildrenMsg_other": "여기에 중첩된 항목 {{count}}개가 있어요. 유지하고 한 단계 위로 옮길까요, 아니면 전부 삭제할까요?",
+    "memberCount_other": "멤버 {{count}}명",
+    "moveNamed": "{{name}} 이동",
+    "addMembersTo": "{{name}}에 멤버 추가",
+    "kindToggle": "유형: {{kind}} (활성화하면 전환)",
     "promoteChildren": "하위 항목 유지",
     "deleteSubtree": "전부 삭제",
     "changeColor": "색상 변경",
@@ -610,7 +679,9 @@
     "subsystem": "하위 시스템",
     "linkedFronter": "연결된 프런터",
     "noLinkedFronter": "없음",
-    "linkedSubsystems": "연결된 하위 시스템"
+    "linkedSubsystems": "연결된 하위 시스템",
+    "showSubgroups": "{{name}}의 하위 그룹 ({{count}}개 선택됨)",
+    "linkedToNamed": "{{group}}, 연결된 프런터: {{name}}"
   },
   "systemManager": {
     "title": "시스템 관리자",
@@ -690,7 +761,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "플래너 리마인더",
-    "reminderTitlePlaceholder": "어떤 내용을 알려 줄까요?"
+    "reminderTitlePlaceholder": "어떤 내용을 알려 줄까요?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "{{title}} 리마인더"
   },
   "mailbox": {
     "title": "우편함",
@@ -713,7 +786,14 @@
     "messageCount_other": "메시지 {{count}}개",
     "unreadCount": "읽지 않음 {{count}}개",
     "deleteTitle": "메시지 삭제",
-    "deleteMsg": "이 메시지를 삭제할까요? 되돌릴 수 없어요."
+    "deleteMsg": "이 메시지를 삭제할까요? 되돌릴 수 없어요.",
+    "allOthersCount": "다른 모든 멤버 ({{count}})",
+    "lockedLabel": "잠김",
+    "lockButtonLocked": "우편함 잠금 (켜짐)",
+    "lockButtonUnlocked": "우편함 잠금 (꺼짐)",
+    "fromName": "보낸 멤버: {{name}}",
+    "deleteFrom": "{{name}} 님이 보낸 메시지 삭제",
+    "unlockTitle": "{{name}} 님의 우편함 잠금 해제"
   },
   "network": {
     "cloudConfirmTitle": "다시 확인",
@@ -727,6 +807,7 @@
     "cloudErrRate": "시도 횟수가 너무 많습니다. 1분 기다렸다가 다시 시도하세요.",
     "cloudErrFull": "금고 또는 노드에 공간이 없습니다.",
     "cloudErrTooLarge": "25 MB를 초과하여 제외됨: {{keys}}",
+    "cloudErrOverQuota": "금고에 공간이 없어 제외됨: {{keys}}",
     "cloudErrBadPassword": "금고가 있지만 이 비밀번호로는 열 수 없습니다.",
     "cloudErrCorrupt": "이 기기에서 금고를 읽을 수 없습니다. 연결을 해제하고 같은 비밀번호로 다시 연결하세요.",
     "cloudUnavailable": "연결된 노드는 클라우드 서비스를 제공하지 않습니다.",
@@ -838,7 +919,32 @@
     "syncRoleMismatchMsg": "나와 {{device}}가 같은 방향을 선택해서 첫 복사를 건너뛰었어요. 새 변경 사항은 여전히 동기화돼요. 전체를 복사하려면 연결을 삭제하고 다시 페어링하세요 — 한 기기는 \"보내기\", 다른 기기는 \"받기\"를 선택하세요.",
     "syncCloneSending": "첫 복사 보내는 중…",
     "syncCloneReceiving": "첫 복사 받는 중…",
-    "publishFailed": "코드를 게시할 수 없었어요 — 연결을 확인하고 다시 시도하세요."
+    "publishFailed": "코드를 게시할 수 없었어요 — 연결을 확인하고 다시 시도하세요.",
+    "tileFriends": "친구: {{count}}",
+    "tileOnline": "{{count}}명 온라인",
+    "tileDevices": "연결된 기기: {{count}}",
+    "deviceMac": "Mac 데스크톱",
+    "deviceWindows": "Windows 데스크톱",
+    "deviceLinux": "Linux 데스크톱",
+    "deviceDesktop": "데스크톱",
+    "defaultSystemName": "Plural Star 사용자",
+    "unnamedDevice": "기기",
+    "unnamedFriend": "친구",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "클라우드 동기화 중 문제가 발생했어요. 다시 시도해 주세요.",
+    "viewSharedNamed": "{{name}} 님이 공유한 항목 보기",
+    "notifyLevelCycle": "{{name}} 님 알림: {{level}}. 활성화하면 {{next}}(으)로 바뀌어요.",
+    "removeNamed": "{{name}} 님 삭제",
+    "yourCodeLabel": "내 친구 코드: {{code}}. 클릭하면 복사돼요.",
+    "statusLabel": "네트워크: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "버킷 {{name}} 복제",
+    "deleteBucketNamed": "버킷 {{name}} 삭제",
+    "bucketPickCount": "{{feature}}: 선택 ({{count}}개 선택됨)",
+    "pickerTitle": "{{feature}} — 선택",
+    "removeDeviceWarn": "{{name}} 연결을 해제할까요? 이 기기와 더 이상 동기화되지 않아요.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "확실한가요?",
@@ -858,7 +964,10 @@
     "shapeRect": "직사각형",
     "shapeEllipse": "타원",
     "shapePoly": "다각형",
-    "bucket": "채우기 버킷"
+    "bucket": "채우기 버킷",
+    "strokeCount_other": "획 {{count}}개",
+    "brushSizeN": "브러시 크기 {{size}}",
+    "panHint": "화살표 키로 보드를 둘러볼 수 있어요."
   },
   "systemMap": {
     "showColors": "색상",
@@ -889,6 +998,11 @@
     "deleteTypeMsg": "이 유형을 쓰는 모든 관계도 함께 삭제돼요.",
     "duplicate": "이 멤버들 사이에 이미 이 관계가 있어요.",
     "relationships": "관계 {{count}}개",
+    "relationships_other": "관계 {{count}}개",
+    "moveHint": "화살표 키로 지도에서 이 멤버를 옮길 수 있어요.",
+    "nodeArchived": "{{name}} (보관됨)",
+    "nodeHops_other": "{{name}}, {{count}}단계 떨어짐",
+    "deleteRelationshipWith": "{{name}} 님과의 관계 삭제",
     "relationshipOne": "관계 1개",
     "zoomIn": "확대",
     "zoomOut": "축소"
@@ -934,7 +1048,11 @@
     "emergencyDesc": "구조대원을 위한 중요 정보예요. 켜면 지속 알림에 추가돼요.",
     "deleteItemMsg": "이 항목을 삭제할까요?",
     "medReminderTitle": "복약 알림",
-    "apptReminderTitle": "예약 알림"
+    "apptReminderTitle": "예약 알림",
+    "remindersFor": "{{name}} 님의 알림",
+    "apptWhen": "예약 날짜 및 시간",
+    "remind15m": "15분",
+    "historyDate": "날짜"
   },
   "stats": {
     "last90": "90일",
@@ -966,7 +1084,12 @@
     "noMoodsRecorded": "아직 기록된 기분이 없어요.",
     "totalFrontTime": "총 프런트 시간",
     "totalSessions": "총 세션",
-    "uniqueFronters": "프런터 수"
+    "uniqueFronters": "프런터 수",
+    "showMoreCount": "더 보기 ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_other": "세션 {{num}}회",
+    "avgEnergyValue": "{{num}} /10 에너지"
   },
   "chat": {
     "addReaction": "반응 추가",
@@ -992,7 +1115,19 @@
     "archiveChannel": "채널 보관",
     "noMessages": "아직 메시지가 없어요.",
     "editingHeader": "메시지 편집 중",
-    "editPlaceholder": "메시지 편집…"
+    "editPlaceholder": "메시지 편집…",
+    "attachment": "첨부 파일",
+    "channelCount_other": "채널 {{count}}개",
+    "importedChannel": "가져옴",
+    "categoryWithCount_other": "{{name}} (채널 {{count}}개)",
+    "speakingAsNamed": "말하는 멤버: {{name}}",
+    "messagesIn": "#{{name}}의 메시지",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "{{name}} 님의 이미지",
+    "reactionCount": "{{emoji}} 반응, {{count}}",
+    "replyingToName": "{{name}} 님에게 답장 중",
+    "cancelReply": "답장 취소",
+    "cancelEdit": "편집 취소"
   },
   "customFields": {
     "title": "커스텀 필드",
@@ -1026,7 +1161,12 @@
     "reorder": "순서 변경",
     "markdownSupport": "마크다운 지원",
     "markdownLabel": "마크다운",
-    "fieldCount": "{{count}}개 정의됨"
+    "fieldCount": "{{count}}개 정의됨",
+    "ageField": "나이",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "{{name}} 필드 유형",
+    "moveUpNamed": "{{name}} 위로 이동, {{above}} 위로",
+    "moveDownNamed": "{{name}} 아래로 이동, {{below}} 아래로"
   },
   "noteboard": {
     "title": "노트보드",
@@ -1037,7 +1177,8 @@
     "placeholder": "노트를 쓰세요...",
     "by": "{{name}} 씀",
     "writingAs": "쓰는 멤버:",
-    "hasNotes": "{{names}} 님의 우편함에 우편이 있어요"
+    "hasNotes": "{{names}} 님의 우편함에 우편이 있어요",
+    "pinned": "고정됨"
   },
   "polls": {
     "removeOption": "선택지 삭제",
@@ -1060,13 +1201,20 @@
     "votingAs": "투표하는 멤버:",
     "forMember": "대상 멤버:",
     "optionsLabel": "선택지",
-    "activeCount": "{{count}}개 진행 중"
+    "activeCount": "{{count}}개 진행 중",
+    "closePollNamed": "투표 마감: {{question}}",
+    "reopenPollNamed": "투표 다시 열기: {{question}}",
+    "optionN": "선택지 {{n}}",
+    "removeOptionN": "선택지 {{n}} 삭제"
   },
   "energy": {
     "label": "에너지",
     "level": "에너지 수준",
     "avgEnergy": "평균 에너지",
-    "outOf10": "/10 에너지"
+    "outOf10": "/10 에너지",
+    "outOfTen": "{{value}}/10",
+    "clear": "에너지 수준 지우기",
+    "levelValue": "에너지 수준 {{value}}/10"
   },
   "systemProfile": {
     "read": "보기",
@@ -1083,7 +1231,8 @@
     "changeAvatar": "아바타 변경",
     "changeBanner": "배너 변경",
     "removeAvatar": "아바타 삭제",
-    "removeBanner": "배너 삭제"
+    "removeBanner": "배너 삭제",
+    "avatarAndBanner": "시스템 아바타 · 시스템 배너"
   },
   "frontSort": {
     "label": "정리",
@@ -1116,5 +1265,55 @@
     "Irritable": "예민함",
     "Sad": "슬픔",
     "Focused": "집중됨"
+  },
+  "dnd": {
+    "instructions": "항목을 집으려면 Space 또는 Enter 키를 누르세요. 화살표 키로 옮긴 다음 Space 또는 Enter 키를 눌러 놓거나, Escape 키를 눌러 취소하세요.",
+    "picked": "{{name}} 항목을 집었어요.",
+    "over": "{{name}} 항목이 {{over}} 위에 있어요.",
+    "notOver": "{{name}} 항목이 더 이상 놓을 수 있는 영역 위에 있지 않아요.",
+    "dropped": "{{name}} 항목을 {{over}} 위에 놓았어요.",
+    "droppedNoTarget": "{{name}} 항목을 놓았어요.",
+    "cancelled": "{{name}} 항목 이동을 취소했어요."
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON 파일",
+    "textFiles": "텍스트 파일",
+    "allFiles": "모든 파일",
+    "backup": "백업",
+    "images": "이미지"
+  },
+  "tray": {
+    "open": "{{app}} 열기",
+    "quit": "종료"
+  },
+  "menu": {
+    "edit": "편집"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "수다스러움",
+      "nonVerbal": "비언어",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "흐릿함",
+      "blendy": "섞임",
+      "rapidSwitching": "잦은 전환",
+      "foggy": "멍함",
+      "grounded": "안정됨",
+      "dissociated": "해리됨",
+      "anxious": "불안함",
+      "depressed": "우울함",
+      "cheerful": "명랑함",
+      "happy": "행복함",
+      "sad": "슬픔",
+      "crisis": "위기",
+      "melancholy": "울적함",
+      "stimming": "스티밍",
+      "stressed": "스트레스",
+      "working": "일하는 중",
+      "traveling": "여행 중",
+      "sleeping": "자는 중",
+      "hyperfocus": "과몰입"
+    }
   }
 }

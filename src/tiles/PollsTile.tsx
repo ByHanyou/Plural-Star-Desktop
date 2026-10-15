@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MemberPoll } from '../utils';
+import { MemberPoll, fmtNum } from '../utils';
 import { store, KEYS } from '../storage';
 
 interface Props { onClick: () => void; }
@@ -21,7 +21,7 @@ export default function PollsTile({ onClick }: Props) {
         <span className="tile__title">{t('polls.title')}</span>
       </div>
       <div className="tile__body">
-        <span className="tile__stat">{activeCount}</span>
+        <span className="tile__stat">{fmtNum(activeCount, 0)}</span>
         <span className="tile__label">{t('polls.activeCount', { count: activeCount })}</span>
       </div>
     </div>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CustomFieldDef } from '../utils';
+import { CustomFieldDef, fmtNum } from '../utils';
 import { store, KEYS } from '../storage';
 
 interface Props { onClick: () => void; }
@@ -19,7 +19,7 @@ export default function CustomFieldsTile({ onClick }: Props) {
         <span className="tile__title">{t('customFields.title')}</span>
       </div>
       <div className="tile__body">
-        <span className="tile__stat">{count}</span>
+        <span className="tile__stat">{fmtNum(count, 0)}</span>
         <span className="tile__label">{t('customFields.fieldCount', { count })}</span>
       </div>
     </div>

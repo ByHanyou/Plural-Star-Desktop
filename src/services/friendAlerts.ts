@@ -1,6 +1,6 @@
 import i18n from '../i18n/i18n';
 import { store, KEYS } from '../storage';
-import { AppSettings } from '../utils';
+import { AppSettings, translateMood } from '../utils';
 import { NetworkManager } from '../network/NetworkManager';
 import { Friend, friendNotifyLevel } from '../network/types';
 import { logError } from '../log';
@@ -21,7 +21,7 @@ const statusBody = (f: Friend): string => {
   if (s.coFront) lines.push(i18n.t('notification.coFront', { names: s.coFront, defaultValue: `Co-Front: ${s.coFront}` }));
   if (s.coConscious) lines.push(i18n.t('notification.coConscious', { names: s.coConscious, defaultValue: `Co-Conscious: ${s.coConscious}` }));
   if (lines.length === 0 && s.fronters) lines.push(s.fronters);
-  if (s.mood) lines.push(i18n.t('notification.mood', { mood: s.mood, defaultValue: `Mood: ${s.mood}` }));
+  if (s.mood) { const mood = translateMood(s.mood, i18n.t); lines.push(i18n.t('notification.mood', { mood, defaultValue: `Mood: ${mood}` })); }
   return lines.join('\n');
 };
 

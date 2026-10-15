@@ -1,22 +1,23 @@
 import { Member, truncateRunes } from './utils';
+import i18n from './i18n/i18n';
 
-export const MIME_BY_EXT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+const MIME_BY_EXT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
 export const extFromDataUri = (u: string): string => { const m = /^data:image\/([\w+]+)/.exec(u); const e = (m?.[1] || 'png').toLowerCase(); return e === 'jpeg' ? 'jpg' : e === 'svg+xml' ? 'svg' : e; };
 export const dataUriToBytes = (u: string): Uint8Array => { const bin = atob(u.slice(u.indexOf(',') + 1)); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
 export const u8ToBase64 = (bytes: Uint8Array): string => { let bin = ''; const chunk = 0x8000; for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk) as unknown as number[]); return btoa(bin); };
 export const bytesToDataUri = (bytes: Uint8Array, pathOrExt: string): string => { const ext = (pathOrExt.split('.').pop() || 'png').toLowerCase(); return `data:${MIME_BY_EXT[ext] || 'image/png'};base64,${u8ToBase64(bytes)}`; };
-export const pkHexColor = (c?: string): string | null => {
+const pkHexColor = (c?: string): string | null => {
   const h = String(c || '').replace(/^#/, '').trim().toLowerCase();
   return /^[0-9a-f]{6}$/.test(h) ? h : null;
 };
-export const pkPublicUrl = (u?: string): string | null =>
+const pkPublicUrl = (u?: string): string | null =>
   (u && /^https?:\/\//i.test(u) && u.length <= 256) ? u : null;
-export const pkShortId = (i: number): string => {
+const pkShortId = (i: number): string => {
   let s = ''; let n = i;
   for (let k = 0; k < 5; k++) { s = String.fromCharCode(97 + (n % 26)) + s; n = Math.floor(n / 26); }
   return s;
 };
-export const pkUuid = (): string =>
+const pkUuid = (): string =>
   'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -29,7 +30,7 @@ export const buildPluralKitExport = (system: any, members: Member[], history: an
   const pkMembers = realMembers.map(m => ({
     id: idMap[m.id],
     uuid: pkUuid(),
-    name: truncateRunes(m.name || 'Member', 100),
+    name: truncateRunes(m.name || i18n.t('members.unnamed'), 100),
     display_name: null,
     color: pkHexColor(m.color),
     birthday: null,

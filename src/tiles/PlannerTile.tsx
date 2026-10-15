@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { store, KEYS } from '../storage';
 import { PlannerData, plannerNextOccurrence, plannerOccursOnDay } from '../utils';

@@ -42,7 +42,9 @@
     "skyBlue": "Himmelblau",
     "orchid": "Orchidee",
     "lime": "Limette",
-    "sand": "Sand"
+    "sand": "Sand",
+    "customCount": "Eigene {{count}}/{{max}}",
+    "customSlotValue": "Eigene Farbe {{n}}, {{hex}}"
   },
   "terminology": {
     "fronter": "Fronter",
@@ -116,7 +118,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Planer-Erinnerung",
-    "reminderTitlePlaceholder": "Was soll sie sagen?"
+    "reminderTitlePlaceholder": "Was soll sie sagen?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Erinnerung für {{title}}"
   },
   "mailbox": {
     "title": "Postfach",
@@ -139,7 +143,14 @@
     "messageCount_other": "{{count}} Nachrichten",
     "unreadCount": "{{count}} ungelesen",
     "deleteTitle": "Nachricht löschen",
-    "deleteMsg": "Diese Nachricht entfernen? Das kann nicht rückgängig gemacht werden."
+    "deleteMsg": "Diese Nachricht entfernen? Das kann nicht rückgängig gemacht werden.",
+    "allOthersCount": "Alle anderen Mitglieder ({{count}})",
+    "lockedLabel": "Gesperrt",
+    "lockButtonLocked": "Postfachsperre (an)",
+    "lockButtonUnlocked": "Postfachsperre (aus)",
+    "fromName": "Von: {{name}}",
+    "deleteFrom": "Nachricht von {{name}} löschen",
+    "unlockTitle": "Postfach von {{name}} entsperren"
   },
   "network": {
     "cloudConfirmTitle": "Noch einmal bestätigen",
@@ -153,6 +164,7 @@
     "cloudErrRate": "Zu viele Versuche. Warte eine Minute und versuche es erneut.",
     "cloudErrFull": "Der Tresor oder der Node hat keinen Speicherplatz mehr.",
     "cloudErrTooLarge": "Ausgelassen, größer als 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Ausgelassen, der Tresor hat keinen Speicherplatz mehr: {{keys}}",
     "cloudErrBadPassword": "Der Tresor existiert, aber dieses Passwort öffnet ihn nicht.",
     "cloudErrCorrupt": "Der Tresor konnte auf diesem Gerät nicht gelesen werden. Trenne die Verbindung und verbinde erneut mit demselben Passwort.",
     "cloudUnavailable": "Der Node, mit dem du verbunden bist, bietet keine Cloud-Dienste an.",
@@ -264,7 +276,32 @@
     "syncRoleMismatchMsg": "Du und {{device}} habt dieselbe Richtung gewählt, daher wurde die erste Kopie übersprungen. Neue Änderungen werden trotzdem synchronisiert. Um alles zu kopieren, entferne die Verknüpfung und verbinde neu — „Senden“ auf einem Gerät, „Empfangen“ auf dem anderen.",
     "syncCloneSending": "Erste Kopie wird gesendet…",
     "syncCloneReceiving": "Erste Kopie wird empfangen…",
-    "publishFailed": "Dein Code konnte nicht veröffentlicht werden — prüfe deine Verbindung und versuche es erneut."
+    "publishFailed": "Dein Code konnte nicht veröffentlicht werden — prüfe deine Verbindung und versuche es erneut.",
+    "tileFriends": "Freund*innen: {{count}}",
+    "tileOnline": "{{count}} online",
+    "tileDevices": "Verknüpfte Geräte: {{count}}",
+    "deviceMac": "Mac-Desktop",
+    "deviceWindows": "Windows-Desktop",
+    "deviceLinux": "Linux-Desktop",
+    "deviceDesktop": "Desktop",
+    "defaultSystemName": "Plural-Star-Nutzer*in",
+    "unnamedDevice": "Gerät",
+    "unnamedFriend": "Freund*in",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Bei der Cloud-Synchronisierung ist etwas schiefgelaufen. Bitte versuche es erneut.",
+    "viewSharedNamed": "Ansehen, was {{name}} teilt",
+    "notifyLevelCycle": "Benachrichtigungen für {{name}}: {{level}}. Aktivieren, um zu {{next}} zu wechseln.",
+    "removeNamed": "{{name}} entfernen",
+    "yourCodeLabel": "Dein Freundschaftscode: {{code}}. Zum Kopieren klicken.",
+    "statusLabel": "Netzwerk: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Kreis {{name}} duplizieren",
+    "deleteBucketNamed": "Kreis {{name}} löschen",
+    "bucketPickCount": "{{feature}}: Auswahl ({{count}} ausgewählt)",
+    "pickerTitle": "{{feature}} — Auswahl",
+    "removeDeviceWarn": "{{name}} trennen? Es wird dann nicht mehr mit diesem Gerät synchronisiert.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Bist du sicher?",
@@ -284,7 +321,11 @@
     "shapeRect": "Rechteck",
     "shapeEllipse": "Ellipse",
     "shapePoly": "Polygon",
-    "bucket": "Farbeimer"
+    "bucket": "Farbeimer",
+    "strokeCount_one": "{{count}} Strich",
+    "strokeCount_other": "{{count}} Striche",
+    "brushSizeN": "Pinselgröße {{size}}",
+    "panHint": "Bewege dich mit den Pfeiltasten über das Whiteboard."
   },
   "systemMap": {
     "showColors": "Farben",
@@ -310,6 +351,12 @@
     "duplicate": "Diese Mitglieder haben diese Beziehung bereits.",
     "relationships_one": "{{count}} Beziehung",
     "relationships": "{{count}} Beziehungen",
+    "relationships_other": "{{count}} Beziehungen",
+    "moveHint": "Verschiebe dieses Mitglied mit den Pfeiltasten auf der Karte.",
+    "nodeArchived": "{{name}} (archiviert)",
+    "nodeHops_one": "{{name}}, {{count}} Schritt entfernt",
+    "nodeHops_other": "{{name}}, {{count}} Schritte entfernt",
+    "deleteRelationshipWith": "Beziehung mit {{name}} löschen",
     "relationshipOne": "1 Beziehung",
     "from": "Von",
     "to": "Zu",
@@ -362,7 +409,11 @@
     "emergencyDesc": "Wichtige Informationen für Ersthelfer. Wenn aktiviert, werden sie der dauerhaften Benachrichtigung hinzugefügt.",
     "deleteItemMsg": "Diesen Eintrag entfernen?",
     "medReminderTitle": "Medikamenten-Erinnerung",
-    "apptReminderTitle": "Termin-Erinnerung"
+    "apptReminderTitle": "Termin-Erinnerung",
+    "remindersFor": "Erinnerungen für {{name}}",
+    "apptWhen": "Datum und Uhrzeit des Termins",
+    "remind15m": "15 Min",
+    "historyDate": "Datum"
   },
   "common": {
     "durDaysHours": "{{d}} T. {{h}} Std.",
@@ -407,7 +458,20 @@
     "untitled": "Ohne Titel",
     "notInExport": "Nicht im Export enthalten",
     "ok": "OK",
-    "edit": "Bearbeiten"
+    "errorCode": "Fehlercode: {{code}}",
+    "edit": "Bearbeiten",
+    "removeNamed": "{{name}} entfernen",
+    "dragReorderNamed": "{{name}} zum Umsortieren ziehen",
+    "editNamed": "{{name}} bearbeiten",
+    "deleteNamed": "{{name}} löschen",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Enthalten",
+    "yes": "Ja",
+    "no": "Nein",
+    "addNamed": "{{name}} hinzufügen",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "{{name}} nach oben verschieben",
+    "moveDownNamed": "{{name}} nach unten verschieben"
   },
   "errorBoundary": {
     "title": "Etwas ist schiefgelaufen",
@@ -444,7 +508,10 @@
     "statusesDesc": "Status beschreiben, wie es dir geht — z.B. Schlafend, Arbeitend oder Ängstlich. Wähle sie beim Aktualisieren deines Status aus.",
     "noStatuses": "Noch keine Status. Füge einen hinzu, um zu beginnen.",
     "activeStatus": "Aktiv",
-    "favoriteColor": "Lieblingsfarbe"
+    "favoriteColor": "Lieblingsfarbe",
+    "defaultSelfName": "Ich",
+    "statusesCount": "Status ({{count}})",
+    "deleteActiveHint": "Entferne diesen Status aus deinem aktuellen Status, bevor du ihn löschst."
   },
   "settings": {
     "observatory": "Observatorium-Oberfläche (Einzelperson)",
@@ -460,6 +527,7 @@
     "primaryShort": "Primär",
     "coFrontShort": "Co-Front",
     "coConShort": "Co-Bew",
+    "assignedTo": "({{tier}})",
     "editTier": "{{tier}} bearbeiten"
   },
   "setup": {
@@ -480,7 +548,10 @@
     "noNote": "Keine Notiz. Tippe ✎ um eine hinzuzufügen.",
     "clearFront": "Front leeren",
     "clearFrontMsg": "Dies leert alle Ebenen und protokolliert das Ende der Sitzung. Fortfahren?",
-    "clearFrontTitle": "Front leeren?"
+    "clearFrontTitle": "Front leeren?",
+    "frontingForSince": "{{dur}} im Front · seit {{time}}",
+    "editDetailsFor": "Stimmung und Ort für {{tier}} bearbeiten",
+    "editNoteFor": "Notiz für {{tier}} bearbeiten"
   },
   "members": {
     "displayFields": "Felder anzeigen",
@@ -545,7 +616,22 @@
     "frontingLockTitle": "Derzeit im Front",
     "frontingLockMsg": "Du kannst ein Mitglied nicht archivieren oder löschen, während es im Front ist. Entferne es zuerst aus dem Front.",
     "archive": "Archivieren",
-    "recentlyDeleted": "Kürzlich gelöscht"
+    "recentlyDeleted": "Kürzlich gelöscht",
+    "unnamed": "Unbenanntes Mitglied",
+    "archivedCount": "Archiviert ({{count}})",
+    "viewProfileNamed": "Profil von {{name}} ansehen",
+    "titleCount": "Mitglieder ({{count}})",
+    "facetsCount": "Facetten ({{count}})",
+    "customFrontsCount": "Benutzerdefinierte Fronten ({{count}})",
+    "removeFromFrontNamed": "{{name}} aus dem Front entfernen",
+    "addToFrontNamed": "{{name}} zur Front hinzufügen",
+    "restoreNamed": "{{name}} wiederherstellen",
+    "bulkArchiveMsg_one": "{{count}} Mitglied archivieren? Es kann später wiederhergestellt werden.",
+    "bulkArchiveMsg_other": "{{count}} Mitglieder archivieren? Sie können später wiederhergestellt werden.",
+    "bulkRestoreMsg_one": "{{count}} Mitglied wieder aktivieren?",
+    "bulkRestoreMsg_other": "{{count}} Mitglieder wieder aktivieren?",
+    "bulkDeleteMsg_one": "{{count}} Mitglied endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
+    "bulkDeleteMsg_other": "{{count}} Mitglieder endgültig löschen? Dies kann nicht rückgängig gemacht werden."
   },
   "history": {
     "title": "Verlauf",
@@ -568,6 +654,10 @@
     "byStatus": "Nach Status",
     "noHistorySinglet": "Noch kein Verlauf. Statusaktualisierungen erscheinen hier automatisch.",
     "statusHistory": "Statusverlauf",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Eintrag von {{time}} löschen",
+    "deleteEntryStep": "Eintrag löschen ({{step}}/{{total}})",
     "deleteConfirm1": "Diesen Eintrag wirklich löschen?",
     "deleteConfirm2": "Das kann nicht rückgängig gemacht werden. Wirklich löschen?",
     "deleteConfirm3": "Letzte Bestätigung: endgültig löschen?",
@@ -604,7 +694,10 @@
     "templateName": "Vorlagenname *",
     "templateNamePlaceholder": "z. B. Morgenseiten",
     "templateTitle": "Eintragstitel (voreingestellt)",
-    "templateBody": "Eintragstext (voreingestellt)"
+    "templateBody": "Eintragstext (voreingestellt)",
+    "pinnedLabel": "Angeheftet",
+    "lockedLabel": "Gesperrt",
+    "pinNamed": "{{title}} anheften"
   },
   "share": {
     "statusSpImported": "SP-Import: {{members}} neue Mitglieder, {{history}} Historie-Einträge",
@@ -702,6 +795,7 @@
     "importStopping": "Dieser Schritt wird beendet, dann wird gestoppt…",
     "importStopped": "Import gestoppt. Es wurde nichts geändert.",
     "importCancelHint": "Stoppt, sobald der aktuelle Schritt fertig ist. Bereits erledigte Schritte bleiben erhalten.",
+    "importCancelTitle": "Import stoppen?",
     "progressSavingMembers": "Mitglieder werden wiederhergestellt…",
     "progressJournal": "Tagebuch wird wiederhergestellt…",
     "progressHistory": "Front-Verlauf wird wiederhergestellt…",
@@ -711,7 +805,13 @@
     "membersCountSimple": "{{count}} Mitglieder",
     "restoreDesc": "Zuvor exportiertes JSON-Backup laden.",
     "spMergeDesc": "Simply-Plural-Backup in das aktuelle System einfügen.",
-    "banners": "Mitglied-Banner"
+    "banners": "Mitglied-Banner",
+    "psFilterName": "PluralSpace-Export (.zip oder data.json)",
+    "plurallogFilterName": "PluralLog-Export (.zip)",
+    "backupFileSuffix": "sicherung",
+    "errUnexpected": "Etwas ist schiefgelaufen. Bitte überprüfe die Datei und versuche es erneut.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit Import (Token)"
   },
   "editor": {
     "urlPlaceholder": "URL hier",
@@ -729,7 +829,11 @@
     "toolCode": "Code",
     "brokenImage": "[defektes Bild]",
     "imageUnavailable": "[Bild nicht verfügbar]",
-    "spoiler": "Spoiler, zum Anzeigen klicken"
+    "spoiler": "Spoiler, zum Anzeigen klicken",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "appFont": "App-Schriftart",
@@ -760,6 +864,8 @@
     "hue": "Farbton",
     "invalidHex": "Ungültige Hex-Farbe",
     "customColor": "Eigene Farbe",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "z. B. 🦊",
     "descriptionBio": "Beschreibung / Bio",
     "descriptionPlaceholder": "Ein bisschen über diesen Kopfbewohner… Bild-/GIF-URLs inline einfügen",
     "preview": "Vorschau",
@@ -833,7 +939,13 @@
     "textSizeDesc": "Textgröße in der App anpassen.",
     "textScaleNormal": "Normal",
     "textScaleLarge": "Groß",
-    "textScaleExtraLarge": "Sehr Groß"
+    "textScaleExtraLarge": "Sehr Groß",
+    "cropMove": "Zuschnittbereich verschieben (Pfeiltasten)",
+    "cropResizeTopLeft": "Größe über die obere linke Ecke ändern (Pfeiltasten)",
+    "cropResizeTopRight": "Größe über die obere rechte Ecke ändern (Pfeiltasten)",
+    "cropResizeBottomLeft": "Größe über die untere linke Ecke ändern (Pfeiltasten)",
+    "cropResizeBottomRight": "Größe über die untere rechte Ecke ändern (Pfeiltasten)",
+    "fontDefault": "Standard"
   },
   "notification": {
     "mood": "Stimmung: {{mood}}",
@@ -844,7 +956,8 @@
     "coFront": "Co-Front: {{names}}",
     "coConscious": "Co-Bewusst: {{names}}",
     "cfShort": "CF: {{names}}",
-    "ccShort": "CB: {{names}}"
+    "ccShort": "CB: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "it": "Italiano",
@@ -904,7 +1017,16 @@
     "subsystem": "Subsystem",
     "linkedFronter": "Verknüpfter Fronter",
     "noLinkedFronter": "Keiner",
-    "linkedSubsystems": "Verknüpfte Subsysteme"
+    "linkedSubsystems": "Verknüpfte Subsysteme",
+    "showSubgroups": "Untergruppen von {{name}} ({{count}} ausgewählt)",
+    "linkedToNamed": "{{group}}, verknüpfter Fronter: {{name}}",
+    "deleteWithChildrenMsg_one": "Enthält {{count}} verschachteltes Element. Behalten und eine Ebene nach oben verschieben, oder alles löschen?",
+    "deleteWithChildrenMsg_other": "Enthält {{count}} verschachtelte Elemente. Behalten und eine Ebene nach oben verschieben, oder alles löschen?",
+    "memberCount_one": "{{count}} Mitglied",
+    "memberCount_other": "{{count}} Mitglieder",
+    "moveNamed": "{{name}} verschieben",
+    "addMembersTo": "Mitglieder zu {{name}} hinzufügen",
+    "kindToggle": "Typ: {{kind}} (aktivieren zum Wechseln)"
   },
   "systemManager": {
     "emptyFolder": "Hier ist noch nichts.",
@@ -915,7 +1037,6 @@
     "subsystemsCount": "{{count}} Subsysteme"
   },
   "hub": {
-    "discordBlurb": "Community-Chat & Support",
     "supportPS": "Plural Star unterstützen",
     "supportPSBlurb": "Buy Me a Coffee",
     "addHistoryDesc": "Manuell einen rückwirkenden Front-Verlaufseintrag hinzufügen.",
@@ -939,13 +1060,17 @@
     "retroHistory": "Retro-Verlauf",
     "statistics": "Statistiken",
     "systemChat": "System-Chat",
-    "discord": "Discord",
     "dashboard": "← Startseite",
     "credits": "Mitwirkende",
     "creditLogo": "Plural Star Logo",
     "creditIos": "Plural Star iOS-Portierung",
     "creditsBlurb": "Community-Mitwirkende",
-    "archive": "Archiv"
+    "archive": "Archiv",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Community-Chat & Support",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "stats": {
     "last90": "90 Tage",
@@ -977,7 +1102,13 @@
     "noMoodsRecorded": "Keine Stimmungen erfasst.",
     "totalFrontTime": "Gesamt-Frontzeit",
     "totalSessions": "Sitzungen gesamt",
-    "uniqueFronters": "Einzigartige Fronter"
+    "uniqueFronters": "Einzigartige Fronter",
+    "showMoreCount": "Mehr anzeigen ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} Sitzung",
+    "sessionCount_other": "{{num}} Sitzungen",
+    "avgEnergyValue": "{{num}} /10 Energie"
   },
   "chat": {
     "addReaction": "Reaktion hinzufügen",
@@ -1003,7 +1134,21 @@
     "archiveChannel": "Kanal Archivieren",
     "noMessages": "Noch keine Nachrichten.",
     "editingHeader": "Nachricht bearbeiten",
-    "editPlaceholder": "Nachricht bearbeiten…"
+    "editPlaceholder": "Nachricht bearbeiten…",
+    "attachment": "Anhang",
+    "channelCount_one": "{{count}} Kanal",
+    "channelCount_other": "{{count}} Kanäle",
+    "importedChannel": "Importiert",
+    "categoryWithCount_one": "{{name}} ({{count}} Kanal)",
+    "categoryWithCount_other": "{{name}} ({{count}} Kanäle)",
+    "speakingAsNamed": "Spricht als {{name}}",
+    "messagesIn": "Nachrichten in #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Bild von {{name}}",
+    "reactionCount": "{{emoji}}-Reaktion, {{count}}",
+    "replyingToName": "Antwort an {{name}}",
+    "cancelReply": "Antwort abbrechen",
+    "cancelEdit": "Bearbeiten abbrechen"
   },
   "noteboard": {
     "title": "Notiztafel",
@@ -1014,6 +1159,7 @@
     "deleteNote": "Notiz löschen",
     "writingAs": "Schreibend als:",
     "hasNotes": "{{names}} hat Post im Postfach",
+    "pinned": "Angeheftet",
     "by": "von {{name}}"
   },
   "customFields": {
@@ -1027,6 +1173,11 @@
     "markdownSupport": "Markdown-Unterstützung",
     "markdownLabel": "Markdown",
     "fieldCount": "{{count}} definiert",
+    "ageField": "Alter",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Feldtyp für {{name}}",
+    "moveUpNamed": "{{name}} nach oben verschieben, über {{above}}",
+    "moveDownNamed": "{{name}} nach unten verschieben, unter {{below}}",
     "typeText": "Text",
     "typeImage": "Bild",
     "addImage": "Bild hinzufügen",
@@ -1071,11 +1222,18 @@
     "forMember": "Für Mitglied:",
     "optionsLabel": "Optionen",
     "activeCount": "{{count}} aktiv",
+    "closePollNamed": "Umfrage schließen: {{question}}",
+    "reopenPollNamed": "Umfrage wieder öffnen: {{question}}",
+    "optionN": "Option {{n}}",
+    "removeOptionN": "Option {{n}} entfernen",
     "question": "Frage",
     "vote": "Abstimmen"
   },
   "energy": {
     "outOf10": "/10 Energie",
+    "outOfTen": "{{value}}/10",
+    "clear": "Energielevel zurücksetzen",
+    "levelValue": "Energielevel {{value}}/10",
     "avgEnergy": "Durchschn. Energie",
     "label": "Energie",
     "level": "Energielevel"
@@ -1115,6 +1273,7 @@
     "changeBanner": "Banner ändern",
     "removeAvatar": "Avatar entfernen",
     "removeBanner": "Banner entfernen",
+    "avatarAndBanner": "System-Avatar · System-Banner",
     "title": "Systemprofil"
   },
   "mood": {
@@ -1128,5 +1287,55 @@
     "Irritable": "Gereizt",
     "Sad": "Traurig",
     "Focused": "Fokussiert"
+  },
+  "dnd": {
+    "instructions": "Um ein Element aufzunehmen, drücke die Leertaste oder die Eingabetaste. Bewege es mit den Pfeiltasten und drücke dann die Leertaste oder die Eingabetaste, um es abzulegen, oder Escape, um abzubrechen.",
+    "picked": "{{name}} aufgenommen.",
+    "over": "{{name}} befindet sich über {{over}}.",
+    "notOver": "{{name}} befindet sich nicht mehr über einem Ablagebereich.",
+    "dropped": "{{name}} wurde über {{over}} abgelegt.",
+    "droppedNoTarget": "{{name}} wurde abgelegt.",
+    "cancelled": "Das Verschieben von {{name}} wurde abgebrochen."
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON-Dateien",
+    "textFiles": "Textdateien",
+    "allFiles": "Alle Dateien",
+    "backup": "Sicherung",
+    "images": "Bilder"
+  },
+  "tray": {
+    "open": "{{app}} öffnen",
+    "quit": "Beenden"
+  },
+  "menu": {
+    "edit": "Bearbeiten"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Gesprächig",
+      "nonVerbal": "Nonverbal",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Verschwommen",
+      "blendy": "Vermischt",
+      "rapidSwitching": "Schnelles Wechseln",
+      "foggy": "Benebelt",
+      "grounded": "Geerdet",
+      "dissociated": "Dissoziiert",
+      "anxious": "Ängstlich",
+      "depressed": "Deprimiert",
+      "cheerful": "Fröhlich",
+      "happy": "Glücklich",
+      "sad": "Traurig",
+      "crisis": "Krise",
+      "melancholy": "Melancholisch",
+      "stimming": "Selbststimulation",
+      "stressed": "Gestresst",
+      "working": "Bei der Arbeit",
+      "traveling": "Unterwegs",
+      "sleeping": "Schlafend",
+      "hyperfocus": "Hyperfokus"
+    }
   }
 }

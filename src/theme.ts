@@ -215,7 +215,7 @@ export const DARK_PALETTE: CustomPalette = {
   mid: '#7A8A99',
 };
 
-export const LIGHT_PALETTE: CustomPalette = {
+const LIGHT_PALETTE: CustomPalette = {
   id: '__light__',
   name: 'Steel',
   bg: '#7A8A99',
@@ -241,15 +241,6 @@ export function applyThemeToDOM(theme: ThemeColors): void {
 
 export function applyTextScale(scale: number): void {
   (document.body.style as any).zoom = String(scale);
-}
-
-export function applyDyslexicFont(enabled: boolean): void {
-  const root = document.documentElement;
-  if (enabled) {
-    root.classList.remove('no-dyslexic');
-  } else {
-    root.classList.add('no-dyslexic');
-  }
 }
 
 export type FontChoice = 'default' | 'opendyslexic' | 'atkinson' | 'lexend' | 'comicneue' | 'cause' | 'gelasio' | 'anton';

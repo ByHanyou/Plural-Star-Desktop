@@ -1,21 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Section, ConfirmDialog } from '../components/ui';
+import { Btn, Section, ConfirmDialog, SrOnly } from '../components/ui';
 import { ImportWaitOverlay } from '../components/ImportWaitOverlay';
 import { ImportControl, ImportProgress } from '../import/progress';
-import { store, KEYS, chatMsgKey } from '../storage';
+import { store } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { CloudServices } from '../cloud/cloudPlatform';
-import {
-  Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ChatMessage,
-  ExportPayload, CustomFieldDef, CustomFieldType, MemberGroup, NoteboardEntry, MemberPoll, uid, DEFAULT_CHANNELS,
-  parallelMap,
-} from '../utils';
-import { CustomPalette } from '../theme';
-import { detectForeignFormat, convertOurcana, convertMultiplicity, convertOctocon, ConvertedImport, detectPluralSpace, convertPluralSpace } from '../importers';
-import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
-
-import { extFromDataUri, dataUriToBytes, u8ToBase64, bytesToDataUri, buildPluralKitExport, spAvatarUrl, inlineRemoteAvatars } from '../exportUtils';
+import { ExportPayload, fmtNum } from '../utils';
 import { handleExport, handlePluralKitExport, handlePickBackup, handleRestore } from '../import/backup';
 import { handleImportSP, handleImportForeign, handleImportPluralSpace, handleImportPluralLog, handleTokenFetch, handleTokenImport } from '../import/apps';
 import { useAppStore } from '../store/appStore';
@@ -99,6 +90,9 @@ export default function ImportExportView({ onUpdate }: Props) {
   };
 
   const [confirmClear, setConfirmClear] = useState(false);
+  const exportOptionsId = useId();
+  const clearActionsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (confirmClear) clearActionsRef.current?.querySelector<HTMLButtonElement>('button')?.focus(); }, [confirmClear]);
 
   const [pendingOverwrite, setPendingOverwrite] = useState<{ title: string; run: () => void } | null>(null);
   const confirmOverwrite = (title: string, run: () => void) => {
@@ -148,12 +142,13 @@ export default function ImportExportView({ onUpdate }: Props) {
         </div>
 
         <button style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', padding: '4px 0', marginBottom: 8, fontWeight: 500 }}
+          aria-expanded={showExportOptions} aria-controls={showExportOptions ? exportOptionsId : undefined}
           onClick={() => setShowExportOptions(!showExportOptions)}>
-          {showExportOptions ? '▾' : '▸'} {t('share.customizeExport')}
+          <span aria-hidden>{showExportOptions ? '▾' : '▸'}</span> {t('share.customizeExport')}
         </button>
 
         {showExportOptions && (
-          <div style={{ background: 'var(--card)', borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 12 }}>
+          <div id={exportOptionsId} style={{ background: 'var(--card)', borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 12 }}>
             {([
               ['system', t('share.systemNameDesc')],
               ['members', t('share.memberProfiles')],
@@ -247,7 +242,7 @@ export default function ImportExportView({ onUpdate }: Props) {
                     disabled={!avail} onChange={() => togR(k)} />
                   <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{label}</span>
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                    {avail ? (count !== null ? `${count}` : '✓') : t('common.notInExport')}
+                    {avail ? (count !== null ? fmtNum(count, 0) : <><span aria-hidden>✓</span><SrOnly>{t('common.included')}</SrOnly></>) : t('common.notInExport')}
                   </span>
                 </label>
               ))}
@@ -306,7 +301,7 @@ export default function ImportExportView({ onUpdate }: Props) {
         </Btn>
       </div>
 
-      <Section label={t('share.pkImport') + ' (Token)'} />
+      <Section label={t('share.pkImportToken')} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 10, lineHeight: 1.5 }}>
           {t('share.pkTokenHint')}
@@ -359,10 +354,10 @@ export default function ImportExportView({ onUpdate }: Props) {
           </>
         ) : (
           <>
-            <p style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 12, fontWeight: 600 }}>
+            <p role="alert" style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 12, fontWeight: 600 }}>
               {t('share.clearAllConfirm')}
             </p>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div ref={clearActionsRef} style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => setConfirmClear(false)}>{t('common.cancel')}</Btn>
               <Btn variant="danger" onClick={clearAllData}>{t('share.yesDeleteEverything')}</Btn>
             </div>

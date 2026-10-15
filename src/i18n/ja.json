@@ -42,7 +42,9 @@
     "skyBlue": "スカイブルー",
     "orchid": "オーキッド",
     "lime": "ライム",
-    "sand": "サンド"
+    "sand": "サンド",
+    "customCount": "カスタム {{count}}/{{max}}",
+    "customSlotValue": "カスタムカラー{{n}}、{{hex}}"
   },
   "terminology": {
     "fronter": "フロンター",
@@ -115,7 +117,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "プランナーのリマインダー",
-    "reminderTitlePlaceholder": "何と表示しますか?"
+    "reminderTitlePlaceholder": "何と表示しますか?",
+    "dayCellLabel": "{{date}}、{{appts}}",
+    "reminderEnabledFor": "{{title}} のリマインダー"
   },
   "mailbox": {
     "title": "メールボックス",
@@ -138,7 +142,14 @@
     "messageCount_other": "{{count}} 件のメッセージ",
     "unreadCount": "未読 {{count}} 件",
     "deleteTitle": "メッセージを削除",
-    "deleteMsg": "このメッセージを削除しますか？元に戻せません。"
+    "deleteMsg": "このメッセージを削除しますか？元に戻せません。",
+    "allOthersCount": "他のすべてのメンバー ({{count}})",
+    "lockedLabel": "ロック中",
+    "lockButtonLocked": "メールボックスのロック（オン）",
+    "lockButtonUnlocked": "メールボックスのロック（オフ）",
+    "fromName": "差出人：{{name}}",
+    "deleteFrom": "{{name}} からのメッセージを削除",
+    "unlockTitle": "{{name}}のメールボックスのロックを解除"
   },
   "network": {
     "cloudConfirmTitle": "もう一度確認",
@@ -152,6 +163,7 @@
     "cloudErrRate": "試行回数が多すぎます。1分待ってからやり直してください。",
     "cloudErrFull": "保管庫またはノードの空き容量がありません。",
     "cloudErrTooLarge": "25 MBを超えるため除外: {{keys}}",
+    "cloudErrOverQuota": "保管庫の空き容量がないため除外: {{keys}}",
     "cloudErrBadPassword": "保管庫は存在しますが、このパスワードでは開けません。",
     "cloudErrCorrupt": "このデバイスで保管庫を読み取れませんでした。リンクを解除し、同じパスワードで再度リンクしてください。",
     "cloudUnavailable": "接続中のノードはクラウドサービスを提供していません。",
@@ -263,7 +275,32 @@
     "syncRoleMismatchMsg": "あなたと {{device}} が同じ方向を選んだため、最初のコピーはスキップされました。新しい変更は引き続き同期されます。すべてをコピーするには、リンクを削除してから再ペアリングし、一方で「送信」、もう一方で「受信」を選んでください。",
     "syncCloneSending": "最初のコピーを送信中…",
     "syncCloneReceiving": "最初のコピーを受信中…",
-    "publishFailed": "コードを公開できませんでした。接続を確認してもう一度お試しください。"
+    "publishFailed": "コードを公開できませんでした。接続を確認してもう一度お試しください。",
+    "tileFriends": "フレンド: {{count}}",
+    "tileOnline": "{{count}} 人がオンライン",
+    "tileDevices": "リンク済みデバイス: {{count}}",
+    "deviceMac": "Mac デスクトップ",
+    "deviceWindows": "Windows デスクトップ",
+    "deviceLinux": "Linux デスクトップ",
+    "deviceDesktop": "デスクトップ",
+    "defaultSystemName": "Plural Star ユーザー",
+    "unnamedDevice": "デバイス",
+    "unnamedFriend": "フレンド",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "クラウド同期で問題が発生しました。もう一度お試しください。",
+    "viewSharedNamed": "{{name}} の共有を見る",
+    "notifyLevelCycle": "{{name}} の通知: {{level}}。切り替えると {{next}} になります。",
+    "removeNamed": "{{name}} を削除",
+    "yourCodeLabel": "あなたのフレンドコード: {{code}}。クリックしてコピー。",
+    "statusLabel": "ネットワーク: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}。{{scopes}}",
+    "cloneBucketNamed": "サークル {{name}} を複製",
+    "deleteBucketNamed": "サークル {{name}} を削除",
+    "bucketPickCount": "{{feature}}: 選択（{{count}} 件選択中）",
+    "pickerTitle": "{{feature}} — 選択",
+    "removeDeviceWarn": "{{name}} のリンクを解除しますか？このデバイスとの同期が停止します。",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "本当によろしいですか？",
@@ -283,7 +320,10 @@
     "shapeRect": "長方形",
     "shapeEllipse": "楕円",
     "shapePoly": "多角形",
-    "bucket": "塗りつぶし"
+    "bucket": "塗りつぶし",
+    "strokeCount_other": "{{count}} ストローク",
+    "brushSizeN": "ブラシサイズ {{size}}",
+    "panHint": "矢印キーでボード内を移動できます。"
   },
   "systemMap": {
     "showColors": "カラー",
@@ -307,6 +347,11 @@
     "deleteTypeMsg": "この種類を使うすべての関係も削除されます。",
     "duplicate": "この2人にはすでにこの関係があります。",
     "relationships": "{{count}} 件の関係",
+    "relationships_other": "{{count}} 件の関係",
+    "moveHint": "矢印キーでこのメンバーをマップ上で移動できます。",
+    "nodeArchived": "{{name}}（アーカイブ済み）",
+    "nodeHops_other": "{{name}}、{{count}} ステップ先",
+    "deleteRelationshipWith": "{{name}} との関係を削除",
     "relationshipOne": "1 件の関係",
     "from": "起点",
     "to": "終点",
@@ -359,7 +404,11 @@
     "emergencyDesc": "救急隊員向けの重要情報です。有効にすると常駐通知に追加されます。",
     "deleteItemMsg": "この記録を削除しますか？",
     "medReminderTitle": "服薬リマインダー",
-    "apptReminderTitle": "予約リマインダー"
+    "apptReminderTitle": "予約リマインダー",
+    "remindersFor": "{{name}} のリマインダー",
+    "apptWhen": "予約の日時",
+    "remind15m": "15分",
+    "historyDate": "日付"
   },
   "common": {
     "durDaysHours": "{{d}}日{{h}}時間",
@@ -404,7 +453,20 @@
     "untitled": "無題",
     "notInExport": "エクスポートに含まれていません",
     "ok": "OK",
-    "edit": "編集"
+    "errorCode": "エラーコード：{{code}}",
+    "edit": "編集",
+    "removeNamed": "{{name}} を削除",
+    "dragReorderNamed": "ドラッグして {{name}} を並べ替え",
+    "editNamed": "{{name}} を編集",
+    "deleteNamed": "{{name}} を削除",
+    "labelValue": "{{label}}：{{value}}",
+    "included": "含まれます",
+    "yes": "はい",
+    "no": "いいえ",
+    "addNamed": "{{name}} を追加",
+    "labelColon": "{{label}}：",
+    "moveUpNamed": "{{name}} を上へ移動",
+    "moveDownNamed": "{{name}} を下へ移動"
   },
   "errorBoundary": {
     "title": "問題が発生しました",
@@ -441,7 +503,10 @@
     "statusesDesc": "ステータスは今の自分の状態を表します — 例：睡眠中、仕事中、不安。ステータス更新時に選択できます。",
     "noStatuses": "まだステータスがありません。まず 1 つ追加しましょう。",
     "activeStatus": "適用中",
-    "favoriteColor": "好きな色"
+    "favoriteColor": "好きな色",
+    "defaultSelfName": "自分",
+    "statusesCount": "ステータス ({{count}})",
+    "deleteActiveHint": "削除する前に、このステータスを現在のステータスから外してください。"
   },
   "settings": {
     "observatory": "天文台インターフェース（個人）",
@@ -457,6 +522,7 @@
     "primaryShort": "プライマリ",
     "coFrontShort": "コフロント",
     "coConShort": "コーコン",
+    "assignedTo": "（{{tier}}）",
     "editTier": "{{tier}} を編集"
   },
   "setup": {
@@ -477,6 +543,9 @@
     "noNote": "メモなし。✎ をタップして追加。",
     "clearFront": "フロントをクリア",
     "clearFrontTitle": "フロントをクリアしますか？",
+    "frontingForSince": "フロント時間 {{dur}} · {{time}} から",
+    "editDetailsFor": "{{tier}} の気分と場所を編集",
+    "editNoteFor": "{{tier}} のメモを編集",
     "clearFrontMsg": "すべての階層がクリアされ、現在のセッションの終了が記録されます。続行しますか？"
   },
   "members": {
@@ -532,17 +601,29 @@
     "selectNone": "なし",
     "bulkArchive": "メンバーをアーカイブ",
     "bulkArchiveMsg": "{{count}} 人のメンバーをアーカイブしますか？後で復元できます。",
+    "bulkArchiveMsg_other": "{{count}} 人のメンバーをアーカイブしますか？後で復元できます。",
     "bulkRestore": "メンバーを復元",
     "bulkRestoreMsg": "{{count}} 人のメンバーをアクティブに復元しますか？",
+    "bulkRestoreMsg_other": "{{count}} 人のメンバーをアクティブに復元しますか？",
     "bulkDelete": "メンバーを削除",
     "bulkDeleteMsg": "{{count}} 人のメンバーを完全に削除しますか？この操作は取り消せません。",
+    "bulkDeleteMsg_other": "{{count}} 人のメンバーを完全に削除しますか？この操作は取り消せません。",
     "assignGroup": "グループ",
     "assignTag": "タグ",
     "addTags": "タグを追加",
     "frontingLockTitle": "現在フロント中",
     "frontingLockMsg": "フロント中のメンバーはアーカイブまたは削除できません。先にフロントから外してください。",
     "archive": "アーカイブ",
-    "recentlyDeleted": "最近削除した項目"
+    "recentlyDeleted": "最近削除した項目",
+    "unnamed": "名前のないメンバー",
+    "archivedCount": "アーカイブ済み ({{count}})",
+    "viewProfileNamed": "{{name}} のプロフィールを見る",
+    "titleCount": "メンバー ({{count}})",
+    "facetsCount": "側面 ({{count}})",
+    "customFrontsCount": "カスタムフロント ({{count}})",
+    "removeFromFrontNamed": "{{name}} をフロントから外す",
+    "addToFrontNamed": "{{name}} をフロントに追加",
+    "restoreNamed": "{{name}} を復元"
   },
   "history": {
     "title": "履歴",
@@ -567,7 +648,11 @@
     "allMembers": "全メンバー",
     "byStatus": "ステータス別",
     "noHistorySinglet": "まだ履歴がありません。ステータスの更新は自動的にここに表示されます。",
-    "statusHistory": "ステータス履歴"
+    "statusHistory": "ステータス履歴",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "{{time}} のエントリを削除",
+    "deleteEntryStep": "エントリを削除（{{step}}/{{total}}）"
   },
   "journal": {
     "locked": "ジャーナルがロックされています",
@@ -600,7 +685,10 @@
     "templateName": "テンプレート名 *",
     "templateNamePlaceholder": "例：モーニングページ",
     "templateTitle": "エントリーのタイトル（プリセット）",
-    "templateBody": "エントリーの本文（プリセット）"
+    "templateBody": "エントリーの本文（プリセット）",
+    "pinnedLabel": "ピン留め済み",
+    "lockedLabel": "ロック中",
+    "pinNamed": "{{title}} をピン留め"
   },
   "share": {
     "statusSpImported": "SP インポート：新規メンバー {{members}} 名、履歴 {{history}} 件",
@@ -690,6 +778,7 @@
     "importStopping": "この手順を終えてから停止します…",
     "importStopped": "インポートを停止しました。変更は行われていません。",
     "importCancelHint": "現在の手順が終わってから停止します。完了済みの手順はそのまま残ります。",
+    "importCancelTitle": "インポートを停止しますか？",
     "progressSavingMembers": "メンバーを復元中…",
     "progressJournal": "ジャーナルを復元中…",
     "progressHistory": "フロント履歴を復元中…",
@@ -701,10 +790,15 @@
     "clearAllDataDesc": "すべてのデータを完全に消去してセットアップに戻ります。",
     "clearAllConfirm": "本当によろしいですか？この操作は取り消せません。",
     "customizeExport": "エクスポートをカスタマイズ",
-    "banners": "メンバーバナー"
+    "banners": "メンバーバナー",
+    "psFilterName": "PluralSpace エクスポート（.zip または data.json）",
+    "plurallogFilterName": "PluralLog エクスポート（.zip）",
+    "backupFileSuffix": "バックアップ",
+    "errUnexpected": "問題が発生しました。ファイルを確認して、もう一度お試しください。",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit インポート（トークン）"
   },
   "hub": {
-    "discordBlurb": "コミュニティチャットとサポート",
     "supportPS": "Plural Star を支援する",
     "supportPSBlurb": "Buy Me a Coffee",
     "addHistoryDesc": "遡及的なフロント履歴エントリを手動で追加。",
@@ -728,13 +822,17 @@
     "retroHistory": "遡及履歴",
     "statistics": "統計",
     "systemChat": "システムチャット",
-    "discord": "Discord",
     "dashboard": "← ダッシュボード",
     "credits": "クレジット",
     "creditLogo": "Plural Star ロゴ",
     "creditIos": "Plural Star iOS 移植",
     "creditsBlurb": "コミュニティの貢献者",
-    "archive": "アーカイブ"
+    "archive": "アーカイブ",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "コミュニティチャットとサポート",
+    "overlapEntry": "{{names}}（{{time}}）"
   },
   "editor": {
     "urlPlaceholder": "URL をここに",
@@ -752,7 +850,11 @@
     "toolCode": "コード",
     "brokenImage": "[画像が壊れています]",
     "imageUnavailable": "[画像は利用できません]",
-    "spoiler": "ネタバレ、クリックして表示"
+    "spoiler": "ネタバレ、クリックして表示",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "appFont": "アプリのフォント",
@@ -783,6 +885,8 @@
     "hue": "色相",
     "invalidHex": "無効な16進数カラー",
     "customColor": "カスタムカラー",
+    "emoji": "絵文字",
+    "emojiPlaceholder": "例：🦊",
     "descriptionBio": "説明/プロフィール",
     "descriptionPlaceholder": "このメンバーについて…",
     "preview": "プレビュー",
@@ -856,7 +960,13 @@
     "textSizeDesc": "アプリ全体のテキストサイズを調整。",
     "textScaleNormal": "標準",
     "textScaleLarge": "大",
-    "textScaleExtraLarge": "特大"
+    "textScaleExtraLarge": "特大",
+    "cropMove": "トリミング範囲を移動（矢印キー）",
+    "cropResizeTopLeft": "左上の角からサイズ変更（矢印キー）",
+    "cropResizeTopRight": "右上の角からサイズ変更（矢印キー）",
+    "cropResizeBottomLeft": "左下の角からサイズ変更（矢印キー）",
+    "cropResizeBottomRight": "右下の角からサイズ変更（矢印キー）",
+    "fontDefault": "デフォルト"
   },
   "notification": {
     "mood": "気分：{{mood}}",
@@ -867,7 +977,8 @@
     "coFront": "コフロント：{{names}}",
     "coConscious": "コーコンシャス：{{names}}",
     "cfShort": "CF：{{names}}",
-    "ccShort": "CC：{{names}}"
+    "ccShort": "CC：{{names}}",
+    "tierLine": "{{tier}}：{{names}}"
   },
   "language": {
     "it": "Italiano",
@@ -914,6 +1025,11 @@
     "deleteGroup": "グループを削除",
     "deleteGroupMsg": "このグループを削除しますか？メンバーは削除されません。",
     "deleteWithChildrenMsg": "{{count}} 件の入れ子項目が含まれています。1 つ上の階層に残しますか、それともすべて削除しますか？",
+    "deleteWithChildrenMsg_other": "{{count}} 件の入れ子項目が含まれています。1 つ上の階層に残しますか、それともすべて削除しますか？",
+    "memberCount_other": "{{count}} 人のメンバー",
+    "moveNamed": "{{name}} を移動",
+    "addMembersTo": "{{name}} にメンバーを追加",
+    "kindToggle": "タイプ: {{kind}}（切り替えるには有効化）",
     "promoteChildren": "子項目を残す",
     "deleteSubtree": "すべて削除",
     "changeColor": "色を変更",
@@ -927,7 +1043,9 @@
     "subsystem": "サブシステム",
     "linkedFronter": "リンクされたフロンター",
     "noLinkedFronter": "なし",
-    "linkedSubsystems": "リンクされたサブシステム"
+    "linkedSubsystems": "リンクされたサブシステム",
+    "showSubgroups": "{{name}} のサブグループ（{{count}} 件選択中）",
+    "linkedToNamed": "{{group}}、リンクされたフロンター: {{name}}"
   },
   "systemManager": {
     "emptyFolder": "ここにはまだ何もありません。",
@@ -959,6 +1077,11 @@
     "totalSessions": "総セッション数",
     "totalFrontTime": "合計フロント時間",
     "uniqueFronters": "ユニークなフロンター",
+    "showMoreCount": "もっと見る（{{shown}}/{{total}}）",
+    "chartSummary": "{{title}}：{{items}}",
+    "chartItem": "{{label}}（{{value}}）",
+    "sessionCount_other": "{{num}} セッション",
+    "avgEnergyValue": "{{num}} /10 エネルギー",
     "chatMessages": "チャットメッセージ",
     "noMoodsRecorded": "気分の記録がありません。",
     "noLocationsRecorded": "場所の記録がありません。",
@@ -992,7 +1115,19 @@
     "archiveChannel": "チャンネルをアーカイブ",
     "noMessages": "まだメッセージがありません。",
     "editingHeader": "メッセージを編集中",
-    "editPlaceholder": "メッセージを編集…"
+    "editPlaceholder": "メッセージを編集…",
+    "attachment": "添付ファイル",
+    "channelCount_other": "{{count}} チャンネル",
+    "importedChannel": "インポート済み",
+    "categoryWithCount_other": "{{name}}（{{count}} チャンネル）",
+    "speakingAsNamed": "{{name}} として発言中",
+    "messagesIn": "#{{name}} のメッセージ",
+    "replyQuote": "{{name}}：{{text}}",
+    "imageFrom": "{{name}} の画像",
+    "reactionCount": "{{emoji}} のリアクション、{{count}}",
+    "replyingToName": "{{name}} に返信中",
+    "cancelReply": "返信をキャンセル",
+    "cancelEdit": "編集をキャンセル"
   },
   "customFields": {
     "title": "カスタムフィールド",
@@ -1026,7 +1161,12 @@
     "reorder": "並べ替え",
     "markdownSupport": "Markdownサポート",
     "markdownLabel": "Markdown",
-    "fieldCount": "{{count}} 件定義済み"
+    "fieldCount": "{{count}} 件定義済み",
+    "ageField": "年齢",
+    "rangePart": "{{field}}（{{part}}）",
+    "fieldTypeFor": "{{name}} のフィールドタイプ",
+    "moveUpNamed": "{{name}} を上へ移動（{{above}} の上）",
+    "moveDownNamed": "{{name}} を下へ移動（{{below}} の下）"
   },
   "noteboard": {
     "title": "ノートボード",
@@ -1037,7 +1177,8 @@
     "placeholder": "ノートを書く…",
     "by": "{{name}} より",
     "writingAs": "書き手：",
-    "hasNotes": "{{names}} のメールボックスにメールがあります"
+    "hasNotes": "{{names}} のメールボックスにメールがあります",
+    "pinned": "ピン留め済み"
   },
   "polls": {
     "removeOption": "選択肢を削除",
@@ -1060,13 +1201,20 @@
     "votingAs": "投票者：",
     "forMember": "対象メンバー：",
     "optionsLabel": "選択肢",
-    "activeCount": "{{count}} 件アクティブ"
+    "activeCount": "{{count}} 件アクティブ",
+    "closePollNamed": "投票を閉じる: {{question}}",
+    "reopenPollNamed": "投票を再開: {{question}}",
+    "optionN": "選択肢 {{n}}",
+    "removeOptionN": "選択肢 {{n}} を削除"
   },
   "energy": {
     "label": "エネルギー",
     "level": "エネルギーレベル",
     "avgEnergy": "平均エネルギー",
-    "outOf10": "/10 エネルギー"
+    "outOf10": "/10 エネルギー",
+    "outOfTen": "{{value}}/10",
+    "clear": "エネルギーレベルをクリア",
+    "levelValue": "エネルギーレベル {{value}}/10"
   },
   "systemProfile": {
     "read": "表示",
@@ -1083,7 +1231,8 @@
     "changeAvatar": "アバターを変更",
     "changeBanner": "バナーを変更",
     "removeAvatar": "アバターを削除",
-    "removeBanner": "バナーを削除"
+    "removeBanner": "バナーを削除",
+    "avatarAndBanner": "システムアバター · システムバナー"
   },
   "frontSort": {
     "label": "整理",
@@ -1116,5 +1265,55 @@
     "Irritable": "イライラ",
     "Sad": "悲しい",
     "Focused": "集中"
+  },
+  "dnd": {
+    "instructions": "項目を持ち上げるには、Space キーまたは Enter キーを押します。矢印キーで移動し、Space キーまたは Enter キーで置くか、Escape キーでキャンセルします。",
+    "picked": "{{name}} を持ち上げました。",
+    "over": "{{name}} は {{over}} の上にあります。",
+    "notOver": "{{name}} はドロップ領域の上にありません。",
+    "dropped": "{{name}} を {{over}} の上に置きました。",
+    "droppedNoTarget": "{{name}} を置きました。",
+    "cancelled": "{{name}} の移動をキャンセルしました。"
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON ファイル",
+    "textFiles": "テキストファイル",
+    "allFiles": "すべてのファイル",
+    "backup": "バックアップ",
+    "images": "画像"
+  },
+  "tray": {
+    "open": "{{app}} を開く",
+    "quit": "終了"
+  },
+  "menu": {
+    "edit": "編集"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "おしゃべり",
+      "nonVerbal": "非言語",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "ぼんやり",
+      "blendy": "混ざり",
+      "rapidSwitching": "頻繁なスイッチ",
+      "foggy": "もやもや",
+      "grounded": "落ち着き",
+      "dissociated": "解離",
+      "anxious": "不安",
+      "depressed": "落ち込み",
+      "cheerful": "陽気",
+      "happy": "幸せ",
+      "sad": "悲しい",
+      "crisis": "危機",
+      "melancholy": "憂うつ",
+      "stimming": "スティミング",
+      "stressed": "ストレス",
+      "working": "仕事中",
+      "traveling": "旅行中",
+      "sleeping": "睡眠中",
+      "hyperfocus": "過集中"
+    }
   }
 }

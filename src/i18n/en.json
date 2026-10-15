@@ -42,7 +42,9 @@
     "skyBlue": "Sky blue",
     "orchid": "Orchid",
     "lime": "Lime",
-    "sand": "Sand"
+    "sand": "Sand",
+    "customCount": "Custom {{count}}/{{max}}",
+    "customSlotValue": "Custom {{n}}, {{hex}}"
   },
   "common": {
     "durDaysHours": "{{d}}d {{h}}h",
@@ -87,7 +89,20 @@
     "untitled": "Untitled",
     "notInExport": "Not in export",
     "ok": "OK",
-    "edit": "Edit"
+    "errorCode": "Error code: {{code}}",
+    "edit": "Edit",
+    "removeNamed": "Remove {{name}}",
+    "dragReorderNamed": "Drag to reorder {{name}}",
+    "editNamed": "Edit {{name}}",
+    "deleteNamed": "Delete {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Included",
+    "yes": "Yes",
+    "no": "No",
+    "addNamed": "Add {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Move {{name}} up",
+    "moveDownNamed": "Move {{name}} down"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -124,7 +139,10 @@
     "statusesDesc": "Statuses describe how you're doing — like Sleeping, Working, or Anxious. Select them when updating your status.",
     "noStatuses": "No statuses yet. Add one to get started.",
     "activeStatus": "Active",
-    "favoriteColor": "Favorite Color"
+    "favoriteColor": "Favorite Color",
+    "defaultSelfName": "Me",
+    "statusesCount": "Statuses ({{count}})",
+    "deleteActiveHint": "Remove this status from your current status before deleting it."
   },
   "settings": {
     "observatory": "Observatory (Singlet) Interface",
@@ -140,6 +158,7 @@
     "primaryShort": "Primary",
     "coFrontShort": "Co-Front",
     "coConShort": "Co-Con",
+    "assignedTo": "({{tier}})",
     "editTier": "Edit {{tier}}"
   },
   "setup": {
@@ -160,7 +179,10 @@
     "noNote": "No note. Tap ✎ to add one.",
     "clearFront": "Clear Front",
     "clearFrontMsg": "This will clear all tiers and log the end of the current session. Continue?",
-    "clearFrontTitle": "Clear Front?"
+    "clearFrontTitle": "Clear Front?",
+    "frontingForSince": "Fronting for {{dur}} · since {{time}}",
+    "editDetailsFor": "Edit mood and location for {{tier}}",
+    "editNoteFor": "Edit note for {{tier}}"
   },
   "members": {
     "title": "Members",
@@ -225,7 +247,22 @@
     "frontingLockTitle": "Currently fronting",
     "frontingLockMsg": "You can't archive or delete a member while they're fronting. Remove them from the front first.",
     "archive": "Archive",
-    "recentlyDeleted": "Recently Deleted"
+    "recentlyDeleted": "Recently Deleted",
+    "unnamed": "Unnamed member",
+    "archivedCount": "Archived ({{count}})",
+    "viewProfileNamed": "View profile of {{name}}",
+    "titleCount": "Members ({{count}})",
+    "facetsCount": "Facets ({{count}})",
+    "customFrontsCount": "Custom Fronts ({{count}})",
+    "removeFromFrontNamed": "Remove {{name}} from front",
+    "addToFrontNamed": "Add {{name}} to front",
+    "restoreNamed": "Restore {{name}}",
+    "bulkArchiveMsg_one": "Archive {{count}} member? They can be restored later.",
+    "bulkArchiveMsg_other": "Archive {{count}} members? They can be restored later.",
+    "bulkRestoreMsg_one": "Restore {{count}} member to active?",
+    "bulkRestoreMsg_other": "Restore {{count}} members to active?",
+    "bulkDeleteMsg_one": "Permanently delete {{count}} member? This cannot be undone.",
+    "bulkDeleteMsg_other": "Permanently delete {{count}} members? This cannot be undone."
   },
   "history": {
     "title": "History",
@@ -251,7 +288,11 @@
     "allMembers": "All members",
     "byStatus": "By Status",
     "noHistorySinglet": "No history yet. Status updates will appear here automatically.",
-    "statusHistory": "Status History"
+    "statusHistory": "Status History",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Delete entry from {{time}}",
+    "deleteEntryStep": "Delete entry ({{step}}/{{total}})"
   },
   "journal": {
     "locked": "Journal Locked",
@@ -284,12 +325,16 @@
     "templateName": "Template Name *",
     "templateNamePlaceholder": "e.g. Morning Pages",
     "templateTitle": "Entry Title (preset)",
-    "templateBody": "Entry Body (preset)"
+    "templateBody": "Entry Body (preset)",
+    "pinnedLabel": "Pinned",
+    "lockedLabel": "Locked",
+    "pinNamed": "Pin {{title}}"
   },
   "share": {
     "importStopping": "Finishing this step, then stopping…",
     "importStopped": "Import stopped. Nothing was changed.",
     "importCancelHint": "Stops after the current step finishes. Steps already done are kept.",
+    "importCancelTitle": "Stop the import?",
     "progressSavingMembers": "Restoring members…",
     "progressJournal": "Restoring journal…",
     "progressHistory": "Restoring front history…",
@@ -391,7 +436,13 @@
     "membersCountSimple_one": "{{count}} member",
     "restoreDesc": "Load a previously exported JSON backup.",
     "spMergeDesc": "Merge Simply Plural backup data into your current system.",
-    "banners": "Member Banners"
+    "banners": "Member Banners",
+    "psFilterName": "PluralSpace export (.zip or data.json)",
+    "plurallogFilterName": "PluralLog export (.zip)",
+    "backupFileSuffix": "backup",
+    "errUnexpected": "Something went wrong. Please check the file and try again.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit Import (Token)"
   },
   "hub": {
     "addHistoryDesc": "Manually add a retroactive front history entry.",
@@ -415,8 +466,6 @@
     "retroHistory": "Retro History",
     "statistics": "Statistics",
     "systemChat": "System Chat",
-    "discord": "Discord",
-    "discordBlurb": "Community chat & support",
     "dashboard": "← Dashboard",
     "supportPS": "Support Plural Star",
     "supportPSBlurb": "Buy Me a Coffee",
@@ -424,7 +473,12 @@
     "creditLogo": "Plural Star Logo",
     "creditIos": "Plural Star iOS Port",
     "creditsBlurb": "Community contributors",
-    "archive": "Archive"
+    "archive": "Archive",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Community chat & support",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "URL Here",
@@ -442,7 +496,11 @@
     "toolCode": "Code",
     "brokenImage": "[broken image]",
     "imageUnavailable": "[image unavailable]",
-    "spoiler": "Spoiler, click to reveal"
+    "spoiler": "Spoiler, click to reveal",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "changePfp": "Change profile picture",
@@ -473,6 +531,8 @@
     "hue": "Hue",
     "invalidHex": "Invalid hex color",
     "customColor": "Custom Color",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "e.g. 🦊",
     "descriptionBio": "Description / Bio",
     "descriptionPlaceholder": "A bit about this headmate… paste image/GIF URLs inline",
     "preview": "Preview",
@@ -546,7 +606,13 @@
     "textSizeDesc": "Adjust text size across the app.",
     "textScaleNormal": "Normal",
     "textScaleLarge": "Large",
-    "textScaleExtraLarge": "Extra Large"
+    "textScaleExtraLarge": "Extra Large",
+    "cropMove": "Move crop area (arrow keys)",
+    "cropResizeTopLeft": "Resize from top-left corner (arrow keys)",
+    "cropResizeTopRight": "Resize from top-right corner (arrow keys)",
+    "cropResizeBottomLeft": "Resize from bottom-left corner (arrow keys)",
+    "cropResizeBottomRight": "Resize from bottom-right corner (arrow keys)",
+    "fontDefault": "Default"
   },
   "notification": {
     "mood": "Mood: {{mood}}",
@@ -557,7 +623,8 @@
     "coFront": "Co-Front: {{names}}",
     "coConscious": "Co-Conscious: {{names}}",
     "cfShort": "CF: {{names}}",
-    "ccShort": "CC: {{names}}"
+    "ccShort": "CC: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "en": "English",
@@ -617,7 +684,16 @@
     "subsystem": "Sub-system",
     "linkedFronter": "Linked Fronter",
     "noLinkedFronter": "None",
-    "linkedSubsystems": "Linked Sub-systems"
+    "linkedSubsystems": "Linked Sub-systems",
+    "showSubgroups": "Subgroups of {{name}} ({{count}} selected)",
+    "linkedToNamed": "{{group}}, linked fronter: {{name}}",
+    "deleteWithChildrenMsg_one": "This contains {{count}} nested item. Keep it and move it up one level, or delete everything?",
+    "deleteWithChildrenMsg_other": "This contains {{count}} nested items. Keep them and move them up one level, or delete everything?",
+    "memberCount_one": "{{count}} member",
+    "memberCount_other": "{{count}} members",
+    "moveNamed": "Move {{name}}",
+    "addMembersTo": "Add members to {{name}}",
+    "kindToggle": "Type: {{kind}} (activate to switch)"
   },
   "systemManager": {
     "title": "System Manager",
@@ -699,7 +775,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Planner reminder",
-    "reminderTitlePlaceholder": "What should it say?"
+    "reminderTitlePlaceholder": "What should it say?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Reminder for {{title}}"
   },
   "mailbox": {
     "title": "Mailbox",
@@ -722,7 +800,14 @@
     "messageCount_other": "{{count}} messages",
     "unreadCount": "{{count}} unread",
     "deleteTitle": "Delete Message",
-    "deleteMsg": "Remove this message? This cannot be undone."
+    "deleteMsg": "Remove this message? This cannot be undone.",
+    "allOthersCount": "All other Members ({{count}})",
+    "lockedLabel": "Locked",
+    "lockButtonLocked": "Mailbox lock (on)",
+    "lockButtonUnlocked": "Mailbox lock (off)",
+    "fromName": "From: {{name}}",
+    "deleteFrom": "Delete message from {{name}}",
+    "unlockTitle": "Unlock {{name}}'s mailbox"
   },
   "network": {
     "cloudConfirmTitle": "Confirm again",
@@ -736,6 +821,7 @@
     "cloudErrRate": "Too many attempts. Wait a minute and try again.",
     "cloudErrFull": "The vault or the node is out of space.",
     "cloudErrTooLarge": "Left out, over 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Left out, the vault is out of space: {{keys}}",
     "cloudErrBadPassword": "The vault exists but this password does not open it.",
     "cloudErrCorrupt": "The vault could not be read on this device. Unlink and link again with the same password.",
     "cloudUnavailable": "The node you are connected to does not offer Cloud Services.",
@@ -847,7 +933,32 @@
     "syncRoleMismatchMsg": "You and {{device}} both chose the same direction, so the initial copy was skipped. New changes will still sync. To copy everything, remove the link and pair again — choose \"send\" on one device and \"receive\" on the other.",
     "syncCloneSending": "Sending first copy…",
     "syncCloneReceiving": "Receiving first copy…",
-    "publishFailed": "Couldn't publish your code — check your connection and try again."
+    "publishFailed": "Couldn't publish your code — check your connection and try again.",
+    "tileFriends": "Friends: {{count}}",
+    "tileOnline": "{{count}} online",
+    "tileDevices": "Linked devices: {{count}}",
+    "deviceMac": "Mac Desktop",
+    "deviceWindows": "Windows Desktop",
+    "deviceLinux": "Linux Desktop",
+    "deviceDesktop": "Desktop",
+    "defaultSystemName": "Plural Star user",
+    "unnamedDevice": "Device",
+    "unnamedFriend": "Friend",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Something went wrong with cloud sync. Please try again.",
+    "viewSharedNamed": "View what {{name}} shares",
+    "notifyLevelCycle": "Notifications for {{name}}: {{level}}. Activate to switch to {{next}}.",
+    "removeNamed": "Remove {{name}}",
+    "yourCodeLabel": "Your friend code: {{code}}. Click to copy.",
+    "statusLabel": "Network: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Clone bucket {{name}}",
+    "deleteBucketNamed": "Delete bucket {{name}}",
+    "bucketPickCount": "{{feature}}: Select ({{count}} selected)",
+    "pickerTitle": "{{feature}} — Select",
+    "removeDeviceWarn": "Unlink {{name}}? It will stop syncing with this device.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Are you sure?",
@@ -867,7 +978,11 @@
     "shapeRect": "Rectangle",
     "shapeEllipse": "Ellipse",
     "shapePoly": "Polygon",
-    "bucket": "Fill bucket"
+    "bucket": "Fill bucket",
+    "strokeCount_one": "{{count}} stroke",
+    "strokeCount_other": "{{count}} strokes",
+    "brushSizeN": "Brush size {{size}}",
+    "panHint": "Use the arrow keys to move around the board."
   },
   "systemMap": {
     "showColors": "Colors",
@@ -902,7 +1017,13 @@
     "relationships_one": "{{count}} relationship",
     "relationshipOne": "1 relationship",
     "zoomIn": "Zoom in",
-    "zoomOut": "Zoom out"
+    "zoomOut": "Zoom out",
+    "relationships_other": "{{count}} relationships",
+    "moveHint": "Use the arrow keys to move this member on the map.",
+    "nodeArchived": "{{name}} (archived)",
+    "nodeHops_one": "{{name}}, {{count}} step away",
+    "nodeHops_other": "{{name}}, {{count}} steps away",
+    "deleteRelationshipWith": "Delete relationship with {{name}}"
   },
   "relType": {
     "love": "Love",
@@ -945,7 +1066,11 @@
     "emergencyDesc": "Critical info for first responders. When enabled, it's added to the persistent notification.",
     "deleteItemMsg": "Remove this entry?",
     "medReminderTitle": "Medication Reminder",
-    "apptReminderTitle": "Appointment Reminder"
+    "apptReminderTitle": "Appointment Reminder",
+    "remindersFor": "Reminders for {{name}}",
+    "apptWhen": "Appointment date and time",
+    "remind15m": "15m",
+    "historyDate": "Date"
   },
   "stats": {
     "last90": "90 Days",
@@ -977,7 +1102,13 @@
     "noMoodsRecorded": "No moods recorded yet.",
     "totalFrontTime": "Total Front Time",
     "totalSessions": "Total Sessions",
-    "uniqueFronters": "Unique Fronters"
+    "uniqueFronters": "Unique Fronters",
+    "showMoreCount": "Show more ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} session",
+    "sessionCount_other": "{{num}} sessions",
+    "avgEnergyValue": "{{num}} /10 energy"
   },
   "chat": {
     "addReaction": "Add reaction",
@@ -1003,7 +1134,21 @@
     "archiveChannel": "Archive Channel",
     "noMessages": "No messages yet.",
     "editingHeader": "Editing message",
-    "editPlaceholder": "Edit message…"
+    "editPlaceholder": "Edit message…",
+    "attachment": "Attachment",
+    "channelCount_one": "{{count}} channel",
+    "channelCount_other": "{{count}} channels",
+    "importedChannel": "Imported",
+    "categoryWithCount_one": "{{name}} ({{count}} channel)",
+    "categoryWithCount_other": "{{name}} ({{count}} channels)",
+    "speakingAsNamed": "Speaking as {{name}}",
+    "messagesIn": "Messages in #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Image from {{name}}",
+    "reactionCount": "{{emoji}} reaction, {{count}}",
+    "replyingToName": "Replying to {{name}}",
+    "cancelReply": "Cancel reply",
+    "cancelEdit": "Cancel editing"
   },
   "customFields": {
     "title": "Custom Fields",
@@ -1037,7 +1182,12 @@
     "reorder": "Reorder",
     "markdownSupport": "Markdown support",
     "markdownLabel": "Markdown",
-    "fieldCount": "{{count}} defined"
+    "fieldCount": "{{count}} defined",
+    "ageField": "Age",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Field type for {{name}}",
+    "moveUpNamed": "Move {{name}} up, above {{above}}",
+    "moveDownNamed": "Move {{name}} down, below {{below}}"
   },
   "noteboard": {
     "title": "Noteboard",
@@ -1048,7 +1198,8 @@
     "placeholder": "Write a note...",
     "by": "by {{name}}",
     "writingAs": "Writing as:",
-    "hasNotes": "{{names}} have mail in their Mailbox"
+    "hasNotes": "{{names}} have mail in their Mailbox",
+    "pinned": "Pinned"
   },
   "polls": {
     "removeOption": "Remove option",
@@ -1072,13 +1223,20 @@
     "votingAs": "Voting as:",
     "forMember": "For member:",
     "optionsLabel": "Options",
-    "activeCount": "{{count}} active"
+    "activeCount": "{{count}} active",
+    "closePollNamed": "Close poll: {{question}}",
+    "reopenPollNamed": "Reopen poll: {{question}}",
+    "optionN": "Option {{n}}",
+    "removeOptionN": "Remove option {{n}}"
   },
   "energy": {
     "label": "Energy",
     "level": "Energy Level",
     "avgEnergy": "Avg Energy",
-    "outOf10": "/10 energy"
+    "outOf10": "/10 energy",
+    "outOfTen": "{{value}}/10",
+    "clear": "Clear energy level",
+    "levelValue": "Energy level {{value}}/10"
   },
   "systemProfile": {
     "read": "Read",
@@ -1095,7 +1253,8 @@
     "changeAvatar": "Change Avatar",
     "changeBanner": "Change Banner",
     "removeAvatar": "Remove Avatar",
-    "removeBanner": "Remove Banner"
+    "removeBanner": "Remove Banner",
+    "avatarAndBanner": "System Avatar · System Banner"
   },
   "frontSort": {
     "label": "Organize",
@@ -1128,5 +1287,55 @@
     "Irritable": "Irritable",
     "Sad": "Sad",
     "Focused": "Focused"
+  },
+  "dnd": {
+    "instructions": "To pick up an item, press Space or Enter. Use the arrow keys to move it, then press Space or Enter to drop it, or Escape to cancel.",
+    "picked": "Picked up {{name}}.",
+    "over": "{{name}} is over {{over}}.",
+    "notOver": "{{name}} is no longer over a drop area.",
+    "dropped": "{{name}} was dropped over {{over}}.",
+    "droppedNoTarget": "{{name}} was dropped.",
+    "cancelled": "Moving {{name}} was cancelled."
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON Files",
+    "textFiles": "Text Files",
+    "allFiles": "All Files",
+    "backup": "Backup",
+    "images": "Images"
+  },
+  "tray": {
+    "open": "Open {{app}}",
+    "quit": "Quit"
+  },
+  "menu": {
+    "edit": "Edit"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Chatty",
+      "nonVerbal": "Non-Verbal",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Blurry",
+      "blendy": "Blendy",
+      "rapidSwitching": "Rapid Switching",
+      "foggy": "Foggy",
+      "grounded": "Grounded",
+      "dissociated": "Dissociated",
+      "anxious": "Anxious",
+      "depressed": "Depressed",
+      "cheerful": "Cheerful",
+      "happy": "Happy",
+      "sad": "Sad",
+      "crisis": "Crisis",
+      "melancholy": "Melancholy",
+      "stimming": "Stimming",
+      "stressed": "Stressed",
+      "working": "Working",
+      "traveling": "Traveling",
+      "sleeping": "Sleeping",
+      "hyperfocus": "Hyperfocus"
+    }
   }
 }

@@ -42,7 +42,9 @@
     "skyBlue": "Himmelblå",
     "orchid": "Orkidé",
     "lime": "Limegrønn",
-    "sand": "Sand"
+    "sand": "Sand",
+    "customCount": "Egendefinerte {{count}}/{{max}}",
+    "customSlotValue": "Egendefinert farge {{n}}, {{hex}}"
   },
   "terminology": {
     "fronter": "Fronter",
@@ -116,7 +118,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Planlegger-påminnelse",
-    "reminderTitlePlaceholder": "Hva skal den si?"
+    "reminderTitlePlaceholder": "Hva skal den si?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Påminnelse for {{title}}"
   },
   "mailbox": {
     "title": "Postkasse",
@@ -140,7 +144,14 @@
     "unreadCount_one": "{{count}} ulest",
     "unreadCount": "{{count}} uleste",
     "deleteTitle": "Slett melding",
-    "deleteMsg": "Fjerne denne meldingen? Dette kan ikke angres."
+    "deleteMsg": "Fjerne denne meldingen? Dette kan ikke angres.",
+    "allOthersCount": "Alle andre Medlemmer ({{count}})",
+    "lockedLabel": "Låst",
+    "lockButtonLocked": "Postkasselås (på)",
+    "lockButtonUnlocked": "Postkasselås (av)",
+    "fromName": "Fra: {{name}}",
+    "deleteFrom": "Slett melding fra {{name}}",
+    "unlockTitle": "Lås opp postkassen til {{name}}"
   },
   "network": {
     "cloudConfirmTitle": "Bekreft igjen",
@@ -154,6 +165,7 @@
     "cloudErrRate": "For mange forsøk. Vent et minutt og prøv igjen.",
     "cloudErrFull": "Hvelvet eller noden har ikke mer plass.",
     "cloudErrTooLarge": "Utelatt, større enn 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Utelatt, hvelvet har ikke mer plass: {{keys}}",
     "cloudErrBadPassword": "Hvelvet finnes, men dette passordet åpner det ikke.",
     "cloudErrCorrupt": "Hvelvet kunne ikke leses på denne enheten. Koble fra og koble til igjen med samme passord.",
     "cloudUnavailable": "Noden du er koblet til tilbyr ikke Skytjenester.",
@@ -265,7 +277,32 @@
     "syncRoleMismatchMsg": "Du og {{device}} valgte samme retning, så den første kopien ble hoppet over. Nye endringer synkroniseres fortsatt. For å kopiere alt, fjern koblingen og par på nytt — velg «send» på én enhet og «motta» på den andre.",
     "syncCloneSending": "Sender første kopi…",
     "syncCloneReceiving": "Mottar første kopi…",
-    "publishFailed": "Kunne ikke publisere koden din — sjekk tilkoblingen og prøv igjen."
+    "publishFailed": "Kunne ikke publisere koden din — sjekk tilkoblingen og prøv igjen.",
+    "tileFriends": "Venner: {{count}}",
+    "tileOnline": "{{count}} tilkoblet",
+    "tileDevices": "Tilkoblede enheter: {{count}}",
+    "deviceMac": "Mac-datamaskin",
+    "deviceWindows": "Windows-datamaskin",
+    "deviceLinux": "Linux-datamaskin",
+    "deviceDesktop": "Datamaskin",
+    "defaultSystemName": "Plural Star-bruker",
+    "unnamedDevice": "Enhet",
+    "unnamedFriend": "Venn",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Noe gikk galt med skysynkroniseringen. Prøv igjen.",
+    "viewSharedNamed": "Se hva {{name}} deler",
+    "notifyLevelCycle": "Varsler for {{name}}: {{level}}. Aktiver for å bytte til {{next}}.",
+    "removeNamed": "Fjern {{name}}",
+    "yourCodeLabel": "Din vennekode: {{code}}. Klikk for å kopiere.",
+    "statusLabel": "Nettverk: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Dupliser sirkel {{name}}",
+    "deleteBucketNamed": "Slett sirkel {{name}}",
+    "bucketPickCount": "{{feature}}: Utvalg ({{count}} valgt)",
+    "pickerTitle": "{{feature}} — Utvalg",
+    "removeDeviceWarn": "Koble fra {{name}}? Den slutter å synkronisere med denne enheten.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Er du sikker?",
@@ -285,7 +322,11 @@
     "shapeRect": "Rektangel",
     "shapeEllipse": "Ellipse",
     "shapePoly": "Polygon",
-    "bucket": "Malingsspann"
+    "bucket": "Malingsspann",
+    "strokeCount_one": "{{count}} strøk",
+    "strokeCount_other": "{{count}} strøk",
+    "brushSizeN": "Penselstørrelse {{size}}",
+    "panHint": "Bruk piltastene for å bevege deg rundt på tavlen."
   },
   "systemMap": {
     "showColors": "Farger",
@@ -311,6 +352,12 @@
     "duplicate": "Disse medlemmene har allerede denne relasjonen.",
     "relationships_one": "{{count}} relasjon",
     "relationships": "{{count}} relasjoner",
+    "relationships_other": "{{count}} relasjoner",
+    "moveHint": "Bruk piltastene for å flytte dette medlemmet på kartet.",
+    "nodeArchived": "{{name}} (arkivert)",
+    "nodeHops_one": "{{name}}, {{count}} steg unna",
+    "nodeHops_other": "{{name}}, {{count}} steg unna",
+    "deleteRelationshipWith": "Slett relasjon med {{name}}",
     "relationshipOne": "1 relasjon",
     "from": "Fra",
     "to": "Til",
@@ -363,7 +410,11 @@
     "emergencyDesc": "Kritisk informasjon for førstehjelpere. Når aktivert, legges den til i det vedvarende varselet.",
     "deleteItemMsg": "Fjerne denne oppføringen?",
     "medReminderTitle": "Medisinpåminnelse",
-    "apptReminderTitle": "Avtalepåminnelse"
+    "apptReminderTitle": "Avtalepåminnelse",
+    "remindersFor": "Påminnelser for {{name}}",
+    "apptWhen": "Dato og klokkeslett for avtalen",
+    "remind15m": "15 min",
+    "historyDate": "Dato"
   },
   "common": {
     "durDaysHours": "{{d}} d {{h}} t",
@@ -408,7 +459,20 @@
     "untitled": "Uten tittel",
     "notInExport": "Ikke i eksport",
     "ok": "OK",
-    "edit": "Rediger"
+    "errorCode": "Feilkode: {{code}}",
+    "edit": "Rediger",
+    "removeNamed": "Fjern {{name}}",
+    "dragReorderNamed": "Dra for å endre rekkefølgen på {{name}}",
+    "editNamed": "Rediger {{name}}",
+    "deleteNamed": "Slett {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Inkludert",
+    "yes": "Ja",
+    "no": "Nei",
+    "addNamed": "Legg til {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Flytt {{name}} opp",
+    "moveDownNamed": "Flytt {{name}} ned"
   },
   "errorBoundary": {
     "title": "Noe gikk galt",
@@ -445,7 +509,10 @@
     "statusesDesc": "Statuser beskriver hvordan du har det — som Sover, Jobber eller Engstelig. Velg dem når du oppdaterer statusen din.",
     "noStatuses": "Ingen statuser ennå. Legg til en for å komme i gang.",
     "activeStatus": "Aktiv",
-    "favoriteColor": "Favorittfarge"
+    "favoriteColor": "Favorittfarge",
+    "defaultSelfName": "Meg",
+    "statusesCount": "Statuser ({{count}})",
+    "deleteActiveHint": "Fjern denne statusen fra din nåværende status før du sletter den."
   },
   "settings": {
     "observatory": "Observatorium-grensesnitt (enkeltperson)",
@@ -461,6 +528,7 @@
     "primaryShort": "Primær",
     "coFrontShort": "Co-Front",
     "coConShort": "Co-Bev",
+    "assignedTo": "({{tier}})",
     "editTier": "Rediger {{tier}}"
   },
   "setup": {
@@ -481,7 +549,10 @@
     "noNote": "Ingen notat. Trykk ✎ for å legge til.",
     "clearFront": "Tøm front",
     "clearFrontMsg": "Dette tømmer alle nivåer og logger slutten på økten. Fortsette?",
-    "clearFrontTitle": "Tømme front?"
+    "clearFrontTitle": "Tømme front?",
+    "frontingForSince": "Foran i {{dur}} · siden {{time}}",
+    "editDetailsFor": "Rediger stemning og sted for {{tier}}",
+    "editNoteFor": "Rediger notat for {{tier}}"
   },
   "members": {
     "clone": "Klon",
@@ -546,7 +617,22 @@
     "frontingLockTitle": "Er front nå",
     "frontingLockMsg": "Du kan ikke arkivere eller slette et medlem mens det er front. Fjern det fra fronten først.",
     "archive": "Arkiver",
-    "recentlyDeleted": "Nylig slettet"
+    "recentlyDeleted": "Nylig slettet",
+    "unnamed": "Navnløst medlem",
+    "archivedCount": "Arkivert ({{count}})",
+    "viewProfileNamed": "Vis profilen til {{name}}",
+    "titleCount": "Medlemmer ({{count}})",
+    "facetsCount": "Fasetter ({{count}})",
+    "customFrontsCount": "Egendefinerte fronter ({{count}})",
+    "removeFromFrontNamed": "Fjern {{name}} fra fronten",
+    "addToFrontNamed": "Legg til {{name}} i fronten",
+    "restoreNamed": "Gjenopprett {{name}}",
+    "bulkArchiveMsg_one": "Arkivere {{count}} medlem? Det kan gjenopprettes senere.",
+    "bulkArchiveMsg_other": "Arkivere {{count}} medlemmer? De kan gjenopprettes senere.",
+    "bulkRestoreMsg_one": "Gjenopprette {{count}} medlem som aktivt?",
+    "bulkRestoreMsg_other": "Gjenopprette {{count}} medlemmer som aktive?",
+    "bulkDeleteMsg_one": "Slette {{count}} medlem permanent? Dette kan ikke angres.",
+    "bulkDeleteMsg_other": "Slette {{count}} medlemmer permanent? Dette kan ikke angres."
   },
   "history": {
     "title": "Historikk",
@@ -569,6 +655,10 @@
     "byStatus": "Etter status",
     "noHistorySinglet": "Ingen historikk ennå. Statusoppdateringer vises her automatisk.",
     "statusHistory": "Statushistorikk",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Slett oppføring fra {{time}}",
+    "deleteEntryStep": "Slett oppføring ({{step}}/{{total}})",
     "deleteConfirm1": "Er du sikker på at du vil slette denne oppføringen?",
     "deleteConfirm2": "Dette kan ikke angres. Slette for alvor?",
     "deleteConfirm3": "Endelig bekreftelse: slette permanent?",
@@ -605,7 +695,10 @@
     "templateName": "Malnavn *",
     "templateNamePlaceholder": "f.eks. Morgensider",
     "templateTitle": "Oppføringstittel (forhåndsinnstilt)",
-    "templateBody": "Oppføringsinnhold (forhåndsinnstilt)"
+    "templateBody": "Oppføringsinnhold (forhåndsinnstilt)",
+    "pinnedLabel": "Festet",
+    "lockedLabel": "Låst",
+    "pinNamed": "Fest {{title}}"
   },
   "share": {
     "statusSpImported": "SP-import: {{members}} nye medlemmer, {{history}} historikkoppføringer",
@@ -703,6 +796,7 @@
     "importStopping": "Fullfører dette trinnet, så stopper vi…",
     "importStopped": "Importen ble stoppet. Ingenting ble endret.",
     "importCancelHint": "Stopper når det pågående trinnet er ferdig. Trinn som allerede er gjort, beholdes.",
+    "importCancelTitle": "Stoppe importen?",
     "progressSavingMembers": "Gjenoppretter medlemmer…",
     "progressJournal": "Gjenoppretter dagbok…",
     "progressHistory": "Gjenoppretter fronthistorikk…",
@@ -712,10 +806,15 @@
     "membersCountSimple": "{{count}} medlemmer",
     "restoreDesc": "Last inn en tidligere eksportert JSON-sikkerhetskopi.",
     "spMergeDesc": "Flett Simply Plural-sikkerhetskopi med gjeldende system.",
-    "banners": "Medlemsbannere"
+    "banners": "Medlemsbannere",
+    "psFilterName": "PluralSpace-eksport (.zip eller data.json)",
+    "plurallogFilterName": "PluralLog-eksport (.zip)",
+    "backupFileSuffix": "sikkerhetskopi",
+    "errUnexpected": "Noe gikk galt. Sjekk filen og prøv igjen.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit-import (token)"
   },
   "hub": {
-    "discordBlurb": "Fellesskapschat og støtte",
     "supportPS": "Støtt Plural Star",
     "supportPSBlurb": "Buy Me a Coffee",
     "overlapMore": "+{{count}} til",
@@ -739,13 +838,17 @@
     "retroHistory": "Retroaktiv historikk",
     "statistics": "Statistikk",
     "systemChat": "Systemchat",
-    "discord": "Discord",
     "dashboard": "← Dashbord",
     "credits": "Bidragsytere",
     "creditLogo": "Plural Star-logo",
     "creditIos": "Plural Star iOS-port",
     "creditsBlurb": "Fellesskapets bidragsytere",
-    "archive": "Arkiv"
+    "archive": "Arkiv",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Fellesskapschat og støtte",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "URL her",
@@ -763,7 +866,11 @@
     "toolCode": "Kode",
     "brokenImage": "[ødelagt bilde]",
     "imageUnavailable": "[bilde utilgjengelig]",
-    "spoiler": "Spoiler, klikk for å vise"
+    "spoiler": "Spoiler, klikk for å vise",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "appFont": "App-skrifttype",
@@ -783,6 +890,8 @@
     "hue": "Fargetone",
     "invalidHex": "Ugyldig hekskode",
     "customColor": "Egendefinert farge",
+    "emoji": "Emoji",
+    "emojiPlaceholder": "f.eks. 🦊",
     "descriptionBio": "Beskrivelse / Bio",
     "descriptionPlaceholder": "Fortell om dette medlemmet…",
     "preview": "Forhåndsvisning",
@@ -858,6 +967,12 @@
     "textScaleNormal": "Normal",
     "textScaleLarge": "Stor",
     "textScaleExtraLarge": "Ekstra stor",
+    "cropMove": "Flytt beskjæringsområdet (piltaster)",
+    "cropResizeTopLeft": "Endre størrelse fra øvre venstre hjørne (piltaster)",
+    "cropResizeTopRight": "Endre størrelse fra øvre høyre hjørne (piltaster)",
+    "cropResizeBottomLeft": "Endre størrelse fra nedre venstre hjørne (piltaster)",
+    "cropResizeBottomRight": "Endre størrelse fra nedre høyre hjørne (piltaster)",
+    "fontDefault": "Standard",
     "addMembersFirst": "Legg til medlemmer først",
     "custom": "Tilpasset",
     "descriptionFieldPlaceholder": "Kort beskrivelse…",
@@ -878,7 +993,8 @@
     "coFront": "Co-Front: {{names}}",
     "coConscious": "Co-Bevisst: {{names}}",
     "cfShort": "CF: {{names}}",
-    "ccShort": "CB: {{names}}"
+    "ccShort": "CB: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "it": "Italiano",
@@ -938,7 +1054,16 @@
     "subsystem": "Undersystem",
     "linkedFronter": "Koblet fronter",
     "noLinkedFronter": "Ingen",
-    "linkedSubsystems": "Koblede undersystemer"
+    "linkedSubsystems": "Koblede undersystemer",
+    "showSubgroups": "Undergrupper av {{name}} ({{count}} valgt)",
+    "linkedToNamed": "{{group}}, koblet fronter: {{name}}",
+    "deleteWithChildrenMsg_one": "Inneholder {{count}} nestet element. Behold det og flytt det opp ett nivå, eller slett alt?",
+    "deleteWithChildrenMsg_other": "Inneholder {{count}} nestede elementer. Behold dem og flytt dem opp ett nivå, eller slett alt?",
+    "memberCount_one": "{{count}} medlem",
+    "memberCount_other": "{{count}} medlemmer",
+    "moveNamed": "Flytt {{name}}",
+    "addMembersTo": "Legg til medlemmer i {{name}}",
+    "kindToggle": "Type: {{kind}} (aktiver for å bytte)"
   },
   "systemManager": {
     "emptyFolder": "Ingenting her ennå.",
@@ -978,7 +1103,13 @@
     "noMoodsRecorded": "Ingen stemninger registrert.",
     "totalFrontTime": "Total fronttid",
     "totalSessions": "Totalt antall økter",
-    "uniqueFronters": "Unike frontere"
+    "uniqueFronters": "Unike frontere",
+    "showMoreCount": "Vis mer ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} økt",
+    "sessionCount_other": "{{num}} økter",
+    "avgEnergyValue": "{{num}} /10 energi"
   },
   "chat": {
     "addReaction": "Legg til reaksjon",
@@ -1004,7 +1135,21 @@
     "archiveChannel": "Arkiver kanal",
     "noMessages": "Ingen meldinger ennå.",
     "editingHeader": "Redigerer melding",
-    "editPlaceholder": "Rediger melding…"
+    "editPlaceholder": "Rediger melding…",
+    "attachment": "Vedlegg",
+    "channelCount_one": "{{count}} kanal",
+    "channelCount_other": "{{count}} kanaler",
+    "importedChannel": "Importert",
+    "categoryWithCount_one": "{{name}} ({{count}} kanal)",
+    "categoryWithCount_other": "{{name}} ({{count}} kanaler)",
+    "speakingAsNamed": "Snakker som {{name}}",
+    "messagesIn": "Meldinger i #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Bilde fra {{name}}",
+    "reactionCount": "{{emoji}}-reaksjon, {{count}}",
+    "replyingToName": "Svarer {{name}}",
+    "cancelReply": "Avbryt svar",
+    "cancelEdit": "Avbryt redigering"
   },
   "noteboard": {
     "title": "Notattavle",
@@ -1015,6 +1160,7 @@
     "deleteNote": "Slett notat",
     "writingAs": "Skriver som:",
     "hasNotes": "{{names}} har post i Postkassen",
+    "pinned": "Festet",
     "by": "av {{name}}"
   },
   "customFields": {
@@ -1028,6 +1174,11 @@
     "markdownSupport": "Markdown-støtte",
     "markdownLabel": "Markdown",
     "fieldCount": "{{count}} definert",
+    "ageField": "Alder",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Felttype for {{name}}",
+    "moveUpNamed": "Flytt {{name}} opp, over {{above}}",
+    "moveDownNamed": "Flytt {{name}} ned, under {{below}}",
     "typeText": "Tekst",
     "typeImage": "Bilde",
     "addImage": "Legg til bilde",
@@ -1073,11 +1224,18 @@
     "optionsLabel": "Alternativer",
     "activeCount_one": "{{count}} aktiv",
     "activeCount": "{{count}} aktive",
+    "closePollNamed": "Lukk avstemning: {{question}}",
+    "reopenPollNamed": "Åpne avstemning igjen: {{question}}",
+    "optionN": "Alternativ {{n}}",
+    "removeOptionN": "Fjern alternativ {{n}}",
     "question": "Spørsmål",
     "vote": "Stem"
   },
   "energy": {
     "outOf10": "/10 energi",
+    "outOfTen": "{{value}}/10",
+    "clear": "Fjern energinivå",
+    "levelValue": "Energinivå {{value}}/10",
     "avgEnergy": "Gj.sn. energi",
     "label": "Energi",
     "level": "Energinivå"
@@ -1117,6 +1275,7 @@
     "changeBanner": "Endre banner",
     "removeAvatar": "Fjern avatar",
     "removeBanner": "Fjern banner",
+    "avatarAndBanner": "System-avatar · System-banner",
     "title": "Systemprofil"
   },
   "mood": {
@@ -1130,5 +1289,55 @@
     "Irritable": "Irritabel",
     "Sad": "Trist",
     "Focused": "Fokusert"
+  },
+  "dnd": {
+    "instructions": "Trykk mellomrom eller Enter for å plukke opp et element. Bruk piltastene for å flytte det, og trykk deretter mellomrom eller Enter for å slippe det, eller Escape for å avbryte.",
+    "picked": "Plukket opp {{name}}.",
+    "over": "{{name}} er over {{over}}.",
+    "notOver": "{{name}} er ikke lenger over et slippområde.",
+    "dropped": "{{name}} ble sluppet over {{over}}.",
+    "droppedNoTarget": "{{name}} ble sluppet.",
+    "cancelled": "Flyttingen av {{name}} ble avbrutt."
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON-filer",
+    "textFiles": "Tekstfiler",
+    "allFiles": "Alle filer",
+    "backup": "Sikkerhetskopi",
+    "images": "Bilder"
+  },
+  "tray": {
+    "open": "Åpne {{app}}",
+    "quit": "Avslutt"
+  },
+  "menu": {
+    "edit": "Rediger"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Pratsom",
+      "nonVerbal": "Ikke-verbal",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Uklar",
+      "blendy": "Blandet",
+      "rapidSwitching": "Raske bytter",
+      "foggy": "Tåkete",
+      "grounded": "Jordet",
+      "dissociated": "Dissosiert",
+      "anxious": "Engstelig",
+      "depressed": "Deprimert",
+      "cheerful": "Munter",
+      "happy": "Glad",
+      "sad": "Trist",
+      "crisis": "Krise",
+      "melancholy": "Melankolsk",
+      "stimming": "Selvstimulering",
+      "stressed": "Stresset",
+      "working": "Jobber",
+      "traveling": "På reise",
+      "sleeping": "Sover",
+      "hyperfocus": "Hyperfokus"
+    }
   }
 }

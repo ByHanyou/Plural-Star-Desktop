@@ -1,6 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { groupKind } from '../utils';
+import { groupKind, fmtNum } from '../utils';
 import { useAppStore } from '../store/appStore';
 
 interface Props { onClick: () => void; }
@@ -17,7 +16,7 @@ export default function SystemManagerTile({ onClick }: Props) {
         <span className="tile__title">{t('systemManager.title')}</span>
       </div>
       <div className="tile__body">
-        <span className="tile__stat">{groups.length}</span>
+        <span className="tile__stat">{fmtNum(groups.length, 0)}</span>
         <span className="tile__label">
           {t('share.groupsCount', { count: groupCount })}{subCount > 0 ? ` · ${t('systemManager.subsystemsCount', { count: subCount })}` : ''}
         </span>

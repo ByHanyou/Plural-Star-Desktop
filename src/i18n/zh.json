@@ -42,7 +42,9 @@
     "skyBlue": "天蓝色",
     "orchid": "兰花紫",
     "lime": "青柠色",
-    "sand": "沙色"
+    "sand": "沙色",
+    "customCount": "自定义 {{count}}/{{max}}",
+    "customSlotValue": "自定义颜色{{n}}，{{hex}}"
   },
   "terminology": {
     "fronter": "前台者",
@@ -115,7 +117,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "日程提醒",
-    "reminderTitlePlaceholder": "提醒内容是什么?"
+    "reminderTitlePlaceholder": "提醒内容是什么?",
+    "dayCellLabel": "{{date}}，{{appts}}",
+    "reminderEnabledFor": "{{title}} 的提醒"
   },
   "mailbox": {
     "title": "信箱",
@@ -138,7 +142,14 @@
     "messageCount_other": "{{count}} 条消息",
     "unreadCount": "{{count}} 条未读",
     "deleteTitle": "删除消息",
-    "deleteMsg": "移除这条消息？此操作无法撤销。"
+    "deleteMsg": "移除这条消息？此操作无法撤销。",
+    "allOthersCount": "所有其他成员（{{count}}）",
+    "lockedLabel": "已锁定",
+    "lockButtonLocked": "信箱锁（开）",
+    "lockButtonUnlocked": "信箱锁（关）",
+    "fromName": "发件人：{{name}}",
+    "deleteFrom": "删除来自 {{name}} 的消息",
+    "unlockTitle": "解锁 {{name}} 的信箱"
   },
   "network": {
     "cloudConfirmTitle": "再次确认",
@@ -152,6 +163,7 @@
     "cloudErrRate": "尝试次数过多。请等待一分钟后再试。",
     "cloudErrFull": "保险库或节点空间不足。",
     "cloudErrTooLarge": "已略过，超过 25 MB：{{keys}}",
+    "cloudErrOverQuota": "已略过，保险库空间不足：{{keys}}",
     "cloudErrBadPassword": "保险库已存在，但此密码无法打开它。",
     "cloudErrCorrupt": "无法在此设备上读取保险库。请解除链接后用相同密码重新链接。",
     "cloudUnavailable": "你所连接的节点不提供云服务。",
@@ -263,7 +275,32 @@
     "syncRoleMismatchMsg": "你和 {{device}} 选择了相同的方向，因此已跳过首次复制。新的更改仍会同步。若要复制全部数据，请移除关联并重新配对——在一台设备上选择“发送”，另一台选择“接收”。",
     "syncCloneSending": "正在发送首次复制…",
     "syncCloneReceiving": "正在接收首次复制…",
-    "publishFailed": "无法发布你的好友码——请检查网络连接后重试。"
+    "publishFailed": "无法发布你的好友码——请检查网络连接后重试。",
+    "tileFriends": "好友：{{count}}",
+    "tileOnline": "{{count}} 人在线",
+    "tileDevices": "已关联的设备：{{count}}",
+    "deviceMac": "Mac 桌面端",
+    "deviceWindows": "Windows 桌面端",
+    "deviceLinux": "Linux 桌面端",
+    "deviceDesktop": "桌面端",
+    "defaultSystemName": "Plural Star 用户",
+    "unnamedDevice": "设备",
+    "unnamedFriend": "好友",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "云同步出错了。请重试。",
+    "viewSharedNamed": "查看 {{name}} 分享的内容",
+    "notifyLevelCycle": "{{name}} 的通知：{{level}}。激活以切换为{{next}}。",
+    "removeNamed": "移除 {{name}}",
+    "yourCodeLabel": "你的好友码：{{code}}。点击复制。",
+    "statusLabel": "网络：{{status}}",
+    "bucketScope": "{{feature}}：{{scope}}",
+    "bucketLabel": "{{name}}。{{scopes}}",
+    "cloneBucketNamed": "复制圈子 {{name}}",
+    "deleteBucketNamed": "删除圈子 {{name}}",
+    "bucketPickCount": "{{feature}}：选择（已选 {{count}} 项）",
+    "pickerTitle": "{{feature}} — 选择",
+    "removeDeviceWarn": "取消关联 {{name}}？它将不再与此设备同步。",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "确定吗？",
@@ -283,7 +320,10 @@
     "shapeRect": "矩形",
     "shapeEllipse": "椭圆",
     "shapePoly": "多边形",
-    "bucket": "油漆桶"
+    "bucket": "油漆桶",
+    "strokeCount_other": "{{count}} 笔",
+    "brushSizeN": "画笔大小 {{size}}",
+    "panHint": "使用方向键在白板上移动。"
   },
   "systemMap": {
     "showColors": "颜色",
@@ -307,6 +347,11 @@
     "deleteTypeMsg": "这也会移除使用该类型的所有关系。",
     "duplicate": "这两位成员已有此关系。",
     "relationships": "{{count}} 条关系",
+    "relationships_other": "{{count}} 条关系",
+    "moveHint": "使用方向键在地图上移动此成员。",
+    "nodeArchived": "{{name}}（已归档）",
+    "nodeHops_other": "{{name}}，相距 {{count}} 步",
+    "deleteRelationshipWith": "删除与 {{name}} 的关系",
     "relationshipOne": "1 条关系",
     "from": "从",
     "to": "到",
@@ -359,7 +404,11 @@
     "emergencyDesc": "供急救人员查看的关键信息。开启后会添加到常驻通知中。",
     "deleteItemMsg": "移除此记录？",
     "medReminderTitle": "用药提醒",
-    "apptReminderTitle": "预约提醒"
+    "apptReminderTitle": "预约提醒",
+    "remindersFor": "{{name}} 的提醒",
+    "apptWhen": "预约日期和时间",
+    "remind15m": "15分钟",
+    "historyDate": "日期"
   },
   "common": {
     "durDaysHours": "{{d}}天{{h}}小时",
@@ -404,7 +453,20 @@
     "untitled": "无标题",
     "notInExport": "不在导出中",
     "ok": "好的",
-    "edit": "编辑"
+    "errorCode": "错误代码：{{code}}",
+    "edit": "编辑",
+    "removeNamed": "移除 {{name}}",
+    "dragReorderNamed": "拖动以重新排序 {{name}}",
+    "editNamed": "编辑 {{name}}",
+    "deleteNamed": "删除 {{name}}",
+    "labelValue": "{{label}}：{{value}}",
+    "included": "已包含",
+    "yes": "是",
+    "no": "否",
+    "addNamed": "添加 {{name}}",
+    "labelColon": "{{label}}：",
+    "moveUpNamed": "上移 {{name}}",
+    "moveDownNamed": "下移 {{name}}"
   },
   "errorBoundary": {
     "title": "出错了",
@@ -441,7 +503,10 @@
     "statusesDesc": "状态描述你的近况——例如 睡觉中、工作中 或 焦虑。更新状态时选择它们。",
     "noStatuses": "暂无状态。添加一个开始吧。",
     "activeStatus": "当前",
-    "favoriteColor": "最喜欢的颜色"
+    "favoriteColor": "最喜欢的颜色",
+    "defaultSelfName": "我",
+    "statusesCount": "状态（{{count}}）",
+    "deleteActiveHint": "删除前请先将此状态从当前状态中移除。"
   },
   "settings": {
     "observatory": "天文台界面（个人）",
@@ -457,6 +522,7 @@
     "primaryShort": "主要",
     "coFrontShort": "共前",
     "coConShort": "共意",
+    "assignedTo": "（{{tier}}）",
     "editTier": "编辑 {{tier}}"
   },
   "setup": {
@@ -477,6 +543,9 @@
     "noNote": "没有备注。点击 ✎ 添加。",
     "clearFront": "清空前台",
     "clearFrontTitle": "清空前台？",
+    "frontingForSince": "前台时间 {{dur}} · 从 {{time}} 开始",
+    "editDetailsFor": "编辑{{tier}}的情绪和位置",
+    "editNoteFor": "编辑{{tier}}的备注",
     "clearFrontMsg": "这将清除所有层级并记录当前会话的结束。继续吗？"
   },
   "members": {
@@ -532,17 +601,29 @@
     "selectNone": "无",
     "bulkArchive": "归档成员",
     "bulkArchiveMsg": "归档 {{count}} 名成员？之后可以恢复。",
+    "bulkArchiveMsg_other": "归档 {{count}} 名成员？之后可以恢复。",
     "bulkRestore": "恢复成员",
     "bulkRestoreMsg": "将 {{count}} 名成员恢复为活跃状态？",
+    "bulkRestoreMsg_other": "将 {{count}} 名成员恢复为活跃状态？",
     "bulkDelete": "删除成员",
     "bulkDeleteMsg": "永久删除 {{count}} 名成员？此操作无法撤销。",
+    "bulkDeleteMsg_other": "永久删除 {{count}} 名成员？此操作无法撤销。",
     "assignGroup": "组",
     "assignTag": "标签",
     "addTags": "添加标签",
     "frontingLockTitle": "当前在前台",
     "frontingLockMsg": "成员在前台时无法归档或删除。请先将其从前台移除。",
     "archive": "归档",
-    "recentlyDeleted": "最近删除"
+    "recentlyDeleted": "最近删除",
+    "unnamed": "未命名成员",
+    "archivedCount": "已归档（{{count}}）",
+    "viewProfileNamed": "查看 {{name}} 的资料",
+    "titleCount": "成员（{{count}}）",
+    "facetsCount": "侧面（{{count}}）",
+    "customFrontsCount": "自定义前台（{{count}}）",
+    "removeFromFrontNamed": "将 {{name}} 移出前台",
+    "addToFrontNamed": "将 {{name}} 添加到前台",
+    "restoreNamed": "恢复 {{name}}"
   },
   "history": {
     "title": "历史",
@@ -567,7 +648,11 @@
     "allMembers": "所有成员",
     "byStatus": "按状态",
     "noHistorySinglet": "暂无历史记录。状态更新将自动显示在这里。",
-    "statusHistory": "状态历史"
+    "statusHistory": "状态历史",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "删除 {{time}} 的条目",
+    "deleteEntryStep": "删除条目（{{step}}/{{total}}）"
   },
   "journal": {
     "locked": "日记已锁定",
@@ -600,7 +685,10 @@
     "templateName": "模板名称 *",
     "templateNamePlaceholder": "例如 晨间随笔",
     "templateTitle": "条目标题（预设）",
-    "templateBody": "条目内容（预设）"
+    "templateBody": "条目内容（预设）",
+    "pinnedLabel": "已置顶",
+    "lockedLabel": "已锁定",
+    "pinNamed": "置顶 {{title}}"
   },
   "share": {
     "statusSpImported": "SP 导入：{{members}} 位新成员，{{history}} 条历史记录",
@@ -690,6 +778,7 @@
     "importStopping": "完成此步骤后停止…",
     "importStopped": "导入已停止。未做任何更改。",
     "importCancelHint": "在当前步骤完成后停止。已完成的步骤会保留。",
+    "importCancelTitle": "停止导入？",
     "progressSavingMembers": "正在恢复成员…",
     "progressJournal": "正在恢复日志…",
     "progressHistory": "正在恢复前台历史…",
@@ -701,10 +790,15 @@
     "clearAllDataDesc": "永久删除所有数据并返回到初始设置。",
     "clearAllConfirm": "您绝对确定吗？此操作无法撤消。",
     "customizeExport": "自定义导出",
-    "banners": "成员横幅"
+    "banners": "成员横幅",
+    "psFilterName": "PluralSpace 导出文件（.zip 或 data.json）",
+    "plurallogFilterName": "PluralLog 导出文件（.zip）",
+    "backupFileSuffix": "备份",
+    "errUnexpected": "出错了。请检查文件后重试。",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit 导入（令牌）"
   },
   "hub": {
-    "discordBlurb": "社区聊天与支持",
     "supportPS": "支持 Plural Star",
     "supportPSBlurb": "Buy Me a Coffee",
     "addHistoryDesc": "手动添加追溯性前台历史条目。",
@@ -728,13 +822,17 @@
     "retroHistory": "追溯历史",
     "statistics": "统计",
     "systemChat": "系统聊天",
-    "discord": "Discord",
     "dashboard": "← 仪表板",
     "credits": "致谢",
     "creditLogo": "Plural Star 标志",
     "creditIos": "Plural Star iOS 移植",
     "creditsBlurb": "社区贡献者",
-    "archive": "归档"
+    "archive": "归档",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "社区聊天与支持",
+    "overlapEntry": "{{names}}（{{time}}）"
   },
   "editor": {
     "urlPlaceholder": "在此输入 URL",
@@ -752,7 +850,11 @@
     "toolCode": "代码",
     "brokenImage": "[图片损坏]",
     "imageUnavailable": "[图片不可用]",
-    "spoiler": "隐藏内容，点击显示"
+    "spoiler": "隐藏内容，点击显示",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "appFont": "应用字体",
@@ -783,6 +885,8 @@
     "hue": "色相",
     "invalidHex": "无效的十六进制颜色",
     "customColor": "自定义颜色",
+    "emoji": "表情符号",
+    "emojiPlaceholder": "例如 🦊",
     "descriptionBio": "描述/简介",
     "descriptionPlaceholder": "关于这个伙伴的信息…",
     "preview": "预览",
@@ -856,7 +960,13 @@
     "textSizeDesc": "调整应用内的文本大小。",
     "textScaleNormal": "正常",
     "textScaleLarge": "大",
-    "textScaleExtraLarge": "特大"
+    "textScaleExtraLarge": "特大",
+    "cropMove": "移动裁剪区域（方向键）",
+    "cropResizeTopLeft": "从左上角调整大小（方向键）",
+    "cropResizeTopRight": "从右上角调整大小（方向键）",
+    "cropResizeBottomLeft": "从左下角调整大小（方向键）",
+    "cropResizeBottomRight": "从右下角调整大小（方向键）",
+    "fontDefault": "默认"
   },
   "notification": {
     "mood": "情绪：{{mood}}",
@@ -867,7 +977,8 @@
     "coFront": "共前：{{names}}",
     "coConscious": "共意：{{names}}",
     "cfShort": "共前：{{names}}",
-    "ccShort": "共意：{{names}}"
+    "ccShort": "共意：{{names}}",
+    "tierLine": "{{tier}}：{{names}}"
   },
   "language": {
     "it": "Italiano",
@@ -914,6 +1025,11 @@
     "deleteGroup": "删除组",
     "deleteGroupMsg": "移除此组？成员不会被删除。",
     "deleteWithChildrenMsg": "其中包含 {{count}} 个嵌套项目。保留并上移一级，还是全部删除？",
+    "deleteWithChildrenMsg_other": "其中包含 {{count}} 个嵌套项目。保留并上移一级，还是全部删除？",
+    "memberCount_other": "{{count}} 名成员",
+    "moveNamed": "移动 {{name}}",
+    "addMembersTo": "向 {{name}} 添加成员",
+    "kindToggle": "类型：{{kind}}（激活以切换）",
     "promoteChildren": "保留子项",
     "deleteSubtree": "全部删除",
     "changeColor": "更改颜色",
@@ -927,7 +1043,9 @@
     "subsystem": "子系统",
     "linkedFronter": "关联的前台者",
     "noLinkedFronter": "无",
-    "linkedSubsystems": "关联的子系统"
+    "linkedSubsystems": "关联的子系统",
+    "showSubgroups": "{{name}} 的子组（已选 {{count}} 项）",
+    "linkedToNamed": "{{group}}，关联的前台者：{{name}}"
   },
   "systemManager": {
     "emptyFolder": "这里还什么都没有。",
@@ -959,6 +1077,11 @@
     "totalSessions": "总会话数",
     "totalFrontTime": "前台总时间",
     "uniqueFronters": "不同前台成员数",
+    "showMoreCount": "显示更多（{{shown}}/{{total}}）",
+    "chartSummary": "{{title}}：{{items}}",
+    "chartItem": "{{label}}（{{value}}）",
+    "sessionCount_other": "{{num}} 次会话",
+    "avgEnergyValue": "{{num}} /10 能量",
     "chatMessages": "聊天消息",
     "noMoodsRecorded": "尚未记录心情。",
     "noLocationsRecorded": "尚未记录位置。",
@@ -992,7 +1115,19 @@
     "archiveChannel": "归档频道",
     "noMessages": "还没有消息。",
     "editingHeader": "正在编辑消息",
-    "editPlaceholder": "编辑消息…"
+    "editPlaceholder": "编辑消息…",
+    "attachment": "附件",
+    "channelCount_other": "{{count}} 个频道",
+    "importedChannel": "已导入",
+    "categoryWithCount_other": "{{name}}（{{count}} 个频道）",
+    "speakingAsNamed": "以 {{name}} 身份发言",
+    "messagesIn": "#{{name}} 中的消息",
+    "replyQuote": "{{name}}：{{text}}",
+    "imageFrom": "来自 {{name}} 的图片",
+    "reactionCount": "{{emoji}} 回应，{{count}}",
+    "replyingToName": "回复给 {{name}}",
+    "cancelReply": "取消回复",
+    "cancelEdit": "取消编辑"
   },
   "customFields": {
     "title": "自定义字段",
@@ -1026,7 +1161,12 @@
     "reorder": "重新排序",
     "markdownSupport": "Markdown 支持",
     "markdownLabel": "Markdown",
-    "fieldCount": "{{count}} 个已定义"
+    "fieldCount": "{{count}} 个已定义",
+    "ageField": "年龄",
+    "rangePart": "{{field}}（{{part}}）",
+    "fieldTypeFor": "{{name}} 的字段类型",
+    "moveUpNamed": "上移 {{name}}，移到 {{above}} 上方",
+    "moveDownNamed": "下移 {{name}}，移到 {{below}} 下方"
   },
   "noteboard": {
     "title": "留言板",
@@ -1037,7 +1177,8 @@
     "placeholder": "写一条留言…",
     "by": "来自 {{name}}",
     "writingAs": "以身份书写：",
-    "hasNotes": "{{names}} 的信箱里有邮件"
+    "hasNotes": "{{names}} 的信箱里有邮件",
+    "pinned": "已置顶"
   },
   "polls": {
     "removeOption": "移除选项",
@@ -1060,13 +1201,20 @@
     "votingAs": "投票身份：",
     "forMember": "目标成员：",
     "optionsLabel": "选项",
-    "activeCount": "{{count}} 个活跃"
+    "activeCount": "{{count}} 个活跃",
+    "closePollNamed": "关闭投票：{{question}}",
+    "reopenPollNamed": "重新开放投票：{{question}}",
+    "optionN": "选项 {{n}}",
+    "removeOptionN": "移除选项 {{n}}"
   },
   "energy": {
     "label": "能量",
     "level": "能量等级",
     "avgEnergy": "平均能量",
-    "outOf10": "/10 能量"
+    "outOf10": "/10 能量",
+    "outOfTen": "{{value}}/10",
+    "clear": "清除能量等级",
+    "levelValue": "能量等级 {{value}}/10"
   },
   "systemProfile": {
     "read": "阅读",
@@ -1083,7 +1231,8 @@
     "changeAvatar": "更改头像",
     "changeBanner": "更改横幅",
     "removeAvatar": "移除头像",
-    "removeBanner": "移除横幅"
+    "removeBanner": "移除横幅",
+    "avatarAndBanner": "系统头像 · 系统横幅"
   },
   "frontSort": {
     "label": "整理",
@@ -1116,5 +1265,55 @@
     "Irritable": "烦躁",
     "Sad": "难过",
     "Focused": "专注"
+  },
+  "dnd": {
+    "instructions": "要拿起项目，请按空格键或回车键。使用方向键移动，然后按空格键或回车键放下，或按 Esc 键取消。",
+    "picked": "已拿起 {{name}}。",
+    "over": "{{name}} 位于 {{over}} 上方。",
+    "notOver": "{{name}} 已不在可放置区域上方。",
+    "dropped": "{{name}} 已放到 {{over}} 上。",
+    "droppedNoTarget": "{{name}} 已放下。",
+    "cancelled": "已取消移动 {{name}}。"
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON 文件",
+    "textFiles": "文本文件",
+    "allFiles": "所有文件",
+    "backup": "备份",
+    "images": "图片"
+  },
+  "tray": {
+    "open": "打开 {{app}}",
+    "quit": "退出"
+  },
+  "menu": {
+    "edit": "编辑"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "健谈",
+      "nonVerbal": "非言语",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "模糊",
+      "blendy": "混融",
+      "rapidSwitching": "快速切换",
+      "foggy": "迷糊",
+      "grounded": "踏实",
+      "dissociated": "解离",
+      "anxious": "焦虑",
+      "depressed": "抑郁",
+      "cheerful": "愉快",
+      "happy": "开心",
+      "sad": "难过",
+      "crisis": "危机",
+      "melancholy": "忧郁",
+      "stimming": "自我刺激",
+      "stressed": "压力大",
+      "working": "工作中",
+      "traveling": "旅行中",
+      "sleeping": "睡觉中",
+      "hyperfocus": "超专注"
+    }
   }
 }

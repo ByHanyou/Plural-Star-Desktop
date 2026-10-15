@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
@@ -33,7 +33,7 @@ export default function SystemProfileView({ onUpdate }: Props) {
 
   const pickImage = async (target: 'avatar' | 'banner') => {
     const filePath = await window.electronAPI.dialog.openFile([
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
+      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
     ]);
     if (!filePath) return;
     const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
@@ -105,7 +105,7 @@ export default function SystemProfileView({ onUpdate }: Props) {
           <Field label={t('modal.descriptionLabel')} value={desc} onChange={setDesc}
             placeholder={t('modal.descriptionFieldPlaceholder')} multiline />
 
-          <Section label={`${t('systemProfile.avatar')} · ${t('systemProfile.banner')}`} />
+          <Section label={t('systemProfile.avatarAndBanner')} />
           <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{

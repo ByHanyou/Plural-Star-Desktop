@@ -39,7 +39,7 @@ export const sealMessage = (
   return encodeBase64(decodeUTF8(JSON.stringify(envelope)));
 };
 
-export interface OpenedMessage {
+interface OpenedMessage {
   sender: FriendIdentity;
   message: NetMessage;
   dev?: string;

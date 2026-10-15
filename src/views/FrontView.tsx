@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Member, MemberGroup, FrontState, FrontTier, FrontTierKey, FrontSortMode, HistoryEntry, NoteboardEntry,
-  AppSettings, DEFAULT_MOODS, EMPTY_TIER,
-  fmtTime, fmtDur, frontSessionStart, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, uid, translateMood,
+  Member, FrontState, FrontTier, FrontTierKey, FrontSortMode, HistoryEntry, NoteboardEntry,
+  AppSettings, DEFAULT_MOODS,
+  fmtTime, fmtDur, frontSessionStart, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, translateMood,
   parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch, upperText, orderFronters, placeInCustomOrder,
+  fmtNum, fmtList,
 } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Section, Modal, ConfirmDialog, clickable, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
+import { Btn, Field, Modal, ConfirmDialog, clickable, KindToggles, ALL_PICKER_KINDS, useDndA11y, Interp, slots } from '../components/ui';
 import type { PickerKind, PickerKinds } from '../components/ui';
 import { initialOn } from '../theme';
 import { logError } from '../log';
@@ -44,7 +45,7 @@ const TIER_SHORT_KEY: Record<string, string> = { primary: 'tier.primaryShort', c
 function SortableFrontRow({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const gripLabel = `${t('common.dragReorder')}, ${label}`;
+  const gripLabel = t('common.dragReorderNamed', { name: label });
   return (
     <div ref={setNodeRef} style={{
       display: 'flex', alignItems: 'center', gap: 12, position: 'relative',
@@ -85,11 +86,9 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
   useMinuteTick();
   const front = useAppStore(s => s.state.front);
   const members = useAppStore(s => s.state.members);
-  const groups = useAppStore(s => s.state.groups);
-  const history = useAppStore(s => s.state.history);
   const settings = useAppStore(s => s.state.settings);
   const { t } = useTranslation();
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
   const [showSetFront, setShowSetFront] = useState(false);
 
   useEffect(() => {
@@ -115,6 +114,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+  const frontDndA11y = useDndA11y(id => getMember(String(id))?.name || '');
   const saveFrontSort = async (patch: Pick<AppSettings, 'frontSortMode' | 'frontCustomOrder'>) => {
     const live = useAppStore.getState().state.settings;
     await store.set(KEYS.settings, { ...live, ...patch });
@@ -194,7 +194,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
     const rowParts = (id: string, m: Member) => (
       <>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, cursor: onOpenMember ? 'pointer' : 'default', borderRadius: 8 }}
-          {...(onOpenMember ? clickable(() => onOpenMember(id), `${m.name}, ${t('systemMap.viewProfile')}`) : {})}>
+          {...(onOpenMember ? clickable(() => onOpenMember(id), t('members.viewProfileNamed', { name: m.name })) : {})}>
           <div className="tile__avatar" style={{
             width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
             fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
@@ -228,7 +228,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 10 }}>
             {canDrag ? (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => onTierDragEnd(e, ids)}>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => onTierDragEnd(e, ids)} accessibility={frontDndA11y}>
                 <SortableContext items={ids} strategy={verticalListSortingStrategy}>
                   {ids.map(id => {
                     const m = getMember(id);
@@ -250,8 +250,8 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
 
           {isPrimary && (
             <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0', marginBottom: 8, fontSize: 11, color: 'var(--muted)' }}>
-              {t('front.frontingFor')} <span style={{ color: 'var(--accent)' }}>{fmtDur(frontSessionStart(front))}</span>
-              {' · '}{t('front.since')} {fmtTime(frontSessionStart(front))}
+              <Interp text={t('front.frontingForSince', { ...slots('dur'), time: fmtTime(frontSessionStart(front)) })}
+                nodes={{ dur: <span style={{ color: 'var(--accent)' }}>{fmtDur(frontSessionStart(front))}</span> }} />
             </div>
           )}
 
@@ -271,10 +271,10 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
             {tier.energyLevel && (
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('energy.label')}</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.energyLevel}/10</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{t('energy.outOfTen', { value: fmtNum(tier.energyLevel, 0) })}</div>
               </div>
             )}
-            <button aria-label={t('common.edit')} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
+            <button aria-label={t('front.editDetailsFor', { tier: t(TIER_LABEL_KEY[tierKey]) })} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
               onClick={() => setEditDetailTier(tierKey)}>✎</button>
           </div>
           {!tier.mood && !tier.location && (
@@ -288,7 +288,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <span style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>{t('front.frontNote')}</span>
               {!isEditingNote ? (
-                <button aria-label={t('common.edit')} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
+                <button aria-label={t('front.editNoteFor', { tier: t(TIER_LABEL_KEY[tierKey]) })} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
                   onClick={() => { setEditingNote(tierKey); setNoteText(tier.note || ''); }}>✎</button>
               ) : (
                 <button aria-label={t('common.save')} style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}
@@ -337,13 +337,13 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
       )}
 
       {noteboardAlert && (
-        <div style={{
+        <div role="status" style={{
           padding: '10px 14px', marginBottom: 12, borderRadius: 8,
           background: 'var(--accent-bg)', border: '1px solid var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{ fontSize: 13, color: 'var(--accent)' }}>
-            📋 {t('noteboard.hasNotes', { names: noteboardAlert.join(', ') })}
+            <span aria-hidden>📋</span> {t('noteboard.hasNotes', { names: fmtList(noteboardAlert) })}
           </span>
           <button aria-label={t('common.close')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14 }}
             onClick={() => setNoteboardAlert(null)}>✕</button>
@@ -367,7 +367,6 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
         onClose={() => setShowSetFront(false)}
         onSave={saveFront}
         members={activeMembers}
-        groups={groups}
         current={front}
         settings={settings}
         allMoods={allMoods}
@@ -378,7 +377,6 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
           open={!!editDetailTier}
           tier={editDetailTier}
           tierData={front[editDetailTier]}
-          isPrimary={editDetailTier === 'primary'}
           allMoods={allMoods}
           allLocations={settings.locations}
           onClose={() => setEditDetailTier(null)}
@@ -390,9 +388,9 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
 }
 
 
-export function SetFrontModal({ open, onClose, onSave, members, groups, current, settings, allMoods }: {
+export function SetFrontModal({ open, onClose, onSave, members, current, settings, allMoods }: {
   open: boolean; onClose: () => void; onSave: (p: any, cf: any, cc: any) => void;
-  members: Member[]; groups: MemberGroup[]; current: FrontState | null;
+  members: Member[]; current: FrontState | null;
   settings: AppSettings; allMoods: string[];
 }) {
   const { t } = useTranslation();
@@ -506,6 +504,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
     onClose();
   };
 
+  const pickerBaseId = useId();
   const TierPicker = ({ tierKey, selectedIds, mood, setMood, note, setNote, color, energy, setEnergy, location, setLocation }: {
     tierKey: FrontTierKey; selectedIds: Set<string>;
     mood: string; setMood: (v: string) => void;
@@ -537,19 +536,20 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
       }
     }
     const selectedHere = members.filter(m => !m.deleted && selectedIds.has(m.id));
+    const pid = `${pickerBaseId}-${tierKey}`;
 
     return (
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }} role="group" aria-labelledby={`${pid}-tier`}>
         <div className="section-div">
-          <span className="section-div__dot" style={{ background: color }} />
-          <span className="section-div__label" style={{ color }}>{t(TIER_LABEL_KEY[tierKey])}</span>
-          <span className="section-div__line" />
+          <span className="section-div__dot" aria-hidden style={{ background: color }} />
+          <span className="section-div__label" id={`${pid}-tier`} style={{ color }}>{t(TIER_LABEL_KEY[tierKey])}</span>
+          <span className="section-div__line" aria-hidden />
         </div>
 
         {selectedHere.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
             {selectedHere.map(m => (
-              <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
+              <button key={m.id} className="chip" aria-label={t('common.removeNamed', { name: m.name })} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
                 onClick={() => toggleMember(tierKey, m.id)}>
                 <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
                 <span style={{ color: m.color }}>{m.name}</span>
@@ -578,7 +578,7 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
                       <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
                       {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
                       {assignedTo && assignedTo !== tierKey && (
-                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({t(TIER_SHORT_KEY[assignedTo])})</span>
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>{t('tier.assignedTo', { tier: t(TIER_SHORT_KEY[assignedTo]), applyPostProcessor: false })}</span>
                       )}
                     </button>
                   );
@@ -591,8 +591,8 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
           <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '4px 0 8px' }}>{t('members.searchHint')}</p>
         )}
 
-        <label className="field__label" style={{ marginTop: 4 }}>{t('modal.mood')}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+        <div className="field__label" id={`${pid}-mood`} style={{ marginTop: 4 }}>{t('modal.mood')}</div>
+        <div role="group" aria-labelledby={`${pid}-mood`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
           {(() => { const sel = parseMoodList(mood); const chips = [...allMoods, ...sel.filter(m => !allMoods.includes(m))]; return chips.map(m => {
             const on = sel.includes(m);
             return (
@@ -613,8 +613,8 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
             aria-label={t('modal.enterMood')} placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
         )}
 
-        <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
+        <div className="field__label" id={`${pid}-loc`} style={{ marginTop: 4 }}>{t('modal.location')}</div>
+        <div role="group" aria-labelledby={`${pid}-loc`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
           {(settings.locations || []).map(l => (
             <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
               style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
@@ -624,14 +624,14 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
         <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
           aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
 
-        <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <div className="field__label" id={`${pid}-energy`} style={{ marginTop: 4 }}>{t('energy.level')}</div>
+        <div role="group" aria-labelledby={`${pid}-energy`} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 28 }}>{energy ?? '—'}</span>
           <input type="range" min={1} max={10} value={energy ?? 5} aria-label={t('energy.level')}
             onChange={e => setEnergy(Number(e.target.value))}
             style={{ flex: 1, accentColor: color }} />
           <button className="btn btn--ghost" style={{ padding: '2px 8px', fontSize: 10 }}
-            aria-label={t('common.clear')} onClick={() => setEnergy(undefined)}>✕</button>
+            aria-label={t('energy.clear')} onClick={() => setEnergy(undefined)}>✕</button>
         </div>
 
         <textarea className="field__input field__input--multi" value={note} onChange={e => setNote(e.target.value)}
@@ -666,8 +666,8 @@ export function SetFrontModal({ open, onClose, onSave, members, groups, current,
 }
 
 
-function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocations, onClose, onSave }: {
-  open: boolean; tier: FrontTierKey; tierData: FrontTier; isPrimary: boolean;
+function EditDetailModal({ open, tier, tierData, allMoods, allLocations, onClose, onSave }: {
+  open: boolean; tier: FrontTierKey; tierData: FrontTier;
   allMoods: string[]; allLocations: string[];
   onClose: () => void; onSave: (mood?: string, location?: string, note?: string) => void;
 }) {
@@ -675,6 +675,7 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
   const [location, setLocation] = useState(tierData.location || '');
   const [note, setNote] = useState(tierData.note || '');
   const { t } = useTranslation();
+  const detailId = useId();
 
   useEffect(() => {
     setMood(tierData.mood || '');
@@ -685,16 +686,16 @@ function EditDetailModal({ open, tier, tierData, isPrimary, allMoods, allLocatio
   return (
     <Modal open={open} title={t('tier.editTier', { tier: t(TIER_LABEL_KEY[tier]) })} onClose={onClose}
       footer={<Btn variant="solid" onClick={() => onSave(mood || undefined, location || undefined, note || undefined)}>{t('common.save')}</Btn>}>
-      <label className="field__label">{t('modal.mood')}</label>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+      <div className="field__label" id={`${detailId}-mood`}>{t('modal.mood')}</div>
+      <div role="group" aria-labelledby={`${detailId}-mood`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
         {allMoods.map(m => (
           <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
             style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={mood === m}
             onClick={() => setMood(mood === m ? "" : m)}>{translateMood(m, t)}</button>
         ))}
       </div>
-      <label className="field__label">{t('modal.location')}</label>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
+      <div className="field__label" id={`${detailId}-loc`}>{t('modal.location')}</div>
+      <div role="group" aria-labelledby={`${detailId}-loc`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
         {allLocations.map(l => (
           <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
             style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}

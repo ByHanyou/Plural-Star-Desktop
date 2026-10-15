@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Dropdown, Modal, ConfirmDialog } from '../components/ui';
+import { Btn, Dropdown, Modal, ConfirmDialog, SrOnly } from '../components/ui';
 import { NoteboardEntry, uid, fmtTime, getInitials, nameCompare } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
@@ -160,8 +160,9 @@ export default function MailboxView({ onUpdate }: Props) {
   const renderMemberOption = (id: string) => nameOf(id);
   const renderRecipientOption = (id: string) =>
     id === ALL_RECIPIENTS
-      ? `${t('mailbox.allOthers')} (${activeMembers.filter(m => m.id !== composeFrom).length})`
+      ? t('mailbox.allOthersCount', { count: activeMembers.filter(m => m.id !== composeFrom).length })
       : nameOf(id);
+  const pwErrorId = useId();
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', paddingBottom: 32 }}>
@@ -185,7 +186,7 @@ export default function MailboxView({ onUpdate }: Props) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {mb.name}{members.find(x => x.id === mb.id)?.mailboxPassword ? ' 🔒' : ''}
+                  {mb.name}{members.find(x => x.id === mb.id)?.mailboxPassword ? <><span aria-hidden> 🔒</span><SrOnly>{t('mailbox.lockedLabel')}</SrOnly></> : ''}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('mailbox.messageCount', { count: mb.count })}</div>
               </div>
@@ -202,7 +203,7 @@ export default function MailboxView({ onUpdate }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <Btn variant="ghost" aria-label={t('common.back')} onClick={() => setOpenId(null)}>←</Btn>
             <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text)', flex: 1 }}>{t('mailbox.inboxOf', { name: nameOf(openId) })}</h3>
-            <Btn variant="ghost" aria-label={t('mailbox.lockTitle')} aria-pressed={!!members.find(x => x.id === openId)?.mailboxPassword} onClick={() => { setLockInput(''); setLockManage(true); }}>
+            <Btn variant="ghost" aria-label={members.find(x => x.id === openId)?.mailboxPassword ? t('mailbox.lockButtonLocked') : t('mailbox.lockButtonUnlocked')} aria-haspopup="dialog" onClick={() => { setLockInput(''); setLockManage(true); }}>
               {members.find(x => x.id === openId)?.mailboxPassword ? '🔒' : '🔓'}
             </Btn>
           </div>
@@ -212,8 +213,8 @@ export default function MailboxView({ onUpdate }: Props) {
             openMessages.map(msg => (
               <div key={msg.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', marginBottom: 8, background: 'var(--card)' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                  {msg.pinned && <span aria-hidden>📌</span>}
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{t('mailbox.from')}: {nameOf(msg.authorId)}</span>
+                  {msg.pinned && <><span aria-hidden>📌</span><SrOnly>{t('noteboard.pinned')}</SrOnly></>}
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{t('mailbox.fromName', { name: nameOf(msg.authorId) })}</span>
                   <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 'auto' }}>{fmtTime(msg.timestamp)}</span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{msg.content}</div>
@@ -221,7 +222,7 @@ export default function MailboxView({ onUpdate }: Props) {
                   <Btn variant="ghost" onClick={() => startReply(msg)}>{t('mailbox.replyFrom', { name: nameOf(msg.authorId) })}</Btn>
                   <button
                     className="btn btn--danger"
-                    aria-label={`${t('mailbox.deleteTitle')} — ${nameOf(msg.authorId)}`}
+                    aria-label={t('mailbox.deleteFrom', { name: nameOf(msg.authorId) })}
                     onClick={() => setDeleteTarget(msg)}>
                     ✕
                   </button>
@@ -267,7 +268,7 @@ export default function MailboxView({ onUpdate }: Props) {
 
       <Modal
         open={!!pwFor}
-        title={`🔒 ${nameOf(pwFor || '')}`}
+        title={t('mailbox.unlockTitle', { name: nameOf(pwFor || '') })}
         onClose={() => { setPwFor(null); setPwInput(''); setPwError(false); }}
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -283,9 +284,10 @@ export default function MailboxView({ onUpdate }: Props) {
           onKeyDown={e => { if (e.key === 'Enter') submitUnlock(); }}
           placeholder={t('journal.password')}
           aria-label={t('journal.password')}
+          aria-invalid={pwError} aria-describedby={pwError ? pwErrorId : undefined}
           style={{ display: 'block', width: '100%', background: 'var(--bg)', color: 'var(--text)', border: `1px solid ${pwError ? 'var(--danger)' : 'var(--border)'}`, borderRadius: 8, padding: 10, fontSize: 13 }}
         />
-        {pwError && <p role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 0 }}>{t('journal.incorrectPassword')}</p>}
+        {pwError && <p role="alert" id={pwErrorId} style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 0 }}>{t('journal.incorrectPassword')}</p>}
       </Modal>
 
       <Modal

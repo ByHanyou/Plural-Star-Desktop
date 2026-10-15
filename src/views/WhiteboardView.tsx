@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ConfirmDialog } from '../components/ui';
+import { ConfirmDialog, SrOnly } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
-import { uid } from '../utils';
+import { uid, fmtNum } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { logError } from '../log';
@@ -59,6 +59,15 @@ export default function WhiteboardView() {
   const [width, setWidth] = useState(WIDTHS[2]);
   const [tool, setTool] = useState<Tool>('draw');
   const [view, setView] = useState({ tx: 0, ty: 0, scale: 0.5 });
+  const panHintId = useId();
+  const onBoardKey = (e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 200 : 50;
+    const dx = e.key === 'ArrowLeft' ? step : e.key === 'ArrowRight' ? -step : 0;
+    const dy = e.key === 'ArrowUp' ? step : e.key === 'ArrowDown' ? -step : 0;
+    if (!dx && !dy) return;
+    e.preventDefault();
+    setView(v => ({ ...v, tx: v.tx + dx, ty: v.ty + dy }));
+  };
   const [confirmClear, setConfirmClear] = useState(0);
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -312,7 +321,7 @@ export default function WhiteboardView() {
         <span style={{ width: 1, height: 22, background: 'var(--border)' }} aria-hidden />
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', alignItems: 'center', flexShrink: 1 }}>
         {WIDTHS.map(wd => (
-          <button key={wd} className="chip" aria-pressed={width === wd} aria-label={`${t('whiteboard.brushSize')} ${wd}`} title={`${t('whiteboard.brushSize')} ${wd}`}
+          <button key={wd} className="chip" aria-pressed={width === wd} aria-label={t('whiteboard.brushSizeN', { size: fmtNum(wd, 0) })} title={t('whiteboard.brushSizeN', { size: fmtNum(wd, 0) })}
             style={{ borderColor: width === wd ? 'var(--accent)' : 'var(--border)', background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, minWidth: 30, borderRadius: 15, padding: 0 }}
             onClick={() => setWidth(wd)}>
             <span aria-hidden style={{ width: wd + 4, height: wd + 4, borderRadius: '50%', background: color, display: 'inline-block' }} />
@@ -334,8 +343,11 @@ export default function WhiteboardView() {
 
       <div
         ref={wrapRef}
-        role="img"
+        role="group"
         aria-label={t('whiteboard.title')}
+        tabIndex={0}
+        aria-describedby={panHintId}
+        onKeyDown={onBoardKey}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -357,6 +369,7 @@ export default function WhiteboardView() {
           </g>
         </svg>
       </div>
+      <SrOnly id={panHintId}>{t('whiteboard.panHint')}</SrOnly>
 
       <ConfirmDialog
         open={confirmClear > 0}

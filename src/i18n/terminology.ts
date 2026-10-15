@@ -1,10 +1,10 @@
-export const TERMINOLOGY_TERMS = ['member', 'members', 'fronter', 'fronters', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system', 'journal', 'hub', 'history', 'archive'] as const;
-export type TerminologyTerm = typeof TERMINOLOGY_TERMS[number];
-export type TerminologyMap = Partial<Record<TerminologyTerm, string>>;
+const TERMINOLOGY_TERMS = ['member', 'members', 'fronter', 'fronters', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system', 'journal', 'hub', 'history', 'archive'] as const;
+type TerminologyTerm = typeof TERMINOLOGY_TERMS[number];
+type TerminologyMap = Partial<Record<TerminologyTerm, string>>;
 
 type TermFormsMap = Partial<Record<TerminologyTerm, string | string[]>>;
 
-export const TERM_FORMS: Record<string, TermFormsMap> = {
+const TERM_FORMS: Record<string, TermFormsMap> = {
   en: {
     journal: 'Journal', hub: 'Hub', history: 'History', archive: 'Archive',
     member: ['Member', 'Headmate'],
@@ -303,10 +303,10 @@ export const setTerminologyOverrides = (map?: TerminologyMap | null): void => {
   pairCache = new Map();
 };
 
-export const hasTerminologyOverrides = (): boolean => Object.keys(overrides).length > 0;
+const hasTerminologyOverrides = (): boolean => Object.keys(overrides).length > 0;
 
 export type TierNameKey = 'primary' | 'coFront' | 'coConscious';
-export type TierNameMap = Partial<Record<TierNameKey, string>>;
+type TierNameMap = Partial<Record<TierNameKey, string>>;
 
 let tierNames: TierNameMap = {};
 
@@ -319,7 +319,7 @@ export const setTierNameOverrides = (map?: TierNameMap | null): void => {
   tierNames = clean;
 };
 
-export const hasTierNameOverrides = (): boolean => Object.keys(tierNames).length > 0;
+const hasTierNameOverrides = (): boolean => Object.keys(tierNames).length > 0;
 export const getTierNameOverride = (k: TierNameKey): string | undefined => tierNames[k];
 
 const TIER_LABEL_KEYS: Record<string, TierNameKey> = {
@@ -343,16 +343,24 @@ const TIER_LINE_KEYS: Record<string, TierNameKey> = {
   'notification.ccShort': 'coConscious',
 };
 
-export const applyTierNames = (value: string, key: string, options: unknown): string => {
+type TierTranslator = {language?: string; translate?: (key: string, options?: Record<string, unknown>) => unknown};
+
+const applyTierNames = (value: string, key: string, options: unknown, translator?: TierTranslator): string => {
   if (!hasTierNameOverrides()) return value;
   const label = TIER_LABEL_KEYS[key];
   if (label && tierNames[label]) return tierNames[label]!;
   const badge = TIER_BADGE_KEYS[key];
-  if (badge && tierNames[badge]) return tierNames[badge]!.toLocaleUpperCase();
+  if (badge && tierNames[badge]) {
+    const lang = translator?.language || 'en';
+    try { return tierNames[badge]!.toLocaleUpperCase(lang === 'zhHant' ? 'zh-Hant' : lang); } catch { return tierNames[badge]!.toUpperCase(); }
+  }
   const line = TIER_LINE_KEYS[key];
   if (line && tierNames[line]) {
     const names = (options as {names?: unknown} | null | undefined)?.names;
-    return `${tierNames[line]}: ${typeof names === 'string' ? names : String(names ?? '')}`;
+    const nameText = typeof names === 'string' ? names : String(names ?? '');
+    const lng = (options as {lng?: unknown} | null | undefined)?.lng;
+    const out = translator?.translate?.('notification.tierLine', { tier: tierNames[line], names: nameText, applyPostProcessor: false, ...(typeof lng === 'string' ? { lng } : {}) });
+    return typeof out === 'string' && out !== 'notification.tierLine' ? out : `${tierNames[line]}: ${nameText}`;
   }
   return value;
 };
@@ -369,7 +377,7 @@ const caseFirst = (s: string, upper: boolean): string => {
   return (safe ? changed : r0) + runes.slice(1).join('');
 };
 
-export const replaceTerm = (text: string, form: string, replacement: string, fixArticles = false): string => {
+const replaceTerm = (text: string, form: string, replacement: string, fixArticles = false): string => {
   if (!form || !replacement) return text;
   const lower = text.toLowerCase();
   const needle = form.toLowerCase();
@@ -422,7 +430,7 @@ const pairsFor = (language: string): [TerminologyTerm, string, string][] => {
   return pairs;
 };
 
-export const applyTerminology = (value: string, language: string): string => {
+const applyTerminology = (value: string, language: string): string => {
   if (!hasTerminologyOverrides()) return value;
   const pairs = pairsFor(language);
   if (pairs.length === 0) return value;
@@ -445,12 +453,12 @@ const EXEMPT_KEYS = new Set(['modal.systemSettings', 'share.filesDisabled']);
 export const terminologyPostProcessor = {
   type: 'postProcessor' as const,
   name: 'terminology',
-  process(value: unknown, key: string | string[], options: unknown, i18nInstance: {language?: string}): unknown {
+  process(value: unknown, key: string | string[], options: unknown, i18nInstance: TierTranslator): unknown {
     if (typeof value !== 'string') return value;
     const k = Array.isArray(key) ? key[0] : key;
     if (typeof k === 'string' && (k.startsWith('terminology.') || EXEMPT_KEYS.has(k))) return value;
     if (typeof k === 'string') {
-      const tiered = applyTierNames(value, k, options);
+      const tiered = applyTierNames(value, k, options, i18nInstance);
       if (tiered !== value) return tiered;
     }
     if (!hasTerminologyOverrides()) return value;

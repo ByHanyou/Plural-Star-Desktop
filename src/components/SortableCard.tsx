@@ -20,7 +20,7 @@ export default function SortableCard({ id, label, disabled = false, children }: 
     opacity: isDragging ? 0.85 : undefined,
   };
 
-  const gripLabel = `${t('common.dragReorder', { defaultValue: 'Drag to reorder' })} — ${label}`;
+  const gripLabel = t('common.dragReorderNamed', { name: label });
 
   return (
     <div ref={setNodeRef} style={style} className="tile-sortable">

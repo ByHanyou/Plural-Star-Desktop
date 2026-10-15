@@ -1,6 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { fmtDate } from '../utils';
+import { fmtDate, fmtList } from '../utils';
 import { useAppStore } from '../store/appStore';
 
 interface Props { onClick: () => void; }
@@ -20,7 +19,7 @@ export default function JournalTile({ onClick }: Props) {
             <div className="tile__journal-title">{entry.title}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
               <span className="tile__journal-date">{fmtDate(entry.timestamp)}</span>
-              <span className="tile__journal-date">{entry.authorIds.map(id => getMember(id)?.name || '?').join(', ')}</span>
+              <span className="tile__journal-date">{fmtList(entry.authorIds.map(id => getMember(id)?.name || '?'))}</span>
             </div>
           </div>
         ))}

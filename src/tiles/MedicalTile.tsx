@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MedicalData, DEFAULT_MEDICAL, fmtClockHHMM, fmtTime } from '../utils';
+import { MedicalData, DEFAULT_MEDICAL, fmtClockHHMM, fmtTime, fmtList } from '../utils';
 import { store, KEYS } from '../storage';
 
 interface Props { onClick: () => void; }
@@ -32,7 +32,7 @@ export default function MedicalTile({ onClick }: Props) {
             <div key={m.id} style={row}>
               <span aria-hidden>💊</span>
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-              {m.times.length > 0 && <span style={{ color: 'var(--muted)', fontSize: 11 }}>{m.times.map(fmtClockHHMM).join(', ')}</span>}
+              {m.times.length > 0 && <span style={{ color: 'var(--muted)', fontSize: 11 }}>{fmtList(m.times.map(fmtClockHHMM))}</span>}
             </div>
           ))}
           {meds.length > 3 && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{t('share.more', { count: meds.length - 3 })}</span>}

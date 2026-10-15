@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch, withMemberSince } from '../utils';
+import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch, withMemberSince, fmtList } from '../utils';
 import { store, KEYS } from '../storage';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Toggle, useEscapeKey, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
+import { Btn, Field, Toggle, useEscapeKey, useDialogFocus, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
 import type { PickerKind, PickerKinds } from '../components/ui';
 
 interface Props {
@@ -70,6 +70,9 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
   const [isCurrent, setIsCurrent] = useState(false);
   const [choice, setChoice] = useState<Choice | null>(null);
   useEscapeKey(!!choice, () => setChoice(null));
+  const retroId = useId();
+  const choiceRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(!!choice, choiceRef);
   const [search, setSearch] = useState<Record<string, string>>({});
 
   const allSelected: Record<FrontTierKey, string[]> = { primary: primaryIds, coFront: coFrontIds, coConscious: coConIds };
@@ -152,7 +155,7 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     if (isCurrent && front) {
       setChoice({
         title: t('hub.activeFrontExists'),
-        message: t('hub.activeFrontExistsMsg', { names: allFrontMemberIds(front).map(id => members.find(m => m.id === id)?.name || '?').join(', ') }),
+        message: t('hub.activeFrontExistsMsg', { names: fmtList(allFrontMemberIds(front).map(id => members.find(m => m.id === id)?.name || '?')) }),
         buttons: [
           { label: t('common.cancel'), onClick: () => setChoice(null) },
           { label: t('hub.overwrite'), danger: true, onClick: async () => {
@@ -189,8 +192,8 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
 
     if (overlaps.length > 0) {
       const overlapNames = overlaps.slice(0, 3).map(e => {
-        const names = (e.memberIds || []).map(id => members.find(m => m.id === id)?.name || '?').join(', ');
-        return `${names} (${fmtTime(e.startTime)})`;
+        const names = fmtList((e.memberIds || []).map(id => members.find(m => m.id === id)?.name || '?'));
+        return t('hub.overlapEntry', { names, time: fmtTime(e.startTime) });
       }).join('\n');
       setChoice({
         title: t('hub.overlapDetected'),
@@ -227,22 +230,23 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
     locVal: string, setLocVal: (v: string) => void,
     energyVal: number | undefined, setEnergyVal: (v: number | undefined) => void,
     noteVal: string, setNoteVal: (v: string) => void,
+    idKey: string,
   ) => (
-    <div key={tierLabel || 'primary'}>
+    <div key={tierLabel || 'primary'} role={tierLabel ? 'group' : undefined} aria-labelledby={tierLabel ? `${retroId}-${idKey}` : undefined}>
       {tierLabel ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
           <span aria-hidden style={{ width: 8, height: 8, borderRadius: 4, background: color, display: 'inline-block' }} />
-          <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 600, color }}>{tierLabel}</span>
+          <span role="heading" aria-level={3} id={`${retroId}-${idKey}`} style={{ fontSize: 12, fontWeight: 600, color }}>{tierLabel}</span>
         </div>
       ) : null}
       <Field label={t('modal.mood')} value={moodVal} onChange={setMoodVal} placeholder={t('modal.enterMood')} />
       <Field label={t('modal.location')} value={locVal} onChange={setLocVal} placeholder={t('modal.typeLocation')} />
 
-      <label className="field__label">{t('energy.level')}</label>
-      <div style={{ display: 'flex', gap: 3, marginBottom: 14, alignItems: 'center' }}>
+      <div className="field__label" id={`${retroId}-${idKey}-energy`}>{t('energy.level')}</div>
+      <div role="group" aria-labelledby={`${retroId}-${idKey}-energy`} style={{ display: 'flex', gap: 3, marginBottom: 14, alignItems: 'center' }}>
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
           <button key={n} onClick={() => setEnergyVal(energyVal === n ? undefined : n)}
-            aria-label={`${tierLabel ? `${tierLabel}, ` : ''}${t('energy.level')} ${n}/10`} aria-pressed={energyVal === n}
+            aria-label={t('energy.levelValue', { value: n })} aria-pressed={energyVal === n}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 600,
               background: energyVal === n ? 'var(--accent-bg)' : 'var(--surface)',
@@ -284,9 +288,9 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
         <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="coConscious" poolKey="coConscious" label={t(TIER_LABEL_KEY.coConscious)} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pools={retroPools} />
       </>)}
 
-      {tierDetails(singlet ? '' : t(TIER_LABEL_KEY.primary), 'var(--accent)', mood, setMood, location, setLocation, energy, setEnergy, note, setNote)}
-      {!singlet && coFrontIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coFront), 'var(--info)', coFrontMood, setCoFrontMood, coFrontLocation, setCoFrontLocation, coFrontEnergy, setCoFrontEnergy, coFrontNote, setCoFrontNote)}
-      {!singlet && coConIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coConscious), 'var(--success)', coConMood, setCoConMood, coConLocation, setCoConLocation, coConEnergy, setCoConEnergy, coConNote, setCoConNote)}
+      {tierDetails(singlet ? '' : t(TIER_LABEL_KEY.primary), 'var(--accent)', mood, setMood, location, setLocation, energy, setEnergy, note, setNote, 'p')}
+      {!singlet && coFrontIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coFront), 'var(--info)', coFrontMood, setCoFrontMood, coFrontLocation, setCoFrontLocation, coFrontEnergy, setCoFrontEnergy, coFrontNote, setCoFrontNote, 'cf')}
+      {!singlet && coConIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coConscious), 'var(--success)', coConMood, setCoConMood, coConLocation, setCoConLocation, coConEnergy, setCoConEnergy, coConNote, setCoConNote, 'cc')}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 16, marginBottom: 30 }}>
         <Btn variant="ghost" onClick={onDone}>{t('common.cancel')}</Btn>
@@ -295,11 +299,11 @@ export default function RetroHistoryView({ onUpdate, onDone, singlet = false, se
 
       {choice && (
         <div className="modal-overlay" role="presentation" onClick={() => setChoice(null)}>
-          <div className="modal modal--sm" role="presentation" onClick={e => e.stopPropagation()}>
+          <div ref={choiceRef} className="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby={`${retroId}-choice-title`} aria-describedby={`${retroId}-choice-msg`} tabIndex={-1} onClick={e => e.stopPropagation()}>
             <div className="modal__header">
-              <span className="modal__title">{choice.title}</span>
+              <span className="modal__title" id={`${retroId}-choice-title`} role="heading" aria-level={2}>{choice.title}</span>
             </div>
-            <div className="modal__body" style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--dim)', padding: 16 }}>
+            <div className="modal__body" id={`${retroId}-choice-msg`} style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--dim)', padding: 16 }}>
               {choice.message}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '0 16px 16px' }}>
@@ -345,17 +349,18 @@ function TierMemberPicker({ tierKey, poolKey, label, color, selected, setSelecte
   const toggle = (id: string) => {
     setSelected(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
   };
+  const pickerLabelId = useId();
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 16 }} role="group" aria-labelledby={pickerLabelId}>
       <div className="section-div">
-        <span className="section-div__dot" style={{ background: color }} />
-        <span className="section-div__label" style={{ color }}>{label}</span>
-        <span className="section-div__line" />
+        <span className="section-div__dot" aria-hidden style={{ background: color }} />
+        <span className="section-div__label" id={pickerLabelId} style={{ color }}>{label}</span>
+        <span className="section-div__line" aria-hidden />
       </div>
       {poolSelected.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {poolSelected.map(m => (
-            <button key={m.id} className="chip" aria-label={`${t('common.remove')} ${m.name}`} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
+            <button key={m.id} className="chip" aria-label={t('common.removeNamed', { name: m.name })} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
               onClick={() => toggle(m.id)}>
               <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
               <span style={{ color: m.color }}>{m.name}</span>

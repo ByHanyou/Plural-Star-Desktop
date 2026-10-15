@@ -4,10 +4,11 @@ import { useSortable } from '@dnd-kit/sortable';
 
 interface Props {
   id: string;
+  label: string;
   children: React.ReactNode;
 }
 
-export default function SortableTile({ id, children }: Props) {
+export default function SortableTile({ id, label: tileLabel, children }: Props) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
@@ -18,10 +19,10 @@ export default function SortableTile({ id, children }: Props) {
     opacity: isDragging ? 0.85 : undefined,
   };
 
-  const label = t('common.dragReorder', { defaultValue: 'Drag to reorder' });
+  const label = t('common.dragReorderNamed', { name: tileLabel });
 
   return (
-    <div ref={setNodeRef} style={style} className="tile-sortable">
+    <div ref={setNodeRef} style={style} className="tile-sortable" data-tile-id={id}>
       {children}
       <button
         type="button"

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomFieldDef, CustomFieldType, uid } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
+import { Btn, ConfirmDialog } from '../components/ui';
 
 interface Props {
   onUpdate: () => void;
@@ -94,16 +94,16 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{fd.name}</span>
-                    <button aria-label={`${t('common.edit')} ${fd.name}`} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer' }}
+                    <button aria-label={t('common.editNamed', { name: fd.name })} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer' }}
                       onClick={() => { setEditId(fd.id); setEditName(fd.name); }}>✎</button>
                   </div>
                 )}
                 {fd.markdown && (
-                  <span style={{ fontSize: 10, color: 'var(--info)', marginTop: 2, display: 'block' }}>☑ {t('customFields.markdownSupport')}</span>
+                  <span style={{ fontSize: 10, color: 'var(--info)', marginTop: 2, display: 'block' }}><span aria-hidden>☑</span> {t('customFields.markdownSupport')}</span>
                 )}
               </div>
 
-              <select aria-label={`${t('customFields.fieldType')} — ${fd.name}`} value={fd.type}
+              <select aria-label={t('customFields.fieldTypeFor', { name: fd.name })} value={fd.type}
                 onChange={e => save(fields.map(f => f.id === fd.id ? { ...f, type: e.target.value as CustomFieldType } : f))}
                 style={{ fontSize: 11, color: 'var(--muted)', background: 'var(--surface)', border: '1px solid var(--border)', padding: '3px 6px', borderRadius: 6, whiteSpace: 'nowrap' }}>
                 {FIELD_TYPES.map(t2 => (
@@ -112,13 +112,13 @@ export default function CustomFieldsView({ onUpdate }: Props) {
               </select>
 
               <button disabled={i === 0} onClick={() => moveField(i, i - 1)}
-                aria-label={i === 0 ? `${t('members.moveUp')}, ${fd.name}` : `${t('members.moveUp')}, ${fd.name}, ${t('members.moveAbove', { name: fields[i - 1].name })}`}
+                aria-label={i === 0 ? t('common.moveUpNamed', { name: fd.name }) : t('customFields.moveUpNamed', { name: fd.name, above: fields[i - 1].name })}
                 style={{ background: 'none', border: 'none', color: i === 0 ? 'var(--muted)' : 'var(--dim)', fontSize: 13, cursor: i === 0 ? 'default' : 'pointer', padding: '2px 4px' }}>▲</button>
               <button disabled={i === fields.length - 1} onClick={() => moveField(i, i + 1)}
-                aria-label={i === fields.length - 1 ? `${t('members.moveDown')}, ${fd.name}` : `${t('members.moveDown')}, ${fd.name}, ${t('members.moveBelow', { name: fields[i + 1].name })}`}
+                aria-label={i === fields.length - 1 ? t('common.moveDownNamed', { name: fd.name }) : t('customFields.moveDownNamed', { name: fd.name, below: fields[i + 1].name })}
                 style={{ background: 'none', border: 'none', color: i === fields.length - 1 ? 'var(--muted)' : 'var(--dim)', fontSize: 13, cursor: i === fields.length - 1 ? 'default' : 'pointer', padding: '2px 4px' }}>▼</button>
 
-              <button aria-label={`${t('common.delete')} ${fd.name}`} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: '4px' }}
+              <button aria-label={t('common.deleteNamed', { name: fd.name })} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: '4px' }}
                 onClick={() => setConfirmDelete(fd.id)}>🗑</button>
             </div>
           ))}

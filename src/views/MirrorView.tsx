@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Field, Modal } from '../components/ui';
+import { Btn, Field, Modal, SrOnly } from '../components/ui';
 import { NetworkManager } from '../network/NetworkManager';
 import { MirrorFeature, MirrorCacheEntry, MirrorMember, MirrorGroup, MirrorSystemProfile, MIRROR_SYSTEM_AVATAR_ID, MIRROR_SYSTEM_BANNER_ID } from '../network/types';
 import SystemProfileCard from '../components/SystemProfileCard';
 import { MarkdownText } from '../components/MarkdownText';
-import { fmtTime, getInitials } from '../utils';
+import { fmtTime, getInitials, translateMood, fmtNum, fmtClockHHMM, fmtFieldValue, CustomFieldType } from '../utils';
 import { logError } from '../log';
 
 interface Props {
@@ -50,6 +50,8 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
   const { t } = useTranslation();
   const [entry, setEntry] = useState<MirrorCacheEntry | null>(null);
   const [memberCache, setMemberCache] = useState<MirrorMember[]>([]);
+  const [groupCache, setGroupCache] = useState<{groups: MirrorGroup[]; membership: Record<string, {id: string; name: string}[]>} | null>(null);
+  const groupsOf = (id: string): MirrorGroup[] => (groupCache ? groupCache.groups.filter(g => (groupCache.membership[g.id] || []).some(x => x.id === id)) : []);
   const [memberSearch, setMemberSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     if (!online) return;
     setLoading(true);
     NetworkManager.requestMirror(peerId, feature).catch(e => logError('mirror', e));
+    if (feature === 'members') NetworkManager.requestMirror(peerId, 'groups').catch(() => {});
     const to = setTimeout(() => setLoading(false), 12000);
     return () => clearTimeout(to);
   }, [peerId, feature, online]);
@@ -82,8 +85,23 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
         .then(e => setMemberCache(Array.isArray(e?.data) ? (e!.data as MirrorMember[]) : []))
         .catch(() => {});
     }
+    const loadGroups = () => {
+      if (feature !== 'members') return;
+      NetworkManager.loadMirror(peerId, 'groups')
+        .then(gc => {
+          const d: any = gc && !gc.none && gc.data && typeof gc.data === 'object' && !Array.isArray(gc.data) ? gc.data : null;
+          setGroupCache(d ? {groups: Array.isArray(d.groups) ? d.groups : [], membership: d.membership && typeof d.membership === 'object' ? d.membership : {}} : null);
+        })
+        .catch(() => {});
+    };
+    loadGroups();
     const unsub = NetworkManager.onMirrorUpdated((pid, feat) => {
-      if (pid !== peerId || feat !== feature) return;
+      if (pid !== peerId) return;
+      if (feature === 'members' && feat === 'groups') {
+        loadGroups();
+        return;
+      }
+      if (feat !== feature) return;
       setLoading(false);
       NetworkManager.loadMirror(peerId, feature)
         .then(e => setEntry(e))
@@ -112,6 +130,9 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     : t('tabs.journal');
 
   const dim: React.CSSProperties = { fontSize: 12, color: 'var(--muted)' };
+  const detail = (icon: string, label: string, value: string) => (
+    <span><span aria-hidden>{icon} {value}</span><SrOnly>{t('common.labelValue', { label, value })}</SrOnly></span>
+  );
   const avatarFor = (id: string): string | undefined => entry?.media?.[id];
 
   const renderMembers = () => {
@@ -151,6 +172,16 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                   {entry?.media?.[`${m.id}#banner`] && (
                     <img src={entry.media[`${m.id}#banner`]} alt="" style={{ display: 'block', width: '100%', maxHeight: 180, borderRadius: 8, objectFit: 'cover', marginBottom: 6 }} />
                   )}
+                  {groupsOf(m.id).length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '4px 0' }}>
+                      {groupsOf(m.id).map(g => (
+                        <span key={g.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--border)', fontSize: 11, color: 'var(--text)' }}>
+                          <span aria-hidden style={{ width: 7, height: 7, borderRadius: 4, background: g.color || 'var(--border)' }} />
+                          {g.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {m.description && (
                     <div style={{ margin: '4px 0' }}><MarkdownText text={m.description} /></div>
                   )}
@@ -159,7 +190,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                       const img = entry?.media?.[`${m.id}#cf:${cf.fieldId || ''}`];
                       return (
                         <div key={i} style={{ margin: '2px 0' }}>
-                          <span style={dim}>{cf.name}: </span>
+                          <span style={dim}>{t('common.labelColon', { label: cf.name })} </span>
                           {img ? (
                             <img src={img} alt={cf.name} style={{ display: 'block', maxWidth: '100%', maxHeight: 220, borderRadius: 8, marginTop: 4, objectFit: 'cover' }} />
                           ) : (
@@ -170,8 +201,10 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                     }
                     return (
                       <p key={i} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
-                        <span style={dim}>{cf.name}: </span>
-                        {typeof cf.value === 'boolean' ? (cf.value ? '✓' : '✕') : String(cf.value ?? '')}
+                        <span style={dim}>{t('common.labelColon', { label: cf.name })} </span>
+                        {typeof cf.value === 'boolean'
+                          ? <span role="img" aria-label={cf.value ? t('common.yes') : t('common.no')}>{cf.value ? '✓' : '✕'}</span>
+                          : fmtFieldValue(cf.type as CustomFieldType, cf.value)}
                       </p>
                     );
                   })}
@@ -183,7 +216,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                       {(m.connections || []).map(c => (
                         <p key={c.id} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
                           <span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: c.color || 'var(--border)', marginRight: 6 }} />
-                          <span style={dim}>{c.labelKey ? t(c.labelKey, { defaultValue: c.label }) : c.label}: </span>
+                          <span style={dim}>{t('common.labelColon', { label: c.labelKey ? t(c.labelKey, { defaultValue: c.label }) : c.label })} </span>
                           {c.otherName}
                           {c.note ? <span style={{ ...dim, fontStyle: 'italic' }}>{'  ·  ' + c.note}</span> : null}
                         </p>
@@ -213,7 +246,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     return (
       <div>
         {groupPath.length > 0 && (
-          <Btn onClick={() => setGroupPath(groupPath.slice(0, -1))}>← {t('common.back')}</Btn>
+          <Btn onClick={() => setGroupPath(groupPath.slice(0, -1))}><span aria-hidden>←</span> {t('common.back')}</Btn>
         )}
         {children.map(g => (
           <button
@@ -248,9 +281,9 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     const tierLine = (mood?: string, location?: string, energy?: number, note?: string) =>
       (mood || location || energy || note) ? (
         <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
-          {mood && <span>😊 {mood}</span>}
-          {location && <span>📍 {location}</span>}
-          {energy ? <span>⚡ {energy}/10</span> : null}
+          {mood && detail('😊', t('modal.mood'), translateMood(mood, t))}
+          {location && detail('📍', t('modal.location'), location)}
+          {energy ? detail('⚡', t('energy.label'), t('energy.outOfTen', { value: fmtNum(energy, 0) })) : null}
           {note && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{note}</span>}
         </div>
       ) : null;
@@ -269,7 +302,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
             {(e.coFrontIds || []).length > 0 && (
               <div style={{ marginTop: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coFront')}:</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.labelColon', { label: t('tier.coFront') })}</span>
                   {chips(e.coFrontIds)}
                 </div>
                 {tierLine(e.coFrontMood, e.coFrontLocation, e.coFrontEnergy, e.coFrontNote)}
@@ -278,7 +311,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
             {(e.coConsciousIds || []).length > 0 && (
               <div style={{ marginTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coConShort')}:</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.labelColon', { label: t('tier.coConShort') })}</span>
                   {chips(e.coConsciousIds)}
                 </div>
                 {tierLine(e.coConsciousMood, e.coConsciousLocation, e.coConsciousEnergy, e.coConsciousNote)}
@@ -291,7 +324,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
   };
 
   const renderJournal = () => {
-    const list: MirrorJournalEntry[] = (Array.isArray(entry?.data) ? (entry!.data as MirrorJournalEntry[]) : []).filter(e => e && !e.password);
+    const list: MirrorJournalEntry[] = (Array.isArray(entry?.data) ? (entry!.data as MirrorJournalEntry[]) : []).filter(e => !!e);
     if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
     const sorted = [...list].sort(
       (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.timestamp || 0) - (a.timestamp || 0),
@@ -308,7 +341,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
             }}
             style={{ display: 'block', width: '100%', background: 'none', border: 'none', borderTop: '1px solid var(--border)', padding: '10px 0', cursor: 'pointer', textAlign: 'left' }}>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-              {e.password && !unlocked[e.id] ? '🔒 ' : ''}{e.title || fmtTime(e.timestamp || 0)}
+              {e.password && !unlocked[e.id] ? <><span aria-hidden>🔒 </span><SrOnly>{t('journal.lockedLabel')}</SrOnly></> : ''}{e.title || fmtTime(e.timestamp || 0)}
             </span>
             {e.timestamp ? <span style={{ display: 'block', ...dim }}>{fmtTime(e.timestamp)}</span> : null}
           </button>
@@ -319,7 +352,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
 
   const body = () => {
     if (!entry) {
-      return <p style={dim}>{online ? t('network.mirrorLoading') : t('network.mirrorEmptyOffline')}</p>;
+      return <p role="status" style={dim}>{online ? t('network.mirrorLoading') : t('network.mirrorEmptyOffline')}</p>;
     }
     if (entry.none) return <p style={dim}>{t('network.mirrorNothing')}</p>;
     if (feature === 'planner') {
@@ -351,7 +384,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                 <div key={String(r?.id || r?.title)} style={{ ...card, opacity: r?.enabled === false ? 0.5 : 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{String(r?.title || '')}</div>
                   {Array.isArray(r?.times) && r.times.length > 0 && (
-                    <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{r.times.join('  ·  ')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{r.times.map((tm: string) => fmtClockHHMM(String(tm))).join('  ·  ')}</div>
                   )}
                   {r?.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{String(r.notes)}</div>}
                 </div>
@@ -428,12 +461,12 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
     <>
       <Modal
         open={open && !openEntry}
-        title={`${displayName} — ${featureLabel}`}
+        title={t('network.mirrorTitle', { name: displayName, feature: featureLabel })}
         onClose={onClose}
         footer={<Btn onClick={() => request()} disabled={!online || loading}>{loading ? t('network.mirrorLoading') : t('network.mirrorRefresh')}</Btn>}>
-        {!online && entry && <p style={{ ...dim, marginTop: 0 }}>{t('network.mirrorOffline')}</p>}
+        {!online && entry && <p role="status" style={{ ...dim, marginTop: 0 }}>{t('network.mirrorOffline')}</p>}
         {entry?.fetchedAt ? (
-          <p style={{ ...dim, marginTop: 0 }}>{t('network.mirrorUpdated', { time: fmtTime(entry.fetchedAt) })}</p>
+          <p role="status" style={{ ...dim, marginTop: 0 }}>{t('network.mirrorUpdated', { time: fmtTime(entry.fetchedAt) })}</p>
         ) : null}
         {body()}
       </Modal>
@@ -455,7 +488,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
               placeholder={t('journal.password', { defaultValue: 'Password' })}
               type="password"
             />
-            {pwError && <p style={{ fontSize: 12, color: 'var(--danger)' }}>{t('journal.wrongPassword', { defaultValue: 'Incorrect password.' })}</p>}
+            {pwError && <p role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{t('journal.wrongPassword', { defaultValue: 'Incorrect password.' })}</p>}
             <Btn
               onClick={() => {
                 if (openEntry && pwInput === openEntry.password) {

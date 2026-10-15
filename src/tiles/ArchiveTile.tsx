@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/appStore';
 
@@ -16,7 +15,7 @@ export default function ArchiveTile({ onClick }: Props) {
           <span className="tile__empty">{t('members.noArchived')}</span>
         ) : (
           <span style={{ fontSize: 13, color: 'var(--dim)' }}>
-            {t('members.archived')} ({archived.length})
+            {t('members.archivedCount', { count: archived.length })}
           </span>
         )}
       </div>

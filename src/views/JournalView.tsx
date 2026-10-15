@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMatchesSearch, tagKey, truncateRunes } from '../utils';
+import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMatchesSearch, tagKey, truncateRunes, nameCompare } from '../utils';
 import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, SrOnly, clickable , tabListKeyDown } from '../components/ui';
 import { MarkdownText } from '../components/MarkdownText';
 import { useAppStore } from '../store/appStore';
 
@@ -62,11 +62,12 @@ export default function JournalView({ onUpdate }: Props) {
   useEffect(() => { if (!system.journalPassword) setJournalUnlocked(true); }, [system.journalPassword]);
 
   const getMember = (id: string) => members.find(m => m.id === id);
+  const jid = useId();
 
   const allTags = useMemo(() => {
     const seen = new Map<string, string>();
     journal.forEach(e => e.hashtags?.forEach(tag => { const k = tagKey(tag); if (!seen.has(k)) seen.set(k, tag); }));
-    return [...seen.values()].sort((a, b) => { const ka = tagKey(a), kb = tagKey(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+    return [...seen.values()].sort((a, b) => nameCompare(tagKey(a), tagKey(b)));
   }, [journal]);
   const tagFilterKey = tagFilter ? tagKey(tagFilter) : '';
 
@@ -228,10 +229,11 @@ export default function JournalView({ onUpdate }: Props) {
         <h2 style={{ fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)', marginBottom: 6 }}>{t('journal.locked')}</h2>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 18 }}>{t('journal.enterPasswordToContinue')}</p>
         <input className="field__input" type="password" value={globalPw} aria-label={t('journal.password')} placeholder={t('journal.password')} autoFocus
+          aria-invalid={globalPwError} aria-describedby={globalPwError ? `${jid}-gpw` : undefined}
           onChange={e => { setGlobalPw(e.target.value); setGlobalPwError(false); }}
           onKeyDown={e => { if (e.key === 'Enter') unlockJournal(); }}
           style={{ width: '100%', marginBottom: 6, ...(globalPwError ? { borderColor: 'var(--danger)' } : {}) }} />
-        {globalPwError && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{t('journal.incorrectPassword')}</div>}
+        {globalPwError && <div role="alert" id={`${jid}-gpw`} style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{t('journal.incorrectPassword')}</div>}
         <Btn variant="solid" onClick={unlockJournal} style={{ width: '100%', marginTop: 8 }}>{t('journal.unlockJournal')}</Btn>
       </div>
     );
@@ -239,9 +241,9 @@ export default function JournalView({ onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
-      <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
+      <div role="tablist" style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
         {(['entries', 'templates'] as TabId[]).map(id => (
-          <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)} style={{
+          <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} onKeyDown={tabListKeyDown} style={{
             padding: '10px 20px', fontSize: 13, fontWeight: tab === id ? 600 : 400, cursor: 'pointer',
             color: tab === id ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
             borderBottom: `2px solid ${tab === id ? 'var(--accent)' : 'transparent'}`,
@@ -295,14 +297,19 @@ export default function JournalView({ onUpdate }: Props) {
               minHeight: 'auto', padding: 16, cursor: 'pointer',
               ...(entry.pinned ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--card))', borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border))' } : {}),
             }}
-              {...clickable(() => openEdit(entry))}>
+              onClick={() => openEdit(entry)}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{entry.pinned ? '📌 ' : ''}{locked ? '🔒 ' : ''}{entry.title}</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }} role="button" tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openEdit(entry); } }}>
+                  {entry.pinned ? <><span aria-hidden>📌 </span><SrOnly>{t('journal.pinnedLabel')}</SrOnly></> : ''}
+                  {locked ? <><span aria-hidden>🔒 </span><SrOnly>{t('journal.lockedLabel')}</SrOnly></> : ''}
+                  {entry.title}
+                </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
                   <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                     {fmtDate(entry.timestamp)}
                   </span>
-                  <button onClick={ev => togglePin(entry, ev)} aria-label={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} aria-pressed={!!entry.pinned} title={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} style={{
+                  <button onClick={ev => togglePin(entry, ev)} aria-label={t('journal.pinNamed', { title: entry.title })} aria-pressed={!!entry.pinned} title={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} style={{
                     background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: 12,
                     filter: entry.pinned ? 'none' : 'grayscale(1) opacity(0.5)',
                   }}>📌</button>
@@ -443,8 +450,8 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.authors')} />
         <input className="field__input" value={authorSearch} onChange={e => setAuthorSearch(e.target.value)}
           aria-label={t('members.search')} placeholder={t('members.search')} style={{ marginBottom: 8 }} />
-        {filteredAuthors.length > 0 && <label className="field__label">{t('members.title')}</label>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: filteredFacetAuthors.length > 0 ? 8 : 14 }}>
+        {filteredAuthors.length > 0 && <div className="field__label" id={`${jid}-authors`}>{t('members.title')}</div>}
+        <div role="group" aria-labelledby={filteredAuthors.length > 0 ? `${jid}-authors` : undefined} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: filteredFacetAuthors.length > 0 ? 8 : 14 }}>
           {filteredAuthors.slice(0, 12).map(m => {
             const active = authorIds.includes(m.id);
             return (
@@ -461,8 +468,8 @@ export default function JournalView({ onUpdate }: Props) {
         </div>
         {filteredFacetAuthors.length > 0 && (
           <>
-            <label className="field__label">{t('members.facets')}</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+            <div className="field__label" id={`${jid}-facets`}>{t('members.facets')}</div>
+            <div role="group" aria-labelledby={`${jid}-facets`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
               {filteredFacetAuthors.slice(0, 12).map(m => {
                 const active = authorIds.includes(m.id);
                 return (
@@ -483,7 +490,7 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {hashtags.map(tag => (
-            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
+            <button key={tag} className="chip" aria-label={t('common.removeNamed', { name: tag })} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
               onClick={() => setHashtags(hashtags.filter(t => t !== tag))}>
               <span style={{ color: 'var(--info)' }}>{tag}</span>
               <span className="chip__x" aria-hidden>✕</span>
@@ -514,7 +521,7 @@ export default function JournalView({ onUpdate }: Props) {
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {tplTags.map(tag => (
-            <button key={tag} className="chip" aria-label={`${t('common.remove')} ${tag}`} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
+            <button key={tag} className="chip" aria-label={t('common.removeNamed', { name: tag })} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
               onClick={() => setTplTags(tplTags.filter(t => t !== tag))}>
               <span style={{ color: 'var(--info)' }}>{tag}</span>
               <span className="chip__x" aria-hidden>✕</span>
@@ -551,10 +558,11 @@ export default function JournalView({ onUpdate }: Props) {
         }>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12 }}>{t('journal.unlockPasswordPrompt')}</p>
         <input className="field__input" type="password" value={entryPw} aria-label={t('journal.password')} placeholder={t('journal.password')} autoFocus
+          aria-invalid={entryPwError} aria-describedby={entryPwError ? `${jid}-epw` : undefined}
           onChange={e => { setEntryPw(e.target.value); setEntryPwError(false); }}
           onKeyDown={e => { if (e.key === 'Enter') confirmEntryPw(); }}
           style={{ width: '100%', ...(entryPwError ? { borderColor: 'var(--danger)' } : {}) }} />
-        {entryPwError && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{t('journal.incorrectPassword')}</div>}
+        {entryPwError && <div role="alert" id={`${jid}-epw`} style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{t('journal.incorrectPassword')}</div>}
       </Modal>
 
       <ConfirmDialog open={!!confirmDelete} title={t('journal.deleteEntry')} message={t('journal.areYouSure')}

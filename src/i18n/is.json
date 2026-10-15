@@ -42,7 +42,9 @@
     "skyBlue": "Himinblátt",
     "orchid": "Brönugras",
     "lime": "Límóna",
-    "sand": "Sandur"
+    "sand": "Sandur",
+    "customCount": "Sérsniðið {{count}}/{{max}}",
+    "customSlotValue": "Sérsniðið {{n}}, {{hex}}"
   },
   "common": {
     "durDaysHours": "{{d}} d. {{h}} klst.",
@@ -87,7 +89,20 @@
     "untitled": "Án titils",
     "notInExport": "Ekki í útflutningi",
     "ok": "Í lagi",
-    "edit": "Breyta"
+    "errorCode": "Villukóði: {{code}}",
+    "edit": "Breyta",
+    "removeNamed": "Fjarlægja {{name}}",
+    "dragReorderNamed": "Dragðu til að endurraða {{name}}",
+    "editNamed": "Breyta {{name}}",
+    "deleteNamed": "Eyða {{name}}",
+    "labelValue": "{{label}}: {{value}}",
+    "included": "Innifalið",
+    "yes": "Já",
+    "no": "Nei",
+    "addNamed": "Bæta við {{name}}",
+    "labelColon": "{{label}}:",
+    "moveUpNamed": "Færa {{name}} upp",
+    "moveDownNamed": "Færa {{name}} niður"
   },
   "errorBoundary": {
     "title": "Eitthvað fór úrskeiðis",
@@ -124,7 +139,10 @@
     "statusesDesc": "Stöður lýsa því hvernig þér líður — eins og Sofandi, Að vinna eða Kvíðin. Veldu þær þegar þú uppfærir stöðuna þína.",
     "noStatuses": "Engar stöður enn. Bættu einni við til að byrja.",
     "activeStatus": "Virk",
-    "favoriteColor": "Uppáhaldslitur"
+    "favoriteColor": "Uppáhaldslitur",
+    "defaultSelfName": "Ég",
+    "statusesCount": "Stöður ({{count}})",
+    "deleteActiveHint": "Fjarlægðu þessa stöðu úr núverandi stöðu þinni áður en þú eyðir henni."
   },
   "settings": {
     "observatory": "Athugunarstöðvar-viðmót (singlet)",
@@ -140,6 +158,7 @@
     "primaryShort": "Aðal",
     "coFrontShort": "Sam-front",
     "coConShort": "Sam-meðv",
+    "assignedTo": "({{tier}})",
     "editTier": "Breyta {{tier}}"
   },
   "setup": {
@@ -160,7 +179,10 @@
     "noNote": "Engin athugasemd. Ýttu á ✎ til að bæta við.",
     "clearFront": "Hreinsa front",
     "clearFrontMsg": "Þetta hreinsar öll stig og skráir lok núverandi lotu. Halda áfram?",
-    "clearFrontTitle": "Hreinsa front?"
+    "clearFrontTitle": "Hreinsa front?",
+    "frontingForSince": "Frontar í {{dur}} · síðan {{time}}",
+    "editDetailsFor": "Breyta líðan og staðsetningu fyrir {{tier}}",
+    "editNoteFor": "Breyta athugasemd fyrir {{tier}}"
   },
   "members": {
     "title": "Meðlimir",
@@ -226,7 +248,22 @@
     "frontingLockTitle": "Núna að fronta",
     "frontingLockMsg": "Ekki er hægt að setja meðlim í safn eða eyða á meðan viðkomandi frontar. Taktu viðkomandi fyrst úr fronti.",
     "archive": "Setja í safn",
-    "recentlyDeleted": "Nýlega eytt"
+    "recentlyDeleted": "Nýlega eytt",
+    "unnamed": "Nafnlaus meðlimur",
+    "archivedCount": "Í safni ({{count}})",
+    "viewProfileNamed": "Skoða prófíl {{name}}",
+    "titleCount": "Meðlimir ({{count}})",
+    "facetsCount": "Hliðar ({{count}})",
+    "customFrontsCount": "Sérsniðin front ({{count}})",
+    "removeFromFrontNamed": "Fjarlægja {{name}} úr fronti",
+    "addToFrontNamed": "Bæta {{name}} í front",
+    "restoreNamed": "Endurheimta {{name}}",
+    "bulkArchiveMsg_one": "Setja {{count}} meðlim í safn? Hægt er að endurheimta hann síðar.",
+    "bulkArchiveMsg_other": "Setja {{count}} meðlimi í safn? Hægt er að endurheimta þá síðar.",
+    "bulkRestoreMsg_one": "Endurheimta {{count}} meðlim sem virkan?",
+    "bulkRestoreMsg_other": "Endurheimta {{count}} meðlimi sem virka?",
+    "bulkDeleteMsg_one": "Eyða {{count}} meðlim varanlega? Þetta er ekki hægt að afturkalla.",
+    "bulkDeleteMsg_other": "Eyða {{count}} meðlimum varanlega? Þetta er ekki hægt að afturkalla."
   },
   "history": {
     "title": "Saga",
@@ -252,7 +289,11 @@
     "allMembers": "Allir meðlimir",
     "byStatus": "Eftir stöðu",
     "noHistorySinglet": "Engin saga enn. Stöðuuppfærslur birtast hér sjálfkrafa.",
-    "statusHistory": "Stöðusaga"
+    "statusHistory": "Stöðusaga",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "Eyða færslu frá {{time}}",
+    "deleteEntryStep": "Eyða færslu ({{step}}/{{total}})"
   },
   "journal": {
     "locked": "Dagbók læst",
@@ -285,12 +326,16 @@
     "templateName": "Nafn sniðmáts *",
     "templateNamePlaceholder": "t.d. Morgunsíður",
     "templateTitle": "Titill færslu (forstilltur)",
-    "templateBody": "Meginmál færslu (forstillt)"
+    "templateBody": "Meginmál færslu (forstillt)",
+    "pinnedLabel": "Fest",
+    "lockedLabel": "Læst",
+    "pinNamed": "Festa {{title}}"
   },
   "share": {
     "importStopping": "Lýk þessu skrefi, stöðva svo…",
     "importStopped": "Innflutningur stöðvaður. Engu var breytt.",
     "importCancelHint": "Stöðvast þegar núverandi skrefi lýkur. Skref sem er þegar lokið haldast.",
+    "importCancelTitle": "Stöðva innflutning?",
     "progressSavingMembers": "Endurheimti meðlimi…",
     "progressJournal": "Endurheimti dagbók…",
     "progressHistory": "Endurheimti frontsögu…",
@@ -392,7 +437,13 @@
     "membersCountSimple": "{{count}} meðlimir",
     "restoreDesc": "Hladdu inn áður útfluttu JSON-afriti.",
     "spMergeDesc": "Sameinaðu Simply Plural-afritsgögn við núverandi kerfi þitt.",
-    "banners": "Borðar meðlima"
+    "banners": "Borðar meðlima",
+    "psFilterName": "PluralSpace-útflutningur (.zip eða data.json)",
+    "plurallogFilterName": "PluralLog-útflutningur (.zip)",
+    "backupFileSuffix": "afrit",
+    "errUnexpected": "Eitthvað fór úrskeiðis. Athugaðu skrána og reyndu aftur.",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit-innflutningur (tóki)"
   },
   "hub": {
     "addHistoryDesc": "Bættu handvirkt við frontsögufærslu aftur í tímann.",
@@ -416,8 +467,6 @@
     "retroHistory": "Retro-saga",
     "statistics": "Tölfræði",
     "systemChat": "Kerfisspjall",
-    "discord": "Discord",
-    "discordBlurb": "Samfélagsspjall og aðstoð",
     "dashboard": "← Stjórnborð",
     "supportPS": "Styðja Plural Star",
     "supportPSBlurb": "Buy Me a Coffee",
@@ -425,7 +474,12 @@
     "creditLogo": "Plural Star-merki",
     "creditIos": "Plural Star iOS-útgáfa",
     "creditsBlurb": "Framlög samfélagsins",
-    "archive": "Safn"
+    "archive": "Safn",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
+    "discord": "Discord",
+    "discordBlurb": "Samfélagsspjall og aðstoð",
+    "overlapEntry": "{{names}} ({{time}})"
   },
   "editor": {
     "urlPlaceholder": "URL hér",
@@ -443,7 +497,11 @@
     "toolCode": "Kóði",
     "brokenImage": "[biluð mynd]",
     "imageUnavailable": "[mynd ekki tiltæk]",
-    "spoiler": "Spilliefni, smelltu til að sýna"
+    "spoiler": "Spilliefni, smelltu til að sýna",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "changePfp": "Breyta prófílmynd",
@@ -474,6 +532,8 @@
     "hue": "Litblær",
     "invalidHex": "Ógildur hex-litur",
     "customColor": "Sérsniðinn litur",
+    "emoji": "Tjákn",
+    "emojiPlaceholder": "t.d. 🦊",
     "descriptionBio": "Lýsing / kynning",
     "descriptionPlaceholder": "Aðeins um þennan headmate… límdu mynda-/GIF-slóðir beint inn",
     "preview": "Forskoðun",
@@ -540,14 +600,20 @@
     "removePfp": "Fjarlægja mynd",
     "viewPfp": "Skoða mynd",
     "viewPfpOf": "Mynd af {{name}}",
-    "fancyPants": "Fancy Pants",
+    "fancyPants": "Myndrænn ritill",
     "selectedText": "texti",
     "searchAuthors": "Leita að höfundum…",
     "textSize": "Textastærð",
     "textSizeDesc": "Stilltu textastærð í öllu forritinu.",
     "textScaleNormal": "Venjuleg",
     "textScaleLarge": "Stór",
-    "textScaleExtraLarge": "Mjög stór"
+    "textScaleExtraLarge": "Mjög stór",
+    "cropMove": "Færa skurðarsvæði (örvatakkar)",
+    "cropResizeTopLeft": "Breyta stærð frá efra vinstra horni (örvatakkar)",
+    "cropResizeTopRight": "Breyta stærð frá efra hægra horni (örvatakkar)",
+    "cropResizeBottomLeft": "Breyta stærð frá neðra vinstra horni (örvatakkar)",
+    "cropResizeBottomRight": "Breyta stærð frá neðra hægra horni (örvatakkar)",
+    "fontDefault": "Sjálfgefið"
   },
   "notification": {
     "mood": "Líðan: {{mood}}",
@@ -558,7 +624,8 @@
     "coFront": "Sam-front: {{names}}",
     "coConscious": "Sam-meðvitund: {{names}}",
     "cfShort": "SF: {{names}}",
-    "ccShort": "SM: {{names}}"
+    "ccShort": "SM: {{names}}",
+    "tierLine": "{{tier}}: {{names}}"
   },
   "language": {
     "en": "English",
@@ -618,7 +685,16 @@
     "subsystem": "Undirkerfi",
     "linkedFronter": "Tengdur frontari",
     "noLinkedFronter": "Enginn",
-    "linkedSubsystems": "Tengd undirkerfi"
+    "linkedSubsystems": "Tengd undirkerfi",
+    "showSubgroups": "Undirhópar {{name}} ({{count}} valin)",
+    "linkedToNamed": "{{group}}, tengdur frontari: {{name}}",
+    "deleteWithChildrenMsg_one": "Þetta inniheldur {{count}} undirlið. Halda honum og færa upp um eitt stig, eða eyða öllu?",
+    "deleteWithChildrenMsg_other": "Þetta inniheldur {{count}} undirliði. Halda þeim og færa upp um eitt stig, eða eyða öllu?",
+    "memberCount_one": "{{count}} meðlimur",
+    "memberCount_other": "{{count}} meðlimir",
+    "moveNamed": "Færa {{name}}",
+    "addMembersTo": "Bæta meðlimum við {{name}}",
+    "kindToggle": "Tegund: {{kind}} (virkjaðu til að skipta)"
   },
   "systemManager": {
     "title": "Kerfisstjóri",
@@ -700,7 +776,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "Áminning skipuleggjara",
-    "reminderTitlePlaceholder": "Hvað á hún að segja?"
+    "reminderTitlePlaceholder": "Hvað á hún að segja?",
+    "dayCellLabel": "{{date}}, {{appts}}",
+    "reminderEnabledFor": "Áminning fyrir {{title}}"
   },
   "mailbox": {
     "title": "Pósthólf",
@@ -724,7 +802,14 @@
     "unreadCount_one": "{{count}} ólesið",
     "unreadCount": "{{count}} ólesin",
     "deleteTitle": "Eyða skilaboðum",
-    "deleteMsg": "Fjarlægja þessi skilaboð? Þetta er ekki hægt að afturkalla."
+    "deleteMsg": "Fjarlægja þessi skilaboð? Þetta er ekki hægt að afturkalla.",
+    "allOthersCount": "Allir aðrir Meðlimir ({{count}})",
+    "lockedLabel": "Læst",
+    "lockButtonLocked": "Lás pósthólfs (á)",
+    "lockButtonUnlocked": "Lás pósthólfs (af)",
+    "fromName": "Frá: {{name}}",
+    "deleteFrom": "Eyða skilaboðum frá {{name}}",
+    "unlockTitle": "Aflæsa pósthólfi {{name}}"
   },
   "network": {
     "cloudConfirmTitle": "Staðfesta aftur",
@@ -738,6 +823,7 @@
     "cloudErrRate": "Of margar tilraunir. Bíddu í mínútu og reyndu aftur.",
     "cloudErrFull": "Hvelfingin eða hnúturinn er uppiskroppa með pláss.",
     "cloudErrTooLarge": "Sleppt, stærra en 25 MB: {{keys}}",
+    "cloudErrOverQuota": "Sleppt, hvelfingin er uppiskroppa með pláss: {{keys}}",
     "cloudErrBadPassword": "Hvelfingin er til, en þetta lykilorð opnar hana ekki.",
     "cloudErrCorrupt": "Ekki tókst að lesa hvelfinguna á þessu tæki. Aftengdu og tengdu aftur með sama lykilorði.",
     "cloudUnavailable": "Hnúturinn sem þú ert tengdur við býður ekki upp á Skýjaþjónustur.",
@@ -849,7 +935,32 @@
     "syncRoleMismatchMsg": "Þú og {{device}} völduð bæði sömu átt, svo fyrsta afritinu var sleppt. Nýjar breytingar samstillast samt. Til að afrita allt: fjarlægðu tenginguna og paraðu aftur — veldu \"senda\" á öðru tækinu og \"taka á móti\" á hinu.",
     "syncCloneSending": "Sendi fyrsta afrit…",
     "syncCloneReceiving": "Tek á móti fyrsta afriti…",
-    "publishFailed": "Gat ekki birt kóðann þinn — athugaðu tenginguna og reyndu aftur."
+    "publishFailed": "Gat ekki birt kóðann þinn — athugaðu tenginguna og reyndu aftur.",
+    "tileFriends": "Vinir: {{count}}",
+    "tileOnline": "{{count}} nettengd",
+    "tileDevices": "Tengd tæki: {{count}}",
+    "deviceMac": "Mac-tölva",
+    "deviceWindows": "Windows-tölva",
+    "deviceLinux": "Linux-tölva",
+    "deviceDesktop": "Tölva",
+    "defaultSystemName": "Plural Star-notandi",
+    "unnamedDevice": "Tæki",
+    "unnamedFriend": "Vinur",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "Eitthvað fór úrskeiðis í skýjasamstillingu. Reyndu aftur.",
+    "viewSharedNamed": "Skoða það sem {{name}} deilir",
+    "notifyLevelCycle": "Tilkynningar fyrir {{name}}: {{level}}. Virkjaðu til að skipta yfir í {{next}}.",
+    "removeNamed": "Fjarlægja {{name}}",
+    "yourCodeLabel": "Vinakóðinn þinn: {{code}}. Smelltu til að afrita.",
+    "statusLabel": "Netkerfi: {{status}}",
+    "bucketScope": "{{feature}}: {{scope}}",
+    "bucketLabel": "{{name}}. {{scopes}}",
+    "cloneBucketNamed": "Afrita fötu {{name}}",
+    "deleteBucketNamed": "Eyða fötu {{name}}",
+    "bucketPickCount": "{{feature}}: Úrval ({{count}} valin)",
+    "pickerTitle": "{{feature}} — Úrval",
+    "removeDeviceWarn": "Aftengja {{name}}? Það hættir að samstillast við þetta tæki.",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "whiteboard": {
     "clearConfirm2Title": "Ertu viss?",
@@ -869,7 +980,11 @@
     "shapeRect": "Rétthyrningur",
     "shapeEllipse": "Sporbaugur",
     "shapePoly": "Marghyrningur",
-    "bucket": "Fyllifata"
+    "bucket": "Fyllifata",
+    "strokeCount_one": "{{count}} stroka",
+    "strokeCount_other": "{{count}} strokur",
+    "brushSizeN": "Pensilstærð {{size}}",
+    "panHint": "Notaðu örvatakkana til að færa þig um töfluna."
   },
   "systemMap": {
     "showColors": "Litir",
@@ -902,6 +1017,12 @@
     "duplicate": "Þessir meðlimir hafa nú þegar þessi tengsl.",
     "relationships_one": "{{count}} tengsl",
     "relationships": "{{count}} tengsl",
+    "relationships_other": "{{count}} tengsl",
+    "moveHint": "Notaðu örvatakkana til að færa þennan meðlim á kortinu.",
+    "nodeArchived": "{{name}} (í safni)",
+    "nodeHops_one": "{{name}}, {{count}} skref í burtu",
+    "nodeHops_other": "{{name}}, {{count}} skref í burtu",
+    "deleteRelationshipWith": "Eyða tengslum við {{name}}",
     "relationshipOne": "1 tengsl",
     "zoomIn": "Þysja inn",
     "zoomOut": "Þysja út"
@@ -947,7 +1068,11 @@
     "emergencyDesc": "Mikilvægar upplýsingar fyrir viðbragðsaðila. Þegar kveikt er á þessu bætast þær við viðvarandi tilkynninguna.",
     "deleteItemMsg": "Fjarlægja þessa færslu?",
     "medReminderTitle": "Lyfjaáminning",
-    "apptReminderTitle": "Tímaáminning"
+    "apptReminderTitle": "Tímaáminning",
+    "remindersFor": "Áminningar fyrir {{name}}",
+    "apptWhen": "Dagsetning og tími tímapöntunar",
+    "remind15m": "15m",
+    "historyDate": "Dagsetning"
   },
   "stats": {
     "last90": "90 dagar",
@@ -979,7 +1104,13 @@
     "noMoodsRecorded": "Engin líðan skráð enn.",
     "totalFrontTime": "Heildarfronttími",
     "totalSessions": "Heildarlotur",
-    "uniqueFronters": "Einstakir frontarar"
+    "uniqueFronters": "Einstakir frontarar",
+    "showMoreCount": "Sýna meira ({{shown}}/{{total}})",
+    "chartSummary": "{{title}}: {{items}}",
+    "chartItem": "{{label}} ({{value}})",
+    "sessionCount_one": "{{num}} lota",
+    "sessionCount_other": "{{num}} lotur",
+    "avgEnergyValue": "{{num}} /10 orka"
   },
   "chat": {
     "addReaction": "Bæta við viðbragði",
@@ -1005,7 +1136,21 @@
     "archiveChannel": "Setja rás í safn",
     "noMessages": "Engin skilaboð enn.",
     "editingHeader": "Breyti skilaboðum",
-    "editPlaceholder": "Breyta skilaboðum…"
+    "editPlaceholder": "Breyta skilaboðum…",
+    "attachment": "Viðhengi",
+    "channelCount_one": "{{count}} rás",
+    "channelCount_other": "{{count}} rásir",
+    "importedChannel": "Innflutt",
+    "categoryWithCount_one": "{{name}} ({{count}} rás)",
+    "categoryWithCount_other": "{{name}} ({{count}} rásir)",
+    "speakingAsNamed": "Tala sem {{name}}",
+    "messagesIn": "Skilaboð í #{{name}}",
+    "replyQuote": "{{name}}: {{text}}",
+    "imageFrom": "Mynd frá {{name}}",
+    "reactionCount": "{{emoji}}-viðbragð, {{count}}",
+    "replyingToName": "Svara {{name}}",
+    "cancelReply": "Hætta við svar",
+    "cancelEdit": "Hætta við breytingu"
   },
   "customFields": {
     "title": "Sérsniðnir reitir",
@@ -1040,7 +1185,12 @@
     "markdownSupport": "Markdown-stuðningur",
     "markdownLabel": "Markdown",
     "fieldCount_one": "{{count}} skilgreindur",
-    "fieldCount": "{{count}} skilgreindir"
+    "fieldCount": "{{count}} skilgreindir",
+    "ageField": "Aldur",
+    "rangePart": "{{field}} ({{part}})",
+    "fieldTypeFor": "Reitartegund fyrir {{name}}",
+    "moveUpNamed": "Færa {{name}} upp, fyrir ofan {{above}}",
+    "moveDownNamed": "Færa {{name}} niður, fyrir neðan {{below}}"
   },
   "noteboard": {
     "title": "Minnistafla",
@@ -1051,7 +1201,8 @@
     "placeholder": "Skrifaðu athugasemd...",
     "by": "eftir {{name}}",
     "writingAs": "Skrifa sem:",
-    "hasNotes": "{{names}} eiga póst í Pósthólfinu sínu"
+    "hasNotes": "{{names}} eiga póst í Pósthólfinu sínu",
+    "pinned": "Fest"
   },
   "polls": {
     "removeOption": "Fjarlægja valkost",
@@ -1076,13 +1227,20 @@
     "forMember": "Fyrir meðlim:",
     "optionsLabel": "Valkostir",
     "activeCount_one": "{{count}} virk",
-    "activeCount": "{{count}} virkar"
+    "activeCount": "{{count}} virkar",
+    "closePollNamed": "Loka könnun: {{question}}",
+    "reopenPollNamed": "Opna könnun aftur: {{question}}",
+    "optionN": "Valkostur {{n}}",
+    "removeOptionN": "Fjarlægja valkost {{n}}"
   },
   "energy": {
     "label": "Orka",
     "level": "Orkustig",
     "avgEnergy": "Meðalorka",
-    "outOf10": "/10 orka"
+    "outOf10": "/10 orka",
+    "outOfTen": "{{value}}/10",
+    "clear": "Hreinsa orkustig",
+    "levelValue": "Orkustig {{value}}/10"
   },
   "systemProfile": {
     "read": "Lestur",
@@ -1099,7 +1257,8 @@
     "changeAvatar": "Breyta mynd",
     "changeBanner": "Breyta borða",
     "removeAvatar": "Fjarlægja mynd",
-    "removeBanner": "Fjarlægja borða"
+    "removeBanner": "Fjarlægja borða",
+    "avatarAndBanner": "Kerfismynd · Kerfisborði"
   },
   "frontSort": {
     "label": "Raða",
@@ -1132,5 +1291,55 @@
     "Irritable": "Pirruð/Pirraður",
     "Sad": "Döpur/Dapur",
     "Focused": "Einbeitt(ur)"
+  },
+  "dnd": {
+    "instructions": "Ýttu á bilslá eða Enter til að taka upp atriði. Notaðu örvatakkana til að færa það og ýttu svo á bilslá eða Enter til að sleppa því, eða Escape til að hætta við.",
+    "picked": "{{name}} tekið upp.",
+    "over": "{{name}} er yfir {{over}}.",
+    "notOver": "{{name}} er ekki lengur yfir sleppisvæði.",
+    "dropped": "{{name}} var sleppt yfir {{over}}.",
+    "droppedNoTarget": "{{name}} var sleppt.",
+    "cancelled": "Hætt var við að færa {{name}}."
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON-skrár",
+    "textFiles": "Textaskrár",
+    "allFiles": "Allar skrár",
+    "backup": "Afrit",
+    "images": "Myndir"
+  },
+  "tray": {
+    "open": "Opna {{app}}",
+    "quit": "Hætta"
+  },
+  "menu": {
+    "edit": "Breyta"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "Málglöð/Málglaður",
+      "nonVerbal": "Án tals",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "Óskýr",
+      "blendy": "Blönduð/Blandaður",
+      "rapidSwitching": "Hröð skipti",
+      "foggy": "Þokukennd(ur)",
+      "grounded": "Jarðtengd(ur)",
+      "dissociated": "Aftengd(ur)",
+      "anxious": "Kvíðin(n)",
+      "depressed": "Þunglynd(ur)",
+      "cheerful": "Kát(ur)",
+      "happy": "Glöð/Glaður",
+      "sad": "Döpur/Dapur",
+      "crisis": "Krísa",
+      "melancholy": "Angurvær",
+      "stimming": "Sjálfsörvun",
+      "stressed": "Stressuð/Stressaður",
+      "working": "Í vinnu",
+      "traveling": "Á ferðalagi",
+      "sleeping": "Sofandi",
+      "hyperfocus": "Ofureinbeiting"
+    }
   }
 }

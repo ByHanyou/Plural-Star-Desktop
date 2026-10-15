@@ -3,8 +3,14 @@ import { Member, ExportPayload, parallelMap, fileSlug } from '../utils';
 import { detectPluralSpace } from '../importers';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { extFromDataUri, dataUriToBytes, u8ToBase64, bytesToDataUri, buildPluralKitExport } from '../exportUtils';
-import { ImportCtx } from './ctx';
+import { ImportCtx, importErrorText } from './ctx';
 import { isImportStopped } from './progress';
+
+const saveFilters = (t: ImportCtx['t']) => [
+  { name: t('fileDialog.backup'), extensions: ['zip'] },
+  { name: t('fileDialog.jsonFiles'), extensions: ['json'] },
+  { name: t('fileDialog.allFiles'), extensions: ['*'] },
+];
 
 export const handleExport = async (ctx: ImportCtx) => {
   const { showExportOptions, exportSel, channels, members, system, history, journal, settings, palettes, showStatus, t } = ctx;
@@ -99,8 +105,8 @@ export const handleExport = async (ctx: ImportCtx) => {
       ...mediaFiles,
     });
     const slug = fileSlug(system?.name || '');
-    const defaultName = `${slug}-backup-${new Date().toISOString().slice(0, 10)}.zip`;
-    const filePath = await window.electronAPI.dialog.saveFile(defaultName);
+    const defaultName = `${slug}-${fileSlug(t('share.backupFileSuffix'), 'backup')}-${new Date().toISOString().slice(0, 10)}.zip`;
+    const filePath = await window.electronAPI.dialog.saveFile(defaultName, saveFilters(t));
     if (!filePath) return;
 
     await window.electronAPI.file.writeBytes(filePath, u8ToBase64(zipBytes));
@@ -112,7 +118,7 @@ export const handlePluralKitExport = async (ctx: ImportCtx) => {
     const json = JSON.stringify(buildPluralKitExport(system, members, history), null, 2);
     const slug = fileSlug(system?.name || '');
     const defaultName = `${slug}-pluralkit-${new Date().toISOString().slice(0, 10)}.json`;
-    const filePath = await window.electronAPI.dialog.saveFile(defaultName);
+    const filePath = await window.electronAPI.dialog.saveFile(defaultName, saveFilters(t));
     if (!filePath) return;
     await window.electronAPI.file.writeBytes(filePath, u8ToBase64(strToU8(json)));
     showStatus(t('share.pkExportDone', { defaultValue: 'PluralKit export saved' }));
@@ -163,12 +169,12 @@ export const handlePickBackup = async (ctx: ImportCtx) => {
           setRestoreData(data);
           setRestoreFile(file.name);
         } catch (e: any) {
-          showStatus(t('share.statusImportError', {msg: e?.message || String(e)}), true);
+          showStatus(t('share.statusImportError', {msg: importErrorText(e, t)}), true);
         }
       };
       input.click();
     } catch (e: any) {
-      showStatus(t('share.statusImportError', {msg: e.message}), true);
+      showStatus(t('share.statusImportError', {msg: importErrorText(e, t)}), true);
     }
 };
 
@@ -374,7 +380,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
           count: ctx.control?.completed.length ?? 0,
         }));
       } else {
-        showStatus(t('share.statusRestoreError', {msg: e.message}), true);
+        showStatus(t('share.statusRestoreError', {msg: importErrorText(e, t)}), true);
       }
     } finally {
       setImporting(false);

@@ -7,9 +7,9 @@ export interface ImportProgress {
   stopping?: boolean;
 }
 
-export type ProgressSetter = (p: ImportProgress) => void;
+type ProgressSetter = (p: ImportProgress) => void;
 
-export class ImportStopped extends Error {
+class ImportStopped extends Error {
   constructor() {
     super('import stopped by user');
     this.name = 'ImportStopped';

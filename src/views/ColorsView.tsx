@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Btn, Modal, ConfirmDialog, ColorPicker } from '../components/ui';
 import { store, KEYS } from '../storage';
@@ -79,7 +79,7 @@ export default function ColorsView() {
           const c = customColors[i];
           return c ? (
             <button key={i} onClick={() => openSlot(i)}
-              aria-label={`${t('colors.customSlot', {n: i + 1, defaultValue: `Custom ${i + 1}`})}, ${c}`} title={c}
+              aria-label={t('colors.customSlotValue', {n: i + 1, hex: c, defaultValue: 'Custom {{n}}, {{hex}}'})} title={c}
               style={{ width: 32, height: 32, borderRadius: '50%', background: c, border: '1px solid var(--border)', cursor: 'pointer' }} />
           ) : (
             <button key={i} onClick={() => openSlot(i)}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HistoryEntry, Member, FrontTierKey, fmtTime, fmtDur, getLocale, getInitials, nameCompare, buildEffectiveEnd } from '../utils';
 
@@ -101,7 +101,7 @@ export default function FrontTimeline({ history, members, singlet = false }: {
   };
 
   const spanLabel = (sp: Span): string =>
-    `${fmtTime(sp.start)} → ${sp.open && live ? t('history.now') : fmtTime(sp.end)} (${fmtDur(sp.start, sp.end)})`;
+    t('history.tlSpan', { start: fmtTime(sp.start), end: sp.open && live ? t('history.now') : fmtTime(sp.end), dur: fmtDur(sp.start, sp.end) });
 
   const barLabel = (member: Member, sp: Span): string => {
     const tierLine = singlet ? null : t(sp.tier === 'primary' ? 'tier.primaryFront' : sp.tier === 'coFront' ? 'tier.coFront' : 'tier.coConscious');
@@ -122,8 +122,8 @@ export default function FrontTimeline({ history, members, singlet = false }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <button className="btn btn--ghost" style={{ padding: '7px 12px', fontSize: 13 }}
           aria-label={t('history.tlEarlier')} title={t('history.tlEarlier')} onClick={goEarlier}>‹</button>
-        <span style={{ flex: 1, textAlign: 'center', fontSize: 12, color: 'var(--dim)' }}>
-          {`${tickLabel(start)} → ${live ? t('history.tlNow') : tickLabel(end)}`}
+        <span style={{ flex: 1, textAlign: 'center', fontSize: 12, color: 'var(--dim)' }} aria-live="polite">
+          {t('history.tlRange', { start: tickLabel(start), end: live ? t('history.tlNow') : tickLabel(end) })}
         </span>
         <button className="btn btn--ghost" style={{ padding: '7px 12px', fontSize: 13, opacity: live ? 0.4 : 1 }}
           aria-label={t('history.tlLater')} title={t('history.tlLater')} disabled={live} onClick={goLater}>›</button>
@@ -153,7 +153,7 @@ export default function FrontTimeline({ history, members, singlet = false }: {
                 {row.member.avatar ? (
                   <img src={row.member.avatar} alt="" style={{ width: 18, height: 18, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
-                  <span style={{ width: 18, height: 18, borderRadius: 9, background: row.member.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700, flexShrink: 0 }}>
+                  <span aria-hidden style={{ width: 18, height: 18, borderRadius: 9, background: row.member.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700, flexShrink: 0 }}>
                     {getInitials(row.member.name)}
                   </span>
                 )}

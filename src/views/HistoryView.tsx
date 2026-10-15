@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMinuteTick } from '../useMinuteTick';
-import { HistoryEntry, FrontTierKey, TIER_LABELS, fmtTime, fmtDur, fmtDate, getInitials, translateMood, buildEffectiveEnd } from '../utils';
+import { HistoryEntry, fmtTime, fmtDur, fmtDate, getInitials, translateMood, buildEffectiveEnd, fmtNum } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, ConfirmDialog } from '../components/ui';
+import { ConfirmDialog, SrOnly } from '../components/ui';
 import FrontTimeline from '../components/FrontTimeline';
 import { useAppStore } from '../store/appStore';
 
@@ -74,6 +74,10 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
     return groups;
   }, [filtered]);
 
+  const detail = (icon: string, label: string, value: string) => (
+    <span><span aria-hidden>{icon} {value}</span><SrOnly>{t('common.labelValue', { label, value })}</SrOnly></span>
+  );
+
   const MemberChip = ({ id }: { id: string }) => {
     const m = getMember(id);
     if (!m) return null;
@@ -86,7 +90,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
         {m.avatar ? (
           <img src={m.avatar} alt="" style={{ width: 16, height: 16, borderRadius: 8, objectFit: 'cover', display: 'inline-block' }} />
         ) : (
-          <span style={{ width: 16, height: 16, borderRadius: 8, background: m.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700 }}>
+          <span aria-hidden style={{ width: 16, height: 16, borderRadius: 8, background: m.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700 }}>
             {getInitials(m.name)}
           </span>
         )}
@@ -187,14 +191,14 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
       )}
 
       {viewMode === 'list' && (
-      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
+      <div role="status" style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
         {t('history.entryCount', { count: filtered.length })}
       </div>
       )}
 
       {viewMode === 'list' && grouped.map(group => (
         <div key={group.date} style={{ marginBottom: 20 }}>
-          <div style={{
+          <div role="heading" aria-level={3} style={{
             fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8,
             color: 'var(--accent)', fontWeight: 600, marginBottom: 8,
             padding: '4px 0', borderBottom: '1px solid var(--border)',
@@ -204,8 +208,10 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {group.entries.map((entry, i) => {
               const displayEnd = entry.endTime ?? effEnd(entry);
-              const withoutSelf = singlet && selfId ? entry.memberIds.filter(id => id !== selfId) : entry.memberIds;
-              const chipIds = singlet && withoutSelf.length === 0 ? entry.memberIds : withoutSelf;
+              // An entry with no primary fronter shows its co-front, else co-conscious, members instead of nothing.
+              const baseIds = entry.memberIds.length ? entry.memberIds : (entry.coFrontIds?.length ? entry.coFrontIds : (entry.coConsciousIds || []));
+              const withoutSelf = singlet && selfId ? baseIds.filter(id => id !== selfId) : baseIds;
+              const chipIds = singlet && withoutSelf.length === 0 ? baseIds : withoutSelf;
               return (
               <div key={i} style={{
                 padding: 12, background: 'var(--card)', border: '1px solid var(--border)',
@@ -224,14 +230,14 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
                 {!singlet && (entry.coFrontIds || []).length > 0 && (
                   <div style={{ marginTop: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coFront')}:</span>
+                      <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.labelColon', { label: t('tier.coFront') })}</span>
                       {(entry.coFrontIds || []).map(id => <MemberChip key={id} id={id} />)}
                     </div>
                     {(entry.coFrontMood || entry.coFrontLocation || entry.coFrontEnergy || entry.coFrontNote) && (
                       <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
-                        {entry.coFrontMood && <span>😊 {translateMood(entry.coFrontMood, t)}</span>}
-                        {entry.coFrontLocation && <span>📍 {entry.coFrontLocation}</span>}
-                        {entry.coFrontEnergy && <span>⚡ {entry.coFrontEnergy}/10</span>}
+                        {entry.coFrontMood && detail('😊', t('modal.mood'), translateMood(entry.coFrontMood, t))}
+                        {entry.coFrontLocation && detail('📍', t('modal.location'), entry.coFrontLocation)}
+                        {entry.coFrontEnergy && detail('⚡', t('energy.label'), t('energy.outOfTen', { value: fmtNum(entry.coFrontEnergy, 0) }))}
                         {entry.coFrontNote && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{entry.coFrontNote}</span>}
                       </div>
                     )}
@@ -240,14 +246,14 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
                 {!singlet && (entry.coConsciousIds || []).length > 0 && (
                   <div style={{ marginTop: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('tier.coConShort')}:</span>
+                      <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.labelColon', { label: t('tier.coConShort') })}</span>
                       {(entry.coConsciousIds || []).map(id => <MemberChip key={id} id={id} />)}
                     </div>
                     {(entry.coConsciousMood || entry.coConsciousLocation || entry.coConsciousEnergy || entry.coConsciousNote) && (
                       <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
-                        {entry.coConsciousMood && <span>😊 {translateMood(entry.coConsciousMood, t)}</span>}
-                        {entry.coConsciousLocation && <span>📍 {entry.coConsciousLocation}</span>}
-                        {entry.coConsciousEnergy && <span>⚡ {entry.coConsciousEnergy}/10</span>}
+                        {entry.coConsciousMood && detail('😊', t('modal.mood'), translateMood(entry.coConsciousMood, t))}
+                        {entry.coConsciousLocation && detail('📍', t('modal.location'), entry.coConsciousLocation)}
+                        {entry.coConsciousEnergy && detail('⚡', t('energy.label'), t('energy.outOfTen', { value: fmtNum(entry.coConsciousEnergy, 0) }))}
                         {entry.coConsciousNote && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{entry.coConsciousNote}</span>}
                       </div>
                     )}
@@ -256,15 +262,16 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
 
                 {(entry.mood || entry.note || entry.location || entry.energyLevel) && (
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'var(--dim)' }}>
-                    {entry.mood && <span>😊 {translateMood(entry.mood, t)}</span>}
-                    {entry.location && <span>📍 {entry.location}</span>}
-                    {entry.energyLevel && <span>⚡ {entry.energyLevel}/10</span>}
+                    {entry.mood && detail('😊', t('modal.mood'), translateMood(entry.mood, t))}
+                    {entry.location && detail('📍', t('modal.location'), entry.location)}
+                    {entry.energyLevel && detail('⚡', t('energy.label'), t('energy.outOfTen', { value: fmtNum(entry.energyLevel, 0) }))}
                     {entry.note && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{entry.note}</span>}
                   </div>
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
                   <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 11, cursor: 'pointer', opacity: 0.6, padding: '2px 6px' }}
+                    aria-label={t('history.deleteEntryAt', { time: fmtTime(entry.startTime) })}
                     onClick={() => startDelete(entry)}>
                     {t('history.deleteEntry')}
                   </button>
@@ -284,7 +291,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
 
       <ConfirmDialog
         open={deleteStep > 0}
-        title={`${t('history.deleteEntry')} (${deleteStep}/3)`}
+        title={t('history.deleteEntryStep', { step: deleteStep, total: 3 })}
         message={deleteMessages[deleteStep] || ''}
         danger
         onConfirm={advanceDelete}

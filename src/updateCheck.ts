@@ -3,12 +3,12 @@ import { useSyncExternalStore } from 'react';
 export const RELEASES_URL = 'https://github.com/ByHanyou/Plural-Star-Desktop/releases/latest';
 const LATEST_API = 'https://api.github.com/repos/ByHanyou/Plural-Star-Desktop/releases/latest';
 
-export const parseVersion = (v: string): [number, number, number] | null => {
+const parseVersion = (v: string): [number, number, number] | null => {
   const m = /^v?(\d+)\.(\d+)\.(\d+)/.exec(String(v ?? '').trim());
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
 };
 
-export const isNewerVersion = (latest: string, current: string): boolean => {
+const isNewerVersion = (latest: string, current: string): boolean => {
   const a = parseVersion(latest);
   const b = parseVersion(current);
   if (!a || !b) return false;
@@ -18,7 +18,7 @@ export const isNewerVersion = (latest: string, current: string): boolean => {
   return false;
 };
 
-export const latestTagFrom = (text: string): string | null => {
+const latestTagFrom = (text: string): string | null => {
   try {
     const data = JSON.parse(text);
     const parsed = typeof data?.tag_name === 'string' ? parseVersion(data.tag_name) : null;
@@ -33,7 +33,7 @@ export type UpdateCheckResult =
   | { status: 'current'; current: string }
   | { status: 'error'; current: string };
 
-export interface AvailableUpdate {
+interface AvailableUpdate {
   current: string;
   latest: string;
 }

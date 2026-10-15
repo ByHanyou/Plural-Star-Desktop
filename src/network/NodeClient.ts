@@ -2,7 +2,7 @@ import { ConnStatus } from './types';
 
 type Listener = (payload: any) => void;
 
-export interface SendResult {
+interface SendResult {
   status: string;
   packet_id: string;
 }

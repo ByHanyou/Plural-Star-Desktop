@@ -4,9 +4,9 @@ import { useMinuteTick } from '../useMinuteTick';
 import {
   Member, FrontState, AppSettings, DEFAULT_MOODS, EMPTY_TIER,
   fmtTime, fmtDur, frontSessionStart, isFrontEmpty, translateMood,
-  parseMoodList, toggleMoodInList, serializeMoodList,
+  parseMoodList, toggleMoodInList, serializeMoodList, fmtNum,
 } from '../utils';
-import { Btn, Field, Section, Modal, ConfirmDialog, clickable } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 
 export function SetStatusModal({ open, onClose, onSave, statuses, selfId, current, settings }: {
@@ -14,6 +14,7 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
   statuses: Member[]; selfId?: string; current: FrontState | null; settings: AppSettings;
 }) {
   const { t } = useTranslation();
+  const statusFormId = React.useId();
   const [statusIds, setStatusIds] = useState<Set<string>>(new Set());
   const [mood, setMood] = useState('');
   const [customMood, setCustomMood] = useState('');
@@ -89,8 +90,8 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
           )}
         </div>
 
-        <label className="field__label">{t('modal.mood')}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+        <div className="field__label" id={`${statusFormId}-mood`}>{t('modal.mood')}</div>
+        <div role="group" aria-labelledby={`${statusFormId}-mood`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
           {(() => { const sel = parseMoodList(mood); const chips = [...allMoods, ...sel.filter(m => !allMoods.includes(m))]; return chips.map(m => {
             const on = sel.includes(m);
             return (
@@ -110,8 +111,8 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
             aria-label={t('modal.enterMood')} placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
         )}
 
-        <label className="field__label" style={{ marginTop: 4 }}>{t('modal.location')}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
+        <div className="field__label" id={`${statusFormId}-loc`} style={{ marginTop: 4 }}>{t('modal.location')}</div>
+        <div role="group" aria-labelledby={`${statusFormId}-loc`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
           {allLocations.map(l => (
             <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
               style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
@@ -121,11 +122,11 @@ export function SetStatusModal({ open, onClose, onSave, statuses, selfId, curren
         <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
           aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
 
-        <label className="field__label" style={{ marginTop: 4 }}>{t('energy.level')}</label>
-        <div style={{ display: 'flex', gap: 3, marginBottom: 8, alignItems: 'center' }}>
+        <div className="field__label" id={`${statusFormId}-energy`} style={{ marginTop: 4 }}>{t('energy.level')}</div>
+        <div role="group" aria-labelledby={`${statusFormId}-energy`} style={{ display: 'flex', gap: 3, marginBottom: 8, alignItems: 'center' }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
             <button key={n} onClick={() => setEnergy(energy === n ? undefined : n)}
-              aria-label={`${t('energy.level')} ${n}/10`} aria-pressed={energy === n}
+              aria-label={t('energy.levelValue', { value: n })} aria-pressed={energy === n}
               style={{
                 flex: 1, padding: '6px 0', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 600,
                 background: energy === n ? 'var(--accent-bg)' : 'var(--surface)',
@@ -163,7 +164,7 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
   const settings = useAppStore(s => s.state.settings);
   const { t } = useTranslation();
   const [showSet, setShowSet] = useState(false);
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setTick(x => x + 1), 30000);
@@ -193,7 +194,7 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)' }}>
+        <span role="heading" aria-level={2} style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)' }}>
           {t('status.current')}
         </span>
         <Btn variant="solid" onClick={openSet}>{t('status.update')}</Btn>
@@ -205,7 +206,7 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
         </div>
       ) : (
         <div style={{ padding: 16, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer' }}
-          {...clickable(openSet, t('status.update'))}>
+          onClick={openSet}>
           {activeStatuses.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
               {activeStatuses.map(m => (
@@ -220,7 +221,7 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
           )}
           {tier?.mood ? <Row label={t('modal.mood')} value={translateMood(tier.mood, t)} /> : null}
           {tier?.location ? <Row label={t('modal.location')} value={tier.location} /> : null}
-          {tier?.energyLevel !== undefined ? <Row label={t('energy.level')} value={`${tier.energyLevel}/10`} /> : null}
+          {tier?.energyLevel !== undefined ? <Row label={t('energy.level')} value={t('energy.outOfTen', { value: fmtNum(tier.energyLevel, 0) })} /> : null}
           {tier?.note ? <Row label={t('modal.note')} value={tier.note} /> : null}
           {front ? (
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>

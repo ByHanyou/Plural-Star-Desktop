@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   dialog: {
     openFile: (filters?: any[]) => ipcRenderer.invoke('dialog:openFile', filters),
-    saveFile: (defaultName: string) => ipcRenderer.invoke('dialog:saveFile', defaultName),
+    saveFile: (defaultName: string, filters?: any[]) => ipcRenderer.invoke('dialog:saveFile', defaultName, filters),
   },
 
   file: {
@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
+  },
+
+  shell: {
+    setLabels: (labels: Record<string, string>) => ipcRenderer.send('shell:setLabels', labels),
   },
 
   platform: process.platform,

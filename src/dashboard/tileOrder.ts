@@ -2,7 +2,7 @@ import { logError } from '../log';
 
 const ORDER_KEY = 'ps.dashboardOrder';
 
-export const DEFAULT_TILE_ORDER: string[] = [
+const DEFAULT_TILE_ORDER: string[] = [
   'front',
   'planner',
   'system-manager',
@@ -28,7 +28,7 @@ export const DEFAULT_TILE_ORDER: string[] = [
   'settings',
 ];
 
-export const mergeTileOrder = (saved: string[]): string[] => {
+const mergeTileOrder = (saved: string[]): string[] => {
   const known = new Set(DEFAULT_TILE_ORDER);
   const kept = saved.filter(id => known.has(id));
   const added = DEFAULT_TILE_ORDER.filter(id => !kept.includes(id));
@@ -51,14 +51,6 @@ export const loadTileOrder = (): string[] => {
 export const saveTileOrder = (order: string[]) => {
   try {
     localStorage.setItem(ORDER_KEY, JSON.stringify(order));
-  } catch (e) {
-    logError('dashboard', e);
-  }
-};
-
-export const resetTileOrder = () => {
-  try {
-    localStorage.removeItem(ORDER_KEY);
   } catch (e) {
     logError('dashboard', e);
   }

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNetwork } from '../network/useNetwork';
 
@@ -34,8 +33,8 @@ export default function NetworkTile({ onClick }: Props) {
         </div>
         {net.enabled ? (
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span>{t('network.friends')}: {acceptedFriends.length}{acceptedFriends.length > 0 ? ` · ${onlineFriends.length} ${t('network.online').toLowerCase()}` : ''}</span>
-            <span>{t('network.linkedDevices')}: {devices.length}</span>
+            <span>{t('network.tileFriends', { count: acceptedFriends.length })}{acceptedFriends.length > 0 ? ` · ${t('network.tileOnline', { count: onlineFriends.length })}` : ''}</span>
+            <span>{t('network.tileDevices', { count: devices.length })}</span>
           </div>
         ) : (
           <span className="tile__empty">{t('network.enableDesc')}</span>

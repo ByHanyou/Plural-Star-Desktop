@@ -42,7 +42,9 @@
     "skyBlue": "天藍色",
     "orchid": "蘭花紫",
     "lime": "青檸色",
-    "sand": "沙色"
+    "sand": "沙色",
+    "customCount": "自訂 {{count}}/{{max}}",
+    "customSlotValue": "自訂顏色{{n}}，{{hex}}"
   },
   "terminology": {
     "fronter": "前台者",
@@ -74,6 +76,7 @@
     "markColor": "預約標記顏色",
     "apptColor": "標記顏色",
     "apptColorDefault": "預設",
+    "apptCount_one": "{{count}} 個預約",
     "apptCount_other": "{{count}} 個預約",
     "appt": "預約",
     "addAppt": "新增預約",
@@ -115,7 +118,9 @@
     "notifAppt": "{{time}}",
     "notifApptAt": "{{time}} · {{location}}",
     "notifReminder": "日程提醒",
-    "reminderTitlePlaceholder": "提醒內容是什麼?"
+    "reminderTitlePlaceholder": "提醒內容是什麼?",
+    "dayCellLabel": "{{date}}，{{appts}}",
+    "reminderEnabledFor": "{{title}} 的提醒"
   },
   "mailbox": {
     "title": "信箱",
@@ -138,7 +143,14 @@
     "messageCount_other": "{{count}} 則訊息",
     "unreadCount": "{{count}} 則未讀",
     "deleteTitle": "刪除訊息",
-    "deleteMsg": "移除這則訊息？此操作無法復原。"
+    "deleteMsg": "移除這則訊息？此操作無法復原。",
+    "allOthersCount": "所有其他成員（{{count}}）",
+    "lockedLabel": "已鎖定",
+    "lockButtonLocked": "信箱鎖（開）",
+    "lockButtonUnlocked": "信箱鎖（關）",
+    "fromName": "寄件者：{{name}}",
+    "deleteFrom": "刪除來自 {{name}} 的訊息",
+    "unlockTitle": "解鎖 {{name}} 的信箱"
   },
   "network": {
     "cloudConfirmTitle": "再次確認",
@@ -152,6 +164,7 @@
     "cloudErrRate": "嘗試次數過多。請等待一分鐘後再試。",
     "cloudErrFull": "保險庫或節點空間不足。",
     "cloudErrTooLarge": "已略過，超過 25 MB：{{keys}}",
+    "cloudErrOverQuota": "已略過，保險庫空間不足：{{keys}}",
     "cloudErrBadPassword": "保險庫已存在，但此密碼無法開啟它。",
     "cloudErrCorrupt": "無法在此裝置上讀取保險庫。請解除連結後用相同密碼重新連結。",
     "cloudUnavailable": "你所連線的節點不提供雲端服務。",
@@ -263,7 +276,32 @@
     "syncRoleMismatchMsg": "你和 {{device}} 選了相同的方向，因此已略過首次複製。新的變更仍會同步。若要複製全部資料，請移除連結並重新配對——在一台裝置上選「傳送」，另一台選「接收」。",
     "syncCloneSending": "正在傳送首次複製…",
     "syncCloneReceiving": "正在接收首次複製…",
-    "publishFailed": "無法發布你的好友碼——請檢查網路連線後再試一次。"
+    "publishFailed": "無法發布你的好友碼——請檢查網路連線後再試一次。",
+    "tileFriends": "好友：{{count}}",
+    "tileOnline": "{{count}} 人在線上",
+    "tileDevices": "已連結的裝置：{{count}}",
+    "deviceMac": "Mac 桌面版",
+    "deviceWindows": "Windows 桌面版",
+    "deviceLinux": "Linux 桌面版",
+    "deviceDesktop": "桌面版",
+    "defaultSystemName": "Plural Star 使用者",
+    "unnamedDevice": "裝置",
+    "unnamedFriend": "好友",
+    "bucketCopyName": "{{name}} 2",
+    "cloudErrGeneric": "雲端同步發生錯誤。請再試一次。",
+    "viewSharedNamed": "查看 {{name}} 分享的內容",
+    "notifyLevelCycle": "{{name}} 的通知：{{level}}。啟用以切換為{{next}}。",
+    "removeNamed": "移除 {{name}}",
+    "yourCodeLabel": "你的好友碼：{{code}}。點一下複製。",
+    "statusLabel": "網路：{{status}}",
+    "bucketScope": "{{feature}}：{{scope}}",
+    "bucketLabel": "{{name}}。{{scopes}}",
+    "cloneBucketNamed": "複製圈子 {{name}}",
+    "deleteBucketNamed": "刪除圈子 {{name}}",
+    "bucketPickCount": "{{feature}}：選擇（已選取 {{count}} 項）",
+    "pickerTitle": "{{feature}} — 選擇",
+    "removeDeviceWarn": "取消連結 {{name}}？它將不再與此裝置同步。",
+    "mirrorTitle": "{{name}} — {{feature}}"
   },
   "common": {
     "durDaysHours": "{{d}}天{{h}}小時",
@@ -296,6 +334,18 @@
     "change": "變更",
     "save": "儲存",
     "edit": "編輯",
+    "removeNamed": "移除 {{name}}",
+    "dragReorderNamed": "拖曳以重新排序 {{name}}",
+    "editNamed": "編輯 {{name}}",
+    "deleteNamed": "刪除 {{name}}",
+    "labelValue": "{{label}}：{{value}}",
+    "included": "已包含",
+    "yes": "是",
+    "no": "否",
+    "addNamed": "新增 {{name}}",
+    "labelColon": "{{label}}：",
+    "moveUpNamed": "上移 {{name}}",
+    "moveDownNamed": "下移 {{name}}",
     "cancel": "取消",
     "delete": "刪除",
     "add": "新增",
@@ -308,6 +358,7 @@
     "untitled": "未命名",
     "notInExport": "不在匯出範圍",
     "ok": "好",
+    "errorCode": "錯誤代碼：{{code}}",
     "search": "搜尋…"
   },
   "errorBoundary": {
@@ -334,6 +385,7 @@
     "primaryShort": "主要",
     "coFrontShort": "共前台",
     "coConShort": "共意識",
+    "assignedTo": "（{{tier}}）",
     "editTier": "編輯{{tier}}"
   },
   "setup": {
@@ -361,7 +413,10 @@
     "statusesDesc": "狀態描述你的近況 — 例如睡覺中、工作中或焦慮。更新狀態時選取它們。",
     "noStatuses": "尚無狀態。新增一個來開始。",
     "activeStatus": "使用中",
-    "favoriteColor": "最愛的顏色"
+    "favoriteColor": "最愛的顏色",
+    "defaultSelfName": "我",
+    "statusesCount": "狀態（{{count}}）",
+    "deleteActiveHint": "刪除前請先將此狀態從目前的狀態中移除。"
   },
   "settings": {
     "observatory": "觀測站（單人）介面",
@@ -381,7 +436,10 @@
     "noNote": "沒有備註。點按「編輯」來新增。",
     "clearFront": "清除前台",
     "clearFrontMsg": "這將清除所有層級並記錄目前時段的結束。要繼續嗎？",
-    "clearFrontTitle": "清除前台？"
+    "clearFrontTitle": "清除前台？",
+    "frontingForSince": "已在前台 {{dur}} · 自 {{time}} 起",
+    "editDetailsFor": "編輯{{tier}}的心情與地點",
+    "editNoteFor": "編輯{{tier}}的備註"
   },
   "members": {
     "addCustomFront": "新增自訂前台",
@@ -436,17 +494,29 @@
     "selectNone": "全不選",
     "bulkArchive": "封存成員",
     "bulkArchiveMsg": "封存 {{count}} 位成員？之後可以還原。",
+    "bulkArchiveMsg_other": "封存 {{count}} 位成員？之後可以還原。",
     "bulkRestore": "還原成員",
     "bulkRestoreMsg": "將 {{count}} 位成員還原為使用中？",
+    "bulkRestoreMsg_other": "將 {{count}} 位成員還原為使用中？",
     "bulkDelete": "刪除成員",
     "bulkDeleteMsg": "永久刪除 {{count}} 位成員？此操作無法復原。",
+    "bulkDeleteMsg_other": "永久刪除 {{count}} 位成員？此操作無法復原。",
     "assignGroup": "群組",
     "assignTag": "標籤",
     "addTags": "新增標籤",
     "frontingLockTitle": "目前在前台",
     "frontingLockMsg": "成員在前台時無法封存或刪除。請先將其從前台移除。",
     "archive": "封存",
-    "recentlyDeleted": "最近刪除"
+    "recentlyDeleted": "最近刪除",
+    "unnamed": "未命名成員",
+    "archivedCount": "已封存（{{count}}）",
+    "viewProfileNamed": "查看 {{name}} 的個人檔案",
+    "titleCount": "成員（{{count}}）",
+    "facetsCount": "側面（{{count}}）",
+    "customFrontsCount": "自訂前台（{{count}}）",
+    "removeFromFrontNamed": "將 {{name}} 移出前台",
+    "addToFrontNamed": "將 {{name}} 新增至前台",
+    "restoreNamed": "還原 {{name}}"
   },
   "history": {
     "title": "歷史",
@@ -454,6 +524,10 @@
     "noHistory": "尚無歷史。前台變更會自動顯示在這裡。",
     "searchMember": "搜尋成員…",
     "statusHistory": "狀態歷史",
+    "tlSpan": "{{start}} → {{end}} ({{dur}})",
+    "tlRange": "{{start}} → {{end}}",
+    "deleteEntryAt": "刪除 {{time}} 的條目",
+    "deleteEntryStep": "刪除條目（{{step}}/{{total}}）",
     "byStatus": "依狀態",
     "noHistorySinglet": "尚無歷史。狀態更新會自動顯示在這裡。",
     "entryCount": "{{count}} 筆紀錄",
@@ -504,7 +578,10 @@
     "templateName": "範本名稱 *",
     "templateNamePlaceholder": "例如 晨間隨筆",
     "templateTitle": "條目標題（預設）",
-    "templateBody": "條目內容（預設）"
+    "templateBody": "條目內容（預設）",
+    "pinnedLabel": "已釘選",
+    "lockedLabel": "已鎖定",
+    "pinNamed": "釘選 {{title}}"
   },
   "share": {
     "statusSpImported": "SP 匯入：{{members}} 位新成員，{{history}} 筆歷史紀錄",
@@ -545,6 +622,12 @@
     "psUseSection": "這看起來是 PluralSpace 的匯出檔。請使用下方的 PluralSpace 匯入區段來匯入。",
     "mergeLogs": "合併記錄（保留現有的歷史、日記、聊天和投票；只新增新的）。成員仍會被取代。",
     "banners": "橫幅",
+    "psFilterName": "PluralSpace 匯出檔（.zip 或 data.json）",
+    "plurallogFilterName": "PluralLog 匯出檔（.zip）",
+    "backupFileSuffix": "備份",
+    "errUnexpected": "發生錯誤。請檢查檔案後再試一次。",
+    "importProgressCount": "{{done}}/{{total}}",
+    "pkImportToken": "PluralKit 匯入（權杖）",
     "psImport": "PluralSpace 匯入",
     "psHint": "從 PluralSpace 資料匯出檔匯入。直接選擇 .zip 即可——不需要解壓縮（如果已經解壓縮，也可以選擇 data.json）。成員、自訂欄位、前台歷史、日誌條目、聊天、投票和頭像（來自匯出檔的 media 資料夾）將自動匯入。",
     "pickPsFile": "選擇 .zip 或 data.json",
@@ -599,6 +682,7 @@
     "importStopping": "完成這個步驟後停止…",
     "importStopped": "匯入已停止。未做任何變更。",
     "importCancelHint": "會在目前步驟完成後停止。已完成的步驟會保留。",
+    "importCancelTitle": "停止匯入？",
     "progressSavingMembers": "還原成員中…",
     "progressJournal": "還原日誌中…",
     "progressHistory": "還原前台歷史中…",
@@ -609,7 +693,6 @@
   },
   "hub": {
     "creditsBlurb": "社群貢獻者",
-    "discordBlurb": "社群聊天與支援",
     "supportPSBlurb": "Buy Me a Coffee",
     "addHistoryDesc": "手動新增回溯的前台歷史條目。",
     "startTime": "開始時間",
@@ -633,7 +716,11 @@
     "statistics": "統計",
     "systemChat": "系統聊天",
     "archive": "封存",
+    "windowTitle": "{{view}} — {{system}}",
+    "titleBar": "{{name}} — {{view}}",
     "discord": "Discord",
+    "discordBlurb": "社群聊天與支援",
+    "overlapEntry": "{{names}}（{{time}}）",
     "dashboard": "← 主控板",
     "credits": "鳴謝",
     "creditLogo": "Plural Star 標誌",
@@ -656,7 +743,11 @@
     "toolCode": "程式碼",
     "brokenImage": "[圖片損毀]",
     "imageUnavailable": "[圖片無法使用]",
-    "spoiler": "隱藏內容，點一下顯示"
+    "spoiler": "隱藏內容，點一下顯示",
+    "toolBoldShort": "B",
+    "toolItalicShort": "I",
+    "toolStrikeShort": "S",
+    "toolH1Short": "H"
   },
   "modal": {
     "read": "閱讀",
@@ -688,6 +779,8 @@
     "hue": "色相",
     "invalidHex": "十六進位顏色無效",
     "customColor": "自訂顏色",
+    "emoji": "表情符號",
+    "emojiPlaceholder": "例如 🦊",
     "descriptionBio": "描述 / 簡介",
     "descriptionPlaceholder": "關於這位腦內夥伴的介紹… 可直接貼上圖片/GIF 網址",
     "preview": "預覽",
@@ -759,6 +852,12 @@
     "textScaleNormal": "一般",
     "textScaleLarge": "大",
     "textScaleExtraLarge": "特大",
+    "cropMove": "移動裁剪區域（方向鍵）",
+    "cropResizeTopLeft": "從左上角調整大小（方向鍵）",
+    "cropResizeTopRight": "從右上角調整大小（方向鍵）",
+    "cropResizeBottomLeft": "從左下角調整大小（方向鍵）",
+    "cropResizeBottomRight": "從右下角調整大小（方向鍵）",
+    "fontDefault": "預設",
     "dyslexicFont": "讀寫障礙友善字型",
     "dyslexicFontDesc": "將內文切換為 OpenDyslexic。標題保留其風格字型。"
   },
@@ -771,7 +870,8 @@
     "coFront": "共同前台：{{names}}",
     "coConscious": "共同意識：{{names}}",
     "cfShort": "共前：{{names}}",
-    "ccShort": "共同意識：{{names}}"
+    "ccShort": "共同意識：{{names}}",
+    "tierLine": "{{tier}}：{{names}}"
   },
   "language": {
     "en": "English",
@@ -824,6 +924,8 @@
     "linkedFronter": "關聯的前台者",
     "noLinkedFronter": "無",
     "linkedSubsystems": "關聯的子系統",
+    "showSubgroups": "{{name}} 的子群組（已選取 {{count}} 項）",
+    "linkedToNamed": "{{group}}，關聯的前台者：{{name}}",
     "toRoot": "最上層",
     "title": "群組",
     "addPlaceholder": "新群組名稱…",
@@ -831,7 +933,13 @@
     "removeMembers": "移除成員",
     "deleteGroup": "刪除群組",
     "deleteGroupMsg": "移除此群組？成員不會被刪除。",
-    "deleteWithChildrenMsg": "此群組包含 {{count}} 個巢狀項目。要保留並上移一層，還是全部刪除？"
+    "deleteWithChildrenMsg": "此群組包含 {{count}} 個巢狀項目。要保留並上移一層，還是全部刪除？",
+    "deleteWithChildrenMsg_other": "此群組包含 {{count}} 個巢狀項目。要保留並上移一層，還是全部刪除？",
+    "memberCount_one": "{{count}} 位成員",
+    "memberCount_other": "{{count}} 位成員",
+    "moveNamed": "移動 {{name}}",
+    "addMembersTo": "新增成員 — {{name}}",
+    "kindToggle": "類型：{{kind}}（啟用以切換）"
   },
   "stats": {
     "last90": "90 天",
@@ -863,7 +971,13 @@
     "noMoodsRecorded": "尚未記錄任何心情。",
     "totalFrontTime": "前台總時間",
     "totalSessions": "總時段數",
-    "uniqueFronters": "不同前台成員數"
+    "uniqueFronters": "不同前台成員數",
+    "showMoreCount": "顯示更多（{{shown}}/{{total}}）",
+    "chartSummary": "{{title}}：{{items}}",
+    "chartItem": "{{label}}（{{value}}）",
+    "sessionCount_one": "{{num}} 個時段",
+    "sessionCount_other": "{{num}} 個時段",
+    "avgEnergyValue": "{{num}} /10 能量"
   },
   "chat": {
     "messagePlaceholder": "傳訊息到 #{{name}}...",
@@ -889,7 +1003,21 @@
     "archiveChannel": "封存頻道",
     "noMessages": "尚無訊息。",
     "editingHeader": "編輯訊息中",
-    "editPlaceholder": "編輯訊息…"
+    "editPlaceholder": "編輯訊息…",
+    "attachment": "附件",
+    "channelCount_one": "{{count}} 個頻道",
+    "channelCount_other": "{{count}} 個頻道",
+    "importedChannel": "已匯入",
+    "categoryWithCount_one": "{{name}}（{{count}} 個頻道）",
+    "categoryWithCount_other": "{{name}}（{{count}} 個頻道）",
+    "speakingAsNamed": "以 {{name}} 身分發言",
+    "messagesIn": "#{{name}} 中的訊息",
+    "replyQuote": "{{name}}：{{text}}",
+    "imageFrom": "來自 {{name}} 的圖片",
+    "reactionCount": "{{emoji}} 反應，{{count}}",
+    "replyingToName": "回覆給 {{name}}",
+    "cancelReply": "取消回覆",
+    "cancelEdit": "取消編輯"
   },
   "systemManager": {
     "subsystemsCount": "{{count}} 個子系統",
@@ -930,7 +1058,12 @@
     "reorder": "重新排序",
     "markdownSupport": "Markdown 支援",
     "markdownLabel": "Markdown",
-    "fieldCount": "已定義 {{count}} 個"
+    "fieldCount": "已定義 {{count}} 個",
+    "ageField": "年齡",
+    "rangePart": "{{field}}（{{part}}）",
+    "fieldTypeFor": "{{name}} 的欄位類型",
+    "moveUpNamed": "上移 {{name}}，移到 {{above}} 上方",
+    "moveDownNamed": "下移 {{name}}，移到 {{below}} 下方"
   },
   "noteboard": {
     "title": "留言板",
@@ -941,7 +1074,8 @@
     "placeholder": "寫下留言...",
     "by": "由 {{name}}",
     "writingAs": "以此身分撰寫：",
-    "hasNotes": "{{names}} 的信箱裡有郵件"
+    "hasNotes": "{{names}} 的信箱裡有郵件",
+    "pinned": "已釘選"
   },
   "whiteboard": {
     "clearConfirm2Title": "確定嗎？",
@@ -961,7 +1095,11 @@
     "shapeRect": "矩形",
     "shapeEllipse": "橢圓",
     "shapePoly": "多邊形",
-    "bucket": "油漆桶"
+    "bucket": "油漆桶",
+    "strokeCount_one": "{{count}} 筆",
+    "strokeCount_other": "{{count}} 筆",
+    "brushSizeN": "畫筆大小 {{size}}",
+    "panHint": "使用方向鍵在白板上移動。"
   },
   "systemMap": {
     "showColors": "顏色",
@@ -985,6 +1123,12 @@
     "deleteTypeMsg": "這也會移除使用此類型的所有關係。",
     "duplicate": "這兩位成員已有此關係。",
     "relationships": "{{count}} 段關係",
+    "relationships_other": "{{count}} 段關係",
+    "moveHint": "使用方向鍵在地圖上移動此成員。",
+    "nodeArchived": "{{name}}（已封存）",
+    "nodeHops_one": "{{name}}，相距 {{count}} 步",
+    "nodeHops_other": "{{name}}，相距 {{count}} 步",
+    "deleteRelationshipWith": "刪除與 {{name}} 的關係",
     "relationshipOne": "1 段關係",
     "from": "從",
     "to": "到",
@@ -1037,7 +1181,11 @@
     "emergencyDesc": "供急救人員查看的關鍵資訊。啟用後會加入常駐通知，可從鎖定畫面查看。",
     "deleteItemMsg": "移除此記錄？",
     "medReminderTitle": "用藥提醒",
-    "apptReminderTitle": "預約提醒"
+    "apptReminderTitle": "預約提醒",
+    "remindersFor": "{{name}} 的提醒",
+    "apptWhen": "預約日期與時間",
+    "remind15m": "15分鐘",
+    "historyDate": "日期"
   },
   "polls": {
     "removeOption": "移除選項",
@@ -1060,13 +1208,20 @@
     "votingAs": "以此身分投票：",
     "forMember": "對象成員：",
     "optionsLabel": "選項",
-    "activeCount": "{{count}} 個進行中"
+    "activeCount": "{{count}} 個進行中",
+    "closePollNamed": "結束投票：{{question}}",
+    "reopenPollNamed": "重新開啟投票：{{question}}",
+    "optionN": "選項 {{n}}",
+    "removeOptionN": "移除選項 {{n}}"
   },
   "energy": {
     "label": "能量",
     "level": "能量等級",
     "avgEnergy": "平均能量",
-    "outOf10": "/10 能量"
+    "outOf10": "/10 能量",
+    "outOfTen": "{{value}}/10",
+    "clear": "清除能量等級",
+    "levelValue": "能量等級 {{value}}/10"
   },
   "systemProfile": {
     "read": "閱讀",
@@ -1083,7 +1238,8 @@
     "changeAvatar": "變更頭像",
     "changeBanner": "變更橫幅",
     "removeAvatar": "移除頭像",
-    "removeBanner": "移除橫幅"
+    "removeBanner": "移除橫幅",
+    "avatarAndBanner": "系統頭像 · 系統橫幅"
   },
   "frontSort": {
     "label": "整理",
@@ -1116,6 +1272,56 @@
     "Irritable": "煩躁",
     "Sad": "難過",
     "Focused": "專注"
+  },
+  "dnd": {
+    "instructions": "若要拿起項目，請按空白鍵或 Enter 鍵。使用方向鍵移動，然後按空白鍵或 Enter 鍵放下，或按 Esc 鍵取消。",
+    "picked": "已拿起 {{name}}。",
+    "over": "{{name}} 位於 {{over}} 上方。",
+    "notOver": "{{name}} 已不在可放置區域上方。",
+    "dropped": "{{name}} 已放到 {{over}} 上。",
+    "droppedNoTarget": "{{name}} 已放下。",
+    "cancelled": "已取消移動 {{name}}。"
+  },
+  "fileDialog": {
+    "jsonFiles": "JSON 檔案",
+    "textFiles": "文字檔",
+    "allFiles": "所有檔案",
+    "backup": "備份",
+    "images": "圖片"
+  },
+  "tray": {
+    "open": "開啟 {{app}}",
+    "quit": "結束"
+  },
+  "menu": {
+    "edit": "編輯"
+  },
+  "customFronts": {
+    "seed": {
+      "chatty": "健談",
+      "nonVerbal": "非言語",
+      "iwc": "IWC",
+      "dni": "DNI",
+      "blurry": "模糊",
+      "blendy": "混融",
+      "rapidSwitching": "快速切換",
+      "foggy": "迷糊",
+      "grounded": "踏實",
+      "dissociated": "解離",
+      "anxious": "焦慮",
+      "depressed": "憂鬱",
+      "cheerful": "愉快",
+      "happy": "開心",
+      "sad": "難過",
+      "crisis": "危機",
+      "melancholy": "憂愁",
+      "stimming": "自我刺激",
+      "stressed": "壓力大",
+      "working": "工作中",
+      "traveling": "旅行中",
+      "sleeping": "睡覺中",
+      "hyperfocus": "過度專注"
+    }
   }
 }
   

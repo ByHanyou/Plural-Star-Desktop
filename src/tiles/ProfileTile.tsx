@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Member, getInitials } from '../utils';
 import { initialOn } from '../theme';
@@ -13,7 +12,7 @@ export default function ProfileTile({ member, statuses, onClick }: Props) {
       <div className="tile__body">
         {member ? (
           <div className="tile__member-row">
-            <div className="tile__avatar" style={!member.avatar ? { backgroundColor: member.color, color: initialOn(member.color) } : { overflow: 'hidden' }}>
+            <div className="tile__avatar" aria-hidden style={!member.avatar ? { backgroundColor: member.color, color: initialOn(member.color) } : { overflow: 'hidden' }}>
               {member.avatar ? <img src={member.avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(member.name)}
             </div>
             <span className="tile__member-name">{member.name}</span>
@@ -23,7 +22,7 @@ export default function ProfileTile({ member, statuses, onClick }: Props) {
           <span className="tile__empty">{t('profile.notSetUp')}</span>
         )}
         <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-          {t('profile.statuses')} ({statuses.length})
+          {t('profile.statusesCount', { count: statuses.length })}
         </span>
       </div>
     </div>

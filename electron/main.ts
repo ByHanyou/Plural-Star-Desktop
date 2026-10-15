@@ -16,6 +16,25 @@ const store = new Store({ name: 'plural-space-data', cwd: userDataPath });
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
+const shellLabels = {
+  trayOpen: 'Open Plural Star',
+  trayQuit: 'Quit',
+  menuEdit: 'Edit',
+  jsonFiles: 'JSON Files',
+  textFiles: 'Text Files',
+  allFiles: 'All Files',
+  backup: 'Backup',
+};
+type ShellLabelKey = keyof typeof shellLabels;
+
+const sanitizeFilters = (raw: unknown): Electron.FileFilter[] | null => {
+  if (!Array.isArray(raw)) return null;
+  const out = raw
+    .filter(f => f && typeof f.name === 'string' && Array.isArray(f.extensions))
+    .map(f => ({ name: String(f.name).slice(0, 200), extensions: f.extensions.filter((x: unknown) => typeof x === 'string').map((x: string) => x.slice(0, 20)) }));
+  return out.length ? out : null;
+};
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -121,6 +140,8 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  mainWindow.on('page-title-updated', e => e.preventDefault());
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -204,22 +225,22 @@ handle('store:allKeys', () => {
 handle('dialog:openFile', async (_e, filters?: Electron.FileFilter[]) => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
-    filters: filters || [
-      { name: 'JSON Files', extensions: ['json'] },
-      { name: 'Text Files', extensions: ['txt'] },
-      { name: 'All Files', extensions: ['*'] },
+    filters: sanitizeFilters(filters) || [
+      { name: shellLabels.jsonFiles, extensions: ['json'] },
+      { name: shellLabels.textFiles, extensions: ['txt'] },
+      { name: shellLabels.allFiles, extensions: ['*'] },
     ],
   });
   return result.canceled ? null : result.filePaths[0];
 });
 
-handle('dialog:saveFile', async (_e, defaultName: string) => {
+handle('dialog:saveFile', async (_e, defaultName: string, filters?: Electron.FileFilter[]) => {
   const result = await dialog.showSaveDialog({
     defaultPath: defaultName,
-    filters: [
-      { name: 'Backup', extensions: ['zip'] },
-      { name: 'JSON Files', extensions: ['json'] },
-      { name: 'All Files', extensions: ['*'] },
+    filters: sanitizeFilters(filters) || [
+      { name: shellLabels.backup, extensions: ['zip'] },
+      { name: shellLabels.jsonFiles, extensions: ['json'] },
+      { name: shellLabels.allFiles, extensions: ['*'] },
     ],
   });
   return result.canceled ? null : result.filePath;
@@ -331,6 +352,15 @@ ipcMain.on('window:maximize', e => {
   else mainWindow?.maximize();
 });
 ipcMain.on('window:close', e => { if (fromMainWindow(e)) mainWindow?.close(); });
+ipcMain.on('shell:setLabels', (e, labels: unknown) => {
+  if (!fromMainWindow(e) || !labels || typeof labels !== 'object') return;
+  for (const key of Object.keys(shellLabels) as ShellLabelKey[]) {
+    const v = (labels as Record<string, unknown>)[key];
+    if (typeof v === 'string' && v.trim() && v.length <= 200) shellLabels[key] = v;
+  }
+  buildTrayMenu();
+  createAppMenu();
+});
 
 function createTray(): void {
   let trayImage = nativeImage.createFromPath(TRAY_ICON_PATH);
@@ -344,13 +374,18 @@ function createTray(): void {
   }
   tray = new Tray(trayImage);
   tray.setToolTip('Plural Star');
+  buildTrayMenu();
+  tray.on('click', () => mainWindow?.show());
+}
+
+function buildTrayMenu(): void {
+  if (!tray) return;
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open Plural Star', click: () => mainWindow?.show() },
+    { label: shellLabels.trayOpen, click: () => mainWindow?.show() },
     { type: 'separator' },
-    { label: 'Quit', click: () => app.quit() },
+    { label: shellLabels.trayQuit, click: () => app.quit() },
   ]);
   tray.setContextMenu(contextMenu);
-  tray.on('click', () => mainWindow?.show());
 }
 
 function createAppMenu(): void {
@@ -368,7 +403,7 @@ function createAppMenu(): void {
       ],
     }] : []),
     {
-      label: 'Edit',
+      label: shellLabels.menuEdit,
       submenu: [
         { role: 'undo' },
         { role: 'redo' },

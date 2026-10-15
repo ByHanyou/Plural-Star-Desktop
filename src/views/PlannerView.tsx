@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Field, ConfirmDialog, Toggle, Section, AddRow, useEscapeKey } from '../components/ui';
+import { Btn, Field, ConfirmDialog, Toggle, Section, useEscapeKey } from '../components/ui';
 import { store, KEYS } from '../storage';
-import { PlannerData, PlannerAppointment, PlannerReminder, PlannerRepeat, PlannerReminderRepeat, DEFAULT_PLANNER, plannerOccursOnDay, uid, isValidTimeHHMM, getLocale, firstDayOfWeek } from '../utils';
+import { PlannerData, PlannerAppointment, PlannerReminder, PlannerRepeat, PlannerReminderRepeat, DEFAULT_PLANNER, plannerOccursOnDay, uid, isValidTimeHHMM, getLocale, firstDayOfWeek, fmtClockHHMM, fmtList, uses12HourClock, time12to24, dayPeriodLabel } from '../utils';
 import { NetworkManager } from '../network/NetworkManager';
 import { logError } from '../log';
 import { ColorCarousel } from '../components/ColorCarousel';
@@ -73,6 +73,8 @@ export default function PlannerView({ onUpdate }: Props) {
   const [remTitle, setRemTitle] = useState('');
   const [remTimes, setRemTimes] = useState<string[]>([]);
   const [remNewTime, setRemNewTime] = useState('');
+  const [remAmPm, setRemAmPm] = useState<'AM' | 'PM'>('AM');
+  const twelveHour = uses12HourClock();
   const [remNotes, setRemNotes] = useState('');
   const [remRepeat, setRemRepeat] = useState<PlannerReminderRepeat>('daily');
   const [remStart, setRemStart] = useState('');
@@ -84,6 +86,16 @@ export default function PlannerView({ onUpdate }: Props) {
 
   useEscapeKey(apptOpen, () => setApptOpen(false));
   useEscapeKey(remOpen, () => setRemOpen(false));
+
+  const formHeadingRef = useRef<HTMLHeadingElement>(null);
+  const returnFocusKey = useRef<string | null>(null);
+  React.useEffect(() => {
+    if (apptOpen || remOpen) { formHeadingRef.current?.focus(); return; }
+    const key = returnFocusKey.current;
+    if (!key) return;
+    returnFocusKey.current = null;
+    Array.from(document.querySelectorAll<HTMLElement>('[data-focus-key]')).find(el => el.dataset.focusKey === key)?.focus();
+  }, [apptOpen, remOpen]);
 
   React.useEffect(() => {
     const load = () => {
@@ -137,12 +149,14 @@ export default function PlannerView({ onUpdate }: Props) {
     const when = new Date(selected);
     when.setHours(12, 0, 0, 0);
     setApptId(null); setApptTitle(''); setApptWhen(toLocalInput(when.getTime())); setApptLocation(''); setApptNotes(''); setApptRemind(30); setApptRepeat(null); setApptColor(null);
+    returnFocusKey.current = 'new-appt';
     setApptOpen(true);
   };
 
   const openEditAppt = (a: PlannerAppointment) => {
     setApptId(a.id); setApptTitle(a.title); setApptWhen(toLocalInput(a.time)); setApptLocation(a.location || '');
     setApptNotes(a.notes || ''); setApptRemind(a.reminderMinutesBefore ?? null); setApptRepeat(a.repeat ?? null); setApptColor(a.color || null);
+    returnFocusKey.current = `appt-${a.id}`;
     setApptOpen(true);
   };
 
@@ -170,20 +184,29 @@ export default function PlannerView({ onUpdate }: Props) {
   const openNewRem = () => {
     setRemId(null); setRemTitle(''); setRemTimes([]); setRemNewTime(''); setRemNotes('');
     setRemRepeat('daily'); setRemStart(toLocalDateInput(selected.getTime()));
+    returnFocusKey.current = 'new-rem';
     setRemOpen(true);
   };
 
   const openEditRem = (r: PlannerReminder) => {
     setRemId(r.id); setRemTitle(r.title); setRemTimes([...r.times]); setRemNewTime(''); setRemNotes(r.notes || '');
     setRemRepeat(r.repeat || 'daily'); setRemStart(toLocalDateInput(r.startDate ?? r.createdAt));
+    returnFocusKey.current = `rem-${r.id}`;
     setRemOpen(true);
   };
 
   const addRemTime = () => {
     const raw = remNewTime.trim();
-    if (!isValidTimeHHMM(raw)) return;
-    const [h, m] = raw.split(':');
-    const v = `${h.padStart(2, '0')}:${m}`;
+    let v: string;
+    if (twelveHour) {
+      const conv = time12to24(raw, remAmPm);
+      if (!conv) return;
+      v = conv;
+    } else {
+      if (!isValidTimeHHMM(raw)) return;
+      const [h, m] = raw.split(':');
+      v = `${h.padStart(2, '0')}:${m}`;
+    }
     if (remTimes.includes(v)) return;
     setRemTimes([...remTimes, v].sort());
     setRemNewTime('');
@@ -234,7 +257,7 @@ export default function PlannerView({ onUpdate }: Props) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
       <button className="icon-btn" aria-label={t('common.back')} onClick={onClose}
         style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 18, cursor: 'pointer', padding: 4 }}>←</button>
-      <h2 style={{ flex: 1, fontSize: 18, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{title}</h2>
+      <h2 ref={formHeadingRef} tabIndex={-1} style={{ flex: 1, fontSize: 18, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{title}</h2>
     </div>
   );
 
@@ -296,14 +319,27 @@ export default function PlannerView({ onUpdate }: Props) {
           <Section label={t('planner.timesLabel')} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
             {remTimes.map(tm => (
-              <button key={tm} onClick={() => setRemTimes(remTimes.filter(x => x !== tm))} aria-label={t('planner.removeTime', { time: tm })}
+              <button key={tm} onClick={() => setRemTimes(remTimes.filter(x => x !== tm))} aria-label={t('planner.removeTime', { time: fmtClockHHMM(tm) })}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 999, fontSize: 12, cursor: 'pointer',
                   background: 'color-mix(in srgb, var(--accent) 15%, transparent)', border: '1px solid var(--accent)', color: 'var(--accent)' }}>
-                {tm} <span aria-hidden style={{ color: 'var(--dim)', fontSize: 11 }}>✕</span>
+                {fmtClockHHMM(tm)} <span aria-hidden style={{ color: 'var(--dim)', fontSize: 11 }}>✕</span>
               </button>
             ))}
           </div>
-          <AddRow value={remNewTime} onChange={setRemNewTime} onAdd={addRemTime} placeholder="08:00" label={t('planner.addTime')} />
+          <div className="add-row">
+            <input className="field__input" value={remNewTime} onChange={e => setRemNewTime(e.target.value)} aria-label={t('planner.addTime')}
+              placeholder={twelveHour ? '9:00' : '08:00'} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRemTime(); } }} />
+            {twelveHour && (
+              <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                {(['AM', 'PM'] as const).map(ap => (
+                  <button key={ap} onClick={() => setRemAmPm(ap)} aria-pressed={remAmPm === ap}
+                    style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                      background: remAmPm === ap ? 'var(--accent)' : 'transparent', color: remAmPm === ap ? '#0a0508' : 'var(--dim)' }}>{dayPeriodLabel(ap === 'PM')}</button>
+                ))}
+              </div>
+            )}
+            <Btn onClick={addRemTime}>{t('common.add')}</Btn>
+          </div>
           <Section label={t('planner.repeatLabel')} />
           {repeatChips(REM_REPEAT_CHOICES, remRepeat, setRemRepeat)}
           {remRepeat !== 'daily' && (
@@ -325,8 +361,8 @@ export default function PlannerView({ onUpdate }: Props) {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 32 }}>
       <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-        <Btn onClick={openNewAppt} style={{ flex: 1 }} aria-label={t('planner.addAppt')}>+ {t('planner.appt')}</Btn>
-        <Btn onClick={openNewRem} style={{ flex: 1 }} aria-label={t('planner.addReminder')}>+ {t('planner.reminder')}</Btn>
+        <Btn onClick={openNewAppt} style={{ flex: 1 }} aria-label={t('planner.addAppt')} data-focus-key="new-appt">+ {t('planner.appt')}</Btn>
+        <Btn onClick={openNewRem} style={{ flex: 1 }} aria-label={t('planner.addReminder')} data-focus-key="new-rem">+ {t('planner.reminder')}</Btn>
       </div>
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
@@ -347,10 +383,11 @@ export default function PlannerView({ onUpdate }: Props) {
             const dayList = apptsOn(d);
             const count = dayList.length;
             const dots = Array.from(new Set(dayList.map(a => a.color || markColor))).slice(0, 3);
-            const label = `${d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' })}${count > 0 ? `, ${t('planner.apptCount', { count })}` : ''}`;
+            const dateText = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+            const label = count > 0 ? t('planner.dayCellLabel', { date: dateText, appts: t('planner.apptCount', { count }) }) : dateText;
             return (
               <button key={i} onClick={() => { setSelected(new Date(d)); if (!inMonth) setViewMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}
-                aria-label={label} aria-pressed={isSel}
+                aria-label={label} aria-pressed={isSel} aria-current={isToday ? 'date' : undefined}
                 style={{ aspectRatio: '1', borderRadius: 8, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                   background: isSel ? 'color-mix(in srgb, var(--accent) 22%, transparent)' : 'transparent',
                   border: isToday ? '1px solid var(--accent)' : '1px solid transparent',
@@ -391,8 +428,8 @@ export default function PlannerView({ onUpdate }: Props) {
         ].filter(Boolean) as string[];
         return (
         <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)', border: '1px solid var(--border)', borderLeft: `4px solid ${a.color || markColor}`, borderRadius: 10, padding: 12, marginBottom: 8 }}>
-          <div aria-hidden style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', width: 52 }}>{hhmmOf(a.time)}</div>
-          <button onClick={() => openEditAppt(a)} aria-label={[hhmmOf(a.time), a.title, a.location, ...meta].filter(Boolean).join(', ')}
+          <div aria-hidden style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', width: 52 }}>{fmtClockHHMM(hhmmOf(a.time))}</div>
+          <button onClick={() => openEditAppt(a)} data-focus-key={`appt-${a.id}`} aria-label={fmtList([fmtClockHHMM(hhmmOf(a.time)), a.title, a.location, ...meta].filter(Boolean) as string[])}
             style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{a.title}</div>
             {(a.location || a.notes) ? <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{[a.location, a.notes].filter(Boolean).join(' · ')}</div> : null}
@@ -405,7 +442,7 @@ export default function PlannerView({ onUpdate }: Props) {
               </div>
             )}
           </button>
-          <button className="icon-btn" aria-label={`${t('common.delete')}, ${a.title}`} onClick={() => setDeleteAppt(a)}
+          <button className="icon-btn" aria-label={t('common.deleteNamed', { name: a.title })} onClick={() => setDeleteAppt(a)}
             style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
         </div>
         );
@@ -418,14 +455,14 @@ export default function PlannerView({ onUpdate }: Props) {
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('planner.emptyReminders')}</div>
       ) : sortedRems.map(r => (
         <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 8, opacity: r.enabled ? 1 : 0.55 }}>
-          <button onClick={() => openEditRem(r)} aria-label={`${r.title}, ${t(REPEAT_KEYS[r.repeat || 'daily'])}, ${r.times.join(', ')}`}
+          <button onClick={() => openEditRem(r)} data-focus-key={`rem-${r.id}`} aria-label={fmtList([r.title, t(REPEAT_KEYS[r.repeat || 'daily']), ...r.times.map(fmtClockHHMM)])}
             style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{r.title}</div>
-            <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{`↻ ${t(REPEAT_KEYS[r.repeat || 'daily'])}  ·  ${r.times.join('  ·  ')}`}</div>
+            <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{`↻ ${t(REPEAT_KEYS[r.repeat || 'daily'])}  ·  ${r.times.map(fmtClockHHMM).join('  ·  ')}`}</div>
             {r.notes ? <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{r.notes}</div> : null}
           </button>
-          <Toggle value={r.enabled} onChange={() => toggleRem(r)} label={`${r.enabled ? t('planner.disableReminder') : t('planner.enableReminder')}, ${r.title}`} />
-          <button className="icon-btn" aria-label={`${t('common.delete')}, ${r.title}`} onClick={() => setDeleteRem(r)}
+          <Toggle value={r.enabled} onChange={() => toggleRem(r)} label={t('planner.reminderEnabledFor', { title: r.title })} />
+          <button className="icon-btn" aria-label={t('common.deleteNamed', { name: r.title })} onClick={() => setDeleteRem(r)}
             style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
         </div>
       ))}

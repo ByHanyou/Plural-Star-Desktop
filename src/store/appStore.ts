@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { SystemInfo, Member, MemberGroup, FrontState, HistoryEntry, JournalEntry, ChatChannel, ChatCategory, AppSettings } from '../utils';
 import { CustomPalette, ThemeColors, deriveTheme, DARK_PALETTE } from '../theme';
 
-export interface AppState {
+interface AppState {
   system: SystemInfo;
   members: Member[];
   groups: MemberGroup[];

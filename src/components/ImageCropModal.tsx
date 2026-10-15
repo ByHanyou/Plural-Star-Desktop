@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import i18n from '../i18n/i18n';
+import { useDialogFocus } from './ui';
 
 interface UploadRequest {
   dataUrl: string;
@@ -21,6 +22,34 @@ type Corner = 'tl' | 'tr' | 'bl' | 'br';
 
 interface Rect { x: number; y: number; w: number; h: number; }
 
+const CORNER_LABEL: Record<Corner, string> = {
+  tl: 'modal.cropResizeTopLeft',
+  tr: 'modal.cropResizeTopRight',
+  bl: 'modal.cropResizeBottomLeft',
+  br: 'modal.cropResizeBottomRight',
+};
+
+const computeRect = (mode: 'move' | Corner, s: Rect, dx: number, dy: number, d: Rect): Rect => {
+  if (mode === 'move') {
+    const w = s.w, h = s.h;
+    const x = Math.max(d.x, Math.min(s.x + dx, d.x + d.w - w));
+    const y = Math.max(d.y, Math.min(s.y + dy, d.y + d.h - h));
+    return { x, y, w, h };
+  }
+  let { x, y, w, h } = s;
+  if (mode === 'tl' || mode === 'bl') { x = s.x + dx; w = s.w - dx; }
+  if (mode === 'tr' || mode === 'br') { w = s.w + dx; }
+  if (mode === 'tl' || mode === 'tr') { y = s.y + dy; h = s.h - dy; }
+  if (mode === 'bl' || mode === 'br') { h = s.h + dy; }
+  if (w < MIN_SIZE) { if (mode === 'tl' || mode === 'bl') x = s.x + s.w - MIN_SIZE; w = MIN_SIZE; }
+  if (h < MIN_SIZE) { if (mode === 'tl' || mode === 'tr') y = s.y + s.h - MIN_SIZE; h = MIN_SIZE; }
+  const x1 = Math.max(d.x, x);
+  const y1 = Math.max(d.y, y);
+  const x2 = Math.min(d.x + d.w, x + w);
+  const y2 = Math.min(d.y + d.h, y + h);
+  return { x: x1, y: y1, w: Math.max(MIN_SIZE, x2 - x1), h: Math.max(MIN_SIZE, y2 - y1) };
+};
+
 export const ImageCropHost = () => {
   const [req, setReq] = useState<UploadRequest | null>(null);
   const [stage, setStage] = useState<'choose' | 'crop'>('choose');
@@ -32,6 +61,10 @@ export const ImageCropHost = () => {
   const dispRef = useRef<Rect | null>(null);
   const dragRef = useRef<{ mode: 'move' | Corner; startX: number; startY: number; start: Rect } | null>(null);
   const activeRef = useRef<UploadRequest | null>(null);
+  const chooseRef = useRef<HTMLDivElement | null>(null);
+  const cropRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(!!req && stage === 'choose', chooseRef);
+  useDialogFocus(!!req && stage === 'crop', cropRef);
 
   useEffect(() => {
     hostOpen = (r: UploadRequest) => {
@@ -84,27 +117,7 @@ export const ImageCropHost = () => {
       if (!drag || !d) return;
       const dx = e.clientX - drag.startX;
       const dy = e.clientY - drag.startY;
-      const s = drag.start;
-      let next: Rect;
-      if (drag.mode === 'move') {
-        const w = s.w, h = s.h;
-        const x = Math.max(d.x, Math.min(s.x + dx, d.x + d.w - w));
-        const y = Math.max(d.y, Math.min(s.y + dy, d.y + d.h - h));
-        next = { x, y, w, h };
-      } else {
-        let { x, y, w, h } = s;
-        if (drag.mode === 'tl' || drag.mode === 'bl') { x = s.x + dx; w = s.w - dx; }
-        if (drag.mode === 'tr' || drag.mode === 'br') { w = s.w + dx; }
-        if (drag.mode === 'tl' || drag.mode === 'tr') { y = s.y + dy; h = s.h - dy; }
-        if (drag.mode === 'bl' || drag.mode === 'br') { h = s.h + dy; }
-        if (w < MIN_SIZE) { if (drag.mode === 'tl' || drag.mode === 'bl') x = s.x + s.w - MIN_SIZE; w = MIN_SIZE; }
-        if (h < MIN_SIZE) { if (drag.mode === 'tl' || drag.mode === 'tr') y = s.y + s.h - MIN_SIZE; h = MIN_SIZE; }
-        const x1 = Math.max(d.x, x);
-        const y1 = Math.max(d.y, y);
-        const x2 = Math.min(d.x + d.w, x + w);
-        const y2 = Math.min(d.y + d.h, y + h);
-        next = { x: x1, y: y1, w: Math.max(MIN_SIZE, x2 - x1), h: Math.max(MIN_SIZE, y2 - y1) };
-      }
+      const next = computeRect(drag.mode, drag.start, dx, dy, d);
       rectRef.current = next;
       setRect(next);
     };
@@ -119,6 +132,20 @@ export const ImageCropHost = () => {
     e.preventDefault();
     e.stopPropagation();
     dragRef.current = { mode, startX: e.clientX, startY: e.clientY, start: rectRef.current };
+  };
+
+  const nudge = (mode: 'move' | Corner) => (e: React.KeyboardEvent) => {
+    const s = rectRef.current;
+    const d = dispRef.current;
+    if (!s || !d) return;
+    const step = e.shiftKey ? 20 : 4;
+    const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+    const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+    if (!dx && !dy) return;
+    e.preventDefault();
+    const next = computeRect(mode, s, dx, dy, d);
+    rectRef.current = next;
+    setRect(next);
   };
 
   const finish = (result: string | null) => {
@@ -168,7 +195,7 @@ export const ImageCropHost = () => {
 
   if (stage === 'choose') {
     return (
-      <div style={overlay} role="dialog" aria-modal="true" aria-label={i18n.t('modal.imagePickHow')} onClick={() => finish(null)}>
+      <div ref={chooseRef} tabIndex={-1} style={overlay} role="dialog" aria-modal="true" aria-label={i18n.t('modal.imagePickHow')} onClick={() => finish(null)}>
         <div role="presentation" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, minWidth: 300 }} onClick={e => e.stopPropagation()}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>{i18n.t('modal.imagePickHow')}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -182,7 +209,7 @@ export const ImageCropHost = () => {
   }
 
   return (
-    <div style={{ ...overlay, background: 'rgba(0,0,0,0.85)', flexDirection: 'column', padding: 24 }} role="dialog" aria-modal="true" aria-label={i18n.t('modal.cropImage')}>
+    <div ref={cropRef} tabIndex={-1} style={{ ...overlay, background: 'rgba(0,0,0,0.85)', flexDirection: 'column', padding: 24 }} role="dialog" aria-modal="true" aria-label={i18n.t('modal.cropImage')}>
       <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 10 }}>{i18n.t('modal.cropImage')}</div>
       <div ref={boxRef} style={{ position: 'relative', flex: 1, alignSelf: 'stretch', overflow: 'hidden', userSelect: 'none' }}>
         {box && (
@@ -194,10 +221,10 @@ export const ImageCropHost = () => {
             <div style={{ position: 'absolute', left: disp.x, top: rect.y + rect.h, width: disp.w, height: disp.y + disp.h - rect.y - rect.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', left: disp.x, top: rect.y, width: rect.x - disp.x, height: rect.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', left: rect.x + rect.w, top: rect.y, width: disp.x + disp.w - rect.x - rect.w, height: rect.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-            <div onMouseDown={startDrag('move')}
+            <div onMouseDown={startDrag('move')} role="button" tabIndex={0} aria-label={i18n.t('modal.cropMove')} onKeyDown={nudge('move')}
               style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, border: '2px solid var(--accent)', cursor: 'move' }} />
             {(['tl', 'tr', 'bl', 'br'] as Corner[]).map(corner => (
-              <div key={corner} onMouseDown={startDrag(corner)}
+              <div key={corner} onMouseDown={startDrag(corner)} role="button" tabIndex={0} aria-label={i18n.t(CORNER_LABEL[corner])} onKeyDown={nudge(corner)}
                 style={{
                   position: 'absolute',
                   left: (corner === 'tl' || corner === 'bl' ? rect.x : rect.x + rect.w) - HANDLE / 2,
