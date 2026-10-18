@@ -93,16 +93,16 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
     return (
       <div role="alert" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#0a0a0a', color: '#fff', textAlign: 'center', fontFamily: 'var(--font-body)' }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, fontFamily: 'var(--font-display)' }}>
-          {i18n.t('errorBoundary.title', { defaultValue: 'Something went wrong' })}
+          {i18n.t('errorBoundary.title')}
         </h1>
         <p style={{ fontSize: 14, color: '#bbb', marginBottom: 16, maxWidth: 480 }}>
-          {i18n.t('errorBoundary.body', { defaultValue: 'The app hit an unexpected error. Try again, or restart if it persists.' })}
+          {i18n.t('errorBoundary.body')}
         </p>
         <p style={{ fontSize: 12, color: '#666', marginBottom: 24, maxWidth: 480, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-wrap' }}>
           {msg}
         </p>
         <button onClick={this.reset} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#3a7bd5', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-          {i18n.t('errorBoundary.retry', { defaultValue: 'Try again' })}
+          {i18n.t('errorBoundary.retry')}
         </button>
       </div>
     );
@@ -240,7 +240,7 @@ function AppInner() {
                 : v === 'system-profile' ? t('systemProfile.title')
                 : v === 'custom-fields' ? t('customFields.title')
                 : v === 'polls' ? t('polls.title')
-                : v === 'credits' ? t('hub.credits', { defaultValue: 'Credits' })
+                : v === 'credits' ? t('hub.credits')
                 : v === 'system-manager' ? t('systemManager.title')
                 : v === 'system-map' ? t('systemMap.title')
                 : v === 'planner' ? t('planner.title')
@@ -250,7 +250,7 @@ function AppInner() {
                 : v === 'network' ? t('network.title')
                 : v === 'mailbox' ? t('mailbox.title')
                 : v === 'whiteboard' ? t('whiteboard.title')
-                : v === 'colors' ? t('colors.title', {defaultValue: 'Colors'})
+                : v === 'colors' ? t('colors.title')
                 : v;
 
   const selfMember = isSinglet
@@ -402,15 +402,15 @@ function AppInner() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {loadError ? (
             <div role="alert" style={{ textAlign: 'center', maxWidth: 480, padding: 24 }}>
-              <p style={{ color: 'var(--text)', fontSize: 14, marginBottom: 12 }}>{i18n.t('errorBoundary.body', { defaultValue: 'The app hit an unexpected error. Try again, or restart if it persists.' })}</p>
+              <p style={{ color: 'var(--text)', fontSize: 14, marginBottom: 12 }}>{i18n.t('errorBoundary.body')}</p>
               <p style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 20, whiteSpace: 'pre-wrap' }}>{loadError}</p>
               <button onClick={() => window.location.reload()} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--bg)', fontSize: 14, cursor: 'pointer' }}>
-                {i18n.t('errorBoundary.retry', { defaultValue: 'Try again' })}
+                {i18n.t('errorBoundary.retry')}
               </button>
             </div>
           ) : (
             <span role="status" style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: 18 }}>
-              {i18n.t('common.loading', { defaultValue: 'Loading…' })}
+              {i18n.t('common.loading')}
             </span>
           )}
         </div>
@@ -433,8 +433,8 @@ function AppInner() {
           {titleView ? <Interp text={t('hub.titleBar', { view: titleView, ...slots('name'), applyPostProcessor: false })} nodes={{ name: titleName }} /> : titleName}
         </span>
         <div className="titlebar__controls">
-          <button className="titlebar__btn titlebar__btn--minimize" aria-label={t('common.minimize', {defaultValue: 'Minimize'})} onClick={() => window.electronAPI.window.minimize()} />
-          <button className="titlebar__btn titlebar__btn--maximize" aria-label={t('common.maximize', {defaultValue: 'Maximize'})} onClick={() => window.electronAPI.window.maximize()} />
+          <button className="titlebar__btn titlebar__btn--minimize" aria-label={t('common.minimize')} onClick={() => window.electronAPI.window.minimize()} />
+          <button className="titlebar__btn titlebar__btn--maximize" aria-label={t('common.maximize')} onClick={() => window.electronAPI.window.maximize()} />
           <button className="titlebar__btn titlebar__btn--close" aria-label={t('common.close')} onClick={() => window.electronAPI.window.close()} />
         </div>
       </div>
@@ -594,7 +594,7 @@ function AppInner() {
           </div>
         }>
         <p style={{ fontSize: 13, color: 'var(--text)' }}>
-          {t('network.syncConflictMsg', { device: syncConflict?.deviceName || '', defaultValue: `Your data differs from ${syncConflict?.deviceName}. Which device should win?` })}
+          {t('network.syncConflictMsg', { device: syncConflict?.deviceName || '' })}
         </p>
       </Modal>
 
@@ -604,7 +604,7 @@ function AppInner() {
         onClose={() => setRoleMismatch(null)}
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Btn onClick={() => setRoleMismatch(null)}>{t('common.ok', { defaultValue: 'OK' })}</Btn>
+            <Btn onClick={() => setRoleMismatch(null)}>{t('common.ok')}</Btn>
           </div>
         }>
         <p style={{ fontSize: 13, color: 'var(--text)' }}>

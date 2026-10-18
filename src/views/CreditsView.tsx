@@ -11,12 +11,12 @@ export default function CreditsView() {
   const credits: Credit[] = [
     {
       name: 'The Loud House System',
-      role: t('hub.creditLogo', { defaultValue: 'Plural Star Logo' }),
+      role: t('hub.creditLogo'),
       url: 'https://x.com/theloudhousesys?s=21',
     },
     {
       name: 'sparklecatdev',
-      role: t('hub.creditIos', { defaultValue: 'Plural Star iOS Port' }),
+      role: t('hub.creditIos'),
       url: 'https://github.com/sparklecatdev',
     },
   ];

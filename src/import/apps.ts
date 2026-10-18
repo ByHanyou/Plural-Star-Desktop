@@ -748,7 +748,7 @@ export const handleTokenFetch = async (ctx: ImportCtx) => {
         setExtPreview({system: sData, members: Array.isArray(mData) ? mData : [], switches: swData});
       }
     } catch (e: any) {
-      if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
+      if (isImportStopped(e)) showStatus(t('share.importStopped'));
       else showStatus(t('share.statusImportError', {msg: importErrorText(e, t)}), true);
     }
     finally { setExtLoading(false); }
@@ -933,7 +933,7 @@ export const handleTokenImport = async (ctx: ImportCtx) => {
       setExtPreview(null); setExtToken('');
       onUpdate();
     } catch (e: any) {
-      if (isImportStopped(e)) showStatus(t('share.importStopped', {defaultValue: 'Import stopped. Nothing was changed.'}));
+      if (isImportStopped(e)) showStatus(t('share.importStopped'));
       else showStatus(t('share.statusImportErrorSafe', {msg: importErrorText(e, t)}), true);
     }
     finally { setImporting(false); }

@@ -248,7 +248,7 @@ export default function JournalView({ onUpdate }: Props) {
             color: tab === id ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
             borderBottom: `2px solid ${tab === id ? 'var(--accent)' : 'transparent'}`,
           }}>
-            {id === 'entries' ? t('journal.entriesTab', { defaultValue: 'Entries' }) : t('journal.templatesTab', { defaultValue: 'Templates' })}
+            {id === 'entries' ? t('journal.entriesTab') : t('journal.templatesTab')}
           </button>
         ))}
       </div>
@@ -284,9 +284,9 @@ export default function JournalView({ onUpdate }: Props) {
           </select>
 
           {templates.length > 0 && (
-            <Btn variant="ghost" onClick={() => setShowTemplatePicker(true)}>{t('journal.fromTemplate', { defaultValue: 'From template…' })}</Btn>
+            <Btn variant="ghost" onClick={() => setShowTemplatePicker(true)}>{t('journal.fromTemplate')}</Btn>
           )}
-          <Btn variant="solid" onClick={openNew}>{t('journal.newEntry', { defaultValue: '+ New Entry' })}</Btn>
+          <Btn variant="solid" onClick={openNew}>{t('journal.newEntry')}</Btn>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -351,9 +351,9 @@ export default function JournalView({ onUpdate }: Props) {
       {tab === 'templates' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, flex: 1, marginRight: 12 }}>
-            {t('journal.templateHint', { defaultValue: 'Pre-fill from a saved template?' })}
+            {t('journal.templateHint')}
           </p>
-          <Btn variant="solid" onClick={openNewTemplate}>{t('journal.newTemplate', { defaultValue: '+ New Template' })}</Btn>
+          <Btn variant="solid" onClick={openNewTemplate}>{t('journal.newTemplate')}</Btn>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -387,7 +387,7 @@ export default function JournalView({ onUpdate }: Props) {
 
         {templates.length === 0 && (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-            {t('journal.noTemplates', { defaultValue: 'No templates yet. Create one to pre-fill new entries.' })}
+            {t('journal.noTemplates')}
           </div>
         )}
       </>)}
@@ -515,9 +515,9 @@ export default function JournalView({ onUpdate }: Props) {
             </div>
           </div>
         }>
-        <Field label={t('journal.templateName', { defaultValue: 'Template Name *' })} value={tplName} onChange={setTplName} placeholder={t('journal.templateNamePlaceholder', { defaultValue: 'e.g. Morning Pages' })} />
-        <Field label={t('journal.templateTitle', { defaultValue: 'Entry Title (preset)' })} value={tplTitle} onChange={setTplTitle} placeholder={t('modal.entryTitlePlaceholder')} />
-        <Field label={t('journal.templateBody', { defaultValue: 'Entry Body (preset)' })} value={tplBody} onChange={setTplBody} placeholder={t('modal.writeHere')} multiline pictureTools />
+        <Field label={t('journal.templateName')} value={tplName} onChange={setTplName} placeholder={t('journal.templateNamePlaceholder')} />
+        <Field label={t('journal.templateTitle')} value={tplTitle} onChange={setTplTitle} placeholder={t('modal.entryTitlePlaceholder')} />
+        <Field label={t('journal.templateBody')} value={tplBody} onChange={setTplBody} placeholder={t('modal.writeHere')} multiline pictureTools />
         <Section label={t('modal.tags')} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {tplTags.map(tag => (
@@ -535,7 +535,7 @@ export default function JournalView({ onUpdate }: Props) {
         </div>
       </Modal>
 
-      <Modal open={showTemplatePicker} title={t('journal.pickTemplate', { defaultValue: 'Pick a template' })} onClose={() => setShowTemplatePicker(false)}>
+      <Modal open={showTemplatePicker} title={t('journal.pickTemplate')} onClose={() => setShowTemplatePicker(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {templates.map(tpl => (
             <button key={tpl.id} onClick={() => openNewFromTemplate(tpl)} style={{

@@ -106,7 +106,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const visibleIdSet = useMemo(() => new Set(mapMembers.map(m => m.id)), [mapMembers]);
   const mapRels = useMemo(() => relationships.filter(r => visibleIdSet.has(r.fromId) && visibleIdSet.has(r.toId)), [relationships, visibleIdSet]);
 
-  const typeLabel = (td: RelationshipTypeDef): string => (td.preset && !td.overridden) ? t(`relType.${td.id}`, { defaultValue: td.name }) : td.name;
+  const typeLabel = (td: RelationshipTypeDef): string => (td.preset && !td.overridden) ? t(`relType.${td.id}`) : td.name;
 
   const dist = useMemo(() => {
     if (!selectedId) return null;
@@ -275,7 +275,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
           className={colorAll ? 'btn btn--solid' : 'btn btn--ghost'}
           aria-pressed={colorAll}
           onClick={() => { const v = !colorAll; setColorAll(v); localStorage.setItem('ps.mapColorThreads', v ? '1' : '0'); }}>
-          {t('systemMap.showColors', {defaultValue: 'Colors'})}
+          {t('systemMap.showColors')}
         </button>
         <button
           className={lockPositions ? 'btn btn--solid' : 'btn btn--ghost'}

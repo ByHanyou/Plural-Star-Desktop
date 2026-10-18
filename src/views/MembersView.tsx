@@ -7,7 +7,7 @@ import { store, KEYS } from '../storage';
 import { NetworkManager } from '../network/NetworkManager';
 import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable, useDndA11y, useEscapeKey, SrOnly , tabListKeyDown } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
-import { CustomHexEntry, ProfileBgChip } from '../components/CustomHexEntry';
+import { CustomHexEntry, ProfileBgChip, TransparentAvatarChip } from '../components/CustomHexEntry';
 import { MarkdownText } from '../components/MarkdownText';
 import { useAppStore } from '../store/appStore';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -484,8 +484,8 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             type="button"
             role="switch"
             aria-checked={!reorderLocked}
-            aria-label={t('common.reorderLock', { defaultValue: 'Drag reordering' })}
-            title={t('common.reorderLock', { defaultValue: 'Drag reordering' })}
+            aria-label={t('common.reorderLock')}
+            title={t('common.reorderLock')}
             onClick={() => setReorderLocked(v => !v)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, fontSize: 16, lineHeight: 1, opacity: reorderLocked ? 0.35 : 1 }}>
             🤏
@@ -614,7 +614,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="tile__avatar" aria-hidden style={{
                 width: 40, height: 40, fontSize: 14, overflow: 'hidden',
-                ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
+                ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : !m.avatarTransparent ? { backgroundColor: m.color } : {}),
               }}>
                 {m.avatar ? <img src={m.avatar} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover' }} /> : getInitials(m.name)}
               </div>
@@ -695,7 +695,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {deletedMembers.map(m => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', opacity: 0.85 }}>
-                <div className="tile__avatar" style={{ width: 32, height: 32, fontSize: 12, overflow: 'hidden', ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}) }}>
+                <div className="tile__avatar" style={{ width: 32, height: 32, fontSize: 12, overflow: 'hidden', ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : !m.avatarTransparent ? { backgroundColor: m.color } : {}) }}>
                   {m.avatar ? <img src={m.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(m.name)}
                 </div>
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
@@ -786,15 +786,15 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           const activeGroups = sortGroupsForDisplay(groups.filter(g => (f.groupIds || []).includes(g.id)), groups);
           const visibleDefs = fieldDefs.filter(fd => {
             const vv = (f.customFields || []).find(c => c.fieldId === fd.id)?.value;
-            return !(vv === undefined || vv === null || vv === '');
+            return !(vv === undefined || vv === null || vv === '' || (fd.type === 'image' && vv === 'cloud:media'));
           });
           const allTypes = allRelationshipTypes(relTypes);
           const relTypeById = new Map(allTypes.map(ty => [ty.id, ty]));
-          const relLabel = (id: string) => { const ty = relTypeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`, { defaultValue: ty.name }) : ty.name) : '?'; };
+          const relLabel = (id: string) => { const ty = relTypeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`) : ty.name) : '?'; };
           const gone = (i: string) => { const m = members.find(x => x.id === i); return !!m && !!m.deleted; };
           const mine = relationships.filter(r => (r.fromId === f.id || r.toId === f.id) && !gone(r.fromId === f.id ? r.toId : r.fromId));
           const readVal = (fd: CustomFieldDef, val: string | number | boolean | null) => {
-            if (fd.type === 'toggle') return <span role="img" aria-label={val ? t('common.yes') : t('common.no')} style={{ fontSize: 14, color: val ? 'var(--accent)' : 'var(--muted)' }}>{val ? '✓' : '—'}</span>;
+            if (fd.type === 'toggle') return <span role="img" aria-label={val ? t('common.yes') : t('common.no')} style={{ fontSize: 14, color: val ? 'var(--accent)' : 'var(--muted)' }}>{val ? '✓' : '-'}</span>;
             if (fd.type === 'color') return (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 22, height: 22, borderRadius: 6, background: String(val || '#333'), border: '1px solid var(--border)', display: 'inline-block' }} />
@@ -937,7 +937,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               const toFacet = !f.isFacet;
               setF({ ...f, isFacet: toFacet, isCustomFront: toFacet ? false : f.isCustomFront });
             }}
-            title={t('members.moveCategoryHint', { defaultValue: 'Keeps everything else about this profile. Facets are not counted as members.' })}
+            title={t('members.moveCategoryHint')}
             style={{
               alignSelf: 'flex-start', marginBottom: 14, padding: '6px 12px', borderRadius: 999,
               border: '1px solid var(--border)', background: 'var(--surface)',
@@ -945,8 +945,8 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             }}>
             <span aria-hidden>{f.isFacet ? '↩ ' : '◈ '}</span>
             {f.isFacet
-              ? t('members.makeMember', { defaultValue: 'Move to Members' })
-              : t('members.makeFacet', { defaultValue: 'Move to Facets' })}
+              ? t('members.makeMember')
+              : t('members.makeFacet')}
           </button>
         )}
 
@@ -960,7 +960,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
               {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
             </div>
             <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
-              <button aria-label={t('modal.changePfp', {defaultValue: 'Change profile picture'})} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+              <button aria-label={t('modal.changePfp')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={pickAvatar}>📷</button>
               {f.avatar && (
                 <button aria-label={t('modal.viewPfp')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -994,7 +994,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
           <Section label={t('modal.color')} />
           <ColorCarousel value={f.color} onChange={v => set('color', v)} />
           <CustomHexEntry value={f.color} onApply={v => set('color', v)}
-            leading={<ProfileBgChip color={f.color} value={!!f.profileBg} onChange={v => set('profileBg', v)} />} />
+            leading={<><TransparentAvatarChip value={!!f.avatarTransparent} onChange={v => set('avatarTransparent', v)} /><ProfileBgChip color={f.color} value={!!f.profileBg} onChange={v => set('profileBg', v)} /></>} />
 
           {groups.length > 0 && (() => {
             const selected = new Set(f.groupIds || []);
@@ -1136,7 +1136,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
             {fieldDefs.length > 0 ? (
               fieldDefs.map((fd, fdIdx) => {
                 const cfv = (f.customFields || []).find(v => v.fieldId === fd.id);
-                const val = cfv?.value ?? '';
+                const val = fd.type === 'image' && cfv?.value === 'cloud:media' ? '' : (cfv?.value ?? '');
                 const setFieldVal = (newVal: string | number | boolean | null) => {
                   const existing = f.customFields || [];
                   const updated = existing.some(v => v.fieldId === fd.id)
@@ -1217,17 +1217,17 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
                             <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />
                             <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
                               <label style={{ fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }} tabIndex={0} role="button"
-                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.querySelector('input')?.click(); } }}>{t('common.change', { defaultValue: 'Change' })}
+                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.querySelector('input')?.click(); } }}>{t('common.change')}
                                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
                               </label>
-                              <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }} onClick={() => setFieldVal(null)}>{t('common.clear', { defaultValue: 'Clear' })}</button>
+                              <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }} onClick={() => setFieldVal(null)}>{t('common.clear')}</button>
                             </div>
                           </div>
                         ) : (
                           <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--surface)', cursor: 'pointer' }} tabIndex={0} role="button"
                             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.querySelector('input')?.click(); } }}>
                             <span aria-hidden style={{ fontSize: 20, color: 'var(--dim)' }}>＋</span>
-                            <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.addImage', { defaultValue: 'Add image' })}</span>
+                            <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.addImage')}</span>
                             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
                           </label>
                         )}
@@ -1250,7 +1250,7 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
         {memberTab === 'connections' && !isNew && (() => {
           const allTypes = allRelationshipTypes(relTypes);
           const typeById = new Map(allTypes.map(ty => [ty.id, ty]));
-          const typeLabel = (id: string) => { const ty = typeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`, { defaultValue: ty.name }) : ty.name) : '?'; };
+          const typeLabel = (id: string) => { const ty = typeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`) : ty.name) : '?'; };
           const gone = (i: string) => { const m = members.find(x => x.id === i); return !!m && !!m.deleted; };
           const mine = relationships.filter(r => (r.fromId === f.id || r.toId === f.id) && !gone(r.fromId === f.id ? r.toId : r.fromId));
           return (

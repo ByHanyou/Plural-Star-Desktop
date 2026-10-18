@@ -34,7 +34,7 @@ const Img = ({ uri, alt = '' }: { uri: string; alt?: string }) => {
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => { setFailed(false); }, [uri]);
   if (failed) {
-    return <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{i18n.t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</span>;
+    return <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{i18n.t('markdown.imageUnavailable')}</span>;
   }
   return <img src={uri} alt={alt} style={{ display: 'block', maxWidth: 300, maxHeight: 300, borderRadius: 8, margin: '2px 0' }} onError={() => setFailed(true)} />;
 };
@@ -43,7 +43,7 @@ const SideImg = ({ uri, w, h, alt = '' }: { uri: string; w?: number; h?: number;
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => { setFailed(false); }, [uri]);
   if (failed) {
-    return <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', maxWidth: '45%' }}>{i18n.t('markdown.imageUnavailable', { defaultValue: '[image unavailable]' })}</span>;
+    return <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', maxWidth: '45%' }}>{i18n.t('markdown.imageUnavailable')}</span>;
   }
   return <img src={uri} alt={alt} style={{ display: 'block', flexShrink: 0, width: w || 110, maxWidth: '45%', height: 'auto', aspectRatio: w && h ? `${w} / ${h}` : undefined, objectFit: 'contain', borderRadius: 8 }} onError={() => setFailed(true)} />;
 };
@@ -91,7 +91,7 @@ const renderInline = (text: string, members?: Member[]): React.ReactNode => {
     [/`(.+?)`/, m => <code key={key++} style={{ fontFamily: 'monospace', background: 'var(--surface)', padding: '0 4px', borderRadius: 3, fontSize: 12 }}>{m[1]}</code>],
     [new RegExp(MD_IMAGE_RE.source), m => {
       const url = m[2].replace(/[)]+$/, '').replace(/#\d+x\d+$/, '').trim();
-      if (!isValidImageUri(url)) return <span key={key++} style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{i18n.t('markdown.brokenImage', { defaultValue: '[broken image]' })}</span>;
+      if (!isValidImageUri(url)) return <span key={key++} style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{i18n.t('markdown.brokenImage')}</span>;
       return <Img key={key++} uri={url} alt={m[1].startsWith(SIDE_ALT) ? '' : m[1]} />;
     }],
     [/\[(.+?)\]\((.+?)\)/, m => {

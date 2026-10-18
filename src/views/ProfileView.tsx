@@ -7,7 +7,7 @@ import { useAppStore } from '../store/appStore';
 import { Btn, Field, Section, Modal, ConfirmDialog, Toggle, clickable, SrOnly , tabListKeyDown } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
 import { chooseImageTreatment } from '../components/ImageCropModal';
-import { CustomHexEntry, ProfileBgChip } from '../components/CustomHexEntry';
+import { CustomHexEntry, ProfileBgChip, TransparentAvatarChip } from '../components/CustomHexEntry';
 import { MarkdownText } from '../components/MarkdownText';
 
 type SubTab = 'profile' | 'statuses';
@@ -214,7 +214,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
             {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
           </div>
           <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
-            <button aria-label={t('modal.changePfp', {defaultValue: 'Change profile picture'})} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+            <button aria-label={t('modal.changePfp')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
               onClick={pickAvatar}>📷</button>
             {f.avatar && (
               <button style={{ fontSize: 11, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -241,7 +241,7 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         <Section label={t('profile.favoriteColor')} />
         <ColorCarousel value={f.color} onChange={v => set('color', v)} />
         <CustomHexEntry value={f.color} onApply={v => set('color', v)}
-          leading={<ProfileBgChip color={f.color} value={!!f.profileBg} onChange={v => set('profileBg', v)} />} />
+          leading={<><TransparentAvatarChip value={!!f.avatarTransparent} onChange={v => set('avatarTransparent', v)} /><ProfileBgChip color={f.color} value={!!f.profileBg} onChange={v => set('profileBg', v)} /></>} />
         <Field label={t('modal.descriptionBio')} value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} multiline pictureTools />
       </Modal>
 

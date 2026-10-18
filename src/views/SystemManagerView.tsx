@@ -158,7 +158,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
           )}
           {isEditing ? (
             <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input className="field__input" aria-label={t('memberGroups.groupName', {defaultValue: 'Group name'})} value={editName} autoFocus onChange={e => setEditName(e.target.value)}
+              <input className="field__input" aria-label={t('memberGroups.groupName')} value={editName} autoFocus onChange={e => setEditName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') renameNode(g.id); if (e.key === 'Escape') setEditId(null); }}
                 style={{ flex: 1, fontSize: 13 }} />
               <button onClick={() => renameNode(g.id)} title={t('common.save')} aria-label={t('common.save')} style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}>✓</button>
@@ -290,7 +290,7 @@ export default function SystemManagerView({ onUpdate, onViewMember, onQuickFront
                 <button onClick={() => onViewMember?.(linked.id)} disabled={!onViewMember} aria-label={t('common.labelValue', { label: t('memberGroups.linkedFronter'), value: linked.name })}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', marginBottom: 10, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', cursor: onViewMember ? 'pointer' : 'default', textAlign: 'left' }}>
                   {linked.avatar
-                    ? <img src={linked.avatar} alt="" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover', flexShrink: 0 }} />
+                    ? <img src={linked.avatar} alt="" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover', flexShrink: 0, ...(!linked.avatarTransparent ? { backgroundColor: linked.color } : {}) }} />
                     : <span aria-hidden style={{ width: 28, height: 28, borderRadius: 14, background: linked.color, color: initialOn(linked.color), display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{getInitials(linked.name || '?')}</span>}
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'block', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>{t('memberGroups.linkedFronter')}</span>

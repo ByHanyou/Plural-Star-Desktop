@@ -88,7 +88,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
         borderRadius: 999, background: `${m.color}15`, border: `1px solid ${m.color}30`,
       }}>
         {m.avatar ? (
-          <img src={m.avatar} alt="" style={{ width: 16, height: 16, borderRadius: 8, objectFit: 'cover', display: 'inline-block' }} />
+          <img src={m.avatar} alt="" style={{ width: 16, height: 16, borderRadius: 8, objectFit: 'cover', display: 'inline-block', ...(!m.avatarTransparent ? { backgroundColor: m.color } : {}) }} />
         ) : (
           <span aria-hidden style={{ width: 16, height: 16, borderRadius: 8, background: m.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700 }}>
             {getInitials(m.name)}
@@ -208,7 +208,6 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {group.entries.map((entry, i) => {
               const displayEnd = entry.endTime ?? effEnd(entry);
-              // An entry with no primary fronter shows its co-front, else co-conscious, members instead of nothing.
               const baseIds = entry.memberIds.length ? entry.memberIds : (entry.coFrontIds?.length ? entry.coFrontIds : (entry.coConsciousIds || []));
               const withoutSelf = singlet && selfId ? baseIds.filter(id => id !== selfId) : baseIds;
               const chipIds = singlet && withoutSelf.length === 0 ? baseIds : withoutSelf;
@@ -220,7 +219,7 @@ export default function HistoryView({ onUpdate, singlet = false, selfId }: Props
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {chipIds.map(id => <MemberChip key={id} id={id} />)}
                   <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtTime(entry.startTime)} — {displayEnd ? fmtTime(displayEnd) : t('history.now')}
+                    {fmtTime(entry.startTime)} - {displayEnd ? fmtTime(displayEnd) : t('history.now')}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                     {fmtDur(entry.startTime, displayEnd)}

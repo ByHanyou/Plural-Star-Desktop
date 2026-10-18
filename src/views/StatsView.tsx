@@ -260,7 +260,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
         {data.length > limit && limit < MAX_BOARD && (
           <button onClick={() => expandBoard(boardKey)}
             style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-            {t('stats.showMoreCount', { shown: fmtNum(Math.min(limit, data.length), 0), total: fmtNum(data.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
+            {t('stats.showMoreCount', { shown: fmtNum(Math.min(limit, data.length), 0), total: fmtNum(data.length, 0) })}
           </button>
         )}
       </div>
@@ -312,7 +312,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
           ))}
           {moodTotals.length > limitFor('moods') && limitFor('moods') < MAX_BOARD && (
             <button onClick={() => expandBoard('moods')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-              {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('moods'), moodTotals.length), 0), total: fmtNum(moodTotals.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
+              {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('moods'), moodTotals.length), 0), total: fmtNum(moodTotals.length, 0) })}
             </button>
           )}
           {moodTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noMoodsRecorded')}</span>}
@@ -324,7 +324,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
           ))}
           {locationTotals.length > limitFor('locations') && limitFor('locations') < MAX_BOARD && (
             <button onClick={() => expandBoard('locations')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-              {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('locations'), locationTotals.length), 0), total: fmtNum(locationTotals.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
+              {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('locations'), locationTotals.length), 0), total: fmtNum(locationTotals.length, 0) })}
             </button>
           )}
           {locationTotals.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('stats.noLocationsRecorded')}</span>}
@@ -361,8 +361,8 @@ export default function StatsView({ singlet = false, selfId }: Props) {
 
       {energyByHour.some(v => v > 0) && (
         <div style={{ marginTop: 20 }}>
-          <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.energyByHour', { defaultValue: 'Energy by Hour' })}</h3>
-          <div role="img" aria-label={chartSummary(t('stats.energyByHour', { defaultValue: 'Energy by Hour' }), energyByHour.map((avg, h) => avg > 0 ? t('stats.chartItem', { label: fmtClock(h, 0), value: t('energy.outOfTen', { value: fmtNum(avg, 1) }) }) : '').filter(Boolean))}
+          <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: 10 }}>{t('stats.energyByHour')}</h3>
+          <div role="img" aria-label={chartSummary(t('stats.energyByHour'), energyByHour.map((avg, h) => avg > 0 ? t('stats.chartItem', { label: fmtClock(h, 0), value: t('energy.outOfTen', { value: fmtNum(avg, 1) }) }) : '').filter(Boolean))}
             style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
             {energyByHour.map((avg, h) => (
               <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -449,7 +449,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
                       })}
                       {g.all.length > limit && limit < MAX_BOARD && (
                         <button onClick={() => expandBoard(g.key)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-                          {t('stats.showMoreCount', { shown: fmtNum(Math.min(limit, g.all.length), 0), total: fmtNum(g.all.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
+                          {t('stats.showMoreCount', { shown: fmtNum(Math.min(limit, g.all.length), 0), total: fmtNum(g.all.length, 0) })}
                         </button>
                       )}
                     </div>
@@ -464,7 +464,7 @@ export default function StatsView({ singlet = false, selfId }: Props) {
                   ))}
                   {memberSpecific.moods.length > limitFor('coMoods') && limitFor('coMoods') < MAX_BOARD && (
                     <button onClick={() => expandBoard('coMoods')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
-                      {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('coMoods'), memberSpecific.moods.length), 0), total: fmtNum(memberSpecific.moods.length, 0), defaultValue: 'Show more ({{shown}}/{{total}})' })}
+                      {t('stats.showMoreCount', { shown: fmtNum(Math.min(limitFor('coMoods'), memberSpecific.moods.length), 0), total: fmtNum(memberSpecific.moods.length, 0) })}
                     </button>
                   )}
                 </div>

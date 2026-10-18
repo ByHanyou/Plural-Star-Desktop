@@ -6,7 +6,6 @@ import { ImportControl } from './progress';
 
 export class ImportUserError extends Error {}
 
-/** The support code for an unexpected import failure: what kind of thing went wrong, not the raw message. */
 export const importErrorCode = (e: unknown): string => {
   if (e instanceof SyntaxError) return 'IMPORT-PARSE';
   const msg = e instanceof Error ? e.message : String(e);

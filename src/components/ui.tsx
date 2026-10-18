@@ -57,7 +57,6 @@ export function useDndA11y(nameOf: (id: UniqueIdentifier) => string): { announce
 
 const escapeStack: Array<() => void> = [];
 
-/** Arrow keys, Home and End move between the tabs of the enclosing tablist and select the one reached. Tab still visits every tab. */
 export const tabListKeyDown = (e: ReactKeyboardEvent<HTMLElement>): void => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
   const list = e.currentTarget.closest('[role="tablist"]');
@@ -554,6 +553,34 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, dange
         <div className="modal__footer">
           <Btn variant="ghost" onClick={onCancel}>{t('common.cancel')}</Btn>
           <Btn variant={danger ? 'danger' : 'primary'} onClick={confirm}>{t('common.confirm')}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+export function AlertDialog({ open, title, message, onClose }: {
+  open: boolean; title: string; message: string; onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const titleId = useId();
+  const msgId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEscapeKey(open, onClose);
+  useDialogFocus(open, dialogRef);
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" role="presentation" onClick={onClose}>
+      <div ref={dialogRef} className="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} tabIndex={-1} onClick={e => e.stopPropagation()}>
+        <div className="modal__header">
+          <span className="modal__title" id={titleId} role="heading" aria-level={2}>{title}</span>
+        </div>
+        <div className="modal__body">
+          <p id={msgId} style={{ color: 'var(--dim)', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-line' }}>{message}</p>
+        </div>
+        <div className="modal__footer">
+          <Btn variant="primary" onClick={onClose}>{t('common.ok')}</Btn>
         </div>
       </div>
     </div>

@@ -80,9 +80,11 @@ export default function NetworkView() {
   const [cloudMedia, setCloudMedia] = useState(false);
   const [cloudError, setCloudError] = useState<string | null>(null);
   const [cloudErrCode, setCloudErrCode] = useState<string | null>(null);
-  const [cloudExists, setCloudExists] = useState(false);
+  const [cloudExists, setCloudExists] = useState<{ empty: boolean; canClear: boolean } | null>(null);
   const [cloudImportConfirm, setCloudImportConfirm] = useState(false);
+  const [cloudClearStep, setCloudClearStep] = useState<0 | 1 | 2>(0);
   const [cloudUnlinkStep, setCloudUnlinkStep] = useState<0 | 1 | 2>(0);
+  const [cloudUnlinking, setCloudUnlinking] = useState(false);
   const cloudRule = passwordRuleFailing(cloudPw);
   const cloudBusy = cloud.phase !== 'idle';
   const [buckets, setBuckets] = useState<Bucket[]>([]);
@@ -132,7 +134,7 @@ export default function NetworkView() {
   };
 
   const featureLabel = (f: BucketFeature): string =>
-    f === 'front' ? t('tabs.front') : f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'customFronts' ? t('members.customFronts') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title', { defaultValue: 'Custom Fields' }) : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : f === 'planner' ? t('planner.title') : t('systemMap.title');
+    f === 'front' ? t('tabs.front') : f === 'members' ? t('tabs.members') : f === 'facets' ? t('members.facets') : f === 'customFronts' ? t('members.customFronts') : f === 'groups' ? t('memberGroups.title') : f === 'journal' ? t('tabs.journal') : f === 'history' ? t('tabs.history') : f === 'customFields' ? t('customFields.title') : f === 'systemProfile' ? t('systemProfile.title') : f === 'whiteboard' ? t('whiteboard.title') : f === 'planner' ? t('planner.title') : t('systemMap.title');
   const scopeSummary = (s: PrivacyScope): string =>
     s.mode === 'all' ? t('network.scopeAll') : s.mode === 'none' ? t('network.scopeNone') : `${s.ids.length}`;
   const setScopeMode = (f: BucketFeature, mode: PrivacyScopeMode) => {
@@ -197,7 +199,7 @@ export default function NetworkView() {
   const relLabel = (r: Relationship): string => {
     const rt = relTypes.find(x => x.id === r.typeId) || PRESET_RELATIONSHIP_TYPES.find(x => x.id === r.typeId);
     const arrow = rt?.directional ? '→' : '↔';
-    const rtName = rt ? ((rt.preset && !rt.overridden) ? t(`relType.${rt.id}`, { defaultValue: rt.name }) : rt.name) : '';
+    const rtName = rt ? ((rt.preset && !rt.overridden) ? t(`relType.${rt.id}`) : rt.name) : '';
     return `${memberName(r.fromId)} ${arrow} ${memberName(r.toId)}${rt ? `  ·  ${rtName}` : ''}`;
   };
   const pickerItems: { id: string; name: string }[] = !pickerFeature ? [] : (pickerFeature === 'groups'
@@ -282,7 +284,7 @@ export default function NetworkView() {
     try {
       const outcome = await CloudServices.linkWithPassword(cloudPw, cloudMedia);
       if (outcome.kind === 'created') { setCloudPw(''); return; }
-      setCloudExists(true);
+      setCloudExists({ empty: outcome.empty, canClear: outcome.canClear });
     } catch (e: any) {
       setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e));
     }
@@ -293,9 +295,28 @@ export default function NetworkView() {
       .then(() => setCloudPw(''))
       .catch((e: any) => { setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e)); });
   };
+  const onCloudPendingCancel = () => {
+    setCloudExists(null);
+    setCloudClearStep(0);
+    CloudServices.cancelPendingLink();
+  };
+  const onCloudClearFinal = () => {
+    setCloudClearStep(0);
+    CloudServices.clearAndUpload(cloudMedia)
+      .then(() => setCloudPw(''))
+      .catch((e: any) => { setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e)); });
+  };
   const onCloudUnlinkFinal = () => {
     setCloudUnlinkStep(0);
-    CloudServices.unlink().then(() => setCloudOn(false)).catch((e: any) => { setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e)); });
+    setCloudUnlinking(true);
+    CloudServices.unlink().then(r => {
+      setCloudOn(false);
+      if (!r.deviceRemoved) {
+        const code = r.errorCode || 'CLOUD-APP';
+        setCloudError(t('network.cloudUnlinkUnreached', { code })); setCloudErrCode(code);
+      }
+    }).catch((e: any) => { setCloudError(String(e?.message || e)); setCloudErrCode(cloudErrorCode(e)); })
+      .finally(() => setCloudUnlinking(false));
   };
 
   const guard = async (fn: () => Promise<void>, kind?: Kind) => {
@@ -350,12 +371,12 @@ export default function NetworkView() {
     if (s.includes('quota') || s.includes('watermark') || s.includes('507')) return t('network.cloudErrFull');
     if (s.includes('does not open it') || s.includes('bad password') || s.includes('bad auth')) return t('network.cloudErrBadPassword');
     if (s.includes('undecryptable') || s.includes('malformed') || s.includes('hash mismatch') || s.includes('did not match its id') || s.includes('could not be decrypted')) return t('network.cloudErrCorrupt');
-    if (s.includes('kept changing the vault') || s.includes('conflict') || s.includes('network') || s.includes('timed out') || s.includes('failed') || s.includes('fetch') || s.includes('not connected') || s.includes('unreach') || /http 5\d\d/.test(s)) return t('network.cloudErrNetwork');
+    if (s.includes('kept changing the vault') || s.includes('conflict') || s.includes('network') || s.includes('timed out') || s.includes('failed') || s.includes('fetch') || s.includes('not connected') || s.includes('unreach') || /http 5\d\d/.test(s)) return `${t('network.cloudErrNetwork')} ${t('common.errorCode', { code })}`;
     logError('cloud', raw);
     return `${t('network.cloudErrGeneric')} ${t('common.errorCode', { code })}`;
   };
   const cloudShownError = (): string => {
-    if (cloudError && cloudError === t('network.cloudWarning')) return cloudError;
+    if (cloudError && (cloudError === t('network.cloudWarning') || cloudError === t('network.cloudUnlinkUnreached', { code: cloudErrCode || 'CLOUD-APP' }))) return cloudError;
     const raw = cloudError || cloud.lastError;
     if (raw) return cloudErrorText(raw, cloudError ? (cloudErrCode || 'CLOUD-APP') : (cloud.lastErrorCode || 'CLOUD-APP'));
     return '';
@@ -413,16 +434,16 @@ export default function NetworkView() {
     const lines: string[] = [];
     const dur = s.startTime ? fmtDur(s.startTime) : '';
     const tierLines: string[] = [];
-    if (s.primary) tierLines.push(t('notification.primary', { names: s.primary, defaultValue: `Primary: ${s.primary}` }));
-    if (s.coFront) tierLines.push(t('notification.coFront', { names: s.coFront, defaultValue: `Co-Front: ${s.coFront}` }));
-    if (s.coConscious) tierLines.push(t('notification.coConscious', { names: s.coConscious, defaultValue: `Co-Conscious: ${s.coConscious}` }));
+    if (s.primary) tierLines.push(t('notification.primary', { names: s.primary }));
+    if (s.coFront) tierLines.push(t('notification.coFront', { names: s.coFront }));
+    if (s.coConscious) tierLines.push(t('notification.coConscious', { names: s.coConscious }));
     if (tierLines.length === 0) tierLines.push(s.fronters);
     tierLines[0] = `◈ ${tierLines[0]}${dur ? `  ·  ${dur}` : ''}`;
     lines.push(...tierLines);
-    if (s.mood) { const mood = translateMood(s.mood, t); lines.push(t('notification.mood', { mood, defaultValue: `Mood: ${mood}` })); }
-    if (s.location) lines.push(t('notification.at', { location: s.location, defaultValue: `At: ${s.location}` }));
-    if (s.note) lines.push(t('notification.note', { note: s.note, defaultValue: `Note: ${s.note}` }));
-    if (s.startTime) lines.push(t('notification.since', { time: fmtTime(s.startTime), defaultValue: `Since ${fmtTime(s.startTime)}` }));
+    if (s.mood) { const mood = translateMood(s.mood, t); lines.push(t('notification.mood', { mood })); }
+    if (s.location) lines.push(t('notification.at', { location: s.location }));
+    if (s.note) lines.push(t('notification.note', { note: s.note }));
+    if (s.startTime) lines.push(t('notification.since', { time: fmtTime(s.startTime) }));
     if (!online) lines.push(t('network.offline'));
     return lines;
   };
@@ -576,6 +597,7 @@ export default function NetworkView() {
             {cloud.pendingKeys > 0 && <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 0' }}>{t('network.cloudPending', { n: cloud.pendingKeys })}</p>}
             {cloudBusy && (
               <p style={{ fontSize: 11, color: 'var(--accent)', margin: '6px 0 0' }} aria-live="polite">
+                <span className="spinner" aria-hidden style={{ marginRight: 6 }} />
                 {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${fmtPercent(cloud.progress, 0)}` : ''}
               </p>
             )}
@@ -585,13 +607,18 @@ export default function NetworkView() {
             <div style={{ marginTop: 12 }}>
               <Toggle value={cloud.mediaTier} onChange={v => CloudServices.setMediaTier(v).catch(() => {})} label={t('network.cloudMediaTier')} description={t('network.cloudMediaTierDesc')} />
             </div>
-            <div style={{ marginTop: 12 }}>
-              <Btn variant="danger" disabled={cloudBusy} onClick={() => setCloudUnlinkStep(1)}>{t('network.cloudUnlink')}</Btn>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Btn variant="danger" onClick={() => setCloudUnlinkStep(1)} aria-busy={cloudUnlinking}>{t('network.cloudUnlink')}</Btn>
+              {cloudUnlinking && <span className="spinner" role="progressbar" aria-label={cloudPhaseText() || t('network.cloudUnlinking')} style={{ color: 'var(--accent)' }} />}
+              {cloudUnlinking && <span style={{ fontSize: 11, color: 'var(--accent)' }}>{t('network.cloudUnlinking')}</span>}
             </div>
           </>
         ) : (
           <>
             <Toggle value={cloudOn} onChange={onCloudToggle} label={t('network.cloudEnable')} description={cloud.available ? undefined : t('network.cloudUnavailable')} />
+            {cloud.removedFromVault && (
+              <p aria-live="polite" style={{ fontSize: 11, color: 'var(--danger)', margin: '8px 0 0' }}>{t('network.cloudRemovedHere')}</p>
+            )}
             {cloudOn && (
               <div style={{ marginTop: 12 }}>
                 <Field label={t('network.cloudPassword')} value={cloudPw} onChange={setCloudPw} type="password" placeholder={t('network.cloudPassword')} />
@@ -604,6 +631,7 @@ export default function NetworkView() {
                 </div>
                 {cloudBusy && (
                   <p style={{ fontSize: 11, color: 'var(--accent)', margin: '8px 0 0' }} aria-live="polite">
+                    <span className="spinner" aria-hidden style={{ marginRight: 6 }} />
                     {cloudPhaseText()}{cloud.progress > 0 && cloud.progress < 1 ? ` ${fmtPercent(cloud.progress, 0)}` : ''}
                   </p>
                 )}
@@ -616,9 +644,48 @@ export default function NetworkView() {
         )}
       </div>
 
-      <ConfirmDialog open={cloudExists} title={t('network.cloudExistsTitle')} message={t('network.cloudExistsMsg')} danger single
-        onConfirm={() => { setCloudExists(false); setCloudImportConfirm(true); }}
-        onCancel={() => { setCloudExists(false); CloudServices.cancelPendingLink(); }} />
+      <ConfirmDialog open={!!cloudExists && !cloudExists.empty && !cloudExists.canClear} title={t('network.cloudExistsTitle')} message={t('network.cloudExistsMsg')} danger single
+        onConfirm={() => { setCloudExists(null); setCloudImportConfirm(true); }}
+        onCancel={() => { setCloudExists(null); CloudServices.cancelPendingLink(); }} />
+      <Modal
+        open={!!cloudExists && (cloudExists.empty || cloudExists.canClear)}
+        title={t('network.cloudExistsTitle')}
+        onClose={onCloudPendingCancel}
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <Btn variant="ghost" onClick={onCloudPendingCancel}>{t('common.cancel')}</Btn>
+            {!cloudExists?.empty && (
+              <Btn variant="danger" onClick={() => { setCloudExists(null); setCloudImportConfirm(true); }}>{t('network.cloudImport')}</Btn>
+            )}
+            <Btn variant="danger" onClick={() => { setCloudExists(null); setCloudClearStep(1); }}>{t('network.cloudClear')}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--text)' }}>{cloudExists?.empty ? t('network.cloudEmptyMsg') : t('network.cloudExistsMsg')}</p>
+      </Modal>
+      <Modal
+        open={cloudClearStep === 1}
+        title={t('network.cloudClearTitle')}
+        onClose={onCloudPendingCancel}
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <Btn variant="ghost" onClick={onCloudPendingCancel}>{t('common.cancel')}</Btn>
+            <Btn variant="danger" onClick={() => setCloudClearStep(2)}>{t('network.cloudClear')}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--text)' }}>{t('network.cloudClearMsg')}</p>
+      </Modal>
+      <Modal
+        open={cloudClearStep === 2}
+        title={t('network.cloudClearConfirm2Title')}
+        onClose={onCloudPendingCancel}
+        footer={
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <Btn variant="ghost" onClick={onCloudPendingCancel}>{t('common.cancel')}</Btn>
+            <Btn variant="danger" onClick={onCloudClearFinal}>{t('network.cloudClear')}</Btn>
+          </div>
+        }>
+        <p style={{ fontSize: 13, color: 'var(--text)' }}>{t('network.cloudClearConfirm2')}</p>
+      </Modal>
       <ConfirmDialog open={cloudImportConfirm} title={t('network.cloudImportConfirmTitle')} message={t('network.cloudImportConfirmMsg')} danger single
         onConfirm={onCloudImportFinal}
         onCancel={() => { setCloudImportConfirm(false); CloudServices.cancelPendingLink(); }} />
@@ -631,7 +698,7 @@ export default function NetworkView() {
         <Section label={t('network.customNetwork')} />
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('network.customNetworkDesc')}</p>
         <Field label={t('network.relayUrl')} value={relayUrl} onChange={setRelayUrl} placeholder="http://192.168.1.20:7523" mono />
-        <Field label={t('network.relayToken')} value={relayToken} onChange={setRelayToken} placeholder="—" mono />
+        <Field label={t('network.relayToken')} value={relayToken} onChange={setRelayToken} placeholder="-" mono />
         <p style={{ fontSize: 11, color: 'var(--muted)', margin: '8px 0 12px' }}>{t('network.relayHint')}</p>
         <Btn onClick={() => guard(() => NetworkManager.setRelayOverride(relayUrl.trim() || undefined, relayToken.trim() || undefined))} disabled={busy}>
           {t('network.saveRelay')}

@@ -154,6 +154,7 @@ export interface Member {
   archived?: boolean;
   deleted?: boolean;
   avatar?: string;
+  avatarTransparent?: boolean;
   profileBg?: boolean;
   private?: boolean;
   banner?: string;
@@ -1085,7 +1086,6 @@ const isEmojiModifier = (cp: number): boolean =>
   cp === 0x200d || cp === 0xfe0e || cp === 0xfe0f || (cp >= 0x1f3fb && cp <= 0x1f3ff) || cp === 0x20e3 || (cp >= 0xe0020 && cp <= 0xe007f);
 const isRegionalIndicator = (cp: number): boolean => cp >= 0x1f1e6 && cp <= 0x1f1ff;
 
-/** Splits text into emoji-sized clusters: a base code point plus its joiners, selectors, skin tones, keycaps, tags and paired flags. */
 export const emojiClusters = (s: string): string[] => {
   const cps = Array.from(s);
   const out: string[] = [];
@@ -1113,7 +1113,6 @@ export const emojiClusters = (s: string): string[] => {
   return out;
 };
 
-/** Profile emoji: whitespace removed, at most 3 emoji (never cut inside a sequence), no dangling joiner; empty -> undefined. */
 export const normalizeMemberEmoji = (v: string): string | undefined => {
   const s = emojiClusters(String(v ?? '').replace(/\s+/g, '')).slice(0, 3).join('').replace(/\u200D+$/, '');
   return s || undefined;
@@ -1138,7 +1137,7 @@ const lowerRune = (ch: string): string => {
 export const fileSlug = (name: string, fallback = 'plural-star'): string => {
   const cleaned = String(name ?? '')
     .normalize('NFC')
-    .replace(/[\\/:*?"<>| -]+/g, '-')
+    .replace(/[\\/:*?"<>|\u0000-\u001F\u007F]+/g, '-')
     .replace(/\s+/g, '-')
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '');

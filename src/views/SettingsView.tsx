@@ -304,12 +304,12 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
       {showPw && <Field value={journalPw} onChange={setJournalPw} placeholder={t('modal.lockJournal')} type="password" />}
 
       <Toggle label={t('modal.notifications')} description={t('modal.notificationsDesc')} value={notif} onChange={setNotif} />
-      <Section label={t('modal.appFont', { defaultValue: 'App Font' })} />
+      <Section label={t('modal.appFont')} />
       <Dropdown
         value={fontChoice}
         options={FONT_OPTIONS.map(o => o.value)}
         onChange={setFontChoice}
-        ariaLabel={t('modal.appFont', { defaultValue: 'App Font' })}
+        ariaLabel={t('modal.appFont')}
         renderOption={v => v === 'default' ? t('modal.fontDefault') : (FONT_OPTIONS.find(o => o.value === v)?.label || v)}
         optionStyle={v => {
           if (v === 'default') return { fontFamily: 'var(--font-body-fallback)' };

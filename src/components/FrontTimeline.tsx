@@ -151,7 +151,7 @@ export default function FrontTimeline({ history, members, singlet = false }: {
             <div key={row.member.id} style={{ display: 'flex', alignItems: 'center', height: ROW_H }}>
               <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, paddingRight: 8, overflow: 'hidden' }}>
                 {row.member.avatar ? (
-                  <img src={row.member.avatar} alt="" style={{ width: 18, height: 18, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />
+                  <img src={row.member.avatar} alt="" style={{ width: 18, height: 18, borderRadius: 9, objectFit: 'cover', flexShrink: 0, ...(!row.member.avatarTransparent ? { backgroundColor: row.member.color } : {}) }} />
                 ) : (
                   <span aria-hidden style={{ width: 18, height: 18, borderRadius: 9, background: row.member.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700, flexShrink: 0 }}>
                     {getInitials(row.member.name)}

@@ -16,7 +16,6 @@ export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
   const stopping = !!progress?.stopping;
   const [confirmStop, setConfirmStop] = useState(false);
   useDialogFocus(visible, dialogRef);
-  // Escape asks first; the import only stops once the warning is confirmed.
   useEscapeKey(visible && !!onCancel && !stopping && !confirmStop, () => setConfirmStop(true));
   useEffect(() => { if (!visible || stopping) setConfirmStop(false); }, [visible, stopping]);
   if (!visible) return null;
@@ -68,12 +67,12 @@ export function ImportWaitOverlay({ visible, progress, onCancel }: Props) {
 
         {stopping ? (
           <div role="status" style={{ marginTop: 12, fontSize: 12, color: 'var(--accent)' }}>
-            {t('share.importStopping', { defaultValue: 'Finishing this step, then stopping…' })}
+            {t('share.importStopping')}
           </div>
         ) : onCancel ? (
           <button
             onClick={onCancel}
-            title={t('share.importCancelHint', { defaultValue: 'Stops after the current step finishes. Steps already done are kept.' })}
+            title={t('share.importCancelHint')}
             style={{
               marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 10,
               border: '1px solid var(--border)', background: 'transparent',

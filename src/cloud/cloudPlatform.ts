@@ -1,4 +1,4 @@
-import {store, onStoreWrite} from '../storage';
+import {store, onStoreWrite, KEYS} from '../storage';
 import {getDeviceSubId} from '../network/identity';
 import {NetworkManager} from '../network/NetworkManager';
 import {SYNC_STATE_KEY, MIRROR_CACHE_PREFIX} from '../network/types';
@@ -20,28 +20,50 @@ const transport: CloudTransport = {
   },
 };
 
-const reencodeImage = (dataUri: string): Promise<string> => new Promise(resolve => {
+const AVATAR_MAX_PX = 256;
+
+const isAvatarKey = (key: string): boolean => key.startsWith('ps:media:av:') || key === 'ps:media:sysav';
+
+const keepsTransparentPng = async (key: string): Promise<boolean> => {
+  if (!key.startsWith('ps:media:av:')) return false;
+  const id = key.slice('ps:media:av:'.length);
+  const members = await store.get<{id: string; avatarTransparent?: boolean}[]>(KEYS.members, []) || [];
+  return members.some(m => m && m.id === id && m.avatarTransparent === true);
+};
+
+const reencodeImage = async (dataUri: string, key: string): Promise<string> => {
   const parts = splitDataUri(dataUri);
-  if (!parts) return resolve(dataUri);
-  const mime = parts.mime.toLowerCase();
-  if (mime === 'image/gif' || mime === 'image/png') return resolve(dataUri);
-  const img = new Image();
-  img.onload = () => {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve(dataUri);
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
-    } catch {
-      resolve(dataUri);
-    }
-  };
-  img.onerror = () => resolve(dataUri);
-  img.src = dataUri;
-});
+  if (!parts) return dataUri;
+  const b64 = dataUri.slice(dataUri.indexOf(',') + 1);
+  if (b64.startsWith('R0lGO')) return `data:image/gif;base64,${b64}`;
+  let png = false;
+  try {
+    png = b64.startsWith('iVBOR') && (await keepsTransparentPng(key));
+  } catch {
+    return dataUri;
+  }
+  const max = isAvatarKey(key) ? AVATAR_MAX_PX : Infinity;
+  return new Promise<string>(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        if (!canvas.width || !canvas.height) return resolve(dataUri);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(dataUri);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(png ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.8));
+      } catch {
+        resolve(dataUri);
+      }
+    };
+    img.onerror = () => resolve(dataUri);
+    img.src = dataUri;
+  });
+};
 
 const deviceLabel = (): string => {
   try {

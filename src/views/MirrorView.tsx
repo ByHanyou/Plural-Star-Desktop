@@ -194,7 +194,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                           {img ? (
                             <img src={img} alt={cf.name} style={{ display: 'block', maxWidth: '100%', maxHeight: 220, borderRadius: 8, marginTop: 4, objectFit: 'cover' }} />
                           ) : (
-                            <span style={{ ...dim, fontStyle: 'italic' }}>{t('markdown.imageUnavailable', {defaultValue: '[image unavailable]'})}</span>
+                            <span style={{ ...dim, fontStyle: 'italic' }}>{t('markdown.imageUnavailable')}</span>
                           )}
                         </div>
                       );
@@ -211,12 +211,12 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                   {(m.connections || []).length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 4 }}>
-                        {t('systemMap.connections', { defaultValue: 'Connections' })}
+                        {t('systemMap.connections')}
                       </div>
                       {(m.connections || []).map(c => (
                         <p key={c.id} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
                           <span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: c.color || 'var(--border)', marginRight: 6 }} />
-                          <span style={dim}>{t('common.labelColon', { label: c.labelKey ? t(c.labelKey, { defaultValue: c.label }) : c.label })} </span>
+                          <span style={dim}>{t('common.labelColon', { label: c.labelKey ? t(c.labelKey) : c.label })} </span>
                           {c.otherName}
                           {c.note ? <span style={{ ...dim, fontStyle: 'italic' }}>{'  ·  ' + c.note}</span> : null}
                         </p>
@@ -269,7 +269,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
   const renderHistory = () => {
     const list: MirrorHistoryEntry[] = Array.isArray(entry?.data) ? (entry!.data as MirrorHistoryEntry[]) : [];
     if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-    const nameOf = (id: string): string => memberCache.find(m => m.id === id)?.name || '—';
+    const nameOf = (id: string): string => memberCache.find(m => m.id === id)?.name || '-';
     const chips = (ids?: string[]) => (ids || []).map(id => {
       const m = memberCache.find(x => x.id === id);
       return (
@@ -295,7 +295,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {chips(e.memberIds)}
               <span style={{ marginLeft: 'auto', ...dim, fontVariantNumeric: 'tabular-nums' }}>
-                {fmtTime(e.startTime || 0)}{e.endTime ? ` — ${fmtTime(e.endTime)}` : ''}
+                {fmtTime(e.startTime || 0)}{e.endTime ? ` - ${fmtTime(e.endTime)}` : ''}
               </span>
             </div>
             {tierLine(e.mood, e.location, e.energyLevel, e.note)}
@@ -477,18 +477,18 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
         onClose={() => setOpenEntry(null)}>
         {locked ? (
           <>
-            <p style={dim}>{t('journal.passwordPrompt', { defaultValue: 'This entry is password protected.' })}</p>
+            <p style={dim}>{t('journal.passwordPrompt')}</p>
             <Field
-              label={t('journal.password', { defaultValue: 'Password' })}
+              label={t('journal.password')}
               value={pwInput}
               onChange={v => {
                 setPwInput(v);
                 setPwError(false);
               }}
-              placeholder={t('journal.password', { defaultValue: 'Password' })}
+              placeholder={t('journal.password')}
               type="password"
             />
-            {pwError && <p role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{t('journal.wrongPassword', { defaultValue: 'Incorrect password.' })}</p>}
+            {pwError && <p role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{t('journal.wrongPassword')}</p>}
             <Btn
               onClick={() => {
                 if (openEntry && pwInput === openEntry.password) {
@@ -499,7 +499,7 @@ export function MirrorView({ open, peerId, displayName, feature, online, onClose
                 }
               }}
               disabled={!pwInput}>
-              {t('common.unlock', { defaultValue: 'Unlock' })}
+              {t('common.unlock')}
             </Btn>
           </>
         ) : (

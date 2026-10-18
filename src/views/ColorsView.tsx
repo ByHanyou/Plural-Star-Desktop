@@ -63,7 +63,7 @@ export default function ColorsView() {
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       {COLOR_SETS.map(set => (
         <div key={set} style={{ marginBottom: 18 }}>
-          <h3 style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, marginBottom: 8 }}>{t(SET_LABEL_KEYS[set], {defaultValue: set})}</h3>
+          <h3 style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, marginBottom: 8 }}>{t(SET_LABEL_KEYS[set])}</h3>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 0' }}>
             {(PRESET_COLORS as PresetColor[]).filter(p => p.set === set).map(p => (
               <span key={p.hex} role="img" aria-label={presetColorName(p, t)} title={presetColorName(p, t)}
@@ -73,17 +73,17 @@ export default function ColorsView() {
         </div>
       ))}
 
-      <h3 style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, marginBottom: 8 }}>{t('colors.custom', {defaultValue: 'Custom'})}</h3>
+      <h3 style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, marginBottom: 8 }}>{t('colors.custom')}</h3>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {Array.from({ length: MAX_CUSTOM_COLORS }, (_, i) => {
           const c = customColors[i];
           return c ? (
             <button key={i} onClick={() => openSlot(i)}
-              aria-label={t('colors.customSlotValue', {n: i + 1, hex: c, defaultValue: 'Custom {{n}}, {{hex}}'})} title={c}
+              aria-label={t('colors.customSlotValue', {n: i + 1, hex: c})} title={c}
               style={{ width: 32, height: 32, borderRadius: '50%', background: c, border: '1px solid var(--border)', cursor: 'pointer' }} />
           ) : (
             <button key={i} onClick={() => openSlot(i)}
-              aria-label={t('colors.emptySlot', {n: i + 1, defaultValue: `Empty slot ${i + 1}`})}
+              aria-label={t('colors.emptySlot', {n: i + 1})}
               style={{ width: 32, height: 32, borderRadius: '50%', background: 'transparent', border: '1px dashed var(--dim)', color: 'var(--dim)', cursor: 'pointer', fontSize: 14 }}>＋</button>
           );
         })}
@@ -91,12 +91,12 @@ export default function ColorsView() {
 
       <Modal
         open={editSlot !== null}
-        title={t('colors.customSlot', {n: (editSlot ?? 0) + 1, defaultValue: `Custom ${(editSlot ?? 0) + 1}`})}
+        title={t('colors.customSlot', {n: (editSlot ?? 0) + 1})}
         onClose={() => setEditSlot(null)}
         footer={
           <div style={{ display: 'flex', gap: 8, width: '100%' }}>
             {editSlot !== null && !!customColors[editSlot] && (
-              <Btn variant="danger" onClick={() => setConfirmClear(true)}>{t('colors.clearSlot', {defaultValue: 'Clear color'})}</Btn>
+              <Btn variant="danger" onClick={() => setConfirmClear(true)}>{t('colors.clearSlot')}</Btn>
             )}
             <div style={{ flex: 1 }} />
             <Btn variant="ghost" onClick={() => setEditSlot(null)}>{t('common.cancel')}</Btn>
@@ -108,8 +108,8 @@ export default function ColorsView() {
 
       <ConfirmDialog
         open={confirmClear}
-        title={t('colors.clearSlot', {defaultValue: 'Clear color'})}
-        message={t('colors.clearSlotMsg', {defaultValue: 'Remove this custom color?'})}
+        title={t('colors.clearSlot')}
+        message={t('colors.clearSlotMsg')}
         danger
         onConfirm={clearSlot}
         onCancel={() => setConfirmClear(false)}

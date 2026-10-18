@@ -21,6 +21,22 @@ export function ProfileBgChip({ color, value, onChange }: { color: string; value
   );
 }
 
+export function TransparentAvatarChip({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={t('modal.transparentColor')}
+      title={t('modal.transparentColor')}
+      onClick={() => onChange(!value)}
+      style={{ width: 26, height: 26, borderRadius: 13, background: 'transparent', border: `2px solid ${value ? 'var(--accent)' : 'var(--border)'}`, color: value ? 'var(--accent)' : 'var(--dim)', fontSize: 13, cursor: 'pointer', lineHeight: 1, padding: 0 }}>
+      <span aria-hidden>⊘</span>
+    </button>
+  );
+}
+
 export function CustomHexEntry({ value, onApply, leading }: { value: string; onApply: (hex: string) => void; leading?: React.ReactNode }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);

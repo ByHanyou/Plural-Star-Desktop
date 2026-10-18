@@ -121,7 +121,7 @@ export const handlePluralKitExport = async (ctx: ImportCtx) => {
     const filePath = await window.electronAPI.dialog.saveFile(defaultName, saveFilters(t));
     if (!filePath) return;
     await window.electronAPI.file.writeBytes(filePath, u8ToBase64(strToU8(json)));
-    showStatus(t('share.pkExportDone', { defaultValue: 'PluralKit export saved' }));
+    showStatus(t('share.pkExportDone'));
 };
 
 export const handlePickBackup = async (ctx: ImportCtx) => {
@@ -199,7 +199,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
 
       if (restoreSel.system && restoreData.system) batch[KEYS.system] = restoreData.system;
 
-      ctx.control?.begin(t('share.progressSavingMembers', { defaultValue: 'Restoring members…' }));
+      ctx.control?.begin(t('share.progressSavingMembers'));
       if (restoreSel.members && restoreData.members) {
         const avatarMap: Record<string, string> = { ...(restoreData.avatars || {}) };
         const bannerMap: Record<string, string> = { ...(restoreData.banners || {}) };
@@ -263,7 +263,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
         }
       }
 
-      ctx.control?.begin(t('share.progressJournal', { defaultValue: 'Restoring journal…' }));
+      ctx.control?.begin(t('share.progressJournal'));
       if (restoreSel.journal && restoreData.journal) {
         if (mergeLogs || upd) {
           const existing = await store.getStrict<any[]>(KEYS.journal, []) || [];
@@ -272,7 +272,7 @@ export const handleRestore = async (ctx: ImportCtx) => {
         } else batch[KEYS.journal] = restoreData.journal;
       }
 
-      ctx.control?.begin(t('share.progressHistory', { defaultValue: 'Restoring front history…' }));
+      ctx.control?.begin(t('share.progressHistory'));
       if (restoreSel.frontHistory && restoreData.frontHistory) {
         if (mergeLogs || upd) {
           const existing = await store.getStrict<any[]>(KEYS.history, []) || [];
@@ -376,7 +376,6 @@ export const handleRestore = async (ctx: ImportCtx) => {
     } catch (e: any) {
       if (isImportStopped(e)) {
         showStatus(t('share.importStopped', {
-          defaultValue: 'Import stopped. Nothing was changed.',
           count: ctx.control?.completed.length ?? 0,
         }));
       } else {

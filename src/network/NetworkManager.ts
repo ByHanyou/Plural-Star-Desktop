@@ -201,6 +201,22 @@ const canonicalForSync = (s: string): string =>
 
 const syncHash = (s: string): string => contentHash(canonicalForSync(s));
 
+const HASH_YIELD_STEP = 262144;
+
+const syncHashAsync = async (s: string): Promise<string> => {
+  const c = canonicalForSync(s);
+  let h = 0x811c9dc5;
+  for (let off = 0; off < c.length; off += HASH_YIELD_STEP) {
+    const end = Math.min(off + HASH_YIELD_STEP, c.length);
+    for (let i = off; i < end; i++) {
+      h ^= c.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    if (end < c.length) await new Promise<void>(r => setTimeout(r, 0));
+  }
+  return (h >>> 0).toString(16);
+};
+
 const mediaSignature = (src: string): string => (src.startsWith('data:') ? mirrorGifHash(src) : src);
 
 const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T> =>
@@ -2030,7 +2046,7 @@ class NetworkManagerImpl {
               const v = (m.customFields || []).find((x: any) => x && x.fieldId === d.id);
               if (!v || v.value === null || v.value === '') return null;
               if (d.type === 'image') {
-                if (typeof v.value !== 'string' || !v.value) return null;
+                if (typeof v.value !== 'string' || !v.value || v.value === CLOUD_CHAT_MEDIA_MARK) return null;
                 cfImages.push({memberId: m.id, fieldId: d.id, src: v.value});
                 const gif = gifOf(v.value);
                 if (gif) gifSrc.set(`${m.id}#cf:${d.id}`, {h: gif, src: v.value});
@@ -2795,9 +2811,12 @@ class NetworkManagerImpl {
         mm.banner = lm?.banner;
         if (!lm || !Array.isArray(mm.customFields) || !Array.isArray(lm.customFields)) continue;
         for (const c of mm.customFields) {
-          if (!c || typeof c.value !== 'string' || !c.value.startsWith('file://')) continue;
+          if (!c || typeof c.value !== 'string') continue;
+          const mark = c.value === CLOUD_CHAT_MEDIA_MARK;
+          if (!mark && !c.value.startsWith('file://')) continue;
           const lc = lm.customFields.find((x: any) => x && x.fieldId === c.fieldId);
-          if (lc && typeof lc.value === 'string' && lc.value.startsWith('data:')) c.value = lc.value;
+          if (!lc || typeof lc.value !== 'string') continue;
+          if (lc.value.startsWith('data:') || (mark && lc.value.startsWith('file://'))) c.value = lc.value;
         }
       }
       return JSON.stringify(inc);
@@ -3450,8 +3469,8 @@ class NetworkManagerImpl {
     return {relayUrl: net.relayUrl, token: net.token};
   }
 
-  cloudLocalHash(raw: string): string {
-    return syncHash(raw);
+  cloudLocalHash(raw: string): Promise<string> {
+    return syncHashAsync(raw);
   }
 
   async cloudSnapshot(): Promise<Record<string, string>> {
@@ -3485,6 +3504,13 @@ class NetworkManagerImpl {
           }
           if (isInline(m.banner) && snap[`ps:media:bn:${m.id}`]) {
             m.banner = CLOUD_CHAT_MEDIA_MARK;
+            changed = true;
+          }
+          if (!Array.isArray(m.customFields)) continue;
+          for (const c of m.customFields) {
+            if (!c || !c.fieldId || typeof c.value !== 'string' || !c.value.startsWith('data:image')) continue;
+            if (!snap[`ps:media:cf:${m.id}:${c.fieldId}`]) continue;
+            c.value = CLOUD_CHAT_MEDIA_MARK;
             changed = true;
           }
         }

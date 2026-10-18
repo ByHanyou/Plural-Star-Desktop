@@ -8,7 +8,7 @@ import {
   fmtNum, fmtList,
 } from '../utils';
 import { store, KEYS } from '../storage';
-import { Btn, Field, Modal, ConfirmDialog, clickable, KindToggles, ALL_PICKER_KINDS, useDndA11y, Interp, slots } from '../components/ui';
+import { Btn, Field, Modal, ConfirmDialog, AlertDialog, clickable, KindToggles, ALL_PICKER_KINDS, useDndA11y, Interp, slots } from '../components/ui';
 import type { PickerKind, PickerKinds } from '../components/ui';
 import { initialOn } from '../theme';
 import { logError } from '../log';
@@ -98,6 +98,8 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
   const [noteboardAlert, setNoteboardAlert] = useState<string[] | null>(null);
   const [editingNote, setEditingNote] = useState<FrontTierKey | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [confirmRemove, setConfirmRemove] = useState<Member | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 30000);
@@ -137,7 +139,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
   const quickRemove = (memberId: string) => {
     if (!front) return;
     const strip = (tier: any) => ({ ...tier, memberIds: (tier.memberIds || []).filter((x: string) => x !== memberId) });
-    void saveFront(strip(front.primary), strip(front.coFront), strip(front.coConscious));
+    saveFront(strip(front.primary), strip(front.coFront), strip(front.coConscious)).catch((e: any) => setSaveError(String(e?.message || e || '')));
   };
 
   const saveFront = async (primary: any, coFront: any, coConscious: any) => {
@@ -198,7 +200,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
           <div className="tile__avatar" style={{
             width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
             fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
-            ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : {}),
+            ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : !m.avatarTransparent ? { backgroundColor: m.color } : {}),
           }}>
             {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
           </div>
@@ -209,7 +211,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
           </div>
         </div>
         <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>
-        <button className="icon-btn" aria-label={t('front.quickRemove', { name: m.name })} onClick={() => quickRemove(id)}
+        <button className="icon-btn" aria-label={t('front.quickRemove', { name: m.name })} onClick={() => setConfirmRemove(m)}
           style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: 8 }}>✕</button>
       </>
     );
@@ -383,6 +385,14 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
           onSave={(mood, location, note) => updateTierDetail(editDetailTier, mood, location, note)}
         />
       )}
+
+      <ConfirmDialog open={!!confirmRemove}
+        title={confirmRemove ? t('front.quickRemove', { name: confirmRemove.name }) : ''}
+        message={confirmRemove ? t('members.removeFromFrontMsg', { name: confirmRemove.name }) : ''}
+        danger single
+        onConfirm={() => { if (confirmRemove) quickRemove(confirmRemove.id); setConfirmRemove(null); }}
+        onCancel={() => setConfirmRemove(null)} />
+      <AlertDialog open={saveError !== null} title={t('modal.saveFailed')} message={saveError || ''} onClose={() => setSaveError(null)} />
     </div>
   );
 }
@@ -626,7 +636,7 @@ export function SetFrontModal({ open, onClose, onSave, members, current, setting
 
         <div className="field__label" id={`${pid}-energy`} style={{ marginTop: 4 }}>{t('energy.level')}</div>
         <div role="group" aria-labelledby={`${pid}-energy`} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 28 }}>{energy ?? '—'}</span>
+          <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 28 }}>{energy ?? '-'}</span>
           <input type="range" min={1} max={10} value={energy ?? 5} aria-label={t('energy.level')}
             onChange={e => setEnergy(Number(e.target.value))}
             style={{ flex: 1, accentColor: color }} />

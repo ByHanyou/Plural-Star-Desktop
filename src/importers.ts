@@ -599,7 +599,7 @@ export const convertPluralSpace = (d: any): PluralSpaceImport => {
     const creator = idMap[String(p?.created_by_member?.id)] || nameToLocal[String(p?.created_by_member?.name || '').trim().toLowerCase()] || '';
     const desc = String(p?.description || '').trim();
     return {
-      question: [String(p?.title || '').trim(), desc].filter(Boolean).join(' — ') || '?',
+      question: [String(p?.title || '').trim(), desc].filter(Boolean).join(' - ') || '?',
       createdBy: creator,
       createdAt: psTime(p?.created_at) || Date.now(),
       closedAt: p?.status && p.status !== 'open' ? (psTime(p?.closes_at) || Date.now()) : undefined,
@@ -950,7 +950,7 @@ export const convertAmpersandJson = (d: any): ConvertedImport => {
           const reason = String(v?.reason || '').trim();
           return reason ? `${n} (${reason})` : n;
         }).filter(Boolean);
-        return `- **${String(e?.choice || '')}** — ${votes.length}${who.length ? `: ${who.join(', ')}` : ''}`;
+        return `- **${String(e?.choice || '')}** - ${votes.length}${who.length ? `: ${who.join(', ')}` : ''}`;
       });
       body = `${body}\n\n${lines.join('\n')}`.trim();
     }

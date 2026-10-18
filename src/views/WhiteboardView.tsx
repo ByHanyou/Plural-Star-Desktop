@@ -327,7 +327,7 @@ export default function WhiteboardView() {
             <span aria-hidden style={{ width: wd + 4, height: wd + 4, borderRadius: '50%', background: color, display: 'inline-block' }} />
           </button>
         ))}
-        <button className="chip" aria-pressed={tool === 'bucket'} aria-label={t('whiteboard.bucket', {defaultValue: 'Fill bucket'})} title={t('whiteboard.bucket', {defaultValue: 'Fill bucket'})}
+        <button className="chip" aria-pressed={tool === 'bucket'} aria-label={t('whiteboard.bucket')} title={t('whiteboard.bucket')}
           style={{ borderColor: tool === 'bucket' ? 'var(--accent)' : 'var(--border)', background: tool === 'bucket' ? 'var(--accent-bg)' : 'var(--surface)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, minWidth: 30, borderRadius: 15, padding: 0 }}
           onClick={() => setTool('bucket')}>🪣</button>
         </div>
@@ -373,8 +373,8 @@ export default function WhiteboardView() {
 
       <ConfirmDialog
         open={confirmClear > 0}
-        title={confirmClear >= 3 ? t('whiteboard.clearConfirm3Title', {defaultValue: 'Last chance'}) : confirmClear === 2 ? t('whiteboard.clearConfirm2Title', {defaultValue: 'Are you sure?'}) : t('whiteboard.clearTitle')}
-        message={confirmClear >= 3 ? t('whiteboard.clearConfirm3Msg', {defaultValue: 'Really erase everything on the whiteboard?'}) : confirmClear === 2 ? t('whiteboard.clearConfirm2Msg', {defaultValue: "The whole board will be erased. This can't be undone."}) : t('whiteboard.clearMsg')}
+        title={confirmClear >= 3 ? t('whiteboard.clearConfirm3Title') : confirmClear === 2 ? t('whiteboard.clearConfirm2Title') : t('whiteboard.clearTitle')}
+        message={confirmClear >= 3 ? t('whiteboard.clearConfirm3Msg') : confirmClear === 2 ? t('whiteboard.clearConfirm2Msg') : t('whiteboard.clearMsg')}
         danger single
         onConfirm={() => {
           if (confirmClear < 3) { setConfirmClear(confirmClear + 1); return; }

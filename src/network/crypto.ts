@@ -81,18 +81,18 @@ export const openMessage = (
     return null;
   }
   if (derivedPeerId !== senderPeerId) {
-    console.warn('[NETWORK] sender peer_id does not match signed identity — dropping');
+    console.warn('[NETWORK] sender peer_id does not match signed identity - dropping');
     return null;
   }
 
   if (!nacl.sign.detached.verify(concat(nonce, ct), sig, edPub)) {
-    console.warn('[NETWORK] envelope signature invalid — dropping');
+    console.warn('[NETWORK] envelope signature invalid - dropping');
     return null;
   }
 
   const plaintext = nacl.box.open(ct, nonce, boxPub, self.boxSecretKey);
   if (!plaintext) {
-    console.warn('[NETWORK] box.open failed — dropping');
+    console.warn('[NETWORK] box.open failed - dropping');
     return null;
   }
 

@@ -166,7 +166,7 @@ export default function ImportExportView({ onUpdate }: Props) {
               ['planner', t('planner.title')],
               ['medical', t('medical.title')],
               ['polls', t('polls.title')],
-              ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' })],
+              ['journalTemplates', t('journal.templatesTab')],
             ] as [keyof ExportCategories, string][]).map(([k, label]) => (
               <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                 <input type="checkbox" checked={exportSel[k]} onChange={() => togExp(k)} />
@@ -178,7 +178,7 @@ export default function ImportExportView({ onUpdate }: Props) {
 
         <Btn variant="solid" onClick={() => handleExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })}>{t('share.exportBackup')}</Btn>
         <div style={{ marginTop: 8 }}>
-          <Btn variant="ghost" onClick={() => handlePluralKitExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })}>{t('share.exportPluralKit', { defaultValue: '↓ PluralKit / Tupperbox' })}</Btn>
+          <Btn variant="ghost" onClick={() => handlePluralKitExport({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet })}>{t('share.exportPluralKit')}</Btn>
         </div>
         <p style={{ fontSize: 11, color: 'var(--dim)', marginTop: 6, lineHeight: 1.4 }}>
           {t('share.pkExportHint')}
@@ -231,7 +231,7 @@ export default function ImportExportView({ onUpdate }: Props) {
                 ['planner', t('planner.title'), !!(restoreData.planner && ((restoreData.planner.appointments?.length || 0) + (restoreData.planner.reminders?.length || 0) > 0)), (restoreData.planner?.appointments?.length || 0) + (restoreData.planner?.reminders?.length || 0)],
                 ['medical', t('medical.title'), !!restoreData.medical, null],
                 ['polls', t('polls.title'), !!restoreData.polls?.length, restoreData.polls?.length || 0],
-                ['journalTemplates', t('journal.templatesTab', { defaultValue: 'Templates' }), !!restoreData.journalTemplates?.length, restoreData.journalTemplates?.length || 0],
+                ['journalTemplates', t('journal.templatesTab'), !!restoreData.journalTemplates?.length, restoreData.journalTemplates?.length || 0],
               ] as [string, string, boolean, number | null][]).map(([k, label, avail, count]) => (
                 <label key={k} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
@@ -271,13 +271,13 @@ export default function ImportExportView({ onUpdate }: Props) {
         </Btn>
       </div>
 
-      <Section label={t('share.importOtherApps', { defaultValue: 'Import from another app' })} />
+      <Section label={t('share.importOtherApps')} />
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('share.importOtherAppsDesc')}
         </p>
         <Btn onClick={() => confirmOverwrite(t('share.importSelected'), () => handleImportForeign({ system, members, history, journal, settings, channels, palettes, onUpdate, t, showStatus, setImporting, showExportOptions, exportSel, restoreData, setRestoreData, setRestoreFile, restoreSel, mergeLogs, extSource, extToken, setExtToken, setExtLoading, extPreview, setExtPreview, extSel, importMode, spGet, control: beginImport(4) }))} disabled={importing}>
-          {importing ? t('share.importing') : t('share.importFromOtherApp', { defaultValue: 'Pick file (.our / .json / .ampar)' })}
+          {importing ? t('share.importing') : t('share.importFromOtherApp')}
         </Btn>
       </div>
 
