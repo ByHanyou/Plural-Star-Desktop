@@ -1,18 +1,52 @@
-import React, { useState, useEffect, useId } from 'react';
+import { useState, useId } from 'react';
+import type React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   MedicalData, Medication, MedicalAppointment, MedicalHistoryEntry, EmergencyInfo,
-  DEFAULT_MEDICAL, time12to24, fmtClockHHMM, uses12HourClock, dayPeriodLabel, uid, fmtTime, fmtList,
+  time12to24, parseTime24, fmtClockHHMM, uses12HourClock, uid, fmtTime, fmtList,
 } from '../utils';
-import { store, KEYS } from '../storage';
-import { Btn, Toggle, ConfirmDialog, clickable, SrOnly } from '../components/ui';
+import { saveData } from '../store/actions';
+import { useAppStore } from '../store/appStore';
+import { Btn, Toggle, ConfirmDialog, SaveErrorDialog, clickable, SrOnly } from '../components/ui';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { AmPmToggle } from '../components/AmPmToggle';
 
-interface Props { onUpdate?: () => void; }
+type ItemKind = 'medications' | 'appointments' | 'history';
 
-export default function MedicalView({ onUpdate }: Props) {
+const REMIND_OPTIONS: [number, string][] = [[0, 'medical.atTime'], [15, 'medical.remind15m'], [30, 'medical.remind30m'], [60, 'medical.remind1h'], [1440, 'medical.remind1d']];
+const cardStyle: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 16 };
+const rowStyle: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 };
+const cardTitleStyle: React.CSSProperties = { fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', margin: '0 0 10px' };
+
+function MedicalCard({ title, empty, emptyLabel, children }: { title: string; empty: boolean; emptyLabel: string; children: React.ReactNode }) {
+  return (
+    <div style={cardStyle}>
+      <h3 style={cardTitleStyle}>{title}</h3>
+      {empty && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{emptyLabel}</p>}
+      {children}
+    </div>
+  );
+}
+
+function ItemRow({ title, subtitle, onDelete, children }: { title: string; subtitle?: string; onDelete: () => void; children?: React.ReactNode }) {
   const { t } = useTranslation();
-  const [data, setData] = useState<MedicalData>(DEFAULT_MEDICAL);
-  const [confirmDel, setConfirmDel] = useState<{ kind: 'med' | 'appt' | 'hist'; id: string } | null>(null);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+      {children}
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{subtitle}</div>}
+      </div>
+      <button type="button" onClick={onDelete} aria-label={t('common.deleteNamed', { name: title })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>✕</button>
+    </div>
+  );
+}
+
+export default function MedicalView() {
+  const { t } = useTranslation();
+  const data = useAppStore(s => s.medical);
+  const [confirmDel, setConfirmDel] = useState<{ kind: ItemKind; id: string } | null>(null);
+  const [saveError, run, clearSaveError] = useSaveGuard();
 
   const [medName, setMedName] = useState('');
   const [medDose, setMedDose] = useState('');
@@ -20,113 +54,93 @@ export default function MedicalView({ onUpdate }: Props) {
   const [medAmPm, setMedAmPm] = useState<'AM' | 'PM'>('AM');
   const [medTimes, setMedTimes] = useState<string[]>([]);
   const [timeErr, setTimeErr] = useState(false);
-
   const [apptTitle, setApptTitle] = useState('');
   const [apptWhen, setApptWhen] = useState('');
   const [apptRemind, setApptRemind] = useState(0);
-
   const [histTitle, setHistTitle] = useState('');
   const [histWhen, setHistWhen] = useState('');
-
-  useEffect(() => {
-    store.get<MedicalData>(KEYS.medical, DEFAULT_MEDICAL).then(d => setData({ ...DEFAULT_MEDICAL, ...(d || {}) }));
-  }, []);
-
-  const save = async (next: MedicalData) => {
-    setData(next);
-    await store.set(KEYS.medical, next);
-    onUpdate?.();
-  };
 
   const twelveHour = uses12HourClock();
   const medId = useId();
 
-  const time24 = (raw: string): string | null => {
-    const m = /^(\d{1,2}):(\d{2})$/.exec((raw || '').trim());
-    if (!m) return null;
-    const h = parseInt(m[1], 10);
-    const min = parseInt(m[2], 10);
-    if (h < 0 || h > 23 || min < 0 || min > 59) return null;
-    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  const update = (change: (current: MedicalData) => MedicalData) => {
+    void run(() => saveData('medical', change(useAppStore.getState().medical)));
   };
 
   const addMedTime = () => {
-    const v = twelveHour ? time12to24(medTime, medAmPm) : time24(medTime);
+    const v = twelveHour ? time12to24(medTime, medAmPm) : parseTime24(medTime);
     if (!v) { setTimeErr(true); return; }
     if (!medTimes.includes(v)) setMedTimes([...medTimes, v].sort());
-    setMedTime(''); setTimeErr(false);
+    setMedTime('');
+    setTimeErr(false);
   };
 
   const addMedication = () => {
-    if (!medName.trim()) return;
-    const med: Medication = { id: uid(), name: medName.trim(), dosage: medDose.trim() || undefined, times: medTimes, enabled: true, createdAt: Date.now() };
-    save({ ...data, medications: [...data.medications, med] });
+    const name = medName.trim();
+    if (!name) return;
+    const med: Medication = { id: uid(), name, dosage: medDose.trim() || undefined, times: medTimes, enabled: true, createdAt: Date.now() };
+    update(d => ({ ...d, medications: [...d.medications, med] }));
     setMedName(''); setMedDose(''); setMedTimes([]); setMedTime('');
   };
 
-  const toggleMed = (id: string) => save({ ...data, medications: data.medications.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m) });
+  const toggleMed = (id: string) => update(d => ({ ...d, medications: d.medications.map(m => (m.id === id ? { ...m, enabled: !m.enabled } : m)) }));
 
   const addAppointment = () => {
-    if (!apptTitle.trim() || !apptWhen) return;
-    const appt: MedicalAppointment = { id: uid(), title: apptTitle.trim(), time: new Date(apptWhen).getTime(), reminderMinutesBefore: apptRemind || undefined, createdAt: Date.now() };
-    save({ ...data, appointments: [...data.appointments, appt].sort((a, b) => a.time - b.time) });
+    const title = apptTitle.trim();
+    if (!title || !apptWhen) return;
+    const appt: MedicalAppointment = { id: uid(), title, time: new Date(apptWhen).getTime(), reminderMinutesBefore: apptRemind || undefined, createdAt: Date.now() };
+    update(d => ({ ...d, appointments: [...d.appointments, appt].sort((a, b) => a.time - b.time) }));
     setApptTitle(''); setApptWhen(''); setApptRemind(0);
   };
 
   const addHistory = () => {
-    if (!histTitle.trim()) return;
-    const h: MedicalHistoryEntry = { id: uid(), title: histTitle.trim(), date: histWhen ? new Date(histWhen).getTime() : undefined, createdAt: Date.now() };
-    save({ ...data, history: [...data.history, h] });
+    const title = histTitle.trim();
+    if (!title) return;
+    const h: MedicalHistoryEntry = { id: uid(), title, date: histWhen ? new Date(histWhen).getTime() : undefined, createdAt: Date.now() };
+    update(d => ({ ...d, history: [...d.history, h] }));
     setHistTitle(''); setHistWhen('');
   };
 
-  const setEmergency = (patch: Partial<EmergencyInfo>) => save({ ...data, emergency: { ...data.emergency, ...patch } });
+  const setEmergency = (patch: Partial<EmergencyInfo>) => update(d => ({ ...d, emergency: { ...d.emergency, ...patch } }));
 
   const doDelete = () => {
-    if (!confirmDel) return;
-    if (confirmDel.kind === 'med') save({ ...data, medications: data.medications.filter(m => m.id !== confirmDel.id) });
-    else if (confirmDel.kind === 'appt') save({ ...data, appointments: data.appointments.filter(a => a.id !== confirmDel.id) });
-    else save({ ...data, history: data.history.filter(h => h.id !== confirmDel.id) });
+    const target = confirmDel;
     setConfirmDel(null);
+    if (!target) return;
+    const without = <T extends { id: string }>(list: T[]) => list.filter(item => item.id !== target.id);
+    update(d => (target.kind === 'medications' ? { ...d, medications: without(d.medications) }
+      : target.kind === 'appointments' ? { ...d, appointments: without(d.appointments) }
+      : { ...d, history: without(d.history) }));
   };
 
-  const sectionHead = (): React.CSSProperties => ({ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--accent)', margin: '0 0 10px' });
-  const card: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 16 };
+  const emergencyField = (key: 'conditions' | 'allergies' | 'bloodType', label: string, placeholder: string, last = false) => (
+    <>
+      <label className="field__label" htmlFor={`${medId}-${key}`}>{label}</label>
+      <input id={`${medId}-${key}`} className="field__input" value={data.emergency[key] || ''} onChange={e => setEmergency({ [key]: e.target.value })}
+        placeholder={placeholder} style={{ marginBottom: last ? 12 : 10 }} />
+    </>
+  );
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto' }}>
-      <div style={card}>
-        <h3 style={sectionHead()}>{t('medical.medications')}</h3>
-        {data.medications.length === 0 && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('medical.noMedications')}</p>}
+      <MedicalCard title={t('medical.medications')} empty={data.medications.length === 0} emptyLabel={t('medical.noMedications')}>
         {data.medications.map(m => (
-          <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+          <ItemRow key={m.id} title={m.dosage ? `${m.name} · ${m.dosage}` : m.name} subtitle={m.times.length > 0 ? fmtList(m.times.map(fmtClockHHMM)) : undefined}
+            onDelete={() => setConfirmDel({ kind: 'medications', id: m.id })}>
             <input type="checkbox" checked={m.enabled} onChange={() => toggleMed(m.id)} aria-label={t('medical.remindersFor', { name: m.name })} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{m.name}{m.dosage ? ` · ${m.dosage}` : ''}</div>
-              {m.times.length > 0 && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fmtList(m.times.map(fmtClockHHMM))}</div>}
-            </div>
-            <button onClick={() => setConfirmDel({ kind: 'med', id: m.id })} aria-label={t('common.deleteNamed', { name: m.name })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>✕</button>
-          </div>
+          </ItemRow>
         ))}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
+        <div style={rowStyle}>
           <input className="field__input" value={medName} onChange={e => setMedName(e.target.value)} aria-label={t('medical.namePlaceholder')} placeholder={t('medical.namePlaceholder')} style={{ flex: 2, minWidth: 120 }} />
           <input className="field__input" value={medDose} onChange={e => setMedDose(e.target.value)} aria-label={t('medical.dosagePlaceholder')} placeholder={t('medical.dosagePlaceholder')} style={{ flex: 1, minWidth: 80 }} />
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 6 }}>
+        <div style={{ ...rowStyle, marginTop: 6 }}>
           <input className={`field__input ${timeErr ? 'field__input--error' : ''}`} value={medTime} onChange={e => { setMedTime(e.target.value); setTimeErr(false); }}
             onKeyDown={e => { if (e.key === 'Enter') addMedTime(); }} aria-label={t('medical.reminderTimes')}
             aria-invalid={timeErr} aria-describedby={timeErr ? `${medId}-hint ${medId}-err` : `${medId}-hint`}
             placeholder={twelveHour ? '9:00' : '14:00'} style={{ width: 70 }} />
           <SrOnly id={`${medId}-hint`}>{t('medical.timeHint')}</SrOnly>
-          {twelveHour && (
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-              {(['AM', 'PM'] as const).map(ap => (
-                <button key={ap} onClick={() => setMedAmPm(ap)} aria-pressed={medAmPm === ap}
-                  style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
-                    background: medAmPm === ap ? 'var(--accent)' : 'transparent', color: medAmPm === ap ? '#0a0508' : 'var(--dim)' }}>{dayPeriodLabel(ap === 'PM')}</button>
-              ))}
-            </div>
-          )}
+          {twelveHour && <AmPmToggle value={medAmPm} onChange={setMedAmPm} />}
           <Btn variant="ghost" onClick={addMedTime}>{t('medical.addTime')}</Btn>
           {medTimes.map(tm => (
             <span key={tm} style={{ fontSize: 11, background: 'var(--surface)', color: 'var(--text)', padding: '2px 8px', borderRadius: 999, cursor: 'pointer' }}
@@ -136,67 +150,45 @@ export default function MedicalView({ onUpdate }: Props) {
           <Btn variant="solid" onClick={addMedication}>{t('medical.addMedication')}</Btn>
         </div>
         {timeErr && <p role="alert" id={`${medId}-err`} style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4 }}>{t('medical.invalidTime')}</p>}
-      </div>
+      </MedicalCard>
 
-      <div style={card}>
-        <h3 style={sectionHead()}>{t('medical.appointments')}</h3>
-        {data.appointments.length === 0 && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('medical.noAppointments')}</p>}
+      <MedicalCard title={t('medical.appointments')} empty={data.appointments.length === 0} emptyLabel={t('medical.noAppointments')}>
         {data.appointments.map(a => (
-          <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{a.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fmtTime(a.time)}</div>
-            </div>
-            <button onClick={() => setConfirmDel({ kind: 'appt', id: a.id })} aria-label={t('common.deleteNamed', { name: a.title })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>✕</button>
-          </div>
+          <ItemRow key={a.id} title={a.title} subtitle={fmtTime(a.time)} onDelete={() => setConfirmDel({ kind: 'appointments', id: a.id })} />
         ))}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
+        <div style={rowStyle}>
           <input className="field__input" value={apptTitle} onChange={e => setApptTitle(e.target.value)} aria-label={t('medical.apptPlaceholder')} placeholder={t('medical.apptPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
           <input className="field__input" aria-label={t('medical.apptWhen')} type="datetime-local" value={apptWhen} onChange={e => setApptWhen(e.target.value)} style={{ width: 200 }} />
           <select className="field__input" value={apptRemind} onChange={e => setApptRemind(Number(e.target.value))} aria-label={t('medical.remindBefore')} title={t('medical.remindBefore')} style={{ width: 130 }}>
-            <option value={0}>{t('medical.atTime')}</option>
-            <option value={15}>{t('medical.remind15m')}</option>
-            <option value={30}>{t('medical.remind30m')}</option>
-            <option value={60}>{t('medical.remind1h')}</option>
-            <option value={1440}>{t('medical.remind1d')}</option>
+            {REMIND_OPTIONS.map(([minutes, key]) => <option key={minutes} value={minutes}>{t(key)}</option>)}
           </select>
           <Btn variant="solid" onClick={addAppointment}>{t('medical.addAppointment')}</Btn>
         </div>
-      </div>
+      </MedicalCard>
 
-      <div style={card}>
-        <h3 style={sectionHead()}>{t('medical.history')}</h3>
-        {data.history.length === 0 && <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{t('medical.noHistory')}</p>}
+      <MedicalCard title={t('medical.history')} empty={data.history.length === 0} emptyLabel={t('medical.noHistory')}>
         {data.history.map(h => (
-          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{h.title}</div>
-              {h.date && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fmtTime(h.date)}</div>}
-            </div>
-            <button onClick={() => setConfirmDel({ kind: 'hist', id: h.id })} aria-label={t('common.deleteNamed', { name: h.title })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>✕</button>
-          </div>
+          <ItemRow key={h.id} title={h.title} subtitle={h.date ? fmtTime(h.date) : undefined} onDelete={() => setConfirmDel({ kind: 'history', id: h.id })} />
         ))}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 12 }}>
+        <div style={rowStyle}>
           <input className="field__input" value={histTitle} onChange={e => setHistTitle(e.target.value)} aria-label={t('medical.historyPlaceholder')} placeholder={t('medical.historyPlaceholder')} style={{ flex: 1, minWidth: 120 }} />
           <input className="field__input" aria-label={t('medical.historyDate')} type="date" value={histWhen} onChange={e => setHistWhen(e.target.value)} style={{ width: 160 }} />
           <Btn variant="solid" onClick={addHistory}>{t('medical.addHistory')}</Btn>
         </div>
-      </div>
+      </MedicalCard>
 
-      <div style={card}>
-        <h3 style={sectionHead()}>{t('medical.emergency')}</h3>
-        <label className="field__label" htmlFor={`${medId}-cond`}>{t('medical.conditions')}</label>
-        <input id={`${medId}-cond`} className="field__input" value={data.emergency.conditions || ''} onChange={e => setEmergency({ conditions: e.target.value })} placeholder={t('medical.conditionsPlaceholder')} style={{ marginBottom: 10 }} />
-        <label className="field__label" htmlFor={`${medId}-allergy`}>{t('medical.allergies')}</label>
-        <input id={`${medId}-allergy`} className="field__input" value={data.emergency.allergies || ''} onChange={e => setEmergency({ allergies: e.target.value })} placeholder={t('medical.allergiesPlaceholder')} style={{ marginBottom: 10 }} />
-        <label className="field__label" htmlFor={`${medId}-blood`}>{t('medical.bloodType')}</label>
-        <input id={`${medId}-blood`} className="field__input" value={data.emergency.bloodType || ''} onChange={e => setEmergency({ bloodType: e.target.value })} placeholder={t('medical.bloodTypePlaceholder')} style={{ marginBottom: 12 }} />
+      <div style={cardStyle}>
+        <h3 style={cardTitleStyle}>{t('medical.emergency')}</h3>
+        {emergencyField('conditions', t('medical.conditions'), t('medical.conditionsPlaceholder'))}
+        {emergencyField('allergies', t('medical.allergies'), t('medical.allergiesPlaceholder'))}
+        {emergencyField('bloodType', t('medical.bloodType'), t('medical.bloodTypePlaceholder'), true)}
         <Toggle label={t('medical.showOnNotification')} description={t('medical.emergencyDesc')}
           value={data.emergency.showOnNotification} onChange={v => setEmergency({ showOnNotification: v })} />
       </div>
 
       <ConfirmDialog open={!!confirmDel} title={t('common.delete')} message={t('medical.deleteItemMsg')}
         danger onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

@@ -1,6 +1,8 @@
-const TERMINOLOGY_TERMS = ['member', 'members', 'fronter', 'fronters', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system', 'journal', 'hub', 'history', 'archive'] as const;
-type TerminologyTerm = typeof TERMINOLOGY_TERMS[number];
-type TerminologyMap = Partial<Record<TerminologyTerm, string>>;
+import type {FrontTierKey} from '../model/types';
+
+export const TERMINOLOGY_TERMS = ['member', 'members', 'fronter', 'fronters', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system', 'journal', 'hub', 'history', 'archive'] as const;
+export type TerminologyTerm = typeof TERMINOLOGY_TERMS[number];
+export type TerminologyMap = Partial<Record<TerminologyTerm, string>>;
 
 type TermFormsMap = Partial<Record<TerminologyTerm, string | string[]>>;
 
@@ -252,7 +254,7 @@ const TERM_FORMS: Record<string, TermFormsMap> = {
     front: '前台',
     system: '系统',
   },
-  zhHant: {
+  'zh-Hant': {
     journal: '日誌', hub: '中心', history: '歷史', archive: '封存',
     member: ['成員', '腦內夥伴', '夥伴'],
     fronter: '前台者',
@@ -305,14 +307,17 @@ export const setTerminologyOverrides = (map?: TerminologyMap | null): void => {
 
 const hasTerminologyOverrides = (): boolean => Object.keys(overrides).length > 0;
 
-export type TierNameKey = 'primary' | 'coFront' | 'coConscious';
-type TierNameMap = Partial<Record<TierNameKey, string>>;
+export type TierNameMap = Partial<Record<FrontTierKey, string>>;
+
+export const TERMINOLOGY_FIELDS: TerminologyTerm[][] = [['member', 'members'], ['fronter', 'fronters'], ['group', 'groups'], ['facet', 'facets'], ['front', 'fronting'], ['system', 'hub'], ['journal', 'history'], ['archive']];
+
+export const TIER_NAME_FIELDS: [FrontTierKey, string][] = [['primary', 'tierPrimary'], ['coFront', 'tierCoFront'], ['coConscious', 'tierCoConscious']];
 
 let tierNames: TierNameMap = {};
 
 export const setTierNameOverrides = (map?: TierNameMap | null): void => {
   const clean: TierNameMap = {};
-  for (const k of ['primary', 'coFront', 'coConscious'] as TierNameKey[]) {
+  for (const [k] of TIER_NAME_FIELDS) {
     const v = map?.[k]?.trim();
     if (v) clean[k] = v;
   }
@@ -320,9 +325,9 @@ export const setTierNameOverrides = (map?: TierNameMap | null): void => {
 };
 
 const hasTierNameOverrides = (): boolean => Object.keys(tierNames).length > 0;
-export const getTierNameOverride = (k: TierNameKey): string | undefined => tierNames[k];
+export const getTierNameOverride = (k: FrontTierKey): string | undefined => tierNames[k];
 
-const TIER_LABEL_KEYS: Record<string, TierNameKey> = {
+const TIER_LABEL_KEYS: Record<string, FrontTierKey> = {
   'tier.primaryFront': 'primary',
   'tier.primaryShort': 'primary',
   'tier.coFront': 'coFront',
@@ -330,12 +335,12 @@ const TIER_LABEL_KEYS: Record<string, TierNameKey> = {
   'tier.coConscious': 'coConscious',
   'tier.coConShort': 'coConscious',
 };
-const TIER_BADGE_KEYS: Record<string, TierNameKey> = {
+const TIER_BADGE_KEYS: Record<string, FrontTierKey> = {
   'tier.primaryBadge': 'primary',
   'tier.coFrontBadge': 'coFront',
   'tier.coConBadge': 'coConscious',
 };
-const TIER_LINE_KEYS: Record<string, TierNameKey> = {
+const TIER_LINE_KEYS: Record<string, FrontTierKey> = {
   'notification.primary': 'primary',
   'notification.coFront': 'coFront',
   'notification.cfShort': 'coFront',
@@ -348,19 +353,22 @@ type TierTranslator = {language?: string; translate?: (key: string, options?: Re
 const applyTierNames = (value: string, key: string, options: unknown, translator?: TierTranslator): string => {
   if (!hasTierNameOverrides()) return value;
   const label = TIER_LABEL_KEYS[key];
-  if (label && tierNames[label]) return tierNames[label]!;
+  const labelName = label ? tierNames[label] : undefined;
+  if (labelName) return labelName;
   const badge = TIER_BADGE_KEYS[key];
-  if (badge && tierNames[badge]) {
+  const badgeName = badge ? tierNames[badge] : undefined;
+  if (badgeName) {
     const lang = translator?.language || 'en';
-    try { return tierNames[badge]!.toLocaleUpperCase(lang === 'zhHant' ? 'zh-Hant' : lang); } catch { return tierNames[badge]!.toUpperCase(); }
+    try { return badgeName.toLocaleUpperCase(lang); } catch { return badgeName.toUpperCase(); }
   }
   const line = TIER_LINE_KEYS[key];
-  if (line && tierNames[line]) {
-    const names = (options as {names?: unknown} | null | undefined)?.names;
-    const nameText = typeof names === 'string' ? names : String(names ?? '');
-    const lng = (options as {lng?: unknown} | null | undefined)?.lng;
-    const out = translator?.translate?.('notification.tierLine', { tier: tierNames[line], names: nameText, applyPostProcessor: false, ...(typeof lng === 'string' ? { lng } : {}) });
-    return typeof out === 'string' && out !== 'notification.tierLine' ? out : `${tierNames[line]}: ${nameText}`;
+  const lineName = line ? tierNames[line] : undefined;
+  if (lineName) {
+    const opts: Record<string, unknown> = typeof options === 'object' && options !== null ? {...options} : {};
+    const nameText = typeof opts.names === 'string' ? opts.names : String(opts.names ?? '');
+    const lng = opts.lng;
+    const out = translator?.translate?.('notification.tierLine', {tier: lineName, names: nameText, applyPostProcessor: false, ...(typeof lng === 'string' ? {lng} : {})});
+    return typeof out === 'string' && out !== 'notification.tierLine' ? out : `${lineName}: ${nameText}`;
   }
   return value;
 };
@@ -377,7 +385,7 @@ const caseFirst = (s: string, upper: boolean): string => {
   return (safe ? changed : r0) + runes.slice(1).join('');
 };
 
-const replaceTerm = (text: string, form: string, replacement: string, fixArticles = false): string => {
+export const replaceTerm = (text: string, form: string, replacement: string, fixArticles = false): string => {
   if (!form || !replacement) return text;
   const lower = text.toLowerCase();
   const needle = form.toLowerCase();
@@ -438,8 +446,9 @@ const applyTerminology = (value: string, language: string): string => {
   let out = value;
   let lower = value.toLowerCase();
   for (const [term, form, needle] of pairs) {
-    if (lower.indexOf(needle) === -1) continue;
-    const next = replaceTerm(out, form, overrides[term]!, fixArticles);
+    const replacement = overrides[term];
+    if (!replacement || lower.indexOf(needle) === -1) continue;
+    const next = replaceTerm(out, form, replacement, fixArticles);
     if (next !== out) {
       out = next;
       lower = out.toLowerCase();

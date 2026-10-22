@@ -1,15 +1,17 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSortable } from '@dnd-kit/sortable';
+import { PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 
 interface Props {
   id: string;
   label: string;
   disabled?: boolean;
+  tile?: boolean;
   children: React.ReactNode;
 }
 
-export default function SortableCard({ id, label, disabled = false, children }: Props) {
+export default function SortableCard({ id, label, disabled = false, tile = false, children }: Props) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
 
@@ -23,7 +25,7 @@ export default function SortableCard({ id, label, disabled = false, children }: 
   const gripLabel = t('common.dragReorderNamed', { name: label });
 
   return (
-    <div ref={setNodeRef} style={style} className="tile-sortable">
+    <div ref={setNodeRef} style={style} className="tile-sortable" data-tile-id={tile ? id : undefined}>
       {children}
       {!disabled && (
         <button
@@ -38,5 +40,19 @@ export default function SortableCard({ id, label, disabled = false, children }: 
         </button>
       )}
     </div>
+  );
+}
+
+export const useSortSensors = (distance = 4) => useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance } }),
+  useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+);
+
+export function ReorderLockButton({ locked, onToggle, fontSize, padding }: { locked: boolean; onToggle: () => void; fontSize: number; padding: number }) {
+  const { t } = useTranslation();
+  return (
+    <button type="button" role="switch" aria-checked={!locked} aria-label={t('common.reorderLock')} title={t('common.reorderLock')}
+      onClick={onToggle}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', padding, fontSize, lineHeight: 1, opacity: locked ? 0.35 : 1 }}>🤏</button>
   );
 }

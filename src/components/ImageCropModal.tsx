@@ -1,65 +1,45 @@
 import React, { useEffect, useRef, useState } from 'react';
-import i18n from '../i18n/i18n';
-import { useDialogFocus } from './ui';
+import { useTranslation } from 'react-i18next';
+import { Btn, useDialogFocus, useEscapeKey } from './ui';
+import { CROP_CORNERS, CropCorner, CropMode, CropRect, CropSize, containRect, cornerPoint, cropPixels, dragCropRect, isLeftCorner, isTopCorner } from '../utils';
 
 interface UploadRequest {
   dataUrl: string;
   resolve: (r: string | null) => void;
+  reject: (e: Error) => void;
 }
 
 let hostOpen: ((req: UploadRequest) => void) | null = null;
 
 export const chooseImageTreatment = (dataUrl: string): Promise<string | null> =>
-  new Promise(resolve => {
-    if (!hostOpen) { resolve(null); return; }
-    hostOpen({ dataUrl, resolve });
+  new Promise((resolve, reject) => {
+    if (!hostOpen) { resolve(dataUrl); return; }
+    hostOpen({ dataUrl, resolve, reject });
   });
 
 const HANDLE = 22;
-const MIN_SIZE = 40;
 
-type Corner = 'tl' | 'tr' | 'bl' | 'br';
-
-interface Rect { x: number; y: number; w: number; h: number; }
-
-const CORNER_LABEL: Record<Corner, string> = {
+const CORNER_LABEL: Record<CropCorner, string> = {
   tl: 'modal.cropResizeTopLeft',
   tr: 'modal.cropResizeTopRight',
   bl: 'modal.cropResizeBottomLeft',
   br: 'modal.cropResizeBottomRight',
 };
 
-const computeRect = (mode: 'move' | Corner, s: Rect, dx: number, dy: number, d: Rect): Rect => {
-  if (mode === 'move') {
-    const w = s.w, h = s.h;
-    const x = Math.max(d.x, Math.min(s.x + dx, d.x + d.w - w));
-    const y = Math.max(d.y, Math.min(s.y + dy, d.y + d.h - h));
-    return { x, y, w, h };
-  }
-  let { x, y, w, h } = s;
-  if (mode === 'tl' || mode === 'bl') { x = s.x + dx; w = s.w - dx; }
-  if (mode === 'tr' || mode === 'br') { w = s.w + dx; }
-  if (mode === 'tl' || mode === 'tr') { y = s.y + dy; h = s.h - dy; }
-  if (mode === 'bl' || mode === 'br') { h = s.h + dy; }
-  if (w < MIN_SIZE) { if (mode === 'tl' || mode === 'bl') x = s.x + s.w - MIN_SIZE; w = MIN_SIZE; }
-  if (h < MIN_SIZE) { if (mode === 'tl' || mode === 'tr') y = s.y + s.h - MIN_SIZE; h = MIN_SIZE; }
-  const x1 = Math.max(d.x, x);
-  const y1 = Math.max(d.y, y);
-  const x2 = Math.min(d.x + d.w, x + w);
-  const y2 = Math.min(d.y + d.h, y + h);
-  return { x: x1, y: y1, w: Math.max(MIN_SIZE, x2 - x1), h: Math.max(MIN_SIZE, y2 - y1) };
-};
+const SHADE = 'rgba(0,0,0,0.55)';
 
 export const ImageCropHost = () => {
+  const { t } = useTranslation();
   const [req, setReq] = useState<UploadRequest | null>(null);
   const [stage, setStage] = useState<'choose' | 'crop'>('choose');
-  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const [rect, setRect] = useState<Rect | null>(null);
+  const [natural, setNatural] = useState<CropSize | null>(null);
+  const [box, setBox] = useState<CropSize | null>(null);
+  const [rect, setRect] = useState<CropRect | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
-  const rectRef = useRef<Rect | null>(null);
-  const dispRef = useRef<Rect | null>(null);
-  const dragRef = useRef<{ mode: 'move' | Corner; startX: number; startY: number; start: Rect } | null>(null);
+  const rectRef = useRef<CropRect | null>(null);
+  const dispRef = useRef<CropRect | null>(null);
+  const rectDispRef = useRef<CropRect | null>(null);
+  const dragRef = useRef<{ mode: CropMode; startX: number; startY: number; start: CropRect } | null>(null);
   const activeRef = useRef<UploadRequest | null>(null);
   const chooseRef = useRef<HTMLDivElement | null>(null);
   const cropRef = useRef<HTMLDivElement | null>(null);
@@ -70,11 +50,11 @@ export const ImageCropHost = () => {
     hostOpen = (r: UploadRequest) => {
       if (activeRef.current && activeRef.current !== r) activeRef.current.resolve(null);
       activeRef.current = r;
-      setStage('choose'); setNatural(null); setBox(null); setRect(null); rectRef.current = null;
+      setStage('choose'); setNatural(null); setBox(null); setRect(null); rectRef.current = null; rectDispRef.current = null;
       setReq(r);
       const img = new window.Image();
       img.onload = () => setNatural({ w: img.naturalWidth, h: img.naturalHeight });
-      img.onerror = () => { r.resolve(null); if (activeRef.current === r) activeRef.current = null; setReq(null); };
+      img.onerror = () => { r.reject(new Error(t('modal.imageUnreadable'))); if (activeRef.current === r) activeRef.current = null; setReq(null); };
       img.src = r.dataUrl;
     };
     return () => {
@@ -82,7 +62,7 @@ export const ImageCropHost = () => {
       if (activeRef.current) activeRef.current.resolve(null);
       activeRef.current = null;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (stage !== 'crop') return;
@@ -94,21 +74,23 @@ export const ImageCropHost = () => {
     return () => window.removeEventListener('resize', measure);
   }, [stage, req]);
 
-  const disp: Rect | null = natural && box ? (() => {
-    const scale = Math.min(box.w / natural.w, box.h / natural.h);
-    const w = natural.w * scale;
-    const h = natural.h * scale;
-    return { x: (box.w - w) / 2, y: (box.h - h) / 2, w, h };
-  })() : null;
+  const disp: CropRect | null = natural && box ? containRect(natural, box) : null;
   dispRef.current = disp;
 
   useEffect(() => {
-    if (disp && !rectRef.current) {
-      const full = { x: disp.x, y: disp.y, w: disp.w, h: disp.h };
-      rectRef.current = full;
-      setRect(full);
-    }
-  }, [disp?.x, disp?.y, disp?.w, disp?.h]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!disp) return;
+    const prev = rectDispRef.current;
+    const cur = rectRef.current;
+    const next = !cur || !prev ? { ...disp } : {
+      x: disp.x + (cur.x - prev.x) * disp.w / prev.w,
+      y: disp.y + (cur.y - prev.y) * disp.h / prev.h,
+      w: cur.w * disp.w / prev.w,
+      h: cur.h * disp.h / prev.h,
+    };
+    rectDispRef.current = disp;
+    rectRef.current = next;
+    setRect(next);
+  }, [disp?.x, disp?.y, disp?.w, disp?.h]);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -117,7 +99,7 @@ export const ImageCropHost = () => {
       if (!drag || !d) return;
       const dx = e.clientX - drag.startX;
       const dy = e.clientY - drag.startY;
-      const next = computeRect(drag.mode, drag.start, dx, dy, d);
+      const next = dragCropRect(drag.mode, drag.start, dx, dy, d);
       rectRef.current = next;
       setRect(next);
     };
@@ -127,14 +109,14 @@ export const ImageCropHost = () => {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, []);
 
-  const startDrag = (mode: 'move' | Corner) => (e: React.MouseEvent) => {
+  const startDrag = (mode: CropMode) => (e: React.MouseEvent) => {
     if (!rectRef.current) return;
     e.preventDefault();
     e.stopPropagation();
     dragRef.current = { mode, startX: e.clientX, startY: e.clientY, start: rectRef.current };
   };
 
-  const nudge = (mode: 'move' | Corner) => (e: React.KeyboardEvent) => {
+  const nudge = (mode: CropMode) => (e: React.KeyboardEvent) => {
     const s = rectRef.current;
     const d = dispRef.current;
     if (!s || !d) return;
@@ -143,25 +125,21 @@ export const ImageCropHost = () => {
     const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
     if (!dx && !dy) return;
     e.preventDefault();
-    const next = computeRect(mode, s, dx, dy, d);
+    const next = dragCropRect(mode, s, dx, dy, d);
     rectRef.current = next;
     setRect(next);
   };
 
-  const finish = (result: string | null) => {
+  const settle = (): UploadRequest | null => {
     const r = req;
     if (activeRef.current === r) activeRef.current = null;
     setReq(null);
-    r?.resolve(result);
+    return r;
   };
+  const finish = (result: string | null) => settle()?.resolve(result);
+  const fail = () => settle()?.reject(new Error(t('modal.imageUnreadable')));
 
-  useEffect(() => {
-    if (!req) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [req]);
+  useEscapeKey(!!req, () => finish(null));
 
   const confirmCrop = () => {
     const r = rectRef.current;
@@ -169,39 +147,33 @@ export const ImageCropHost = () => {
     if (!req || !r || !d || !natural) return;
     const img = new window.Image();
     img.onload = () => {
-      const sx = natural.w / d.w;
-      const sy = natural.h / d.h;
-      const ox = Math.max(0, Math.round((r.x - d.x) * sx));
-      const oy = Math.max(0, Math.round((r.y - d.y) * sy));
-      const cw = Math.max(1, Math.min(natural.w - ox, Math.round(r.w * sx)));
-      const ch = Math.max(1, Math.min(natural.h - oy, Math.round(r.h * sy)));
+      const { x: ox, y: oy, width: cw, height: ch } = cropPixels(r, d, natural);
       const canvas = document.createElement('canvas');
       canvas.width = cw;
       canvas.height = ch;
       const ctx = canvas.getContext('2d');
-      if (!ctx) { finish(null); return; }
+      if (!ctx) { fail(); return; }
       ctx.drawImage(img, ox, oy, cw, ch, 0, 0, cw, ch);
       const jpeg = req.dataUrl.startsWith('data:image/jpeg');
       finish(canvas.toDataURL(jpeg ? 'image/jpeg' : 'image/png', 0.92));
     };
-    img.onerror = () => finish(null);
+    img.onerror = fail;
     img.src = req.dataUrl;
   };
 
   if (!req) return null;
 
   const overlay: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  const btn: React.CSSProperties = { padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' };
 
   if (stage === 'choose') {
     return (
-      <div ref={chooseRef} tabIndex={-1} style={overlay} role="dialog" aria-modal="true" aria-label={i18n.t('modal.imagePickHow')} onClick={() => finish(null)}>
+      <div ref={chooseRef} tabIndex={-1} style={overlay} role="dialog" aria-modal="true" aria-label={t('modal.imagePickHow')} onClick={() => finish(null)}>
         <div role="presentation" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, minWidth: 300 }} onClick={e => e.stopPropagation()}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>{i18n.t('modal.imagePickHow')}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>{t('modal.imagePickHow')}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button style={btn} onClick={() => finish(null)}>{i18n.t('common.cancel')}</button>
-            <button style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }} onClick={() => finish(req.dataUrl)}>{i18n.t('modal.imageAuto')}</button>
-            <button style={{ ...btn, background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff' }} onClick={() => setStage('crop')}>{i18n.t('common.edit')}</button>
+            <Btn variant="ghost" onClick={() => finish(null)}>{t('common.cancel')}</Btn>
+            <Btn variant="primary" onClick={() => finish(req.dataUrl)}>{t('modal.imageAuto')}</Btn>
+            <Btn variant="solid" onClick={() => setStage('crop')}>{t('common.edit')}</Btn>
           </div>
         </div>
       </div>
@@ -209,28 +181,30 @@ export const ImageCropHost = () => {
   }
 
   return (
-    <div ref={cropRef} tabIndex={-1} style={{ ...overlay, background: 'rgba(0,0,0,0.85)', flexDirection: 'column', padding: 24 }} role="dialog" aria-modal="true" aria-label={i18n.t('modal.cropImage')}>
-      <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 10 }}>{i18n.t('modal.cropImage')}</div>
+    <div ref={cropRef} tabIndex={-1} style={{ ...overlay, background: 'rgba(0,0,0,0.85)', flexDirection: 'column', padding: 24 }} role="dialog" aria-modal="true" aria-label={t('modal.cropImage')}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 10 }}>{t('modal.cropImage')}</div>
       <div ref={boxRef} style={{ position: 'relative', flex: 1, alignSelf: 'stretch', overflow: 'hidden', userSelect: 'none' }}>
         {box && (
           <img src={req.dataUrl} alt="" draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
         )}
         {rect && disp && (
           <>
-            <div style={{ position: 'absolute', left: disp.x, top: disp.y, width: disp.w, height: rect.y - disp.y, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', left: disp.x, top: rect.y + rect.h, width: disp.w, height: disp.y + disp.h - rect.y - rect.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', left: disp.x, top: rect.y, width: rect.x - disp.x, height: rect.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', left: rect.x + rect.w, top: rect.y, width: disp.x + disp.w - rect.x - rect.w, height: rect.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-            <div onMouseDown={startDrag('move')} role="button" tabIndex={0} aria-label={i18n.t('modal.cropMove')} onKeyDown={nudge('move')}
+            {[
+              { left: disp.x, top: disp.y, width: disp.w, height: rect.y - disp.y },
+              { left: disp.x, top: rect.y + rect.h, width: disp.w, height: disp.y + disp.h - rect.y - rect.h },
+              { left: disp.x, top: rect.y, width: rect.x - disp.x, height: rect.h },
+              { left: rect.x + rect.w, top: rect.y, width: disp.x + disp.w - rect.x - rect.w, height: rect.h },
+            ].map((shade, i) => <div key={i} style={{ position: 'absolute', ...shade, background: SHADE, pointerEvents: 'none' }} />)}
+            <div onMouseDown={startDrag('move')} role="button" tabIndex={0} aria-label={t('modal.cropMove')} onKeyDown={nudge('move')}
               style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, border: '2px solid var(--accent)', cursor: 'move' }} />
-            {(['tl', 'tr', 'bl', 'br'] as Corner[]).map(corner => (
-              <div key={corner} onMouseDown={startDrag(corner)} role="button" tabIndex={0} aria-label={i18n.t(CORNER_LABEL[corner])} onKeyDown={nudge(corner)}
+            {CROP_CORNERS.map(corner => (
+              <div key={corner} onMouseDown={startDrag(corner)} role="button" tabIndex={0} aria-label={t(CORNER_LABEL[corner])} onKeyDown={nudge(corner)}
                 style={{
                   position: 'absolute',
-                  left: (corner === 'tl' || corner === 'bl' ? rect.x : rect.x + rect.w) - HANDLE / 2,
-                  top: (corner === 'tl' || corner === 'tr' ? rect.y : rect.y + rect.h) - HANDLE / 2,
+                  left: cornerPoint(corner, rect).x - HANDLE / 2,
+                  top: cornerPoint(corner, rect).y - HANDLE / 2,
                   width: HANDLE, height: HANDLE, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: corner === 'tl' || corner === 'br' ? 'nwse-resize' : 'nesw-resize',
+                  cursor: isLeftCorner(corner) === isTopCorner(corner) ? 'nwse-resize' : 'nesw-resize',
                 }}>
                 <div style={{ width: 12, height: 12, borderRadius: 6, background: 'var(--accent)', border: '2px solid #fff' }} />
               </div>
@@ -239,8 +213,8 @@ export const ImageCropHost = () => {
         )}
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-        <button style={{ ...btn, background: 'transparent', borderColor: 'rgba(255,255,255,0.4)', color: '#fff' }} onClick={() => finish(null)}>{i18n.t('common.cancel')}</button>
-        <button style={{ ...btn, background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff' }} onClick={confirmCrop}>{i18n.t('common.save')}</button>
+        <button style={{ padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#fff' }} onClick={() => finish(null)}>{t('common.cancel')}</button>
+        <Btn variant="solid" onClick={confirmCrop}>{t('common.save')}</Btn>
       </div>
     </div>
   );

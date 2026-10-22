@@ -5,6 +5,6 @@ if (os.platform() !== 'win32') {
   try {
     execSync('chmod -R +x node_modules/.bin', { stdio: 'inherit' });
   } catch (e) {
-    process.exit(0);
+    console.warn('[postinstall] could not mark node_modules/.bin executable:', e instanceof Error ? e.message : e);
   }
 }

@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Modal, ConfirmDialog, ColorPicker } from '../components/ui';
-import { store, KEYS } from '../storage';
-import { NetworkManager } from '../network/NetworkManager';
-import { PRESET_COLORS, PresetColor, presetColorName, COLOR_SETS, ColorSet, MAX_CUSTOM_COLORS, normalizeCustomColors } from '../utils';
+import { Btn, Modal, ConfirmDialog, ColorPicker, SaveErrorDialog } from '../components/ui';
+import { saveData } from '../store/actions';
+import { useAppStore } from '../store/appStore';
+import { PRESET_COLORS, presetColorName, COLOR_SETS, ColorSet, MAX_CUSTOM_COLORS, DEFAULT_SLOT_COLOR, withCustomColor } from '../utils';
 import { PALETTE } from '../theme';
-import { logError } from '../log';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+
+const ROW_HEADING = { fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, marginBottom: 8 } as const;
 
 const SET_LABEL_KEYS: Record<ColorSet, string> = {
   default: 'colors.rowDefault',
@@ -16,56 +18,36 @@ const SET_LABEL_KEYS: Record<ColorSet, string> = {
 
 export default function ColorsView() {
   const { t } = useTranslation();
-  const [customColors, setCustomColors] = useState<string[]>(normalizeCustomColors([]));
+  const customColors = useAppStore(s => s.customColors);
   const [editSlot, setEditSlot] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState('#FF0000');
+  const [editValue, setEditValue] = useState(DEFAULT_SLOT_COLOR);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [saveError, run, clearSaveError] = useSaveGuard();
 
-  useEffect(() => {
-    const load = () => { store.get<string[]>(KEYS.customColors, []).then(v => setCustomColors(normalizeCustomColors(v))); };
-    load();
-    return NetworkManager.onSyncApplied(load);
-  }, []);
-
-  const saveColors = async (next: string[]) => {
-    setCustomColors(next);
-    try {
-      await store.set(KEYS.customColors, next);
-      NetworkManager.notifyDataChanged();
-    } catch (e) { logError('colors', e); }
-  };
+  const saveColors = (next: string[]) => run(() => saveData('customColors', next));
 
   const openSlot = (i: number) => {
-    setEditValue(customColors[i] || '#FF0000');
+    setEditValue(customColors[i] || DEFAULT_SLOT_COLOR);
     setEditSlot(i);
   };
 
-  const saveSlot = () => {
-    if (editSlot === null) return;
-    const v = (editValue || '').toUpperCase();
-    if (!/^#[0-9A-F]{6}$/.test(v)) return;
-    const next = [...customColors];
-    next[editSlot] = v;
-    saveColors(next);
-    setEditSlot(null);
+  const commitSlot = async (value: string) => {
+    const next = editSlot === null ? null : withCustomColor(customColors, editSlot, value);
+    if (next && await saveColors(next)) setEditSlot(null);
   };
 
   const clearSlot = () => {
-    if (editSlot === null) return;
-    const next = [...customColors];
-    next[editSlot] = '';
-    saveColors(next);
     setConfirmClear(false);
-    setEditSlot(null);
+    return commitSlot('');
   };
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       {COLOR_SETS.map(set => (
         <div key={set} style={{ marginBottom: 18 }}>
-          <h3 style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, marginBottom: 8 }}>{t(SET_LABEL_KEYS[set])}</h3>
+          <h3 style={ROW_HEADING}>{t(SET_LABEL_KEYS[set])}</h3>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 0' }}>
-            {(PRESET_COLORS as PresetColor[]).filter(p => p.set === set).map(p => (
+            {PRESET_COLORS.filter(p => p.set === set).map(p => (
               <span key={p.hex} role="img" aria-label={presetColorName(p, t)} title={presetColorName(p, t)}
                 style={{ width: 26, height: 26, minWidth: 26, borderRadius: '50%', background: p.hex, border: '1px solid var(--border)', display: 'inline-block' }} />
             ))}
@@ -73,7 +55,7 @@ export default function ColorsView() {
         </div>
       ))}
 
-      <h3 style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, marginBottom: 8 }}>{t('colors.custom')}</h3>
+      <h3 style={ROW_HEADING}>{t('colors.custom')}</h3>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {Array.from({ length: MAX_CUSTOM_COLORS }, (_, i) => {
           const c = customColors[i];
@@ -100,7 +82,7 @@ export default function ColorsView() {
             )}
             <div style={{ flex: 1 }} />
             <Btn variant="ghost" onClick={() => setEditSlot(null)}>{t('common.cancel')}</Btn>
-            <Btn variant="solid" onClick={saveSlot}>{t('common.save')}</Btn>
+            <Btn variant="solid" disabled={!withCustomColor(customColors, editSlot ?? 0, editValue)} onClick={() => void commitSlot(editValue)}>{t('common.save')}</Btn>
           </div>
         }>
         <ColorPicker value={editValue} onChange={setEditValue} palette={PALETTE} />
@@ -111,9 +93,10 @@ export default function ColorsView() {
         title={t('colors.clearSlot')}
         message={t('colors.clearSlotMsg')}
         danger
-        onConfirm={clearSlot}
+        onConfirm={() => void clearSlot()}
         onCancel={() => setConfirmClear(false)}
       />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

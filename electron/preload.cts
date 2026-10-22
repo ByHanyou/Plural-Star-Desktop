@@ -3,7 +3,6 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   store: {
     get: (key: string) => ipcRenderer.invoke('store:get', key),
-    getStrict: (key: string) => ipcRenderer.invoke('store:getStrict', key),
     set: (key: string, value: unknown) => ipcRenderer.invoke('store:set', key, value),
     setBatch: (updates: Record<string, unknown>) => ipcRenderer.invoke('store:setBatch', updates),
     remove: (key: string) => ipcRenderer.invoke('store:remove', key),
@@ -12,8 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   dialog: {
-    openFile: (filters?: any[]) => ipcRenderer.invoke('dialog:openFile', filters),
-    saveFile: (defaultName: string, filters?: any[]) => ipcRenderer.invoke('dialog:saveFile', defaultName, filters),
+    openFile: (filters?: Electron.FileFilter[]) => ipcRenderer.invoke('dialog:openFile', filters),
+    saveFile: (defaultName: string, filters?: Electron.FileFilter[]) => ipcRenderer.invoke('dialog:saveFile', defaultName, filters),
   },
 
   file: {

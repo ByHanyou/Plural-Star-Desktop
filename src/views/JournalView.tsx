@@ -1,124 +1,99 @@
-import React, { useState, useMemo, useEffect, useId } from 'react';
+import { useState, useMemo, useEffect, useId } from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { JournalEntry, JournalTemplate, Member, uid, fmtDate, fmtTime, memberMatchesSearch, tagKey, truncateRunes, nameCompare } from '../utils';
-import { store, KEYS } from '../storage';
-import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Field, Section, Modal, ConfirmDialog, SrOnly, clickable , tabListKeyDown } from '../components/ui';
-import { MarkdownText } from '../components/MarkdownText';
+import { JournalEntry, JournalTemplate, uid, tagKey, uniqueTags, upsertById } from '../utils';
+import { saveData } from '../store/actions';
+import { memberFacetPools } from '../picker/memberPicker';
+import { MemberGroupSelect } from '../components/MemberGroupSelect';
+import { Btn, EmptyState, Modal, SaveErrorDialog, TabBar, clickable } from '../components/ui';
 import { useAppStore } from '../store/appStore';
-
-interface Props {
-  onUpdate: () => void;
-}
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { EntryCard, clampStyle, previewText } from './journal/EntryCard';
+import { TagChips } from '../components/TagChips';
+import { EntryModal } from './journal/EntryModal';
+import { TemplateModal } from './journal/TemplateModal';
 
 type TabId = 'entries' | 'templates';
 
-export default function JournalView({ onUpdate }: Props) {
+const TABS: readonly TabId[] = ['entries', 'templates'];
+
+const liveJournal = () => useAppStore.getState().journal;
+const liveTemplates = () => useAppStore.getState().journalTemplates;
+
+const newEntry = (tpl?: JournalTemplate): JournalEntry => ({
+  id: uid(), title: tpl?.title || '', body: tpl?.body || '', authorIds: [], hashtags: tpl?.hashtags || [], timestamp: Date.now(),
+});
+
+const newTemplate = (): JournalTemplate => ({ id: uid(), name: '', title: '', body: '', hashtags: [], createdAt: Date.now() });
+
+const filterStyle = (active: boolean) => ({
+  background: 'var(--surface)', color: active ? 'var(--accent)' : 'var(--muted)',
+  border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
+});
+
+function PasswordPrompt({ id, value, onChange, error, onSubmit, style }: {
+  id: string; value: string; onChange: (v: string) => void; error: boolean; onSubmit: () => void; style?: CSSProperties;
+}) {
   const { t } = useTranslation();
-  const journal = useAppStore(s => s.state.journal);
-  const members = useAppStore(s => s.state.members);
-  const system = useAppStore(s => s.state.system);
+  return (
+    <>
+      <input className="field__input" type="password" value={value} aria-label={t('journal.password')} placeholder={t('journal.password')} autoFocus
+        aria-invalid={error} aria-describedby={error ? id : undefined}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') onSubmit(); }}
+        style={{ width: '100%', ...style, ...(error ? { borderColor: 'var(--danger)' } : {}) }} />
+      {error && <div role="alert" id={id} style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{t('journal.incorrectPassword')}</div>}
+    </>
+  );
+}
+
+export default function JournalView() {
+  const { t } = useTranslation();
+  const journal = useAppStore(s => s.journal);
+  const templates = useAppStore(s => s.journalTemplates);
+  const members = useAppStore(s => s.members);
+  const journalPassword = useAppStore(s => s.system.journalPassword);
   const [tab, setTab] = useState<TabId>('entries');
-  const [journalUnlocked, setJournalUnlocked] = useState(!system.journalPassword);
+  const [journalUnlocked, setJournalUnlocked] = useState(!journalPassword);
   const [globalPw, setGlobalPw] = useState('');
   const [globalPwError, setGlobalPwError] = useState(false);
   const [unlockedEntries, setUnlockedEntries] = useState<Set<string>>(new Set());
   const [entryPwFor, setEntryPwFor] = useState<JournalEntry | null>(null);
   const [entryPw, setEntryPw] = useState('');
   const [entryPwError, setEntryPwError] = useState(false);
-  const [entryPassword, setEntryPassword] = useState('');
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
-  const [editing, setEditing] = useState<JournalEntry | null>(null);
-  const [isNew, setIsNew] = useState(false);
-  const [viewMode, setViewMode] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [hashtags, setHashtags] = useState<string[]>([]);
-  const [authorIds, setAuthorIds] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [authorSearch, setAuthorSearch] = useState('');
-
-  const [templates, setTemplates] = useState<JournalTemplate[]>([]);
-  const [editingTemplate, setEditingTemplate] = useState<JournalTemplate | null>(null);
-  const [isNewTemplate, setIsNewTemplate] = useState(false);
-  const [confirmDeleteTemplate, setConfirmDeleteTemplate] = useState<string | null>(null);
-  const [tplName, setTplName] = useState('');
-  const [tplTitle, setTplTitle] = useState('');
-  const [tplBody, setTplBody] = useState('');
-  const [tplTags, setTplTags] = useState<string[]>([]);
-  const [tplTagInput, setTplTagInput] = useState('');
+  const [editing, setEditing] = useState<{ entry: JournalEntry; isNew: boolean } | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<{ template: JournalTemplate; isNew: boolean } | null>(null);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-
-  useEffect(() => {
-    const load = () => { store.get<JournalTemplate[]>(KEYS.journalTemplates, []).then(tpls => setTemplates(tpls || [])); };
-    load();
-    return NetworkManager.onSyncApplied(load);
-  }, []);
-
-  useEffect(() => { if (!system.journalPassword) setJournalUnlocked(true); }, [system.journalPassword]);
-
-  const getMember = (id: string) => members.find(m => m.id === id);
+  const [saveError, run, clearSaveError] = useSaveGuard();
   const jid = useId();
 
-  const allTags = useMemo(() => {
-    const seen = new Map<string, string>();
-    journal.forEach(e => e.hashtags?.forEach(tag => { const k = tagKey(tag); if (!seen.has(k)) seen.set(k, tag); }));
-    return [...seen.values()].sort((a, b) => nameCompare(tagKey(a), tagKey(b)));
-  }, [journal]);
+  useEffect(() => { if (!journalPassword) setJournalUnlocked(true); }, [journalPassword]);
+
+  const allTags = useMemo(() => uniqueTags(journal.flatMap(e => e.hashtags || [])), [journal]);
   const tagFilterKey = tagFilter ? tagKey(tagFilter) : '';
 
   const sorted = useMemo(() => {
+    const q = search.toLowerCase();
     return [...journal]
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+      .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.timestamp - a.timestamp)
       .filter(e => {
-        if (search && !e.title.toLowerCase().includes(search.toLowerCase()) && !e.body.toLowerCase().includes(search.toLowerCase())) return false;
+        if (q && !e.title.toLowerCase().includes(q) && !e.body.toLowerCase().includes(q)) return false;
         if (tagFilterKey && !(e.hashtags || []).some(tag => tagKey(tag) === tagFilterKey)) return false;
-        if (authorFilter && !(e.authorIds || []).includes(authorFilter)) return false;
-        return true;
+        return !authorFilter || (e.authorIds || []).includes(authorFilter);
       });
   }, [journal, search, tagFilterKey, authorFilter]);
 
-  const togglePin = async (entry: JournalEntry, ev: React.MouseEvent) => {
-    ev.stopPropagation();
-    const updated = journal.map(e => e.id === entry.id ? { ...e, pinned: !e.pinned } : e);
-    await store.set(KEYS.journal, updated);
-    onUpdate();
-  };
-
-  const openNew = () => {
-    setTitle(''); setBody(''); setHashtags([]); setAuthorIds([]); setTagInput(''); setEntryPassword('');
-    setIsNew(true); setViewMode(false);
-    setEditing({ id: uid(), title: '', body: '', authorIds: [], hashtags: [], timestamp: Date.now() });
-  };
-
-  const openNewFromTemplate = (tpl: JournalTemplate) => {
-    setTitle(tpl.title);
-    setBody(tpl.body);
-    setHashtags(tpl.hashtags || []);
-    setAuthorIds([]);
-    setTagInput('');
-    setEntryPassword('');
-    setIsNew(true);
-    setViewMode(false);
-    setEditing({ id: uid(), title: tpl.title, body: tpl.body, authorIds: [], hashtags: tpl.hashtags || [], timestamp: Date.now() });
-    setShowTemplatePicker(false);
-  };
+  const saveJournal = (next: JournalEntry[]) => run(() => saveData('journal', next));
+  const saveTemplates = (next: JournalTemplate[]) => run(() => saveData('journalTemplates', next));
 
   const isLocked = (e: JournalEntry) => !!e.password && !unlockedEntries.has(e.id);
 
-  const showEntry = (e: JournalEntry) => {
-    setTitle(e.title); setBody(e.body); setHashtags(e.hashtags || []); setAuthorIds(e.authorIds || []); setTagInput(''); setEntryPassword(e.password || '');
-    setIsNew(false); setViewMode(true); setEditing(e);
-  };
-
-  const openEdit = (e: JournalEntry) => {
+  const openEntry = (e: JournalEntry) => {
     if (isLocked(e)) { setEntryPw(''); setEntryPwError(false); setEntryPwFor(e); return; }
-    showEntry(e);
+    setEditing({ entry: e, isNew: false });
   };
 
   const confirmEntryPw = () => {
@@ -127,100 +102,34 @@ export default function JournalView({ onUpdate }: Props) {
     const e = entryPwFor;
     setUnlockedEntries(prev => new Set([...prev, e.id]));
     setEntryPwFor(null); setEntryPw(''); setEntryPwError(false);
-    showEntry(e);
+    setEditing({ entry: e, isNew: false });
   };
 
   const unlockJournal = () => {
-    if (globalPw === system.journalPassword) { setJournalUnlocked(true); setGlobalPw(''); setGlobalPwError(false); }
+    if (globalPw === journalPassword) { setJournalUnlocked(true); setGlobalPw(''); setGlobalPwError(false); }
     else setGlobalPwError(true);
   };
 
-  const addTag = () => {
-    const raw = tagInput.trim().replace(/^#/, '').normalize('NFC');
-    const next = `#${raw}`;
-    if (raw && !hashtags.some(v => tagKey(v) === tagKey(next))) setHashtags([...hashtags, next]);
-    setTagInput('');
+  const startFromTemplate = (tpl: JournalTemplate) => {
+    setShowTemplatePicker(false);
+    setEditing({ entry: newEntry(tpl), isNew: true });
   };
 
-  const toggleAuthor = (id: string) => {
-    setAuthorIds(authorIds.includes(id) ? authorIds.filter(a => a !== id) : [...authorIds, id]);
-  };
-
-  const saveEntry = async () => {
-    if (!title.trim()) return;
-    const entry: JournalEntry = {
-      id: editing?.id || uid(),
-      title: title.trim(),
-      body,
-      authorIds,
-      hashtags,
-      timestamp: editing?.timestamp || Date.now(),
-      password: entryPassword || undefined,
-      pinned: editing?.pinned,
-    };
-    const updated = isNew
-      ? [...journal, entry]
-      : journal.map(e => e.id === entry.id ? entry : e);
-    await store.set(KEYS.journal, updated);
-    setEditing(null);
-    onUpdate();
+  const saveEntry = async (entry: JournalEntry) => {
+    if (await saveJournal(upsertById(liveJournal(), entry))) setEditing(null);
   };
 
   const deleteEntry = async (id: string) => {
-    await store.set(KEYS.journal, journal.filter(e => e.id !== id));
-    setConfirmDelete(null);
-    setEditing(null);
-    onUpdate();
+    if (await saveJournal(liveJournal().filter(e => e.id !== id))) setEditing(null);
   };
 
-  const openNewTemplate = () => {
-    setTplName(''); setTplTitle(''); setTplBody(''); setTplTags([]); setTplTagInput('');
-    setIsNewTemplate(true);
-    setEditingTemplate({ id: uid(), name: '', title: '', body: '', hashtags: [], createdAt: Date.now() });
-  };
-
-  const openEditTemplate = (tpl: JournalTemplate) => {
-    setTplName(tpl.name); setTplTitle(tpl.title); setTplBody(tpl.body); setTplTags(tpl.hashtags || []); setTplTagInput('');
-    setIsNewTemplate(false);
-    setEditingTemplate(tpl);
-  };
-
-  const addTplTag = () => {
-    const raw = tplTagInput.trim().replace(/^#/, '').normalize('NFC');
-    const next = `#${raw}`;
-    if (raw && !tplTags.some(v => tagKey(v) === tagKey(next))) setTplTags([...tplTags, next]);
-    setTplTagInput('');
-  };
-
-  const saveTemplate = async () => {
-    if (!tplName.trim()) return;
-    const tpl: JournalTemplate = {
-      id: editingTemplate?.id || uid(),
-      name: tplName.trim(),
-      title: tplTitle,
-      body: tplBody,
-      hashtags: tplTags,
-      createdAt: editingTemplate?.createdAt || Date.now(),
-    };
-    const updated = isNewTemplate
-      ? [...templates, tpl]
-      : templates.map(x => x.id === tpl.id ? tpl : x);
-    setTemplates(updated);
-    await store.set(KEYS.journalTemplates, updated);
-    setEditingTemplate(null);
+  const saveTemplate = async (tpl: JournalTemplate) => {
+    if (await saveTemplates(upsertById(liveTemplates(), tpl))) setEditingTemplate(null);
   };
 
   const deleteTemplate = async (id: string) => {
-    const updated = templates.filter(x => x.id !== id);
-    setTemplates(updated);
-    await store.set(KEYS.journalTemplates, updated);
-    setConfirmDeleteTemplate(null);
-    setEditingTemplate(null);
+    if (await saveTemplates(liveTemplates().filter(x => x.id !== id))) setEditingTemplate(null);
   };
-
-  const authorMatch = (m: Member) => !m.archived && !m.isCustomFront && !m.deleted && memberMatchesSearch(m, authorSearch);
-  const filteredAuthors = members.filter(m => !m.isFacet && authorMatch(m));
-  const filteredFacetAuthors = members.filter(m => m.isFacet && authorMatch(m));
 
   if (!journalUnlocked) {
     return (
@@ -228,12 +137,7 @@ export default function JournalView({ onUpdate }: Props) {
         <div aria-hidden style={{ fontSize: 40, color: 'var(--accent)', marginBottom: 12 }}>◉</div>
         <h2 style={{ fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)', marginBottom: 6 }}>{t('journal.locked')}</h2>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 18 }}>{t('journal.enterPasswordToContinue')}</p>
-        <input className="field__input" type="password" value={globalPw} aria-label={t('journal.password')} placeholder={t('journal.password')} autoFocus
-          aria-invalid={globalPwError} aria-describedby={globalPwError ? `${jid}-gpw` : undefined}
-          onChange={e => { setGlobalPw(e.target.value); setGlobalPwError(false); }}
-          onKeyDown={e => { if (e.key === 'Enter') unlockJournal(); }}
-          style={{ width: '100%', marginBottom: 6, ...(globalPwError ? { borderColor: 'var(--danger)' } : {}) }} />
-        {globalPwError && <div role="alert" id={`${jid}-gpw`} style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{t('journal.incorrectPassword')}</div>}
+        <PasswordPrompt id={`${jid}-gpw`} value={globalPw} onChange={v => { setGlobalPw(v); setGlobalPwError(false); }} error={globalPwError} onSubmit={unlockJournal} style={{ marginBottom: 6 }} />
         <Btn variant="solid" onClick={unlockJournal} style={{ width: '100%', marginTop: 8 }}>{t('journal.unlockJournal')}</Btn>
       </div>
     );
@@ -241,110 +145,35 @@ export default function JournalView({ onUpdate }: Props) {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
-      <div role="tablist" style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
-        {(['entries', 'templates'] as TabId[]).map(id => (
-          <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} onKeyDown={tabListKeyDown} style={{
-            padding: '10px 20px', fontSize: 13, fontWeight: tab === id ? 600 : 400, cursor: 'pointer',
-            color: tab === id ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
-            borderBottom: `2px solid ${tab === id ? 'var(--accent)' : 'transparent'}`,
-          }}>
-            {id === 'entries' ? t('journal.entriesTab') : t('journal.templatesTab')}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} value={tab} onChange={setTab} label={id => (id === 'entries' ? t('journal.entriesTab') : t('journal.templatesTab'))} />
 
       {tab === 'entries' && (<>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
           <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
             aria-label={t('common.searchEntries')} placeholder={t('common.searchEntries')} style={{ flex: 1, minWidth: 200 }} />
-
-          <select style={{
-            background: 'var(--surface)', color: tagFilter ? 'var(--accent)' : 'var(--muted)',
-            border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
-          }} aria-label={t('common.filterByTag')} value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
+          <select style={filterStyle(!!tagFilter)} aria-label={t('common.filterByTag')} value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
             <option value="">{t('journal.allTags')}</option>
             {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
           </select>
-
-          <select style={{
-            background: 'var(--surface)', color: authorFilter ? 'var(--accent)' : 'var(--muted)',
-            border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13,
-          }} aria-label={t('common.filterByAuthor')} value={authorFilter} onChange={e => setAuthorFilter(e.target.value)}>
-            <option value="">{t('common.allAuthors')}</option>
-            {members.some(m => !m.archived && !m.isFacet) && (
-              <optgroup label={t('members.title')}>
-                {members.filter(m => !m.archived && !m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </optgroup>
-            )}
-            {members.some(m => !m.archived && m.isFacet) && (
-              <optgroup label={t('members.facets')}>
-                {members.filter(m => !m.archived && m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </optgroup>
-            )}
-          </select>
-
+          <MemberGroupSelect label={t('common.filterByAuthor')} value={authorFilter} onChange={setAuthorFilter} pools={memberFacetPools(members, t)}
+            leading={<option value="">{t('common.allAuthors')}</option>} style={filterStyle(!!authorFilter)} />
           {templates.length > 0 && (
             <Btn variant="ghost" onClick={() => setShowTemplatePicker(true)}>{t('journal.fromTemplate')}</Btn>
           )}
-          <Btn variant="solid" onClick={openNew}>{t('journal.newEntry')}</Btn>
+          <Btn variant="solid" onClick={() => setEditing({ entry: newEntry(), isNew: true })}>{t('journal.newEntry')}</Btn>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {sorted.map(entry => {
-            const locked = isLocked(entry);
-            return (
-            <div key={entry.id} className="tile" style={{
-              minHeight: 'auto', padding: 16, cursor: 'pointer',
-              ...(entry.pinned ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--card))', borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border))' } : {}),
-            }}
-              onClick={() => openEdit(entry)}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }} role="button" tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openEdit(entry); } }}>
-                  {entry.pinned ? <><span aria-hidden>📌 </span><SrOnly>{t('journal.pinnedLabel')}</SrOnly></> : ''}
-                  {locked ? <><span aria-hidden>🔒 </span><SrOnly>{t('journal.lockedLabel')}</SrOnly></> : ''}
-                  {entry.title}
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
-                  <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                    {fmtDate(entry.timestamp)}
-                  </span>
-                  <button onClick={ev => togglePin(entry, ev)} aria-label={t('journal.pinNamed', { title: entry.title })} aria-pressed={!!entry.pinned} title={entry.pinned ? t('noteboard.unpin') : t('noteboard.pin')} style={{
-                    background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: 12,
-                    filter: entry.pinned ? 'none' : 'grayscale(1) opacity(0.5)',
-                  }}>📌</button>
-                </span>
-              </div>
-              {locked ? (
-                <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginBottom: 6 }}>{t('journal.tapToUnlock')}</p>
-              ) : entry.body && (
-                <p style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, marginBottom: 6,
-                  overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  {truncateRunes(entry.body.replace(/<[^>]+>/g, ''), 200)}
-                </p>
-              )}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                {(entry.authorIds || []).map(id => {
-                  const m = getMember(id);
-                  return m ? (
-                    <span key={id} style={{ fontSize: 11, color: m.color }}>{m.name}</span>
-                  ) : null;
-                })}
-                {(entry.hashtags || []).map(tag => (
-                  <span key={tag} style={{ fontSize: 10, color: 'var(--info)', background: 'var(--info-bg)', padding: '1px 6px', borderRadius: 999 }}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-            );
-          })}
+          {sorted.map(entry => (
+            <EntryCard key={entry.id} entry={entry} locked={isLocked(entry)} members={members} onOpen={() => openEntry(entry)}
+              onTogglePin={() => void saveJournal(upsertById(liveJournal(), { ...entry, pinned: !entry.pinned }))} />
+          ))}
         </div>
 
         {sorted.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
+          <EmptyState>
             {search || tagFilter || authorFilter ? t('journal.noEntriesFilter') : t('journal.noEntries')}
-          </div>
+          </EmptyState>
         )}
       </>)}
 
@@ -353,192 +182,44 @@ export default function JournalView({ onUpdate }: Props) {
           <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, flex: 1, marginRight: 12 }}>
             {t('journal.templateHint')}
           </p>
-          <Btn variant="solid" onClick={openNewTemplate}>{t('journal.newTemplate')}</Btn>
+          <Btn variant="solid" onClick={() => setEditingTemplate({ template: newTemplate(), isNew: true })}>{t('journal.newTemplate')}</Btn>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {templates.map(tpl => (
             <div key={tpl.id} className="tile" style={{ minHeight: 'auto', padding: 16, cursor: 'pointer' }}
-              {...clickable(() => openEditTemplate(tpl))}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{tpl.name}</span>
-              </div>
-              {tpl.title && (
-                <div style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 4 }}>
-                  {tpl.title}
-                </div>
-              )}
-              {tpl.body && (
-                <p style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, marginBottom: 6,
-                  overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  {truncateRunes(tpl.body.replace(/<[^>]+>/g, ''), 200)}
-                </p>
-              )}
+              {...clickable(() => setEditingTemplate({ template: tpl, isNew: false }))}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{tpl.name}</div>
+              {tpl.title && <div style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 4 }}>{tpl.title}</div>}
+              {tpl.body && <p style={clampStyle}>{previewText(tpl.body)}</p>}
               <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-                {(tpl.hashtags || []).map(tag => (
-                  <span key={tag} style={{ fontSize: 10, color: 'var(--info)', background: 'var(--info-bg)', padding: '1px 6px', borderRadius: 999 }}>
-                    {tag}
-                  </span>
-                ))}
+                <TagChips tags={tpl.hashtags || []} />
               </div>
             </div>
           ))}
         </div>
 
         {templates.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
+          <EmptyState>
             {t('journal.noTemplates')}
-          </div>
+          </EmptyState>
         )}
       </>)}
 
-      <Modal open={!!editing} title={viewMode ? t('modal.viewEntry') : isNew ? t('modal.newEntry') : t('modal.editEntry')} onClose={() => setEditing(null)}
-        footer={viewMode ? (
-          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
-            <Btn variant="solid" onClick={() => setViewMode(false)}>{t('common.edit')}</Btn>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
-            <div>{!isNew && <Btn variant="danger" onClick={() => setConfirmDelete(editing?.id || '')}>{t('common.delete')}</Btn>}</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn variant="ghost" onClick={() => setEditing(null)}>{t('common.cancel')}</Btn>
-              <Btn variant="solid" onClick={saveEntry}>{t('common.save')}</Btn>
-            </div>
-          </div>
-        )}>
-        {viewMode ? (<>
-          <div style={{ fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)', marginBottom: 4 }}>
-            {title || t('common.untitled')}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 14 }}>{fmtTime(editing?.timestamp || Date.now())}</div>
-          {body && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 14 }}>
-              <MarkdownText text={body} members={members} />
-            </div>
-          )}
-          {hashtags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-              {hashtags.map(tag => (
-                <span key={tag} style={{ fontSize: 12, color: 'var(--info)', background: 'var(--info-bg)', padding: '4px 9px', borderRadius: 999, border: '1px solid var(--border)' }}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-          {authorIds.length > 0 && (<>
-            <Section label={t('modal.authors')} />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-              {authorIds.map(id => {
-                const m = getMember(id);
-                if (!m) return null;
-                return (
-                  <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: `${m.color}20`, border: `1px solid ${m.color}50`, fontSize: 12, color: m.color }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                    {m.name}
-                  </span>
-                );
-              })}
-            </div>
-          </>)}
-        </>) : (<>
-        <Field label={t('modal.entryTitle')} value={title} onChange={setTitle} placeholder={t('modal.entryTitlePlaceholder')} />
+      {editing && (
+        <EntryModal key={editing.entry.id} entry={editing.entry} isNew={editing.isNew} onClose={() => setEditing(null)}
+          onSave={e => void saveEntry(e)} onDelete={id => void deleteEntry(id)} />
+      )}
 
-        <Field label={t('modal.body')} value={body} onChange={setBody} placeholder={t('modal.writeHere')} multiline pictureTools />
-
-        <Field label={t('modal.entryPassword')} value={entryPassword} onChange={setEntryPassword} placeholder={t('modal.entryPasswordPlaceholder')} type="password" />
-
-        <Section label={t('modal.authors')} />
-        <input className="field__input" value={authorSearch} onChange={e => setAuthorSearch(e.target.value)}
-          aria-label={t('members.search')} placeholder={t('members.search')} style={{ marginBottom: 8 }} />
-        {filteredAuthors.length > 0 && <div className="field__label" id={`${jid}-authors`}>{t('members.title')}</div>}
-        <div role="group" aria-labelledby={filteredAuthors.length > 0 ? `${jid}-authors` : undefined} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: filteredFacetAuthors.length > 0 ? 8 : 14 }}>
-          {filteredAuthors.slice(0, 12).map(m => {
-            const active = authorIds.includes(m.id);
-            return (
-              <button key={m.id} className="chip" aria-pressed={active} style={{
-                borderColor: active ? `${m.color}60` : 'var(--border)',
-                background: active ? `${m.color}20` : 'var(--surface)',
-              }} onClick={() => toggleAuthor(m.id)}>
-                <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                <span style={{ color: active ? m.color : 'var(--dim)' }}>{m.name}</span>
-                {active && <span aria-hidden style={{ fontWeight: 700, color: m.color }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-        {filteredFacetAuthors.length > 0 && (
-          <>
-            <div className="field__label" id={`${jid}-facets`}>{t('members.facets')}</div>
-            <div role="group" aria-labelledby={`${jid}-facets`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-              {filteredFacetAuthors.slice(0, 12).map(m => {
-                const active = authorIds.includes(m.id);
-                return (
-                  <button key={m.id} className="chip" aria-pressed={active} style={{
-                    borderColor: active ? `${m.color}60` : 'var(--border)',
-                    background: active ? `${m.color}20` : 'var(--surface)',
-                  }} onClick={() => toggleAuthor(m.id)}>
-                    <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                    <span style={{ color: active ? m.color : 'var(--dim)' }}>{m.name}</span>
-                    {active && <span aria-hidden style={{ fontWeight: 700, color: m.color }}>✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        <Section label={t('modal.tags')} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {hashtags.map(tag => (
-            <button key={tag} className="chip" aria-label={t('common.removeNamed', { name: tag })} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
-              onClick={() => setHashtags(hashtags.filter(t => t !== tag))}>
-              <span style={{ color: 'var(--info)' }}>{tag}</span>
-              <span className="chip__x" aria-hidden>✕</span>
-            </button>
-          ))}
-        </div>
-        <div className="add-row">
-          <input className="field__input" value={tagInput} onChange={e => setTagInput(e.target.value)}
-            aria-label={t('modal.topic')} placeholder={t('modal.topic')} onKeyDown={e => { if (e.key === 'Enter') addTag(); }} />
-          <Btn onClick={addTag}>{t('common.add')}</Btn>
-        </div>
-        </>)}
-      </Modal>
-
-      <Modal open={!!editingTemplate} title={isNewTemplate ? t('journal.newTemplate') : t('journal.editTemplate')} onClose={() => setEditingTemplate(null)}
-        footer={
-          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
-            <div>{!isNewTemplate && <Btn variant="danger" onClick={() => setConfirmDeleteTemplate(editingTemplate?.id || '')}>{t('common.delete')}</Btn>}</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn variant="ghost" onClick={() => setEditingTemplate(null)}>{t('common.cancel')}</Btn>
-              <Btn variant="solid" onClick={saveTemplate}>{t('common.save')}</Btn>
-            </div>
-          </div>
-        }>
-        <Field label={t('journal.templateName')} value={tplName} onChange={setTplName} placeholder={t('journal.templateNamePlaceholder')} />
-        <Field label={t('journal.templateTitle')} value={tplTitle} onChange={setTplTitle} placeholder={t('modal.entryTitlePlaceholder')} />
-        <Field label={t('journal.templateBody')} value={tplBody} onChange={setTplBody} placeholder={t('modal.writeHere')} multiline pictureTools />
-        <Section label={t('modal.tags')} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {tplTags.map(tag => (
-            <button key={tag} className="chip" aria-label={t('common.removeNamed', { name: tag })} style={{ borderColor: 'color-mix(in srgb, var(--info) 25%, transparent)', background: 'var(--info-bg)' }}
-              onClick={() => setTplTags(tplTags.filter(t => t !== tag))}>
-              <span style={{ color: 'var(--info)' }}>{tag}</span>
-              <span className="chip__x" aria-hidden>✕</span>
-            </button>
-          ))}
-        </div>
-        <div className="add-row">
-          <input className="field__input" value={tplTagInput} onChange={e => setTplTagInput(e.target.value)}
-            aria-label={t('modal.topic')} placeholder={t('modal.topic')} onKeyDown={e => { if (e.key === 'Enter') addTplTag(); }} />
-          <Btn onClick={addTplTag}>{t('common.add')}</Btn>
-        </div>
-      </Modal>
+      {editingTemplate && (
+        <TemplateModal key={editingTemplate.template.id} template={editingTemplate.template} isNew={editingTemplate.isNew} onClose={() => setEditingTemplate(null)}
+          onSave={tpl => void saveTemplate(tpl)} onDelete={id => void deleteTemplate(id)} />
+      )}
 
       <Modal open={showTemplatePicker} title={t('journal.pickTemplate')} onClose={() => setShowTemplatePicker(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {templates.map(tpl => (
-            <button key={tpl.id} onClick={() => openNewFromTemplate(tpl)} style={{
+            <button key={tpl.id} type="button" onClick={() => startFromTemplate(tpl)} style={{
               padding: 12, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)',
               color: 'var(--text)', textAlign: 'left', cursor: 'pointer',
             }}>
@@ -557,19 +238,10 @@ export default function JournalView({ onUpdate }: Props) {
           </div>
         }>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 12 }}>{t('journal.unlockPasswordPrompt')}</p>
-        <input className="field__input" type="password" value={entryPw} aria-label={t('journal.password')} placeholder={t('journal.password')} autoFocus
-          aria-invalid={entryPwError} aria-describedby={entryPwError ? `${jid}-epw` : undefined}
-          onChange={e => { setEntryPw(e.target.value); setEntryPwError(false); }}
-          onKeyDown={e => { if (e.key === 'Enter') confirmEntryPw(); }}
-          style={{ width: '100%', ...(entryPwError ? { borderColor: 'var(--danger)' } : {}) }} />
-        {entryPwError && <div role="alert" id={`${jid}-epw`} style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{t('journal.incorrectPassword')}</div>}
+        <PasswordPrompt id={`${jid}-epw`} value={entryPw} onChange={v => { setEntryPw(v); setEntryPwError(false); }} error={entryPwError} onSubmit={confirmEntryPw} />
       </Modal>
 
-      <ConfirmDialog open={!!confirmDelete} title={t('journal.deleteEntry')} message={t('journal.areYouSure')}
-        danger onConfirm={() => confirmDelete && deleteEntry(confirmDelete)} onCancel={() => setConfirmDelete(null)} />
-
-      <ConfirmDialog open={!!confirmDeleteTemplate} title={t('common.delete')} message={t('journal.areYouSure')}
-        danger onConfirm={() => confirmDeleteTemplate && deleteTemplate(confirmDeleteTemplate)} onCancel={() => setConfirmDeleteTemplate(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

@@ -1,22 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CustomFieldDef, CustomFieldType, uid } from '../utils';
-import { store, KEYS } from '../storage';
-import { NetworkManager } from '../network/NetworkManager';
-import { Btn, ConfirmDialog } from '../components/ui';
+import { CustomFieldDef, CustomFieldType, CUSTOM_FIELD_TYPES, asCustomFieldType, customFieldTypeKey, moveInList, stripCustomField, uid, withSortOrder } from '../utils';
+import { saveData, saveMembers } from '../store/actions';
+import { useAppStore } from '../store/appStore';
+import { Btn, ConfirmDialog, EmptyState, linkButton, SaveErrorDialog } from '../components/ui';
+import { useSaveGuard } from '../hooks/useSaveGuard';
 
-interface Props {
-  onUpdate: () => void;
-}
-
-const FIELD_TYPES: CustomFieldType[] = [
-  'text', 'markdown', 'image', 'color', 'date', 'month', 'year', 'monthYear',
-  'timestamp', 'monthDay', 'dateRange', 'number', 'toggle',
-];
-
-export default function CustomFieldsView({ onUpdate }: Props) {
+export default function CustomFieldsView() {
   const { t } = useTranslation();
-  const [fields, setFields] = useState<CustomFieldDef[]>([]);
+  const fields = useAppStore(s => s.customFieldDefs);
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState<CustomFieldType>('text');
   const [newMarkdown, setNewMarkdown] = useState(false);
@@ -24,47 +16,33 @@ export default function CustomFieldsView({ onUpdate }: Props) {
   const [editName, setEditName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [saveError, run, clearSaveError] = useSaveGuard();
 
-  useEffect(() => {
-    const load = () => { store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFields(defs || [])); };
-    load();
-    return NetworkManager.onSyncApplied(load);
-  }, []);
+  const save = (updated: CustomFieldDef[]) => run(() => saveData('customFieldDefs', updated));
 
-  const save = async (updated: CustomFieldDef[]) => {
-    setFields(updated);
-    await store.set(KEYS.customFieldDefs, updated);
-    onUpdate();
-  };
-
-  const addField = () => {
+  const addField = async () => {
     if (!newName.trim()) return;
     const def: CustomFieldDef = { id: uid(), name: newName.trim(), type: newType, markdown: newMarkdown || undefined, sortOrder: fields.length };
-    save([...fields, def]);
+    if (!(await save([...fields, def]))) return;
     setNewName(''); setNewType('text'); setNewMarkdown(false);
   };
 
-  const deleteField = (id: string) => {
-    save(fields.filter(f => f.id !== id));
+  const deleteField = async (id: string) => {
     setConfirmDelete(null);
+    if (!(await save(fields.filter(f => f.id !== id)))) return;
+    const cleaned = stripCustomField(useAppStore.getState().members, id);
+    if (cleaned) await run(() => saveMembers(cleaned));
   };
 
-  const renameField = (id: string) => {
-    if (!editName.trim()) return;
-    save(fields.map(f => f.id === id ? { ...f, name: editName.trim() } : f));
-    setEditId(null);
+  const patchField = (id: string, patch: Partial<CustomFieldDef>) => save(fields.map(f => f.id === id ? { ...f, ...patch } : f));
+
+  const renameField = async (id: string) => {
+    if (editName.trim() && await patchField(id, { name: editName.trim() })) setEditId(null);
   };
 
-  const moveField = (from: number, to: number) => {
-    const updated = [...fields];
-    const [moved] = updated.splice(from, 1);
-    updated.splice(to, 0, moved);
-    save(updated.map((f, i) => ({ ...f, sortOrder: i })));
-  };
+  const moveField = (from: number, to: number) => void save(withSortOrder(moveInList(fields, from, to)));
 
-  const typeLabel = (type: CustomFieldType) => {
-    return t(`customFields.type${type.charAt(0).toUpperCase() + type.slice(1)}` as any);
-  };
+  const typeLabel = (type: CustomFieldType) => t(customFieldTypeKey(type));
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
@@ -87,14 +65,14 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 {editId === fd.id ? (
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input className="field__input" aria-label={t('customFields.fieldName')} value={editName} onChange={e => setEditName(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') renameField(fd.id); }}
+                      onKeyDown={e => { if (e.key === 'Enter') void renameField(fd.id); }}
                       autoFocus style={{ flex: 1, fontSize: 13 }} />
-                    <Btn aria-label={t('common.save')} onClick={() => renameField(fd.id)}>✓</Btn>
+                    <Btn aria-label={t('common.save')} onClick={() => void renameField(fd.id)}>✓</Btn>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{fd.name}</span>
-                    <button aria-label={t('common.editNamed', { name: fd.name })} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer' }}
+                    <button aria-label={t('common.editNamed', { name: fd.name })} style={linkButton('var(--dim)', 12)}
                       onClick={() => { setEditId(fd.id); setEditName(fd.name); }}>✎</button>
                   </div>
                 )}
@@ -104,9 +82,9 @@ export default function CustomFieldsView({ onUpdate }: Props) {
               </div>
 
               <select aria-label={t('customFields.fieldTypeFor', { name: fd.name })} value={fd.type}
-                onChange={e => save(fields.map(f => f.id === fd.id ? { ...f, type: e.target.value as CustomFieldType } : f))}
+                onChange={e => void patchField(fd.id, { type: asCustomFieldType(e.target.value) })}
                 style={{ fontSize: 11, color: 'var(--muted)', background: 'var(--surface)', border: '1px solid var(--border)', padding: '3px 6px', borderRadius: 6, whiteSpace: 'nowrap' }}>
-                {FIELD_TYPES.map(t2 => (
+                {CUSTOM_FIELD_TYPES.map(t2 => (
                   <option key={t2} value={t2}>{typeLabel(t2)}</option>
                 ))}
               </select>
@@ -118,15 +96,15 @@ export default function CustomFieldsView({ onUpdate }: Props) {
                 aria-label={i === fields.length - 1 ? t('common.moveDownNamed', { name: fd.name }) : t('customFields.moveDownNamed', { name: fd.name, below: fields[i + 1].name })}
                 style={{ background: 'none', border: 'none', color: i === fields.length - 1 ? 'var(--muted)' : 'var(--dim)', fontSize: 13, cursor: i === fields.length - 1 ? 'default' : 'pointer', padding: '2px 4px' }}>▼</button>
 
-              <button aria-label={t('common.deleteNamed', { name: fd.name })} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: '4px' }}
+              <button aria-label={t('common.deleteNamed', { name: fd.name })} style={{ ...linkButton('var(--danger)', 16), padding: '4px' }}
                 onClick={() => setConfirmDelete(fd.id)}>🗑</button>
             </div>
           ))}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
+        <EmptyState>
           {t('customFields.noFields')}
-        </div>
+        </EmptyState>
       )}
 
       <div style={{ padding: 16, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
@@ -135,15 +113,15 @@ export default function CustomFieldsView({ onUpdate }: Props) {
             <label className="field__label">{t('customFields.fieldName')}</label>
             <input className="field__input" value={newName} onChange={e => setNewName(e.target.value)}
               aria-label={t('customFields.fieldName')} placeholder={t('customFields.fieldName')}
-              onKeyDown={e => { if (e.key === 'Enter') addField(); }} />
+              onKeyDown={e => { if (e.key === 'Enter') void addField(); }} />
           </div>
           <div style={{ minWidth: 140 }}>
             <label className="field__label">{t('customFields.fieldType')}</label>
             <select aria-label={t('customFields.fieldType')} style={{
               width: '100%', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)',
               borderRadius: 8, padding: '9px 10px', fontSize: 13,
-            }} value={newType} onChange={e => setNewType(e.target.value as CustomFieldType)}>
-              {FIELD_TYPES.map(t2 => (
+            }} value={newType} onChange={e => setNewType(asCustomFieldType(e.target.value))}>
+              {CUSTOM_FIELD_TYPES.map(t2 => (
                 <option key={t2} value={t2}>{typeLabel(t2)}</option>
               ))}
             </select>
@@ -152,7 +130,7 @@ export default function CustomFieldsView({ onUpdate }: Props) {
             <input type="checkbox" checked={newMarkdown} onChange={e => setNewMarkdown(e.target.checked)} />
             <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.markdownLabel')}</span>
           </label>
-          <Btn variant="solid" onClick={addField}>{t('customFields.addField')}</Btn>
+          <Btn variant="solid" disabled={!newName.trim()} onClick={() => void addField()}>{t('customFields.addField')}</Btn>
         </div>
       </div>
 
@@ -160,8 +138,9 @@ export default function CustomFieldsView({ onUpdate }: Props) {
         title={t('customFields.deleteField')}
         message={t('customFields.deleteFieldMsg')}
         danger
-        onConfirm={() => confirmDelete && deleteField(confirmDelete)}
+        onConfirm={() => { if (confirmDelete) void deleteField(confirmDelete); }}
         onCancel={() => setConfirmDelete(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

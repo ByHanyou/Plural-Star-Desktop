@@ -1,202 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMinuteTick } from '../useMinuteTick';
-import {
-  Member, FrontState, AppSettings, DEFAULT_MOODS, EMPTY_TIER,
-  fmtTime, fmtDur, frontSessionStart, isFrontEmpty, translateMood,
-  parseMoodList, toggleMoodInList, serializeMoodList, fmtNum,
-} from '../utils';
-import { Btn, Field, Section, Modal, ConfirmDialog } from '../components/ui';
+import { useMinuteTick } from '../hooks/useMinuteTick';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { Member, fmtTime, fmtDur, frontSessionStart, isFrontEmpty, membersByIds, statusIdsOf, translateMood, fmtNum } from '../utils';
+import { Btn, PageHeading, SaveErrorDialog, clickable } from '../components/ui';
 import { useAppStore } from '../store/appStore';
+import { MemberPill } from '../components/MemberChip';
+import { SetStatusModal, StatusSave } from './front/SetStatusModal';
 
-export function SetStatusModal({ open, onClose, onSave, statuses, selfId, current, settings }: {
-  open: boolean; onClose: () => void; onSave: (p: any, cf: any, cc: any) => void;
-  statuses: Member[]; selfId?: string; current: FrontState | null; settings: AppSettings;
-}) {
-  const { t } = useTranslation();
-  const statusFormId = React.useId();
-  const [statusIds, setStatusIds] = useState<Set<string>>(new Set());
-  const [mood, setMood] = useState('');
-  const [customMood, setCustomMood] = useState('');
-  const [showCustom, setShowCustom] = useState(false);
-  const [location, setLocation] = useState('');
-  const [note, setNote] = useState('');
-  const [energy, setEnergy] = useState<number | undefined>(undefined);
-  const [confirmClear, setConfirmClear] = useState(false);
-
-  const prevOpen = React.useRef(false);
-  useEffect(() => {
-    if (open && !prevOpen.current) {
-      setStatusIds(new Set((current?.primary?.memberIds || []).filter(id => id !== selfId)));
-      setMood(current?.primary?.mood || '');
-      setCustomMood('');
-      setShowCustom(false);
-      setLocation(current?.primary?.location || '');
-      setNote(current?.primary?.note || '');
-      setEnergy(current?.primary?.energyLevel);
-    }
-    prevOpen.current = open;
-  }, [open, current, selfId]);
-
-  const allMoods = [...DEFAULT_MOODS, ...(settings.customMoods || [])];
-  const allLocations = settings.locations || [];
-
-  const handleSave = () => {
-    const moods = parseMoodList(mood);
-    if (showCustom && customMood.trim()) moods.push(customMood.trim());
-    const memberIds = [selfId, ...statusIds].filter(Boolean) as string[];
-    onSave(
-      { memberIds, mood: serializeMoodList(moods) || undefined, note, location: location || undefined, energyLevel: energy },
-      EMPTY_TIER, EMPTY_TIER,
-    );
-    onClose();
-  };
-
-  const handleConfirmClear = () => {
-    onSave(EMPTY_TIER, EMPTY_TIER, EMPTY_TIER);
-    setConfirmClear(false);
-    onClose();
-  };
-
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <>
-      <Modal open={open} title={t('status.update')} onClose={onClose}
-        footer={
-          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
-            <Btn variant="ghost" onClick={() => setConfirmClear(true)}>{t('common.clear')}</Btn>
-            <Btn variant="solid" onClick={handleSave}>{t('common.save')}</Btn>
-          </div>
-        }>
-        <Section label={t('status.statuses')} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-          {statuses.map(m => {
-            const on = statusIds.has(m.id);
-            return (
-              <button key={m.id} className="chip" aria-pressed={on} style={{
-                borderColor: on ? `${m.color}60` : 'var(--border)',
-                background: on ? `${m.color}20` : 'var(--surface)',
-              }} onClick={() => {
-                const next = new Set(statusIds);
-                if (on) { next.delete(m.id); } else { next.add(m.id); }
-                setStatusIds(next);
-              }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                <span style={{ color: on ? m.color : 'var(--dim)', fontWeight: on ? 600 : 400 }}>{m.name}</span>
-              </button>
-            );
-          })}
-          {statuses.length === 0 && (
-            <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>{t('profile.noStatuses')}</span>
-          )}
-        </div>
-
-        <div className="field__label" id={`${statusFormId}-mood`}>{t('modal.mood')}</div>
-        <div role="group" aria-labelledby={`${statusFormId}-mood`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-          {(() => { const sel = parseMoodList(mood); const chips = [...allMoods, ...sel.filter(m => !allMoods.includes(m))]; return chips.map(m => {
-            const on = sel.includes(m);
-            return (
-              <button key={m} className={`btn ${on ? 'btn--primary' : 'btn--ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={on}
-                onClick={() => setMood(toggleMoodInList(mood, m))}>{translateMood(m, t)}</button>
-            );
-          }); })()}
-          <button className={`btn ${showCustom ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }} aria-expanded={showCustom}
-            onClick={() => setShowCustom(!showCustom)}>
-            {showCustom ? `− ${t('modal.custom')}` : `+ ${t('modal.custom')}`}
-          </button>
-        </div>
-        {showCustom && (
-          <input className="field__input" value={customMood} onChange={e => setCustomMood(e.target.value)}
-            aria-label={t('modal.enterMood')} placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
-        )}
-
-        <div className="field__label" id={`${statusFormId}-loc`} style={{ marginTop: 4 }}>{t('modal.location')}</div>
-        <div role="group" aria-labelledby={`${statusFormId}-loc`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
-          {allLocations.map(l => (
-            <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
-              style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
-              onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
-          ))}
-        </div>
-        <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-          aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
-
-        <div className="field__label" id={`${statusFormId}-energy`} style={{ marginTop: 4 }}>{t('energy.level')}</div>
-        <div role="group" aria-labelledby={`${statusFormId}-energy`} style={{ display: 'flex', gap: 3, marginBottom: 8, alignItems: 'center' }}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-            <button key={n} onClick={() => setEnergy(energy === n ? undefined : n)}
-              aria-label={t('energy.levelValue', { value: n })} aria-pressed={energy === n}
-              style={{
-                flex: 1, padding: '6px 0', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 600,
-                background: energy === n ? 'var(--accent-bg)' : 'var(--surface)',
-                border: `1px solid ${energy !== undefined && n <= energy ? 'var(--accent)' : 'var(--border)'}`,
-                color: energy !== undefined && n <= energy ? 'var(--accent)' : 'var(--dim)',
-              }}>{n}</button>
-          ))}
-        </div>
-
-        <Field label={t('modal.noteOptional')} value={note} onChange={setNote} placeholder={t('modal.whatHappening')} multiline />
-      </Modal>
-      <ConfirmDialog
-        open={confirmClear}
-        title={t('status.clearTitle')}
-        message={t('status.clearMsg')}
-        danger
-        onConfirm={handleConfirmClear}
-        onCancel={() => setConfirmClear(false)}
-      />
-    </>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+      <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, minWidth: 80 }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--text)' }}>{value}</span>
+    </div>
   );
 }
 
 interface Props {
   statuses: Member[];
   selfId?: string;
-  onSaveStatus: (p: any, cf: any, cc: any) => void;
+  onSaveStatus: StatusSave;
   onEnsureSelf?: () => Promise<Member>;
 }
 
 export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSelf }: Props) {
   useMinuteTick();
-  const front = useAppStore(s => s.state.front);
-  const members = useAppStore(s => s.state.members);
-  const settings = useAppStore(s => s.state.settings);
+  const front = useAppStore(s => s.front);
+  const members = useAppStore(s => s.members);
+  const settings = useAppStore(s => s.settings);
   const { t } = useTranslation();
   const [showSet, setShowSet] = useState(false);
-  const [, setTick] = useState(0);
+  const [saveError, run, clearSaveError] = useSaveGuard();
 
-  useEffect(() => {
-    const id = setInterval(() => setTick(x => x + 1), 30000);
-    return () => clearInterval(id);
-  }, []);
-
-  const openSet = async () => {
+  const openSet = () => void run(async () => {
     if (onEnsureSelf) await onEnsureSelf();
     setShowSet(true);
-  };
+  });
 
-  const getMember = (id: string) => members.find(m => m.id === id);
   const empty = isFrontEmpty(front);
   const tier = front?.primary;
-  const activeStatuses = (tier?.memberIds || [])
-    .filter(id => id !== selfId)
-    .map(getMember)
-    .filter(Boolean) as Member[];
-
-  const Row = ({ label, value }: { label: string; value: string }) => (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
-      <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, minWidth: 80 }}>{label}</span>
-      <span style={{ fontSize: 13, color: 'var(--text)' }}>{value}</span>
-    </div>
-  );
+  const sinceAt = front ? frontSessionStart(front) : null;
+  const activeStatuses = membersByIds(statusIdsOf(front, selfId), id => members.find(m => m.id === id));
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <span role="heading" aria-level={2} style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)' }}>
-          {t('status.current')}
-        </span>
+        <PageHeading>{t('status.current')}</PageHeading>
         <Btn variant="solid" onClick={openSet}>{t('status.update')}</Btn>
       </div>
 
@@ -206,14 +56,11 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
         </div>
       ) : (
         <div style={{ padding: 16, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer' }}
-          onClick={openSet}>
+          {...clickable(openSet, t('status.update'))}>
           {activeStatuses.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
               {activeStatuses.map(m => (
-                <span key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, background: `${m.color}20`, border: `1px solid ${m.color}50`, fontSize: 13, fontWeight: 500, color: m.color }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                  {m.name}
-                </span>
+                <MemberPill key={m.id} member={m} fontSize={13} />
               ))}
             </div>
           ) : (
@@ -223,9 +70,9 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
           {tier?.location ? <Row label={t('modal.location')} value={tier.location} /> : null}
           {tier?.energyLevel !== undefined ? <Row label={t('energy.level')} value={t('energy.outOfTen', { value: fmtNum(tier.energyLevel, 0) })} /> : null}
           {tier?.note ? <Row label={t('modal.note')} value={tier.note} /> : null}
-          {front ? (
+          {sinceAt !== null ? (
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
-              {t('status.since', { time: fmtTime(frontSessionStart(front)) })} · {fmtDur(frontSessionStart(front))}
+              {t('status.since', { time: fmtTime(sinceAt) })} · {fmtDur(sinceAt)}
             </div>
           ) : null}
         </div>
@@ -240,6 +87,7 @@ export default function StatusView({ statuses, selfId, onSaveStatus, onEnsureSel
         current={front}
         settings={settings}
       />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

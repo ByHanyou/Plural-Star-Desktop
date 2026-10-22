@@ -1,87 +1,29 @@
-import { useState, useEffect, useId } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn } from '../components/ui';
-import { TextScale, TEXT_SCALE_OPTIONS, isValidHex, normalizeHex } from '../utils';
-import { CustomPalette, BUILTIN_PALETTES, MAX_CUSTOM_PALETTES, deriveTheme, applyThemeToDOM, applyTextScale, FONT_OPTIONS, FontChoice, applyFontChoice, ensureReadable, textFloor } from '../theme';
-import { store, KEYS } from '../storage';
+import { logError } from '../utils/log';
+import { Field, Toggle, Dropdown, Section, ChipList, AddRow, Btn, StatusBanner, StatusMsg } from '../components/ui';
+import { TextScale, TEXT_SCALE_OPTIONS, fontChoiceOf, hexOr, uid, upsertById } from '../utils';
+import { CustomPalette, BUILTIN_PALETTES, DARK_PALETTE, LIGHT_PALETTE, MAX_CUSTOM_PALETTES, deriveTheme, FONT_OPTIONS, FontChoice } from '../theme';
+import { saveData, saveSettings, savePalettes } from '../store/actions';
 import { useAppStore } from '../store/appStore';
-import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n/i18n';
+import { SUPPORTED_LANGUAGES } from '../i18n/i18n';
 import type { SupportedLanguage } from '../i18n/i18n';
-import { setTerminologyOverrides, setTierNameOverrides } from '../i18n/terminology';
-import { ColorPickerModal } from '../components/ColorPickerModal';
-import { checkForUpdate, appVersion, RELEASES_URL, UpdateCheckResult } from '../updateCheck';
+import { TERMINOLOGY_FIELDS, TIER_NAME_FIELDS } from '../i18n/terminology';
+import { UpdatesSection } from './settings/UpdatesSection';
+import { HexField, PalettePreview } from './settings/PaletteParts';
+import DevSettings from '../components/DevSettings';
+import { useFlash } from '../hooks/useFlash';
 
 interface Props {
-  onUpdate: () => void;
   onOpenProfile: () => void;
 }
 
-const UpdatesSection = () => {
+export default function SettingsView({ onOpenProfile }: Props) {
+  const system = useAppStore(s => s.system);
+  const settings = useAppStore(s => s.settings);
+  const palettes = useAppStore(s => s.palettes);
   const { t } = useTranslation();
-  const [current, setCurrent] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<UpdateCheckResult | null>(null);
-  useEffect(() => {
-    let alive = true;
-    appVersion().then(v => { if (alive) setCurrent(v); });
-    return () => { alive = false; };
-  }, []);
-  const run = async () => {
-    setBusy(true);
-    setResult(null);
-    const r = await checkForUpdate();
-    if (r.current) setCurrent(r.current);
-    setResult(r);
-    setBusy(false);
-  };
-  return (
-    <>
-      <Section label={t('update.title')} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-        {current ? <span style={{ fontSize: 13, color: 'var(--dim)' }}>{t('update.version', { version: current })}</span> : null}
-        <span style={{ flex: 1 }} />
-        <Btn variant="ghost" onClick={run} disabled={busy}>{busy ? t('update.checking') : t('update.check')}</Btn>
-      </div>
-      <div role="status" style={{ marginBottom: 14 }}>
-        {result?.status === 'update' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{t('update.available', { latest: result.latest, current: result.current })}</span>
-            <Btn variant="primary" onClick={() => window.open(RELEASES_URL, '_blank')}>{t('update.download')}</Btn>
-          </div>
-        )}
-        {result?.status === 'current' && <span style={{ fontSize: 13, color: 'var(--success)' }}>{t('update.upToDate')}</span>}
-        {result?.status === 'error' && <span style={{ fontSize: 13, color: 'var(--danger)' }}>{t('update.failed')}</span>}
-      </div>
-    </>
-  );
-};
-
-const HexField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
-  const [open, setOpen] = useState(false);
-  const valid = isValidHex(normalizeHex(value));
-  const hexId = useId();
-  return (
-    <div style={{ flex: 1 }}>
-      <div className="field__label" id={`${hexId}-label`}>{label}</div>
-      <button type="button" aria-haspopup="dialog" aria-labelledby={`${hexId}-label ${hexId}-value`} onClick={() => setOpen(true)}
-        className="field__input field__input--mono"
-        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', cursor: 'pointer', textAlign: 'left' }}>
-        <span aria-hidden style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 4, background: valid ? normalizeHex(value) : '#333333', border: '1px solid var(--border)' }} />
-        <span id={`${hexId}-value`}>{value}</span>
-      </button>
-      <ColorPickerModal open={open} title={label} value={value}
-        onSave={hex => { onChange(hex); setOpen(false); }}
-        onClose={() => setOpen(false)} />
-    </div>
-  );
-};
-
-export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
-  const system = useAppStore(s => s.state.system);
-  const settings = useAppStore(s => s.state.settings);
-  const palettes = useAppStore(s => s.state.palettes);
-  const { t } = useTranslation();
-  const [saveStatus, setSaveStatus] = useState<{ msg: string; error: boolean } | null>(null);
+  const [saveStatus, flashSave] = useFlash<StatusMsg>(3000);
   const [singletMode, setSingletMode] = useState(settings.accountMode === 'singlet');
 
   const [journalPw, setJournalPw] = useState(system.journalPassword || '');
@@ -99,7 +41,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   const [tierMap, setTierMap] = useState<Record<string, string>>(settings.tierNames || {});
   const [textScale, setTextScale] = useState<TextScale>(settings.textScale);
   const [activePaletteId, setActivePaletteId] = useState(settings.activePaletteId);
-  const [fontChoice, setFontChoice] = useState<FontChoice>(settings.fontChoice ?? (settings.useDyslexicFont === true ? 'opendyslexic' : 'default'));
+  const [fontChoice, setFontChoice] = useState<FontChoice>(fontChoiceOf(settings));
 
   const [editPalette, setEditPalette] = useState<CustomPalette | null>(null);
   const [palName, setPalName] = useState('');
@@ -108,10 +50,12 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   const [palText, setPalText] = useState('');
   const [palMid, setPalMid] = useState('');
 
-  const userPalettes = palettes || [];
-  const allPalettes = [...BUILTIN_PALETTES, ...userPalettes];
+  const allPalettes = [...BUILTIN_PALETTES, ...palettes];
   const [themesOpen, setThemesOpen] = useState(false);
+  const [termOpen, setTermOpen] = useState(false);
   const activePalette = allPalettes.find(p => p.id === activePaletteId) || BUILTIN_PALETTES[0];
+  const paletteLabel = (p: { id: string; name: string }): string =>
+    p.id === DARK_PALETTE.id ? t('modal.paletteObsidian') : p.id === LIGHT_PALETTE.id ? t('modal.paletteSteel') : p.name;
   const activePreview = deriveTheme(activePalette.bg, activePalette.accent, activePalette.text, activePalette.mid);
 
   const addLoc = () => {
@@ -124,13 +68,18 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
     if (v && !moods.includes(v)) { setMoods([...moods, v]); setNewMood(''); }
   };
 
+  const reportFailure = (e: unknown, msgKey: string) => {
+    logError('settings', e);
+    flashSave({ msg: t(msgKey), error: true }, 4000);
+  };
+
   const selectPalette = async (id: string) => {
     setActivePaletteId(id);
-    const p = allPalettes.find(p => p.id === id) || BUILTIN_PALETTES[0];
-    const theme = deriveTheme(p.bg, p.accent, p.text, p.mid);
-    applyThemeToDOM(theme);
-    await store.set(KEYS.settings, { ...settings, activePaletteId: id });
-    onUpdate();
+    try {
+      await saveSettings({ ...settings, activePaletteId: id });
+    } catch (e) {
+      reportFailure(e, 'common.settingsError');
+    }
   };
 
   const startEditPalette = (p: CustomPalette) => {
@@ -138,73 +87,59 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
   };
 
   const startNewPalette = () => {
-    const p: CustomPalette = { id: Date.now().toString(36), name: '', bg: '#0A1F2E', accent: '#DAA520', text: '#C0C0C0', mid: '#7A8A99' };
+    const p: CustomPalette = { ...DARK_PALETTE, id: uid(), name: '' };
     startEditPalette(p);
   };
 
   const savePaletteEdit = async () => {
     if (!editPalette || !palName.trim()) {
-      setSaveStatus({ msg: t('common.paletteNameRequired'), error: true });
-      setTimeout(() => setSaveStatus(null), 3000);
+      flashSave({ msg: t('common.paletteNameRequired'), error: true });
       return;
     }
     const updated: CustomPalette = {
       id: editPalette.id, name: palName.trim(),
-      bg: isValidHex(normalizeHex(palBg)) ? normalizeHex(palBg) : editPalette.bg,
-      accent: isValidHex(normalizeHex(palAccent)) ? normalizeHex(palAccent) : editPalette.accent,
-      text: isValidHex(normalizeHex(palText)) ? normalizeHex(palText) : editPalette.text,
-      mid: isValidHex(normalizeHex(palMid)) ? normalizeHex(palMid) : editPalette.mid,
+      bg: hexOr(palBg, editPalette.bg),
+      accent: hexOr(palAccent, editPalette.accent),
+      text: hexOr(palText, editPalette.text),
+      mid: hexOr(palMid, editPalette.mid),
     };
-    const existing = userPalettes.find(p => p.id === updated.id);
-    const newList = existing ? userPalettes.map(p => p.id === updated.id ? updated : p) : [...userPalettes, updated];
     try {
-      await store.set(KEYS.palettes, newList);
+      await savePalettes(upsertById(palettes, updated));
       setEditPalette(null);
-      setSaveStatus({ msg: t('common.paletteSaved'), error: false });
-      setTimeout(() => setSaveStatus(null), 3000);
-      onUpdate();
-    } catch (e: any) {
-      console.error('Palette save error:', e);
-      setSaveStatus({ msg: t('common.paletteError'), error: true });
-      setTimeout(() => setSaveStatus(null), 4000);
+      flashSave({ msg: t('common.paletteSaved'), error: false });
+    } catch (e) {
+      reportFailure(e, 'common.paletteError');
     }
   };
 
   const deletePalette = async (id: string) => {
-    const newList = userPalettes.filter(p => p.id !== id);
-    await store.set(KEYS.palettes, newList);
-    if (activePaletteId === id) selectPalette('__dark__');
-    onUpdate();
+    try {
+      await savePalettes(palettes.filter(p => p.id !== id));
+    } catch (e) {
+      reportFailure(e, 'common.paletteError');
+      return;
+    }
+    if (activePaletteId === id) await selectPalette(DARK_PALETTE.id);
   };
 
   const save = async () => {
     try {
-      await store.set(KEYS.system, {
+      await saveData('system', {
         ...system,
         ...(singletMode ? { name: sysName.trim(), description: sysDesc.trim() } : {}),
         journalPassword: showPw && journalPw ? journalPw : undefined,
       });
-      await store.set(KEYS.settings, {
+      await saveSettings({
         ...settings, accountMode: singletMode ? 'singlet' : 'system', locations: locs, customMoods: moods, language: lang,
         notificationsEnabled: notif, textScale, activePaletteId, fontChoice, useDyslexicFont: fontChoice === 'opendyslexic',
         terminology: termMap,
         tierNames: tierMap,
       });
-      setTerminologyOverrides(termMap);
-      setTierNameOverrides(tierMap);
-      changeLanguage(lang);
-      applyTextScale(textScale);
-      applyFontChoice(fontChoice);
-      onUpdate();
-      setSaveStatus({ msg: t('common.settingsSaved'), error: false });
-      setTimeout(() => setSaveStatus(null), 3000);
-    } catch (e: any) {
-      console.error('Settings save error:', e);
-      setSaveStatus({ msg: t('common.settingsError'), error: true });
-      setTimeout(() => setSaveStatus(null), 4000);
+      flashSave({ msg: t('common.settingsSaved'), error: false });
+    } catch (e) {
+      reportFailure(e, 'common.settingsError');
     }
   };
-
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
@@ -221,7 +156,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
       )}
 
       <Section label={t('modal.palette')} />
-      <button type="button" aria-expanded={themesOpen} aria-label={t('common.labelValue', { label: t('modal.palette'), value: activePalette.name })} onClick={() => setThemesOpen(o => !o)}
+      <button type="button" aria-expanded={themesOpen} aria-label={t('common.labelValue', { label: t('modal.palette'), value: paletteLabel(activePalette) })} onClick={() => setThemesOpen(o => !o)}
         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: 8, textAlign: 'left', cursor: 'pointer',
           border: `1px solid ${themesOpen ? 'var(--accent)' : 'var(--border)'}`, background: 'var(--surface)', marginBottom: themesOpen ? 8 : 12 }}>
         <span aria-hidden style={{ display: 'flex', gap: 3 }}>
@@ -229,69 +164,64 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
             <span key={i} style={{ width: 14, height: 14, borderRadius: 3, background: c, border: '1px solid rgba(255,255,255,0.1)', display: 'inline-block' }} />
           ))}
         </span>
-        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{activePalette.name}</span>
+        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{paletteLabel(activePalette)}</span>
         <span aria-hidden style={{ fontSize: 11, color: 'var(--dim)' }}>{themesOpen ? '▲' : '▼'}</span>
       </button>
       {themesOpen && (<>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-        {allPalettes.map(p => {
-          const isActive = activePaletteId === p.id;
-          const isBuiltin = p.id.startsWith('__');
-          const preview = deriveTheme(p.bg, p.accent, p.text, p.mid);
-          return (
-            <div key={p.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-              borderRadius: 8, border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-              background: isActive ? 'var(--accent-bg)' : 'var(--surface)', cursor: 'pointer',
-            }} onClick={() => selectPalette(p.id)}>
-              <div aria-hidden style={{ display: 'flex', gap: 3 }}>
-                {[preview.bg, preview.accent, preview.text, preview.surface].map((c, i) => (
-                  <div key={i} style={{ width: 14, height: 14, borderRadius: 3, background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
-                ))}
-              </div>
-              <span style={{ flex: 1, fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text)', fontWeight: isActive ? 600 : 400 }}
-                role="button" tabIndex={0} aria-pressed={isActive}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPalette(p.id); } }}>
-                {p.name}
-              </span>
-              {isActive && <span aria-hidden style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
-              {!isBuiltin && (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn btn--ghost" aria-label={t('common.editNamed', { name: p.name })} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); startEditPalette(p); }}>✎</button>
-                  <button className="btn btn--danger" aria-label={t('common.deleteNamed', { name: p.name })} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); deletePalette(p.id); }}>✕</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+          {allPalettes.map(p => {
+            const isActive = activePaletteId === p.id;
+            const isBuiltin = p.id.startsWith('__');
+            const preview = deriveTheme(p.bg, p.accent, p.text, p.mid);
+            return (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                borderRadius: 8, border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                background: isActive ? 'var(--accent-bg)' : 'var(--surface)', cursor: 'pointer',
+              }} onClick={() => void selectPalette(p.id)}>
+                <div aria-hidden style={{ display: 'flex', gap: 3 }}>
+                  {[preview.bg, preview.accent, preview.text, preview.surface].map((c, i) => (
+                    <div key={i} style={{ width: 14, height: 14, borderRadius: 3, background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
+                  ))}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {editPalette ? (
-        <div style={{ padding: 14, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 14 }}>
-          <Field label={t('modal.paletteName')} value={palName} onChange={setPalName} placeholder={t('common.paletteNamePlaceholder')} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <HexField label={t('modal.palBg')} value={palBg} onChange={setPalBg} />
-            <HexField label={t('modal.palAccent')} value={palAccent} onChange={setPalAccent} />
-            <HexField label={t('modal.palText')} value={palText} onChange={setPalText} />
-            <HexField label={t('modal.palMid')} value={palMid} onChange={setPalMid} />
-          </div>
-          {isValidHex(normalizeHex(palBg)) && isValidHex(normalizeHex(palAccent)) && (
-            <div style={{ marginTop: 10, padding: 12, borderRadius: 8, background: normalizeHex(palBg), border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 13, color: ensureReadable(normalizeHex(palAccent), normalizeHex(palBg), 3), fontWeight: 600 }}>{t('modal.palPreviewAccent')} </span>
-              <span style={{ fontSize: 13, color: isValidHex(normalizeHex(palText)) ? ensureReadable(normalizeHex(palText), normalizeHex(palBg), textFloor(normalizeHex(palBg))) : normalizeHex(palText) }}>{t('modal.palPreviewText')}</span>
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <Btn variant="ghost" onClick={() => setEditPalette(null)}>{t('common.cancel')}</Btn>
-            <Btn onClick={savePaletteEdit}>{t('common.save')}</Btn>
-          </div>
+                <span style={{ flex: 1, fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text)', fontWeight: isActive ? 600 : 400 }}
+                  role="button" tabIndex={0} aria-pressed={isActive}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void selectPalette(p.id); } }}>
+                  {paletteLabel(p)}
+                </span>
+                {isActive && <span aria-hidden style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
+                {!isBuiltin && (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn--ghost" aria-label={t('common.editNamed', { name: p.name })} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); startEditPalette(p); }}>✎</button>
+                    <button className="btn btn--danger" aria-label={t('common.deleteNamed', { name: p.name })} style={{ padding: '3px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); void deletePalette(p.id); }}>✕</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-      ) : (
-        userPalettes.length < MAX_CUSTOM_PALETTES && (
-          <Btn variant="ghost" onClick={startNewPalette}>+ {t('modal.newPalette')}</Btn>
-        )
-      )}
-      <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{t('modal.paletteSlots', { used: userPalettes.length, max: MAX_CUSTOM_PALETTES })}</p>
+
+        {editPalette ? (
+          <div style={{ padding: 14, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 14 }}>
+            <Field label={t('modal.paletteName')} value={palName} onChange={setPalName} placeholder={t('common.paletteNamePlaceholder')} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <HexField label={t('modal.palBg')} value={palBg} onChange={setPalBg} />
+              <HexField label={t('modal.palAccent')} value={palAccent} onChange={setPalAccent} />
+              <HexField label={t('modal.palText')} value={palText} onChange={setPalText} />
+              <HexField label={t('modal.palMid')} value={palMid} onChange={setPalMid} />
+            </div>
+            <PalettePreview bg={palBg} accent={palAccent} text={palText} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <Btn variant="ghost" onClick={() => setEditPalette(null)}>{t('common.cancel')}</Btn>
+              <Btn onClick={() => void savePaletteEdit()}>{t('common.save')}</Btn>
+            </div>
+          </div>
+        ) : (
+          palettes.length < MAX_CUSTOM_PALETTES && (
+            <Btn variant="ghost" onClick={startNewPalette}>+ {t('modal.newPalette')}</Btn>
+          )
+        )}
+        <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{t('modal.paletteSlots', { used: palettes.length, max: MAX_CUSTOM_PALETTES })}</p>
       </>)}
 
       <Section label={t('modal.globalJournalPassword')} />
@@ -335,7 +265,7 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
             className={`btn ${textScale === opt.value ? 'btn--primary' : 'btn--ghost'}`}
             style={{ flex: 1 }} aria-pressed={textScale === opt.value}
             onClick={() => setTextScale(opt.value)}>
-            {t(`modal.textScale${opt.label.replace(/\s/g, '')}`)}
+            {t(opt.labelKey)}
           </button>
         ))}
       </div>
@@ -348,38 +278,32 @@ export default function SettingsView({ onUpdate, onOpenProfile }: Props) {
       <ChipList items={moods} onRemove={m => setMoods(moods.filter(x => x !== m))} color="var(--info)" />
       <AddRow value={newMood} onChange={setNewMood} onAdd={addMood} placeholder={t('modal.addMoodPlaceholder')} />
 
-      <Section label={t('terminology.title')} />
-      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{t('terminology.hint')}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-        {(['member', 'members', 'fronter', 'fronters', 'group', 'groups', 'facet', 'facets', 'front', 'fronting', 'system', 'hub', 'journal', 'history', 'archive'] as const).map(term => (
-          <Field key={term} label={t(`terminology.${term}`)} value={termMap[term] || ''}
-            onChange={v => setTermMap(m => ({ ...m, [term]: v }))} placeholder={t(`terminology.${term}`)} />
-        ))}
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{t('terminology.tierHint')}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-        {([['primary', 'tierPrimary'], ['coFront', 'tierCoFront'], ['coConscious', 'tierCoConscious']] as const).map(([tier, labelKey]) => (
-          <Field key={tier} label={t(`terminology.${labelKey}`)} value={tierMap[tier] || ''}
-            onChange={v => setTierMap(m => ({ ...m, [tier]: v }))} placeholder={t(`terminology.${labelKey}`)} />
-        ))}
-      </div>
+      <Section label={t('terminology.title')} expanded={termOpen} onToggle={() => setTermOpen(o => !o)} />
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: termOpen ? 8 : 12 }}>{t('terminology.hint')}</div>
+      {termOpen && (<>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          {TERMINOLOGY_FIELDS.flat().map(term => (
+            <Field key={term} label={t(`terminology.${term}`)} value={termMap[term] || ''}
+              onChange={v => setTermMap(m => ({ ...m, [term]: v }))} placeholder={t(`terminology.${term}`)} />
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{t('terminology.tierHint')}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          {TIER_NAME_FIELDS.map(([tier, labelKey]) => (
+            <Field key={tier} label={t(`terminology.${labelKey}`)} value={tierMap[tier] || ''}
+              onChange={v => setTierMap(m => ({ ...m, [tier]: v }))} placeholder={t(`terminology.${labelKey}`)} />
+          ))}
+        </div>
+      </>)}
 
       <Toggle label={t('settings.observatory')} description={t('settings.observatoryDesc')} value={singletMode} onChange={setSingletMode} />
 
       <UpdatesSection />
+      {import.meta.env.DEV ? <DevSettings /> : null}
 
       <div style={{ position: 'sticky', bottom: 0, padding: '12px 0', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
-        {saveStatus && (
-          <div role={saveStatus.error ? 'alert' : 'status'} style={{
-            padding: '8px 14px', marginBottom: 8, borderRadius: 8, fontSize: 13, textAlign: 'center',
-            background: saveStatus.error ? 'var(--danger-bg)' : 'var(--success-bg)',
-            color: saveStatus.error ? 'var(--danger)' : 'var(--success)',
-            border: `1px solid ${saveStatus.error ? 'var(--danger)' : 'var(--success)'}`,
-          }}>
-            {saveStatus.msg}
-          </div>
-        )}
-        <Btn variant="solid" onClick={save} className="btn--full">{t('common.save')}</Btn>
+        <StatusBanner status={saveStatus} style={{ padding: '8px 14px', marginBottom: 8, textAlign: 'center' }} />
+        <Btn variant="solid" onClick={() => void save()} className="btn--full">{t('common.save')}</Btn>
       </div>
     </div>
   );

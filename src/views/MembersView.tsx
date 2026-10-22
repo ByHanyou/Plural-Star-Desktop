@@ -1,256 +1,120 @@
-import React, { useState, useEffect, useMemo, useId } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, MemberGroup, MemberSortMode, CustomFieldDef, NoteboardEntry, AppSettings, Relationship, RelationshipTypeDef, allRelationshipTypes, DEFAULT_REL_COLOR, uid, getInitials, sortMembers, fmtTime, getLocale, resizeBannerDataUrl, sortGroupsForDisplay, memberMatchesSearch, groupKind, groupParent, nameCompare, childrenOf, descendantsOf, tagKey, tagFromInput, mergeTags, isValidHex, linkedSubsystemsOf, setSubsystemLinks, normalizeMemberEmoji, fmtFieldValue, fmtNum } from '../utils';
-import { chooseImageTreatment } from '../components/ImageCropModal';
-import { PALETTE, ensureReadable, initialOn, profileTheme, themeVars, liveThemeBase } from '../theme';
-import { store, KEYS } from '../storage';
-import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Field, Toggle, Section, ChipList, AddRow, Modal, ConfirmDialog, Dropdown, clickable, useDndA11y, useEscapeKey, SrOnly , tabListKeyDown } from '../components/ui';
-import { ColorCarousel } from '../components/ColorCarousel';
-import { CustomHexEntry, ProfileBgChip, TransparentAvatarChip } from '../components/CustomHexEntry';
-import { MarkdownText } from '../components/MarkdownText';
+import { Member, MemberSortMode, MEMBER_SORT_MODES, FrontTierKey, blankMember, randomPaletteColor, sortMembers, memberMatchesSearch, uniqueTags, tagKey, setSubsystemLinks, allFrontMemberIds, toggleInSet } from '../utils';
+import {
+  saveData, saveMember, patchSettings, deleteMember, restoreDeletedMember,
+  bulkSetFacet, bulkSetArchived, bulkDeleteMembers, bulkAddGroups, bulkAddTags,
+} from '../store/actions';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { Btn, Section, ConfirmDialog, EmptyState, SaveErrorDialog, Dropdown, useDndA11y } from '../components/ui';
 import { useAppStore } from '../store/appStore';
-import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import SortableCard from '../components/SortableCard';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import SortableCard, { ReorderLockButton, useSortSensors } from '../components/SortableCard';
+import { MemberAvatar } from '../components/MemberAvatar';
 import SystemManagerView from './SystemManagerView';
+import MemberEditor from './members/MemberEditor';
+import { TagAssignDialog } from './members/TagAssignDialog';
+import { GroupAssignDialog } from './members/GroupAssignDialog';
+import { MemberCard, MemberListFields } from './members/MemberCard';
+import { ListFieldsMenu } from './members/ListFieldsMenu';
+import { TagFilter } from './members/TagFilter';
+import { QuickFrontDialogs, QuickFrontTarget } from './members/QuickFront';
+
+type ListView = 'active' | 'customFronts' | 'facets';
+type BulkKind = 'archive' | 'restore' | 'delete' | 'facet';
 
 interface Props {
-  onUpdate: () => void;
   archiveOnly?: boolean;
   focusMemberId?: string | null;
   onFocusHandled?: () => void;
   onShowOnMap?: (id: string) => void;
-  onQuickFront?: (memberId: string, tier: 'primary' | 'coFront' | 'coConscious') => void;
+  onQuickFront?: (memberId: string, tier: FrontTierKey) => void;
   onRemoveFromFront?: (memberId: string) => void;
 }
 
-const descPreview = (d?: unknown) => String(d ?? '').split('\n').filter(l => l.trim()).join('\n');
+const DEFAULT_FIELDS: MemberListFields = { pronouns: true, roles: true, groups: false, descriptions: false };
+const EMPTY_KEYS: Record<ListView, string> = { active: 'members.noMembers', facets: 'members.noFacets', customFronts: 'members.noCustomFronts' };
+const ARCHIVED_EMPTY_KEYS: Record<ListView, string> = { active: 'members.noArchived', facets: 'members.noArchivedFacets', customFronts: 'members.noArchivedCustomFronts' };
+const ADD_KEYS: Record<ListView, string> = { active: 'members.add', facets: 'members.addFacet', customFronts: 'members.addCustomFront' };
 
-function TagAssignDialog({ known, onApply, onClose }: { known: string[]; onApply: (tags: string[]) => void; onClose: () => void }) {
-  const { t } = useTranslation();
-  const [sel, setSel] = useState<string[]>([]);
-  const [added, setAdded] = useState<string[]>([]);
-  const [input, setInput] = useState('');
-  const choices = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const tag of [...known, ...added]) {
-      const k = tagKey(tag);
-      if (!seen.has(k)) seen.set(k, tag);
-    }
-    return [...seen.values()].sort((a, b) => nameCompare(tagKey(a), tagKey(b)));
-  }, [known, added]);
-  const isOn = (tag: string) => sel.some(x => tagKey(x) === tagKey(tag));
-  const toggle = (tag: string) => setSel(prev => (prev.some(x => tagKey(x) === tagKey(tag)) ? prev.filter(x => tagKey(x) !== tagKey(tag)) : [...prev, tag]));
-  const resolve = (raw: string): string | null => {
-    const next = tagFromInput(raw);
-    if (!next) return null;
-    return choices.find(x => tagKey(x) === tagKey(next)) || next;
-  };
-  const addTyped = () => {
-    const tag = resolve(input);
-    setInput('');
-    if (!tag) return;
-    if (!choices.some(x => tagKey(x) === tagKey(tag))) setAdded(prev => [...prev, tag]);
-    setSel(prev => (prev.some(x => tagKey(x) === tagKey(tag)) ? prev : [...prev, tag]));
-  };
-  const pending = resolve(input);
-  const final = pending && !isOn(pending) ? [...sel, pending] : sel;
-  return (
-    <Modal open title={t('members.addTags')} onClose={onClose}
-      footer={
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
-          <Btn variant="ghost" onClick={onClose}>{t('common.cancel')}</Btn>
-          <Btn variant="primary" onClick={() => onApply(final)} disabled={final.length === 0}>{t('common.add')}</Btn>
-        </div>
-      }>
-      <AddRow value={input} onChange={setInput} onAdd={addTyped} placeholder={t('modal.memberTagPlaceholder')} />
-      {choices.length > 0 && (
-        <div role="group" aria-label={t('modal.memberTags')} style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
-          {choices.map(tag => {
-            const on = isOn(tag);
-            return (
-              <button key={tagKey(tag)} type="button" className="chip" aria-pressed={on} onClick={() => toggle(tag)}
-                style={{ background: on ? 'var(--info-bg)' : 'var(--surface)', color: on ? 'var(--info)' : 'var(--dim)', borderColor: on ? 'var(--info)' : 'var(--border)' }}>
-                {tag}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </Modal>
-  );
-}
+const inListView = (m: Member, view: ListView): boolean =>
+  view === 'customFronts' ? !!m.isCustomFront : !m.isCustomFront && (view === 'facets') === !!m.isFacet;
 
-export default function MembersView({ onUpdate, archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, onQuickFront, onRemoveFromFront }: Props) {
-  const members = useAppStore(s => s.state.members);
-  const groups = useAppStore(s => s.state.groups);
-  const settings = useAppStore(s => s.state.settings);
-  const front = useAppStore(s => s.state.front);
+export default function MembersView({ archiveOnly = false, focusMemberId, onFocusHandled, onShowOnMap, onQuickFront, onRemoveFromFront }: Props) {
+  const members = useAppStore(s => s.members);
+  const groups = useAppStore(s => s.groups);
+  const settings = useAppStore(s => s.settings);
+  const front = useAppStore(s => s.front);
   const { t } = useTranslation();
-  const listFields = settings.memberListFields ?? { pronouns: true, roles: true, groups: false, descriptions: false };
-  const [showFields, setShowFields] = useState(false);
-  const saveListFields = async (next: NonNullable<AppSettings['memberListFields']>) => {
-    await store.set(KEYS.settings, { ...settings, memberListFields: next });
-    onUpdate();
-  };
+  const listFields = settings.memberListFields ?? DEFAULT_FIELDS;
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [editSession, setEditSession] = useState(0);
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [listView, setListView] = useState<'active' | 'customFronts' | 'facets'>('active');
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [listView, setListView] = useState<ListView>('active');
   const [sortMode, setSortMode] = useState<MemberSortMode>(settings.memberSortMode || 'alphabetical');
-  const changeSortMode = (m: MemberSortMode) => {
-    setSortMode(m);
-    store.set(KEYS.settings, { ...settings, memberSortMode: m }).then(() => onUpdate()).catch(() => {});
-  };
   const [reorderLocked, setReorderLocked] = useState(true);
-  const [quickFrontFor, setQuickFrontFor] = useState<Member | null>(null);
-  const [confirmRemoveFront, setConfirmRemoveFront] = useState<Member | null>(null);
-
+  const [quickFront, setQuickFront] = useState<QuickFrontTarget | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkConfirm, setBulkConfirm] = useState<'archive' | 'restore' | 'delete' | 'facet' | null>(null);
+  const [bulkConfirm, setBulkConfirm] = useState<BulkKind | null>(null);
   const [showGroupAssign, setShowGroupAssign] = useState(false);
-  const [groupAssignSel, setGroupAssignSel] = useState<Set<string>>(new Set());
   const [showTagAssign, setShowTagAssign] = useState(false);
-  const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); setBulkConfirm(null); setShowGroupAssign(false); setShowTagAssign(false); };
-  const switchListView = (v: 'active' | 'customFronts' | 'facets') => { if (v !== listView) exitSelection(); setListView(v); };
-  const browseGroups = !archiveOnly && listFields.browse === true;
-  const toggleBrowseGroups = () => { exitSelection(); setShowFields(false); saveListFields({ ...listFields, browse: !browseGroups }); };
-  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
-  useEffect(() => { setGroupOpen({}); }, [editing?.id]);
-  const [linkSel, setLinkSel] = useState<string[] | null>(null);
-  useEffect(() => { setLinkSel(null); }, [editing?.id]);
-  const toggleSelected = (id: string) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const [saveError, run, clearSaveError] = useSaveGuard();
 
-  const isFronting = (id: string): boolean => !!front && (
-    (front.primary?.memberIds || []).includes(id) ||
-    (front.coFront?.memberIds || []).includes(id) ||
-    (front.coConscious?.memberIds || []).includes(id)
-  );
+  const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); setBulkConfirm(null); setShowGroupAssign(false); setShowTagAssign(false); };
+  const switchListView = (v: ListView) => { if (v !== listView) exitSelection(); setListView(v); };
+  const saveListFields = (next: MemberListFields) => { void run(() => patchSettings({ memberListFields: next })); };
+  const changeSortMode = (mode: MemberSortMode) => { setSortMode(mode); void run(() => patchSettings({ memberSortMode: mode })); };
+  const browseGroups = !archiveOnly && listFields.browse === true;
+  const toggleBrowseGroups = () => { exitSelection(); saveListFields({ ...listFields, browse: !browseGroups }); };
+  const toggleSelected = (id: string) => setSelectedIds(prev => toggleInSet(prev, id));
+
+  const frontingIds = useMemo(() => new Set(allFrontMemberIds(front)), [front]);
   const quickFrontEnabled = !!onQuickFront && !!onRemoveFromFront && !archiveOnly;
 
-  const [f, setF] = useState<Member>({ id: '', name: '', pronouns: '', role: '', color: PALETTE[0], description: '' });
-  const [showClone, setShowClone] = useState(false);
-  const [cloneSel, setCloneSel] = useState({ name: true, pronouns: true, role: true, color: true, description: true });
-  const [readMode, setReadMode] = useState(false);
-  const [viewPfp, setViewPfp] = useState(false);
-  const [tagInput, setTagInput] = useState('');
-  const [fieldDefs, setFieldDefs] = useState<CustomFieldDef[]>([]);
-
-  type MemberTab = 'main' | 'fields' | 'connections' | 'noteboard';
-  const [memberTab, setMemberTab] = useState<MemberTab>('main');
-  const [relationships, setRelationships] = useState<Relationship[]>([]);
-  const [relTypes, setRelTypes] = useState<RelationshipTypeDef[]>([]);
-  const [allNotes, setAllNotes] = useState<NoteboardEntry[]>([]);
-  const [noteText, setNoteText] = useState('');
-  const [noteAuthorId, setNoteAuthorId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const load = () => {
-      store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(defs => setFieldDefs(defs || []));
-      store.get<Relationship[]>(KEYS.relationships, []).then(r => setRelationships(r || []));
-      store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []).then(r => setRelTypes(r || []));
-      store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setAllNotes(n || []));
-    };
-    load();
-    return NetworkManager.onSyncApplied(load);
-  }, []);
-
-  const memberNotes = allNotes
-    .filter(n => n.memberId === f.id)
-    .sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      return b.timestamp - a.timestamp;
-    });
-
-  const saveNotes = async (updated: NoteboardEntry[]) => {
-    setAllNotes(updated);
-    await store.set(KEYS.noteboards, updated);
+  const inStateMembers = useMemo(() => members.filter(m => !m.deleted && archiveOnly === !!m.archived), [members, archiveOnly]);
+  const counts: Record<ListView, number> = {
+    active: inStateMembers.filter(m => inListView(m, 'active')).length,
+    facets: inStateMembers.filter(m => inListView(m, 'facets')).length,
+    customFronts: inStateMembers.filter(m => inListView(m, 'customFronts')).length,
   };
-
-  const addNote = () => {
-    if (!noteText.trim() || !noteAuthorId) return;
-    const entry: NoteboardEntry = { id: uid(), memberId: f.id, authorId: noteAuthorId, content: noteText.trim(), timestamp: Date.now() };
-    saveNotes([...allNotes, entry]);
-    setNoteText('');
-  };
-
-  const deleteNote = (id: string) => saveNotes(allNotes.filter(n => n.id !== id));
-  const togglePin = (id: string) => saveNotes(allNotes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
-
-  const inState = (m: Member) => !m.deleted && archiveOnly === !!m.archived;
-  const active = members.filter(m => inState(m) && !m.isCustomFront && !m.isFacet);
-  const customFronts = members.filter(m => inState(m) && m.isCustomFront);
-  const facets = members.filter(m => inState(m) && m.isFacet && !m.isCustomFront);
-  const sorted = sortMembers(
-    listView === 'customFronts' ? customFronts : listView === 'facets' ? facets : active,
-    sortMode,
-  );
-  const deletedMembers = !archiveOnly ? [] : members.filter(m => {
-    if (!m.deleted) return false;
-    if (m.isCustomFront) return listView === 'customFronts';
-    if (listView === 'customFronts') return false;
-    if (m.isFacet) return listView === 'facets';
-    if (listView === 'facets') return false;
-    return true;
-  });
-  const allTags = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const m of members) {
-      if (m.deleted || archiveOnly !== !!m.archived) continue;
-      if (listView === 'customFronts' ? !m.isCustomFront : m.isCustomFront) continue;
-      if (listView !== 'customFronts' && (listView === 'facets') !== !!m.isFacet) continue;
-      for (const tag of m.tags || []) {
-        const k = tagKey(tag);
-        if (!seen.has(k)) seen.set(k, tag);
-      }
-    }
-    return [...seen.values()].sort((a, b) => nameCompare(tagKey(a), tagKey(b)));
-  }, [members, listView, archiveOnly]);
+  const inView = useMemo(() => inStateMembers.filter(m => inListView(m, listView)), [inStateMembers, listView]);
+  const sorted = sortMembers(inView, sortMode);
+  const deletedMembers = archiveOnly ? members.filter(m => m.deleted && inListView(m, listView)) : [];
+  const allTags = useMemo(() => uniqueTags(inView.flatMap(m => m.tags || [])), [inView]);
+  const knownTags = useMemo(() => uniqueTags(members.filter(m => !m.deleted).flatMap(m => m.tags || [])), [members]);
   const activeTagKey = activeTag ? tagKey(activeTag) : null;
-  const filtered = sorted.filter(m =>
-    memberMatchesSearch(m, search)
-    && (!activeTagKey || (m.tags || []).some(tag => tagKey(tag) === activeTagKey))
-  );
+  const filtered = sorted.filter(m => memberMatchesSearch(m, search) && (!activeTagKey || (m.tags || []).some(tag => tagKey(tag) === activeTagKey)));
 
   const canReorder = !archiveOnly && sortMode === 'manual' && !search && !activeTag;
   const reorderActive = canReorder && !reorderLocked;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  const sensors = useSortSensors();
   const membersDndA11y = useDndA11y(id => members.find(m => m.id === id)?.name || '');
-  const fieldsPopoverId = useId();
-  useEscapeKey(showFields, () => setShowFields(false));
 
-  const onDragEnd = async (e: DragEndEvent) => {
-    const { active: dragged, over } = e;
+  const onDragEnd = ({ active: dragged, over }: DragEndEvent) => {
     if (!over || dragged.id === over.id) return;
     const from = filtered.findIndex(m => m.id === dragged.id);
     const to = filtered.findIndex(m => m.id === over.id);
     if (from < 0 || to < 0) return;
-    const reordered = arrayMove(filtered, from, to);
-    const orderById = new Map(reordered.map((m, i) => [m.id, i]));
-    const updated = members.map(m => (orderById.has(m.id) ? { ...m, sortOrder: orderById.get(m.id) } : m));
-    await store.set(KEYS.members, updated);
-    onUpdate();
+    const orderById = new Map(arrayMove(filtered, from, to).map((m, i) => [m.id, i]));
+    void run(() => saveData('members', useAppStore.getState().members.map(m => (orderById.has(m.id) ? { ...m, sortOrder: orderById.get(m.id) } : m))));
   };
 
   const openNew = () => {
-    const m: Member = { id: uid(), name: '', pronouns: '', role: '', color: PALETTE[Math.floor(Math.random() * PALETTE.length)], description: '', tags: [], groupIds: [], createdAt: Date.now(), isCustomFront: listView === 'customFronts', isFacet: listView === 'facets' };
-    setF(m); setIsNew(true); setEditing(m); setTagInput(''); setMemberTab('main'); setNoteText('');
-    setNoteAuthorId(members.find(mm => !mm.archived)?.id || null);
+    setIsNew(true);
+    setEditing(blankMember({ color: randomPaletteColor(), isCustomFront: listView === 'customFronts', isFacet: listView === 'facets' }));
+    setEditSession(s => s + 1);
   };
 
   const openEdit = (m: Member) => {
-    setF({ ...m, tags: m.tags || [], groupIds: m.groupIds || [] });
-    setIsNew(false); setEditing(m); setTagInput(''); setMemberTab('main'); setNoteText(''); setReadMode(false);
-    setNoteAuthorId(members.find(mm => !mm.archived)?.id || null);
+    setIsNew(false);
+    setEditing(m);
+    setEditSession(s => s + 1);
   };
   const openFromBrowser = (id: string) => {
     const m = members.find(mm => mm.id === id);
@@ -258,1145 +122,175 @@ export default function MembersView({ onUpdate, archiveOnly = false, focusMember
   };
 
   useEffect(() => {
-    if (focusMemberId) {
-      const m = members.find(mm => mm.id === focusMemberId);
-      if (m) openEdit(m);
-      onFocusHandled?.();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!focusMemberId) return;
+    const m = useAppStore.getState().members.find(mm => mm.id === focusMemberId);
+    if (m) openEdit(m);
+    onFocusHandled?.();
   }, [focusMemberId]);
 
-  const set = (k: keyof Member, v: any) => setF(x => ({ ...x, [k]: v }));
-
-  const addTag = () => {
-    const raw = tagInput.trim().replace(/^#/, '').normalize('NFC');
-    if (!raw) return;
-    const next = `#${raw}`;
-    setF(x => {
-      const cur = x.tags || [];
-      if (cur.some(v => tagKey(v) === tagKey(next))) return x;
-      return { ...x, tags: [...cur, next] };
+  const saveEdited = async (draft: Member, linkSel: string[] | null) => {
+    const ok = await run(async () => {
+      await saveMember(draft);
+      if (!linkSel) return;
+      const liveGroups = useAppStore.getState().groups;
+      const nextGroups = setSubsystemLinks(liveGroups, draft.id, linkSel);
+      if (nextGroups !== liveGroups) await saveData('groups', nextGroups);
     });
-    setTagInput('');
-  };
-  const applyTag = (tag: string) => {
-    setF(x => (x.tags || []).some(v => tagKey(v) === tagKey(tag)) ? x : { ...x, tags: [...(x.tags || []), tag] });
-    setTagInput('');
-  };
-  const tagSuggestions = useMemo(() => {
-    const mine = new Set((f.tags || []).map(tagKey));
-    const seen = new Map<string, string>();
-    for (const tag of members.flatMap(m => m.tags || [])) {
-      const k = tagKey(tag);
-      if (mine.has(k) || seen.has(k)) continue;
-      seen.set(k, tag);
-    }
-    const q = tagKey(tagInput.trim().replace(/^#/, ''));
-    return [...seen.values()]
-      .filter(tag => !q || tagKey(tag).includes(q))
-      .sort((a, b) => nameCompare(tagKey(a), tagKey(b)))
-      .slice(0, 30);
-  }, [members, f.tags, tagInput]);
-
-  const toggleGroup = (gid: string) => {
-    setF(x => {
-      const cur = x.groupIds || [];
-      return { ...x, groupIds: cur.includes(gid) ? cur.filter(id => id !== gid) : [...cur, gid] };
-    });
+    if (ok) setEditing(null);
   };
 
-  const saveMember = async () => {
-    if (!f.name.trim()) return;
-    const updated = isNew
-      ? [...members, f]
-      : members.map(m => m.id === f.id ? f : m);
-    await store.set(KEYS.members, updated);
-    if (linkSel) {
-      const liveGroups = useAppStore.getState().state.groups;
-      const nextGroups = setSubsystemLinks(liveGroups, f.id, linkSel);
-      if (nextGroups !== liveGroups) await store.set(KEYS.groups, nextGroups);
-    }
-    setEditing(null);
-    onUpdate();
+  const cloneMember = async (clone: Member) => {
+    if (await run(() => saveMember(clone))) setEditing(null);
   };
 
-  const doClone = async () => {
-    const rnd = String(Math.floor(10000 + Math.random() * 90000));
-    const clone: Member = {
-      id: uid(),
-      name: cloneSel.name && (f.name || '').trim() ? f.name : rnd,
-      pronouns: cloneSel.pronouns ? (f.pronouns || '') : '',
-      role: cloneSel.role ? (f.role || '') : '',
-      color: cloneSel.color ? f.color : PALETTE[0],
-      emoji: cloneSel.color ? f.emoji : undefined,
-      description: cloneSel.description ? (f.description || '') : '',
-      tags: [],
-      groupIds: [],
-      createdAt: Date.now(),
-      isFacet: f.isFacet || undefined,
-    };
-    setShowClone(false);
-    await store.set(KEYS.members, [...members, clone]);
-    setEditing(null);
-    onUpdate();
+  const removeMember = async (id: string) => {
+    if (await run(() => deleteMember(id))) setEditing(null);
   };
 
-  const deleteMember = async (id: string) => {
-    try {
-      const rels = (await store.get<any[]>(KEYS.relationships, [])) || [];
-      const keep = rels.filter(r => r && r.fromId !== id && r.toId !== id);
-      if (keep.length !== rels.length) await store.set(KEYS.relationships, keep);
-      const mapIds = (await store.get<string[]>(KEYS.systemMapMembers, [])) || [];
-      if (mapIds.includes(id)) await store.set(KEYS.systemMapMembers, mapIds.filter(x => x !== id));
-      const pos = (await store.get<Record<string, unknown>>(KEYS.systemMapPositions, {})) || {};
-      if (id in pos) { const { [id]: _drop, ...rest } = pos; await store.set(KEYS.systemMapPositions, rest); }
-    } catch (e) { console.warn('[MEMBERS] delete: clearing links failed', e); }
-    const live = useAppStore.getState().state.members;
-    await store.set(KEYS.members, live.map(m => m.id === id ? { ...m, archived: true, deleted: true } : m));
-    setConfirmDelete(null);
-    setEditing(null);
-    onUpdate();
-  };
-
-  const restoreDeleted = async (id: string) => {
-    const live = useAppStore.getState().state.members;
-    await store.set(KEYS.members, live.map(m => m.id === id ? { ...m, deleted: false, archived: false } : m));
-    onUpdate();
-  };
-
-  const bulkIds = () => [...selectedIds];
-  const bulkBlockedByFront = () => bulkIds().some(id => isFronting(id));
-  const runBulk = async (kind: 'archive' | 'restore' | 'delete' | 'facet') => {
-    const ids = new Set(bulkIds());
-    if (ids.size === 0) return;
-    if (kind === 'delete') {
-      for (const id of ids) {
-        try {
-          const rels = (await store.get<any[]>(KEYS.relationships, [])) || [];
-          const keep = rels.filter(r => r && r.fromId !== id && r.toId !== id);
-          if (keep.length !== rels.length) await store.set(KEYS.relationships, keep);
-          const mapIds = (await store.get<string[]>(KEYS.systemMapMembers, [])) || [];
-          if (mapIds.includes(id)) await store.set(KEYS.systemMapMembers, mapIds.filter(x => x !== id));
-          const pos = (await store.get<Record<string, unknown>>(KEYS.systemMapPositions, {})) || {};
-          if (id in pos) { const { [id]: _drop, ...rest } = pos; await store.set(KEYS.systemMapPositions, rest); }
-        } catch (e) { console.warn('[MEMBERS] bulk delete: clearing links failed', e); }
-      }
-    }
-    const toFacet = listView === 'active';
-    const live = useAppStore.getState().state.members;
-    const next = live.map(m => {
-      if (!ids.has(m.id)) return m;
-      if (kind === 'archive') return { ...m, archived: true };
-      if (kind === 'restore') return { ...m, archived: false };
-      if (kind === 'delete') return { ...m, archived: true, deleted: true };
-      return m.isCustomFront ? m : { ...m, isFacet: toFacet };
-    });
-    await store.set(KEYS.members, next);
+  const bulkIds = [...selectedIds];
+  const blockedByFront = bulkIds.some(id => frontingIds.has(id));
+  const runBulk = async (kind: BulkKind) => {
+    if (bulkIds.length === 0) return;
+    const op = kind === 'archive' ? () => bulkSetArchived(bulkIds, true)
+      : kind === 'restore' ? () => bulkSetArchived(bulkIds, false)
+      : kind === 'delete' ? () => bulkDeleteMembers(bulkIds)
+      : () => bulkSetFacet(bulkIds, listView === 'active');
+    await run(op);
     exitSelection();
-    onUpdate();
   };
-  const applyGroupAssign = async () => {
-    const ids = new Set(bulkIds());
-    const gids = [...groupAssignSel];
-    if (ids.size === 0 || gids.length === 0) { setShowGroupAssign(false); return; }
-    const live = useAppStore.getState().state.members;
-    await store.set(KEYS.members, live.map(m => ids.has(m.id) ? { ...m, groupIds: [...new Set([...(m.groupIds || []), ...gids])] } : m));
+  const applyGroupAssign = async (groupIds: string[]) => {
+    if (bulkIds.length > 0 && groupIds.length > 0) await run(() => bulkAddGroups(bulkIds, groupIds));
     exitSelection();
-    onUpdate();
   };
-  const knownTags = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const m of members) {
-      if (m.deleted) continue;
-      for (const tag of m.tags || []) {
-        const k = tagKey(tag);
-        if (!seen.has(k)) seen.set(k, tag);
-      }
-    }
-    return [...seen.values()];
-  }, [members]);
   const applyTagAssign = async (tags: string[]) => {
-    const ids = new Set(bulkIds());
     setShowTagAssign(false);
-    if (ids.size === 0 || tags.length === 0) return;
-    const live = useAppStore.getState().state.members;
-    await store.set(KEYS.members, live.map(m => {
-      if (!ids.has(m.id)) return m;
-      const next = mergeTags(m.tags, tags);
-      return next.length === (m.tags || []).length ? m : { ...m, tags: next };
-    }));
+    if (bulkIds.length === 0 || tags.length === 0) return;
+    await run(() => bulkAddTags(bulkIds, tags));
     exitSelection();
-    onUpdate();
   };
+  const frontLockTitle = blockedByFront ? t('members.frontingLockMsg') : undefined;
 
-  const pickAvatar = async () => {
-    const filePath = await window.electronAPI.dialog.openFile([
-      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
-    ]);
-    if (!filePath) return;
-    const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (!dataUrl) return;
-    const chosen = await chooseImageTreatment(dataUrl);
-    if (chosen) set('avatar', chosen);
-  };
-
-  const pickBanner = async () => {
-    const filePath = await window.electronAPI.dialog.openFile([
-      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
-    ]);
-    if (!filePath) return;
-    const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (!dataUrl) return;
-    const chosen = await chooseImageTreatment(dataUrl);
-    if (!chosen) return;
-    try {
-      const resized = await resizeBannerDataUrl(chosen);
-      set('banner', resized);
-    } catch { set('banner', chosen); }
-  };
-
-  const profilePt = editing && readMode && f.profileBg && isValidHex(f.color) ? profileTheme(liveThemeBase(), f.color) : null;
-
-  const groupsToggle = !archiveOnly && (
-    <button type="button" role="switch" aria-checked={browseGroups} onClick={toggleBrowseGroups}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', flexShrink: 0 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: browseGroups ? 'var(--accent)' : 'var(--dim)' }}>{t('memberGroups.title')}</span>
-      <span aria-hidden className={`toggle ${browseGroups ? 'toggle--on' : ''}`} style={{ display: 'inline-block' }}><span className="toggle__knob" /></span>
-    </button>
+  const listButton = (view: ListView, label: string) => (
+    <Btn variant={listView === view ? 'info' : 'ghost'} aria-pressed={listView === view} onClick={() => switchListView(view)}>{label}</Btn>
   );
+  const emptyLabel = t((search || activeTag) ? 'members.noMembers' : (archiveOnly ? ARCHIVED_EMPTY_KEYS : EMPTY_KEYS)[listView]);
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-        {groupsToggle}
-        {!browseGroups && (<>
-        <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
-          aria-label={t('members.search')} placeholder={t('members.search')} style={{ flex: 1, minWidth: 140 }} />
-        <Dropdown<MemberSortMode>
-          value={sortMode}
-          options={['alphabetical', 'reverse-alphabetical', 'age', 'color', 'role', 'manual']}
-          onChange={changeSortMode}
-          ariaLabel={t('memberSort.label')}
-          renderOption={v => t(`memberSort.${v}`)}
-        />
-        {canReorder && (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={!reorderLocked}
-            aria-label={t('common.reorderLock')}
-            title={t('common.reorderLock')}
-            onClick={() => setReorderLocked(v => !v)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, fontSize: 16, lineHeight: 1, opacity: reorderLocked ? 0.35 : 1 }}>
-            🤏
+        {!archiveOnly && (
+          <button type="button" role="switch" aria-checked={browseGroups} onClick={toggleBrowseGroups}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', flexShrink: 0 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: browseGroups ? 'var(--accent)' : 'var(--dim)' }}>{t('memberGroups.title')}</span>
+            <span aria-hidden className={`toggle ${browseGroups ? 'toggle--on' : ''}`} style={{ display: 'inline-block' }}><span className="toggle__knob" /></span>
           </button>
         )}
-        <Btn variant={listView === 'active' ? 'info' : 'ghost'} aria-pressed={listView === 'active'} onClick={() => switchListView('active')}>
-          {t('members.titleCount', { count: active.length })}
-        </Btn>
-        <Btn variant={listView === 'facets' ? 'info' : 'ghost'} aria-pressed={listView === 'facets'} onClick={() => switchListView('facets')}>
-          {t('members.facetsCount', { count: facets.length })}
-        </Btn>
-        <Btn variant={listView === 'customFronts' ? 'info' : 'ghost'} aria-pressed={listView === 'customFronts'} onClick={() => switchListView('customFronts')}>
-          {t('members.customFrontsCount', { count: customFronts.length })}
-        </Btn>
-        <Btn variant={selectionMode ? 'info' : 'ghost'} aria-pressed={selectionMode} onClick={() => selectionMode ? exitSelection() : setSelectionMode(true)}>
-          {selectionMode ? t('common.cancel') : t('members.select')}
-        </Btn>
-        {!archiveOnly && (
-          <Btn variant="solid" onClick={openNew}>{listView === 'customFronts' ? t('members.addCustomFront') : listView === 'facets' ? t('members.addFacet') : t('members.add')}</Btn>
+        {!browseGroups && (
+          <>
+            <input className="field__input" value={search} onChange={e => setSearch(e.target.value)}
+              aria-label={t('members.search')} placeholder={t('members.search')} style={{ flex: 1, minWidth: 140 }} />
+            <Dropdown<MemberSortMode> value={sortMode} options={MEMBER_SORT_MODES} onChange={changeSortMode} ariaLabel={t('memberSort.label')} renderOption={v => t(`memberSort.${v}`)} />
+            {canReorder && (
+              <ReorderLockButton locked={reorderLocked} onToggle={() => setReorderLocked(v => !v)} fontSize={16} padding={8} />
+            )}
+            {listButton('active', t('members.titleCount', { count: counts.active }))}
+            {listButton('facets', t('members.facetsCount', { count: counts.facets }))}
+            {listButton('customFronts', t('members.customFrontsCount', { count: counts.customFronts }))}
+            <Btn variant={selectionMode ? 'info' : 'ghost'} aria-pressed={selectionMode} onClick={() => (selectionMode ? exitSelection() : setSelectionMode(true))}>
+              {selectionMode ? t('common.cancel') : t('members.select')}
+            </Btn>
+            {!archiveOnly && (
+              <Btn variant="solid" onClick={openNew}>{t(ADD_KEYS[listView])}</Btn>
+            )}
+            <ListFieldsMenu fields={listFields} onChange={saveListFields} />
+          </>
         )}
-        <div style={{ position: 'relative' }}>
-          <Btn variant="ghost" aria-expanded={showFields} aria-controls={showFields ? fieldsPopoverId : undefined} onClick={() => setShowFields(v => !v)}>{t('members.displayFields')}</Btn>
-          {showFields && (
-            <div id={fieldsPopoverId} style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 30, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
-              {(['pronouns', 'roles', 'groups', 'descriptions'] as const).map(k => (
-                <Toggle key={k} label={t(`members.field${k.charAt(0).toUpperCase()}${k.slice(1)}`)}
-                  value={listFields[k] ?? false}
-                  onChange={v => saveListFields({ ...listFields, [k]: v })} />
-              ))}
-              <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, margin: '10px 0 6px' }}>{t('members.cardBackground')}</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {([['plain', t('members.bgPlain')], ['color', t('members.bgMemberColor')], ['banner', t('members.bgBanner')]] as ['plain' | 'color' | 'banner', string][]).map(([mode, label]) => {
-                  const sel = (listFields.background || 'plain') === mode;
-                  return (
-                    <button key={mode} aria-pressed={sel}
-                      onClick={() => saveListFields({ ...listFields, background: mode })}
-                      style={{ flex: 1, padding: '7px 6px', borderRadius: 8, fontSize: 11, cursor: 'pointer',
-                        background: sel ? 'var(--accent-bg)' : 'var(--surface)', color: sel ? 'var(--accent)' : 'var(--dim)',
-                        border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`, fontWeight: sel ? 600 : 400 }}>
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-        </>)}
       </div>
 
       {browseGroups ? (
-        <SystemManagerView onUpdate={onUpdate} startBrowsing hideRootTitle onViewMember={openFromBrowser} onQuickFront={onQuickFront} onRemoveFromFront={onRemoveFromFront} />
-      ) : (<>
-      {selectionMode && (
-        <div role="toolbar" aria-label={t('members.selectedCount', { count: selectedIds.size })} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 90 }} aria-live="polite">{t('members.selectedCount', { count: selectedIds.size })}</span>
-          <Btn variant="ghost" onClick={() => setSelectedIds(new Set(filtered.map(m => m.id)))}>{t('members.selectAll')}</Btn>
-          <Btn variant="ghost" onClick={() => setSelectedIds(new Set())}>{t('members.selectNone')}</Btn>
-          {selectedIds.size > 0 && (
-            <>
-              {groups.length > 0 && (
-                <Btn variant="ghost" onClick={() => { setGroupAssignSel(new Set()); setShowGroupAssign(true); }}>{t('members.assignGroup')}</Btn>
+        <SystemManagerView startBrowsing hideRootTitle onViewMember={openFromBrowser} onQuickFront={onQuickFront} onRemoveFromFront={onRemoveFromFront} />
+      ) : (
+        <>
+          {selectionMode && (
+            <div role="toolbar" aria-label={t('members.selectedCount', { count: selectedIds.size })} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 90 }} aria-live="polite">{t('members.selectedCount', { count: selectedIds.size })}</span>
+              <Btn variant="ghost" onClick={() => setSelectedIds(new Set(filtered.map(m => m.id)))}>{t('members.selectAll')}</Btn>
+              <Btn variant="ghost" onClick={() => setSelectedIds(new Set())}>{t('members.selectNone')}</Btn>
+              {selectedIds.size > 0 && (
+                <>
+                  {groups.length > 0 && <Btn variant="ghost" onClick={() => setShowGroupAssign(true)}>{t('members.assignGroup')}</Btn>}
+                  <Btn variant="ghost" onClick={() => setShowTagAssign(true)} aria-label={t('members.addTags')}>{t('members.assignTag')}</Btn>
+                  {!archiveOnly && listView !== 'customFronts' && (
+                    <Btn variant="ghost" onClick={() => setBulkConfirm('facet')} title={frontLockTitle} disabled={blockedByFront}>
+                      {listView === 'active' ? t('members.makeFacet') : t('members.makeMember')}
+                    </Btn>
+                  )}
+                  {!archiveOnly && <Btn variant="ghost" onClick={() => setBulkConfirm('archive')} title={frontLockTitle} disabled={blockedByFront}>{t('members.archive')}</Btn>}
+                  {archiveOnly && <Btn variant="ghost" onClick={() => setBulkConfirm('restore')}>{t('members.restore')}</Btn>}
+                  <Btn variant="danger" onClick={() => setBulkConfirm('delete')} title={frontLockTitle} disabled={blockedByFront}>{t('common.delete')}</Btn>
+                </>
               )}
-              <Btn variant="ghost" onClick={() => setShowTagAssign(true)} aria-label={t('members.addTags')}>{t('members.assignTag')}</Btn>
-              {!archiveOnly && listView !== 'customFronts' && (
-                <Btn variant="ghost" onClick={() => setBulkConfirm('facet')} title={bulkBlockedByFront() ? t('members.frontingLockMsg') : undefined} disabled={bulkBlockedByFront()}>
-                  {listView === 'active' ? t('members.makeFacet') : t('members.makeMember')}
-                </Btn>
-              )}
-              {!archiveOnly && (
-                <Btn variant="ghost" onClick={() => setBulkConfirm('archive')} title={bulkBlockedByFront() ? t('members.frontingLockMsg') : undefined} disabled={bulkBlockedByFront()}>{t('members.archive')}</Btn>
-              )}
-              {archiveOnly && (
-                <Btn variant="ghost" onClick={() => setBulkConfirm('restore')}>{t('members.restore')}</Btn>
-              )}
-              <Btn variant="danger" onClick={() => setBulkConfirm('delete')} title={bulkBlockedByFront() ? t('members.frontingLockMsg') : undefined} disabled={bulkBlockedByFront()}>{t('common.delete')}</Btn>
-            </>
+            </div>
           )}
-        </div>
-      )}
 
-      {allTags.length > 0 && (
-        <div role="group" aria-label={t('modal.tags')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-          <button type="button" aria-pressed={!activeTag} onClick={() => setActiveTag(null)}
-            style={{ padding: '5px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
-              background: !activeTag ? 'var(--info-bg)' : 'var(--surface)', color: !activeTag ? 'var(--info)' : 'var(--dim)',
-              border: `1px solid ${!activeTag ? 'var(--info)' : 'var(--border)'}`, fontWeight: !activeTag ? 600 : 400 }}>
-            {t('members.allTags')}
-          </button>
-          {allTags.map(tag => {
-            const sel = activeTagKey === tagKey(tag);
-            return (
-              <button key={tagKey(tag)} type="button" aria-pressed={sel} onClick={() => setActiveTag(sel ? null : tag)}
-                style={{ padding: '5px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
-                  background: sel ? 'var(--info-bg)' : 'var(--surface)', color: sel ? 'var(--info)' : 'var(--dim)',
-                  border: `1px solid ${sel ? 'var(--info)' : 'var(--border)'}`, fontWeight: sel ? 600 : 400 }}>
-                {tag}
-              </button>
-            );
-          })}
-        </div>
-      )}
+          <TagFilter tags={allTags} active={activeTag} onChange={setActiveTag} />
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={membersDndA11y}>
-      <SortableContext items={filtered.map(m => m.id)} strategy={rectSortingStrategy}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-        {filtered.map(m => (
-          <SortableCard key={m.id} id={m.id} label={m.name} disabled={!reorderActive}>
-          <div className="tile" style={{ minHeight: 'auto', padding: 14, cursor: 'pointer', position: 'relative', overflow: 'hidden',
-            ...(selectionMode && selectedIds.has(m.id) ? { outline: '2px solid var(--accent)', outlineOffset: -2 } : {}),
-            ...((listFields.background === 'color' || (listFields.background === 'banner' && !m.banner)) ? { background: `linear-gradient(${m.color}26, ${m.color}26), var(--card)` } : {}) }}
-            onClick={() => selectionMode ? toggleSelected(m.id) : openEdit(m)}>
-            {selectionMode && (
-              <div aria-hidden style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 20, height: 20, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
-                background: selectedIds.has(m.id) ? 'var(--accent)' : 'var(--surface)', color: selectedIds.has(m.id) ? 'var(--bg)' : 'transparent', border: `1px solid ${selectedIds.has(m.id) ? 'var(--accent)' : 'var(--border)'}` }}>
-                ✓
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={membersDndA11y}>
+            <SortableContext items={filtered.map(m => m.id)} strategy={rectSortingStrategy}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                {filtered.map(m => (
+                  <SortableCard key={m.id} id={m.id} label={m.name} disabled={!reorderActive}>
+                    <MemberCard member={m} groups={groups} fields={listFields} selecting={selectionMode} selected={selectedIds.has(m.id)}
+                      quickFront={quickFrontEnabled && !m.archived && !selectionMode ? { fronting: frontingIds.has(m.id), onOpen: setQuickFront } : undefined}
+                      onActivate={() => (selectionMode ? toggleSelected(m.id) : openEdit(m))} />
+                  </SortableCard>
+                ))}
               </div>
-            )}
-            {listFields.background === 'banner' && m.banner && (
-              <>
-                <div aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: `url(${m.banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'var(--card)', opacity: 0.78 }} />
-              </>
-            )}
-            <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="tile__avatar" aria-hidden style={{
-                width: 40, height: 40, fontSize: 14, overflow: 'hidden',
-                ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : !m.avatarTransparent ? { backgroundColor: m.color } : {}),
-              }}>
-                {m.avatar ? <img src={m.avatar} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover' }} /> : getInitials(m.name)}
-              </div>
-              <div style={{ flex: 1, overflow: 'hidden' }} role={selectionMode ? 'checkbox' : 'button'} tabIndex={0}
-                aria-checked={selectionMode ? selectedIds.has(m.id) : undefined}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (selectionMode) toggleSelected(m.id); else openEdit(m); } }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{m.name}</div>
-                {(((listFields.pronouns && m.pronouns) || (listFields.roles && m.role))) && (
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                    {[listFields.pronouns ? m.pronouns : '', listFields.roles ? m.role : ''].filter(Boolean).join(' · ')}
+            </SortableContext>
+          </DndContext>
+
+          {filtered.length === 0 && (
+            <EmptyState>{emptyLabel}</EmptyState>
+          )}
+
+          {deletedMembers.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <Section label={t('members.recentlyDeleted')} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {deletedMembers.map(m => (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', opacity: 0.85 }}>
+                    <MemberAvatar member={m} size={32} fontSize={12} decorative />
+                    <div style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
+                    <Btn variant="ghost" onClick={() => void run(() => restoreDeletedMember(m.id))} aria-label={t('members.restoreNamed', { name: m.name })}>{t('members.restore')}</Btn>
                   </div>
-                )}
-              </div>
-              {quickFrontEnabled && !m.archived && !selectionMode && (
-                isFronting(m.id) ? (
-                  <button
-                    aria-label={t('members.removeFromFrontNamed', { name: m.name })}
-                    title={t('members.removeFromFront')}
-                    onClick={e => { e.stopPropagation(); setConfirmRemoveFront(m); }}
-                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--danger-bg, transparent)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 15, lineHeight: 1 }}>
-                    −
-                  </button>
-                ) : (
-                  <button
-                    aria-label={t('members.addToFrontNamed', { name: m.name })}
-                    title={t('members.addToFront')}
-                    onClick={e => { e.stopPropagation(); setQuickFrontFor(m); }}
-                    style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: 15, lineHeight: 1 }}>
-                    ＋
-                  </button>
-                )
-              )}
-              <div style={{ width: 10, height: 10, borderRadius: 5, background: m.color, flexShrink: 0 }} />
-            </div>
-            {listFields.descriptions && descPreview(m.description) && (
-              <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 8, lineHeight: 1.45, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                {descPreview(m.description)}
-              </div>
-            )}
-            {listFields.groups && (m.groupIds || []).length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-                {sortGroupsForDisplay(groups.filter(g => (m.groupIds || []).includes(g.id)), groups).slice(0, 6).map(g => (
-                  <span key={g!.id} title={g!.description || undefined} style={{ fontSize: 10, color: 'var(--text)', background: 'var(--surface)', border: `1px solid ${g!.color || 'var(--border)'}`, padding: '1px 6px', borderRadius: 999 }}>
-                    {g!.name}
-                  </span>
                 ))}
               </div>
-            )}
-            {(m.tags || []).length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-                {(m.tags || []).slice(0, 4).map(tag => (
-                  <span key={tag} style={{ fontSize: 10, color: 'var(--info)', background: 'var(--info-bg)', padding: '1px 6px', borderRadius: 999 }}>
-                    {tag}
-                  </span>
-                ))}
-                {(m.tags || []).length > 4 && (
-                  <span style={{ fontSize: 10, color: 'var(--muted)' }}>+{fmtNum((m.tags || []).length - 4, 0)}</span>
-                )}
-              </div>
-            )}
             </div>
-          </div>
-          </SortableCard>
-        ))}
-      </div>
-      </SortableContext>
-      </DndContext>
-
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>
-          {(search || activeTag) ? t('members.noMembers') : archiveOnly ? (listView === 'customFronts' ? t('members.noArchivedCustomFronts') : listView === 'facets' ? t('members.noArchivedFacets') : t('members.noArchived')) : listView === 'customFronts' ? t('members.noCustomFronts') : listView === 'facets' ? t('members.noFacets') : t('members.noMembers')}
-        </div>
+          )}
+        </>
       )}
-
-      {archiveOnly && deletedMembers.length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <Section label={t('members.recentlyDeleted')} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {deletedMembers.map(m => (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', opacity: 0.85 }}>
-                <div className="tile__avatar" style={{ width: 32, height: 32, fontSize: 12, overflow: 'hidden', ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : !m.avatarTransparent ? { backgroundColor: m.color } : {}) }}>
-                  {m.avatar ? <img src={m.avatar} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} /> : getInitials(m.name)}
-                </div>
-                <div style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
-                <Btn variant="ghost" onClick={() => restoreDeleted(m.id)} aria-label={t('members.restoreNamed', { name: m.name })}>{t('members.restore')}</Btn>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      </>)}
 
       <ConfirmDialog open={bulkConfirm === 'archive'} title={t('members.bulkArchive')} message={t('members.bulkArchiveMsg', { count: selectedIds.size })}
-        onConfirm={() => runBulk('archive')} onCancel={() => setBulkConfirm(null)} />
+        onConfirm={() => void runBulk('archive')} onCancel={() => setBulkConfirm(null)} />
       <ConfirmDialog open={bulkConfirm === 'restore'} title={t('members.bulkRestore')} message={t('members.bulkRestoreMsg', { count: selectedIds.size })}
-        onConfirm={() => runBulk('restore')} onCancel={() => setBulkConfirm(null)} />
+        onConfirm={() => void runBulk('restore')} onCancel={() => setBulkConfirm(null)} />
       <ConfirmDialog open={bulkConfirm === 'delete'} danger title={t('members.bulkDelete')} message={t('members.bulkDeleteMsg', { count: selectedIds.size })}
-        onConfirm={() => runBulk('delete')} onCancel={() => setBulkConfirm(null)} />
+        onConfirm={() => void runBulk('delete')} onCancel={() => setBulkConfirm(null)} />
       <ConfirmDialog open={bulkConfirm === 'facet'} title={listView === 'active' ? t('members.makeFacet') : t('members.makeMember')} message={t('members.selectedCount', { count: selectedIds.size })}
-        onConfirm={() => runBulk('facet')} onCancel={() => setBulkConfirm(null)} />
+        onConfirm={() => void runBulk('facet')} onCancel={() => setBulkConfirm(null)} />
 
-      <Modal open={showGroupAssign} title={t('members.assignGroup')} onClose={() => setShowGroupAssign(false)}
-        footer={
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
-            <Btn variant="ghost" onClick={() => setShowGroupAssign(false)}>{t('common.cancel')}</Btn>
-            <Btn variant="primary" onClick={applyGroupAssign} disabled={groupAssignSel.size === 0}>{t('common.confirm')}</Btn>
-          </div>
-        }>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-          {sortGroupsForDisplay(groups, groups).map(g => {
-            const on = groupAssignSel.has(g.id);
-            return (
-              <button key={g.id} className="chip" aria-pressed={on} onClick={() => setGroupAssignSel(prev => { const n = new Set(prev); if (n.has(g.id)) n.delete(g.id); else n.add(g.id); return n; })}
-                style={{ background: on ? 'var(--accent-bg)' : 'var(--surface)', color: on ? 'var(--accent)' : 'var(--dim)', borderColor: on ? 'var(--accent)' : 'var(--border)' }}>
-                <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
-                {g.name}
-              </button>
-            );
-          })}
-        </div>
-      </Modal>
+      {showGroupAssign && <GroupAssignDialog groups={groups} onApply={ids => void applyGroupAssign(ids)} onClose={() => setShowGroupAssign(false)} />}
+      {showTagAssign && <TagAssignDialog known={knownTags} onApply={tags => void applyTagAssign(tags)} onClose={() => setShowTagAssign(false)} />}
 
-      {showTagAssign && <TagAssignDialog known={knownTags} onApply={applyTagAssign} onClose={() => setShowTagAssign(false)} />}
+      {editing && (
+        <MemberEditor key={editSession} member={editing} isNew={isNew} onClose={() => setEditing(null)}
+          onSave={saveEdited} onDelete={removeMember} onClone={cloneMember} onOpenMember={openEdit} onShowOnMap={onShowOnMap} />
+      )}
 
-      <Modal open={!!editing} title={isNew ? t('modal.addMember') : t('modal.editMember')} onClose={() => setEditing(null)}
-        style={profilePt ? (themeVars(profilePt) as React.CSSProperties) : undefined}
-        footer={
-          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {!isNew && !readMode && (
-                <Btn variant="danger" onClick={() => setConfirmDelete(f.id)}>{t('common.delete')}</Btn>
-              )}
-              {!isNew && !readMode && (
-                <Btn variant="ghost" onClick={() => setShowClone(true)}>{t('members.clone')}</Btn>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn variant="ghost" onClick={() => setEditing(null)}>{readMode ? t('common.close') : t('common.cancel')}</Btn>
-              {!readMode && <Btn variant="solid" onClick={saveMember}>{t('common.save')}</Btn>}
-            </div>
-          </div>
-        }>
-        {!isNew && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-            <Btn variant="ghost" onClick={() => setReadMode(m => !m)}>{readMode ? t('common.edit') : t('modal.read')}</Btn>
-          </div>
-        )}
-        {!isNew && !readMode && (
-          <div role="tablist" style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
-            {(['main', 'fields', 'connections', 'noteboard'] as MemberTab[]).map(tab => (
-              <button key={tab} style={{
-                padding: '8px 16px', fontSize: 13, fontWeight: memberTab === tab ? 600 : 400, cursor: 'pointer',
-                color: memberTab === tab ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
-                borderBottom: `2px solid ${memberTab === tab ? 'var(--accent)' : 'transparent'}`,
-              }} role="tab" aria-selected={memberTab === tab} onClick={() => setMemberTab(tab)} onKeyDown={tabListKeyDown}>
-                {tab === 'main' ? t('modal.editMember')
-                  : tab === 'fields' ? t('customFields.title')
-                  : tab === 'connections' ? t('systemMap.connections')
-                  : t('noteboard.title')}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {readMode && !isNew && (() => {
-          const cardHex = (getComputedStyle(document.documentElement).getPropertyValue('--card') || '').trim() || '#0A1F2E';
-          const mc = profilePt ? 'var(--text)' : ensureReadable(f.color || '#DAA520', cardHex, 3);
-          const edge = profilePt ? 'var(--border)' : `${f.color}40`;
-          const activeGroups = sortGroupsForDisplay(groups.filter(g => (f.groupIds || []).includes(g.id)), groups);
-          const visibleDefs = fieldDefs.filter(fd => {
-            const vv = (f.customFields || []).find(c => c.fieldId === fd.id)?.value;
-            return !(vv === undefined || vv === null || vv === '' || (fd.type === 'image' && vv === 'cloud:media'));
-          });
-          const allTypes = allRelationshipTypes(relTypes);
-          const relTypeById = new Map(allTypes.map(ty => [ty.id, ty]));
-          const relLabel = (id: string) => { const ty = relTypeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`) : ty.name) : '?'; };
-          const gone = (i: string) => { const m = members.find(x => x.id === i); return !!m && !!m.deleted; };
-          const mine = relationships.filter(r => (r.fromId === f.id || r.toId === f.id) && !gone(r.fromId === f.id ? r.toId : r.fromId));
-          const readVal = (fd: CustomFieldDef, val: string | number | boolean | null) => {
-            if (fd.type === 'toggle') return <span role="img" aria-label={val ? t('common.yes') : t('common.no')} style={{ fontSize: 14, color: val ? 'var(--accent)' : 'var(--muted)' }}>{val ? '✓' : '-'}</span>;
-            if (fd.type === 'color') return (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 22, height: 22, borderRadius: 6, background: String(val || '#333'), border: '1px solid var(--border)', display: 'inline-block' }} />
-                <span style={{ fontSize: 12, color: 'var(--dim)', fontFamily: 'monospace' }}>{String(val || '')}</span>
-              </span>
-            );
-            if (fd.type === 'image') return <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />;
-            if (fd.type === 'dateRange') return <span style={{ fontSize: 13, color: 'var(--text)' }}>{fmtFieldValue('dateRange', val)}</span>;
-            if (fd.type === 'text' || fd.type === 'markdown') return <MarkdownText text={String(val)} members={members} />;
-            return <span style={{ fontSize: 13, color: 'var(--text)' }}>{fmtFieldValue(fd.type, val)}</span>;
-          };
-          return (
-            <div>
-              {f.banner && (
-                <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, overflow: 'hidden', marginBottom: 12,
-                  backgroundImage: `url(${f.banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-              )}
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-                <div className="tile__avatar" style={{
-                  width: 72, height: 72, borderRadius: 36, fontSize: 24, flexShrink: 0,
-                  border: `2px solid ${profilePt ? 'var(--border)' : f.color}`, overflow: 'hidden', cursor: f.avatar ? 'pointer' : 'default',
-                  ...(!f.avatar ? { backgroundColor: profilePt ? 'var(--surface)' : f.color, color: profilePt ? 'var(--text)' : initialOn(f.color) } : {}),
-                }} {...(f.avatar ? clickable(() => setViewPfp(true), t('modal.viewPfp')) : {})}>
-                  {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
-                </div>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: mc }}>{f.name}</div>
-                  {f.pronouns ? <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 2 }}>{f.pronouns}</div> : null}
-                  {f.role ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginTop: 2 }}>{f.role}</div> : null}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-                <span role="img" aria-label={t('common.labelValue', { label: t('modal.color'), value: f.color })} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 999, border: `1px solid ${edge}`, background: 'var(--surface)' }}>
-                  <span aria-hidden style={{ width: 12, height: 12, borderRadius: 6, background: f.color, border: profilePt ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)', display: 'inline-block' }} />
-                  <span aria-hidden style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'monospace' }}>{f.color}</span>
-                </span>
-                {f.emoji ? (
-                  <span role="img" aria-label={t('common.labelValue', { label: t('modal.emoji'), value: f.emoji })} style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 999, border: `1px solid ${edge}`, background: 'var(--surface)', fontSize: 14 }}>{f.emoji}</span>
-                ) : null}
-              </div>
-
-              {(f.tags || []).length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 10 }}>
-                  {(f.tags || []).map(tag => (
-                    <span key={tag} style={{ padding: '3px 9px', borderRadius: 999, background: profilePt ? 'var(--surface)' : `${f.color}18`, border: `1px solid ${edge}`, color: mc, fontSize: 11 }}>{tag}</span>
-                  ))}
-                </div>
-              )}
-              {activeGroups.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
-                  {activeGroups.map(g => (
-                    <span key={g.id} title={g.description || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999,
-                      border: profilePt ? '1px solid var(--border)' : `1px solid ${g.color || 'var(--accent)'}50`, background: profilePt ? 'var(--surface)' : `${g.color || 'var(--accent)'}20`, color: profilePt ? ensureReadable(g.color || profilePt.accent, profilePt.surface, 4.5) : (g.color || 'var(--accent)'), fontSize: 11 }}>
-                      <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
-                      {g.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {(() => {
-                const linkedSubs = sortGroupsForDisplay(linkedSubsystemsOf(groups, f.id), groups);
-                if (linkedSubs.length === 0) return null;
-                return (
-                  <>
-                    <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 6 }}>{t('memberGroups.linkedSubsystems')}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
-                      {linkedSubs.map(g => (
-                        <span key={g.id} title={g.description || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999,
-                          border: profilePt ? '1px solid var(--border)' : `1px solid ${g.color || 'var(--accent)'}50`, background: profilePt ? 'var(--surface)' : `${g.color || 'var(--accent)'}20`, color: profilePt ? ensureReadable(g.color || profilePt.accent, profilePt.surface, 4.5) : (g.color || 'var(--accent)'), fontSize: 11 }}>
-                          <span aria-hidden style={{ width: 7, height: 7, borderRadius: 1.5, background: g.color || 'var(--accent)', display: 'inline-block' }} />
-                          {g.name}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
-
-              {f.description ? (
-                <>
-                  <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 6 }}>{t('modal.descriptionBio')}</div>
-                  <div style={{ padding: 12, background: 'var(--surface)', border: `1px solid ${edge}`, borderRadius: 8, marginBottom: 14 }}>
-                    <MarkdownText text={f.description} members={members} />
-                  </div>
-                </>
-              ) : null}
-
-              {visibleDefs.length > 0 && (
-                <>
-                  <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 8, borderTop: `1px solid ${edge}`, paddingTop: 14 }}>{t('customFields.title')}</div>
-                  {visibleDefs.map((fd, i) => {
-                    const val = (f.customFields || []).find(v => v.fieldId === fd.id)?.value ?? '';
-                    return (
-                      <div key={fd.id} style={{ marginBottom: 12, borderTop: i > 0 ? '1px solid var(--border)' : undefined, paddingTop: i > 0 ? 12 : undefined }}>
-                        <div className="field__label">{fd.name}</div>
-                        {readVal(fd, val)}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-
-              {(mine.length > 0 || onShowOnMap) && (
-                <>
-                  <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: mc, fontWeight: 600, marginBottom: 8, borderTop: `1px solid ${edge}`, paddingTop: 14 }}>{t('systemMap.connections')}</div>
-                  {onShowOnMap && (
-                    <Btn variant="ghost" onClick={() => onShowOnMap(f.id)}>{t('systemMap.showOnMap')}</Btn>
-                  )}
-                  {mine.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
-                      {mine.map(r => {
-                        const otherId = r.fromId === f.id ? r.toId : r.fromId;
-                        const other = members.find(m => m.id === otherId);
-                        return (
-                          <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                            <span style={{ width: 8, height: 8, borderRadius: 4, background: relTypeById.get(r.typeId)?.color || DEFAULT_REL_COLOR }} />
-                            <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{relLabel(r.typeId)}</span>
-                            <button onClick={() => other && openEdit(other)} disabled={!other}
-                              style={{ flex: 1, textAlign: 'left', fontSize: 13, color: 'var(--text)', background: 'none', border: 'none', cursor: other ? 'pointer' : 'default' }}>
-                              {other?.name || '?'}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })()}
-
-        {!readMode && (
-        <fieldset disabled={readMode} style={{ border: 'none', margin: 0, padding: 0, minInlineSize: 'auto' }}>
-        {!isNew && !readMode && settings?.selfMemberId !== f.id && memberTab === 'main' && (
-          <button
-            onClick={() => {
-              const toFacet = !f.isFacet;
-              setF({ ...f, isFacet: toFacet, isCustomFront: toFacet ? false : f.isCustomFront });
-            }}
-            title={t('members.moveCategoryHint')}
-            style={{
-              alignSelf: 'flex-start', marginBottom: 14, padding: '6px 12px', borderRadius: 999,
-              border: '1px solid var(--border)', background: 'var(--surface)',
-              color: 'var(--muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            }}>
-            <span aria-hidden>{f.isFacet ? '↩ ' : '◈ '}</span>
-            {f.isFacet
-              ? t('members.makeMember')
-              : t('members.makeFacet')}
-          </button>
-        )}
-
-        {(memberTab === 'main' || isNew) && (<>
-          <div style={{ textAlign: 'center', marginBottom: 16 }}>
-            <div className="tile__avatar" style={{
-              width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
-              border: `2px solid ${f.color}`, overflow: 'hidden',
-              ...(!f.avatar ? { backgroundColor: f.color, color: initialOn(f.color) } : {}),
-            }} {...(readMode ? (f.avatar ? clickable(() => setViewPfp(true), t('modal.viewPfp')) : {}) : clickable(pickAvatar, t('modal.changePfp')))}>
-              {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
-            </div>
-            <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
-              <button aria-label={t('modal.changePfp')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-                onClick={pickAvatar}>📷</button>
-              {f.avatar && (
-                <button aria-label={t('modal.viewPfp')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-                  onClick={() => setViewPfp(true)}>🔍 {t('modal.viewPfp')}</button>
-              )}
-              {f.avatar && (
-                <button style={{ fontSize: 11, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
-                  onClick={() => set('avatar', undefined)}>{t('modal.removePfp')}</button>
-              )}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
-              backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
-              backgroundColor: f.banner ? undefined : 'var(--surface)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,
-            }} {...(readMode ? {} : clickable(pickBanner, t('memberProfile.changeBanner')))}>
-              {!f.banner && t('memberProfile.changeBanner')}
-            </div>
-            {f.banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
-              onClick={() => set('banner', undefined)}>{t('memberProfile.removeBanner')}</button>}
-          </div>
-
-          <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} placeholder={f.isFacet ? t('modal.facetName') : t('modal.headmateName')} />
-          <Field label={t('modal.nickname')} value={f.nickname || ''} onChange={v => set('nickname' as any, v || undefined)} placeholder={t('modal.nickname')} />
-          <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
-          <Field label={t('modal.role')} value={f.role} onChange={v => set('role', v)} placeholder={t('modal.rolePlaceholder')} />
-          <Field label={t('modal.emoji')} value={f.emoji || ''} onChange={v => set('emoji', normalizeMemberEmoji(v))} placeholder={t('modal.emojiPlaceholder')} />
-
-          <Section label={t('modal.color')} />
-          <ColorCarousel value={f.color} onChange={v => set('color', v)} />
-          <CustomHexEntry value={f.color} onApply={v => set('color', v)}
-            leading={<><TransparentAvatarChip value={!!f.avatarTransparent} onChange={v => set('avatarTransparent', v)} /><ProfileBgChip color={f.color} value={!!f.profileBg} onChange={v => set('profileBg', v)} /></>} />
-
-          {groups.length > 0 && (() => {
-            const selected = new Set(f.groupIds || []);
-            const chip = (g: MemberGroup) => {
-              const active = selected.has(g.id);
-              return (
-                <button key={g.id} className="chip" type="button"
-                  title={g.description || undefined}
-                  aria-pressed={active}
-                  style={{
-                    borderColor: active ? `${g.color || 'var(--accent)'}50` : 'var(--border)',
-                    background: active ? `${g.color || 'var(--accent)'}20` : 'var(--surface)',
-                    color: active ? (g.color || 'var(--accent)') : 'var(--dim)',
-                  }}
-                  onClick={() => toggleGroup(g.id)}>
-                  <span aria-hidden style={{ width: 7, height: 7, borderRadius: groupKind(g) === 'subsystem' ? 1.5 : '50%', background: g.color || 'var(--accent)', display: 'inline-block' }} />
-                  {g.name}
-                  {active && <span aria-hidden style={{ fontWeight: 700 }}>✓</span>}
-                </button>
-              );
-            };
-            const isOpen = (g: MemberGroup): boolean =>
-              g.id in groupOpen ? groupOpen[g.id] : descendantsOf(groups, g.id).some(d => selected.has(d.id));
-            const toggleOpen = (g: MemberGroup) => setGroupOpen(prev => ({ ...prev, [g.id]: !isOpen(g) }));
-            const exists = new Set(groups.map(g => g.id));
-            const roots = groups
-              .filter(g => { const p = groupParent(g); return p === null || !exists.has(p); })
-              .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || nameCompare(a.name, b.name));
-            const reachable = new Set<string>();
-            const mark = (g: MemberGroup) => { if (reachable.has(g.id)) return; reachable.add(g.id); for (const c of childrenOf(groups, g.id)) mark(c); };
-            roots.forEach(mark);
-            const unreached = groups.filter(g => !reachable.has(g.id));
-            const seen = new Set<string>();
-            const renderLevel = (parentId: string | null, depth: number): React.ReactNode => {
-              const kids = (parentId === null ? roots : childrenOf(groups, parentId)).filter(g => !seen.has(g.id));
-              kids.forEach(g => seen.add(g.id));
-              const leaves = kids.filter(g => childrenOf(groups, g.id).length === 0);
-              const parents = kids.filter(g => childrenOf(groups, g.id).length > 0);
-              return (
-                <div style={{ paddingLeft: depth === 0 ? 0 : 16, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {leaves.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>{leaves.map(g => chip(g))}</div>}
-                  {parents.map(g => {
-                    const open = isOpen(g);
-                    const activeKids = descendantsOf(groups, g.id).filter(d => selected.has(d.id)).length;
-                    return (
-                      <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {chip(g)}
-                          <button type="button" className="chip" aria-expanded={open} aria-label={t('memberGroups.showSubgroups', { name: g.name, count: activeKids })} onClick={() => toggleOpen(g)}
-                            style={{ padding: '3px 8px', background: 'var(--surface)', color: 'var(--dim)', borderColor: 'var(--border)' }}>
-                            {!open && activeKids > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: g.color || 'var(--accent)' }}>{activeKids}</span>}
-                            <span aria-hidden style={{ fontSize: 10 }}>{open ? '▽' : '▷'}</span>
-                          </button>
-                        </div>
-                        {open && renderLevel(g.id, depth + 1)}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            };
-            return (
-              <>
-                <Section label={t('memberGroups.title')} />
-                <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {renderLevel(null, 0)}
-                  {unreached.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>{unreached.map(g => chip(g))}</div>}
-                </div>
-              </>
-            );
-          })()}
-
-          {(() => {
-            const subs = sortGroupsForDisplay(groups.filter(g => groupKind(g) === 'subsystem'), groups);
-            if (subs.length === 0) return null;
-            const linkedIds = linkSel ?? linkedSubsystemsOf(groups, f.id).map(g => g.id);
-            const toggleLink = (gid: string) => setLinkSel(cur => {
-              const base = cur ?? linkedSubsystemsOf(groups, f.id).map(g => g.id);
-              return base.includes(gid) ? base.filter(x => x !== gid) : [...base, gid];
-            });
-            return (
-              <>
-                <Section label={t('memberGroups.linkedSubsystems')} />
-                <div role="group" aria-label={t('memberGroups.linkedSubsystems')} style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
-                  {subs.map(g => {
-                    const on = linkedIds.includes(g.id);
-                    const other = !on && g.linkedMemberId && g.linkedMemberId !== f.id
-                      ? members.find(m => m.id === g.linkedMemberId && !m.deleted)
-                      : undefined;
-                    return (
-                      <button key={g.id} className="chip" type="button" aria-pressed={on}
-                        aria-label={other ? t('memberGroups.linkedToNamed', { group: g.name, name: other.name }) : g.name}
-                        title={g.description || undefined}
-                        style={{
-                          borderColor: on ? `${g.color || 'var(--accent)'}50` : 'var(--border)',
-                          background: on ? `${g.color || 'var(--accent)'}20` : 'var(--surface)',
-                          color: on ? (g.color || 'var(--accent)') : 'var(--dim)',
-                        }}
-                        onClick={() => toggleLink(g.id)}>
-                        <span aria-hidden style={{ width: 7, height: 7, borderRadius: 1.5, background: g.color || 'var(--accent)', display: 'inline-block' }} />
-                        {g.name}{other ? `  ·  ${other.name}` : ''}
-                        {on && <span aria-hidden style={{ fontWeight: 700 }}>✓</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            );
-          })()}
-
-          <Section label={t('modal.memberTags')} />
-          <ChipList items={f.tags || []} onRemove={tag => setF(x => ({ ...x, tags: (x.tags || []).filter(t => t !== tag) }))} />
-          <AddRow value={tagInput} onChange={setTagInput} onAdd={addTag} placeholder={t('modal.memberTagPlaceholder')} />
-          {tagSuggestions.length > 0 && (
-            <div role="group" aria-label={t('members.allTags')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6, marginBottom: 10 }}>
-              {tagSuggestions.map(tag => (
-                <button key={tagKey(tag)} type="button" className="chip" aria-label={t('common.addNamed', { name: tag })} onClick={() => applyTag(tag)}
-                  style={{ borderStyle: 'dashed', background: 'var(--surface)', color: 'var(--dim)', borderColor: 'var(--border)' }}>
-                  {tag}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <Section label={t('modal.descriptionBio')} />
-          <Field value={f.description} onChange={v => set('description', v)} placeholder={t('modal.descriptionPlaceholder')} ariaLabel={t('modal.descriptionBio')} multiline pictureTools />
-
-          <Toggle label={t('modal.private')} description={t('modal.privateDesc')}
-            value={!!f.private} onChange={v => set('private', v)} />
-
-          {!isNew && (
-            <Toggle label={t('modal.archiveMember')} description={t('modal.archiveDesc')}
-              value={!!f.archived} onChange={v => set('archived', v)} />
-          )}
-        </>)}
-
-        {memberTab === 'fields' && !isNew && (
-          <div>
-            {fieldDefs.length > 0 ? (
-              fieldDefs.map((fd, fdIdx) => {
-                const cfv = (f.customFields || []).find(v => v.fieldId === fd.id);
-                const val = fd.type === 'image' && cfv?.value === 'cloud:media' ? '' : (cfv?.value ?? '');
-                const setFieldVal = (newVal: string | number | boolean | null) => {
-                  const existing = f.customFields || [];
-                  const updated = existing.some(v => v.fieldId === fd.id)
-                    ? existing.map(v => v.fieldId === fd.id ? { ...v, value: newVal } : v)
-                    : [...existing, { fieldId: fd.id, value: newVal }];
-                  set('customFields' as any, updated);
-                };
-                return (
-                  <div key={fd.id} style={{ marginBottom: 14, borderTop: fdIdx > 0 ? '1px solid var(--border)' : undefined, paddingTop: fdIdx > 0 ? 14 : undefined }}>
-                    {fd.type === 'toggle' ? (
-                      <Toggle label={fd.name} value={!!val} onChange={v => setFieldVal(v)} />
-                    ) : fd.type === 'number' ? (
-                      <Field label={fd.name} value={String(val ?? '')} onChange={v => {
-                        const cleaned = v.replace(/[^0-9.\-]/g, '');
-                        if (cleaned === '') { setFieldVal(null); return; }
-                        const n = Number(cleaned);
-                        if (Number.isFinite(n) && !/[.\-]$/.test(cleaned) && cleaned !== '.') setFieldVal(n);
-                        else setFieldVal(cleaned);
-                      }} placeholder="0" />
-                    ) : fd.type === 'color' ? (
-                      <div>
-                        <label className="field__label">{fd.name}</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: 6, background: String(val || '#333'), border: '1px solid var(--border)' }} />
-                          <input className="field__input" aria-label={fd.name} type="color" value={String(val || '#333333')}
-                            onChange={e => setFieldVal(e.target.value)} style={{ width: 60, padding: 2 }} />
-                        </div>
-                      </div>
-                    ) : fd.type === 'date' || fd.type === 'timestamp' ? (
-                      <div>
-                        <label className="field__label">{fd.name}</label>
-                        <input className="field__input" aria-label={fd.name} type={fd.type === 'timestamp' ? 'datetime-local' : 'date'}
-                          value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
-                      </div>
-                    ) : fd.type === 'month' ? (
-                      <div>
-                        <label className="field__label">{fd.name}</label>
-                        <input className="field__input" aria-label={fd.name} type="month" value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
-                      </div>
-                    ) : fd.type === 'year' ? (
-                      <Field label={fd.name} value={String(val || '')} onChange={v => setFieldVal(v)} placeholder={t('dateFormat.year')} />
-                    ) : fd.type === 'monthYear' ? (
-                      <div>
-                        <label className="field__label">{fd.name}</label>
-                        <input className="field__input" aria-label={fd.name} type="month" value={String(val || '')} onChange={e => setFieldVal(e.target.value)} />
-                      </div>
-                    ) : fd.type === 'monthDay' ? (
-                      <div>
-                        <label className="field__label">{fd.name}</label>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <select className="field__input" aria-label={fd.name} style={{ flex: 1 }} value={String(val || '').split('-')[0] || ''}
-                            onChange={e => setFieldVal(`${e.target.value}-${String(val || '').split('-')[1] || '01'}`)}>
-                            <option value="">{t('customFields.typeMonth')}</option>
-                            {Array.from({length: 12}, (_, i) => <option key={i+1} value={String(i+1).padStart(2,'0')}>{new Date(2000, i).toLocaleString(getLocale(), {month: 'long'})}</option>)}
-                          </select>
-                          <input className="field__input" type="number" min="1" max="31" style={{ width: 70 }}
-                            aria-label={t('customFields.day')}
-                            value={String(val || '').split('-')[1] || ''}
-                            onChange={e => setFieldVal(`${String(val || '').split('-')[0] || '01'}-${e.target.value}`)}
-                            placeholder={t('customFields.day')} />
-                        </div>
-                      </div>
-                    ) : fd.type === 'dateRange' ? (
-                      <div>
-                        <label className="field__label">{fd.name}</label>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <input className="field__input" aria-label={t('customFields.rangePart', { field: fd.name, part: t('customFields.startDate') })} type="date" value={String(val || '').split('|')[0] || ''}
-                            onChange={e => setFieldVal(`${e.target.value}|${String(val || '').split('|')[1] || ''}`)} style={{ flex: 1 }} />
-                          <input className="field__input" aria-label={t('customFields.rangePart', { field: fd.name, part: t('customFields.endDate') })} type="date" value={String(val || '').split('|')[1] || ''}
-                            onChange={e => setFieldVal(`${String(val || '').split('|')[0] || ''}|${e.target.value}`)} style={{ flex: 1 }} />
-                        </div>
-                      </div>
-                    ) : fd.type === 'image' ? (
-                      <div>
-                        <label className="field__label">{fd.name}</label>
-                        {val ? (
-                          <div>
-                            <img src={String(val)} alt={fd.name} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', display: 'block' }} />
-                            <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
-                              <label style={{ fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }} tabIndex={0} role="button"
-                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.querySelector('input')?.click(); } }}>{t('common.change')}
-                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
-                              </label>
-                              <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }} onClick={() => setFieldVal(null)}>{t('common.clear')}</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--surface)', cursor: 'pointer' }} tabIndex={0} role="button"
-                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.querySelector('input')?.click(); } }}>
-                            <span aria-hidden style={{ fontSize: 20, color: 'var(--dim)' }}>＋</span>
-                            <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('customFields.addImage')}</span>
-                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { if (typeof reader.result !== 'string') return; const chosen = await chooseImageTreatment(reader.result); if (chosen) setFieldVal(chosen); }; reader.readAsDataURL(file); (e.target as HTMLInputElement).value = ''; }} />
-                          </label>
-                        )}
-                      </div>
-                    ) : (
-                      <Field label={fd.name} value={String(val || '')} onChange={v => setFieldVal(v)}
-                        placeholder={fd.name} multiline={fd.type === 'markdown'} pictureTools={fd.type === 'markdown'} />
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>
-                {t('customFields.noFieldsInfo')}
-              </div>
-            )}
-          </div>
-        )}
-
-        {memberTab === 'connections' && !isNew && (() => {
-          const allTypes = allRelationshipTypes(relTypes);
-          const typeById = new Map(allTypes.map(ty => [ty.id, ty]));
-          const typeLabel = (id: string) => { const ty = typeById.get(id); return ty ? ((ty.preset && !ty.overridden) ? t(`relType.${ty.id}`) : ty.name) : '?'; };
-          const gone = (i: string) => { const m = members.find(x => x.id === i); return !!m && !!m.deleted; };
-          const mine = relationships.filter(r => (r.fromId === f.id || r.toId === f.id) && !gone(r.fromId === f.id ? r.toId : r.fromId));
-          return (
-            <div>
-              {onShowOnMap && (
-                <Btn variant="ghost" onClick={() => onShowOnMap(f.id)}>{t('systemMap.showOnMap')}</Btn>
-              )}
-              {mine.length === 0 ? (
-                <p style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginTop: 12 }}>{t('systemMap.noneForMember')}</p>
-              ) : (
-                <div style={{ marginTop: 12 }}>
-                  {mine.map(r => {
-                    const otherId = r.fromId === f.id ? r.toId : r.fromId;
-                    const other = members.find(m => m.id === otherId);
-                    return (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 4, background: typeById.get(r.typeId)?.color || DEFAULT_REL_COLOR }} />
-                        <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{typeLabel(r.typeId)}</span>
-                        <button onClick={() => other && openEdit(other)} disabled={!other}
-                          style={{ flex: 1, textAlign: 'left', fontSize: 13, color: 'var(--text)', background: 'none', border: 'none', cursor: other ? 'pointer' : 'default' }}>
-                          {other?.name || '?'}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {memberTab === 'noteboard' && !isNew && (
-          <div>
-            {memberNotes.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                {memberNotes.map(note => {
-                  const author = members.find(m => m.id === note.authorId);
-                  return (
-                    <div key={note.id} style={{
-                      padding: 12, background: note.pinned ? 'var(--accent-bg)' : 'var(--card)',
-                      border: `1px solid ${note.pinned ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <div aria-hidden style={{ width: 22, height: 22, borderRadius: 11, fontSize: 9, fontWeight: 700,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          background: author?.color || 'var(--muted)', color: author?.color ? initialOn(author.color) : 'var(--text)' }}>
-                          {getInitials(author?.name || '?')}
-                        </div>
-                        <span style={{ fontSize: 12, color: author?.color || 'var(--dim)', fontWeight: 500 }}>{author?.name || '?'}</span>
-                        {note.pinned && <SrOnly>{t('noteboard.pinned')}</SrOnly>}
-                        <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>{fmtTime(note.timestamp)}</span>
-                      </div>
-                      <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{note.content}</p>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                        <button style={{ background: 'none', border: 'none', fontSize: 11, color: note.pinned ? 'var(--accent)' : 'var(--dim)', cursor: 'pointer' }}
-                          onClick={() => togglePin(note.id)}>{note.pinned ? <><span aria-hidden>📌 </span>{t('noteboard.unpin')}</> : t('noteboard.pin')}</button>
-                        <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}
-                          onClick={() => deleteNote(note.id)}>{t('noteboard.deleteNote')}</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>{t('noteboard.noNotes')}</div>
-            )}
-
-            <div style={{ padding: 12, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('noteboard.writingAs')}</span>
-                <select style={{ background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 12 }}
-                  aria-label={t('noteboard.writingAs')} value={noteAuthorId || ''} onChange={e => setNoteAuthorId(e.target.value)}>
-                  {members.some(m => !m.archived && !m.isFacet) && (
-                    <optgroup label={t('members.title')}>
-                      {members.filter(m => !m.archived && !m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </optgroup>
-                  )}
-                  {members.some(m => !m.archived && m.isFacet) && (
-                    <optgroup label={t('members.facets')}>
-                      {members.filter(m => !m.archived && m.isFacet).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <textarea className="field__input field__input--multi" value={noteText} onChange={e => setNoteText(e.target.value)}
-                  aria-label={t('noteboard.placeholder')} placeholder={t('noteboard.placeholder')} style={{ flex: 1, minHeight: 48, fontSize: 13 }}
-                  onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addNote(); }} />
-                <Btn variant="solid" onClick={addNote}>{t('common.add')}</Btn>
-              </div>
-            </div>
-          </div>
-        )}
-        </fieldset>
-        )}
-      </Modal>
-
-      <ConfirmDialog open={!!confirmDelete}
-        title={t('modal.confirmDelete')}
-        message={t('modal.confirmDelete')}
-        danger
-        onConfirm={() => confirmDelete && deleteMember(confirmDelete)}
-        onCancel={() => setConfirmDelete(null)} />
-
-      <Modal open={viewPfp && !!f.avatar} title={t('modal.viewPfpOf', { name: f.name || '?' })} onClose={() => setViewPfp(false)}>
-        <div {...clickable(() => setViewPfp(false), t('common.close'))} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
-          <img src={f.avatar} alt={t('modal.viewPfpOf', { name: f.name || '?' })}
-            style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 12, display: 'block' }} />
-        </div>
-      </Modal>
-
-      <Modal open={showClone} title={t('members.clone')} onClose={() => setShowClone(false)}
-        footer={
-          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
-            <Btn variant="ghost" onClick={() => setShowClone(false)}>{t('common.cancel')}</Btn>
-            <Btn variant="solid" onClick={doClone}>{t('members.clone')}</Btn>
-          </div>
-        }>
-        <p style={{ fontSize: 13, color: 'var(--dim)', marginTop: 0, marginBottom: 8 }}>{t('members.cloneFields')}</p>
-        <Toggle value={cloneSel.name} onChange={v => setCloneSel(s => ({ ...s, name: v }))} label={t('modal.name')} />
-        <Toggle value={cloneSel.pronouns} onChange={v => setCloneSel(s => ({ ...s, pronouns: v }))} label={t('modal.pronouns')} />
-        <Toggle value={cloneSel.role} onChange={v => setCloneSel(s => ({ ...s, role: v }))} label={t('modal.role')} />
-        <Toggle value={cloneSel.color} onChange={v => setCloneSel(s => ({ ...s, color: v }))} label={t('modal.color')} />
-        <Toggle value={cloneSel.description} onChange={v => setCloneSel(s => ({ ...s, description: v }))} label={t('modal.descriptionBio')} />
-      </Modal>
-
-      <Modal open={!!quickFrontFor} title={quickFrontFor ? t('members.addToFrontNamed', { name: quickFrontFor.name }) : t('members.addToFront')} onClose={() => setQuickFrontFor(null)}>
-        {quickFrontFor && (['primary', 'coFront', 'coConscious'] as const)
-          .map(tier => (
-            <button key={tier}
-              onClick={() => { onQuickFront?.(quickFrontFor.id, tier); setQuickFrontFor(null); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 10, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ width: 10, height: 10, borderRadius: 5, flexShrink: 0, background: tier === 'primary' ? 'var(--accent)' : tier === 'coFront' ? 'var(--info)' : 'var(--success)' }} />
-              <span style={{ fontSize: 13, color: 'var(--text)' }}>
-                {tier === 'primary' ? t('tier.primaryFront') : tier === 'coFront' ? t('tier.coFront') : t('tier.coConscious')}
-              </span>
-            </button>
-          ))}
-      </Modal>
-
-      <ConfirmDialog open={!!confirmRemoveFront}
-        title={t('members.removeFromFront')}
-        message={confirmRemoveFront ? t('members.removeFromFrontMsg', { name: confirmRemoveFront.name }) : ''}
-        danger single
-        onConfirm={() => { if (confirmRemoveFront) onRemoveFromFront?.(confirmRemoveFront.id); setConfirmRemoveFront(null); }}
-        onCancel={() => setConfirmRemoveFront(null)} />
+      {onQuickFront && onRemoveFromFront && (
+        <QuickFrontDialogs target={quickFront} onClose={() => setQuickFront(null)} onAdd={onQuickFront} onRemove={onRemoveFromFront} />
+      )}
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

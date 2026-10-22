@@ -1,488 +1,154 @@
-import React, { useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Field, ConfirmDialog, Toggle, Section, useEscapeKey } from '../components/ui';
-import { store, KEYS } from '../storage';
-import { PlannerData, PlannerAppointment, PlannerReminder, PlannerRepeat, PlannerReminderRepeat, DEFAULT_PLANNER, plannerOccursOnDay, uid, isValidTimeHHMM, getLocale, firstDayOfWeek, fmtClockHHMM, fmtList, uses12HourClock, time12to24, dayPeriodLabel } from '../utils';
-import { NetworkManager } from '../network/NetworkManager';
-import { logError } from '../log';
-import { ColorCarousel } from '../components/ColorCarousel';
+import { Btn, ConfirmDialog, Toggle, SaveErrorDialog } from '../components/ui';
+import { saveData } from '../store/actions';
+import { useAppStore } from '../store/appStore';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { PlannerAppointment, PlannerData, PlannerReminder, getLocale, fmtClockHHMM, fmtList } from '../utils';
+import { apptClock, appointmentsOn, remindKey, removeAppointment, removeReminder, repeatKey, sortedReminders, toggleReminder } from '../planner/planner';
+import { AppointmentForm } from './planner/AppointmentForm';
+import { ReminderForm } from './planner/ReminderForm';
+import { MonthCalendar } from './planner/MonthCalendar';
 
-interface Props { onUpdate?: () => void; }
+type Editing =
+  | { kind: 'appointment'; appointment: PlannerAppointment | null }
+  | { kind: 'reminder'; reminder: PlannerReminder | null };
 
-const dayKey = (d: Date): string => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const livePlanner = () => useAppStore.getState().planner;
 
-const REMIND_CHOICES: { minutes: number | null; key: string }[] = [
-  { minutes: null, key: 'planner.remindNone' },
-  { minutes: 0, key: 'planner.remindAtTime' },
-  { minutes: 30, key: 'planner.remind30m' },
-  { minutes: 60, key: 'planner.remind1h' },
-  { minutes: 1440, key: 'planner.remind1d' },
-];
+const ROW_CARD: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 8 };
+const ROW_BUTTON: CSSProperties = { flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 };
+const ROW_TITLE: CSSProperties = { fontSize: 14, fontWeight: 600, color: 'var(--text)' };
 
-const REPEAT_KEYS: Record<string, string> = {
-  once: 'planner.repeatOnce',
-  daily: 'planner.repeatDaily',
-  everyOtherDay: 'planner.repeatEveryOtherDay',
-  weekly: 'planner.repeatWeekly',
-  everyOtherWeek: 'planner.repeatEveryOtherWeek',
-  monthly: 'planner.repeatMonthly',
-  everyOtherMonth: 'planner.repeatEveryOtherMonth',
-  annually: 'planner.repeatAnnually',
-};
-
-const APPT_REPEAT_CHOICES: (PlannerRepeat | null)[] = [null, 'daily', 'everyOtherDay', 'weekly', 'everyOtherWeek', 'monthly', 'everyOtherMonth', 'annually'];
-const REM_REPEAT_CHOICES: PlannerReminderRepeat[] = ['once', 'daily', 'everyOtherDay', 'weekly', 'everyOtherWeek', 'monthly', 'everyOtherMonth', 'annually'];
-
-const pad = (n: number) => String(n).padStart(2, '0');
-const toLocalInput = (ts: number): string => {
-  const d = new Date(ts);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-const toLocalDateInput = (ts: number): string => {
-  const d = new Date(ts);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-const hhmmOf = (ts: number): string => {
-  const d = new Date(ts);
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-export default function PlannerView({ onUpdate }: Props) {
+export default function PlannerView() {
   const { t } = useTranslation();
   const locale = getLocale();
-  const weekStart = firstDayOfWeek();
-  const [planner, setPlannerState] = useState<PlannerData>(DEFAULT_PLANNER);
-  const plannerRef = useRef(planner);
-  plannerRef.current = planner;
-  const today = new Date();
-  const [viewMonth, setViewMonth] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
-  const [selected, setSelected] = useState<Date>(today);
-
-  const [apptOpen, setApptOpen] = useState(false);
-  const [apptId, setApptId] = useState<string | null>(null);
-  const [apptTitle, setApptTitle] = useState('');
-  const [apptWhen, setApptWhen] = useState('');
-  const [apptLocation, setApptLocation] = useState('');
-  const [apptNotes, setApptNotes] = useState('');
-  const [apptRemind, setApptRemind] = useState<number | null>(30);
-  const [apptRepeat, setApptRepeat] = useState<PlannerRepeat | null>(null);
-  const [apptColor, setApptColor] = useState<string | null>(null);
-
-  const [remOpen, setRemOpen] = useState(false);
-  const [remId, setRemId] = useState<string | null>(null);
-  const [remTitle, setRemTitle] = useState('');
-  const [remTimes, setRemTimes] = useState<string[]>([]);
-  const [remNewTime, setRemNewTime] = useState('');
-  const [remAmPm, setRemAmPm] = useState<'AM' | 'PM'>('AM');
-  const twelveHour = uses12HourClock();
-  const [remNotes, setRemNotes] = useState('');
-  const [remRepeat, setRemRepeat] = useState<PlannerReminderRepeat>('daily');
-  const [remStart, setRemStart] = useState('');
-
+  const planner = useAppStore(s => s.planner);
+  const [viewMonth, setViewMonth] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selected, setSelected] = useState<Date>(() => new Date());
+  const [editing, setEditing] = useState<Editing | null>(null);
   const [deleteAppt, setDeleteAppt] = useState<PlannerAppointment | null>(null);
   const [deleteRem, setDeleteRem] = useState<PlannerReminder | null>(null);
-  const [markPickerOpen, setMarkPickerOpen] = useState(false);
+  const [saveError, run, clearSaveError] = useSaveGuard();
   const markColor = planner.markColor || 'var(--accent)';
-
-  useEscapeKey(apptOpen, () => setApptOpen(false));
-  useEscapeKey(remOpen, () => setRemOpen(false));
-
-  const formHeadingRef = useRef<HTMLHeadingElement>(null);
   const returnFocusKey = useRef<string | null>(null);
-  React.useEffect(() => {
-    if (apptOpen || remOpen) { formHeadingRef.current?.focus(); return; }
+
+  useEffect(() => {
+    if (editing) return;
     const key = returnFocusKey.current;
     if (!key) return;
     returnFocusKey.current = null;
     Array.from(document.querySelectorAll<HTMLElement>('[data-focus-key]')).find(el => el.dataset.focusKey === key)?.focus();
-  }, [apptOpen, remOpen]);
+  }, [editing]);
 
-  React.useEffect(() => {
-    const load = () => {
-      store.get<PlannerData>(KEYS.planner, null).then(p => {
-        if (p) setPlannerState({ ...DEFAULT_PLANNER, ...p });
-      }).catch(e => logError('planner', e));
-    };
-    load();
-    return NetworkManager.onSyncApplied(load);
-  }, []);
-
-  const save = async (next: PlannerData) => {
-    setPlannerState(next);
-    await store.set(KEYS.planner, next);
-    NetworkManager.notifyDataChanged();
-    onUpdate?.();
+  const save = (next: PlannerData) => run(() => saveData('planner', next));
+  const open = (next: Editing, focusKey: string) => {
+    returnFocusKey.current = focusKey;
+    setEditing(next);
   };
 
-  const weekdayInitials = useMemo(() => {
-    const base = new Date(2026, 7, 2);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i + weekStart);
-      return d.toLocaleDateString(locale, { weekday: 'narrow' });
-    });
-  }, [locale, weekStart]);
+  if (editing?.kind === 'appointment') {
+    const noon = new Date(selected);
+    noon.setHours(12, 0, 0, 0);
+    return (
+      <>
+        <AppointmentForm appointment={editing.appointment} defaultTime={noon.getTime()} markColor={markColor} planner={livePlanner} onClose={() => setEditing(null)}
+          onSave={async (next, entry) => {
+            if (!(await save(next))) return;
+            const when = new Date(entry.time);
+            setEditing(null);
+            setSelected(when);
+            setViewMonth(new Date(when.getFullYear(), when.getMonth(), 1));
+          }} />
+        <SaveErrorDialog error={saveError} onClose={clearSaveError} />
+      </>
+    );
+  }
 
-  const grid = useMemo(() => {
-    const first = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
-    const start = new Date(first);
-    start.setDate(1 - ((first.getDay() - weekStart + 7) % 7));
-    return Array.from({ length: 42 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      return d;
-    });
-  }, [viewMonth, weekStart]);
+  if (editing?.kind === 'reminder') {
+    return (
+      <>
+        <ReminderForm reminder={editing.reminder} defaultStart={selected.getTime()} planner={livePlanner} onClose={() => setEditing(null)}
+          onSave={async next => { if (await save(next)) setEditing(null); }} />
+        <SaveErrorDialog error={saveError} onClose={clearSaveError} />
+      </>
+    );
+  }
 
-  const minutesOfDay = (ts: number) => { const d = new Date(ts); return d.getHours() * 60 + d.getMinutes(); };
-  const apptsOn = (day: Date): PlannerAppointment[] =>
-    (planner.appointments || [])
-      .filter(a => plannerOccursOnDay(a.time, a.repeat, day))
-      .sort((a, b) => minutesOfDay(a.time) - minutesOfDay(b.time));
-
-  const monthLabel = viewMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   const selectedLabel = selected.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
-  const dayAppts = apptsOn(selected);
-  const sortedRems = [...(planner.reminders || [])].sort((a, b) => (a.times[0] || '').localeCompare(b.times[0] || ''));
-
-  const openNewAppt = () => {
-    const when = new Date(selected);
-    when.setHours(12, 0, 0, 0);
-    setApptId(null); setApptTitle(''); setApptWhen(toLocalInput(when.getTime())); setApptLocation(''); setApptNotes(''); setApptRemind(30); setApptRepeat(null); setApptColor(null);
-    returnFocusKey.current = 'new-appt';
-    setApptOpen(true);
-  };
-
-  const openEditAppt = (a: PlannerAppointment) => {
-    setApptId(a.id); setApptTitle(a.title); setApptWhen(toLocalInput(a.time)); setApptLocation(a.location || '');
-    setApptNotes(a.notes || ''); setApptRemind(a.reminderMinutesBefore ?? null); setApptRepeat(a.repeat ?? null); setApptColor(a.color || null);
-    returnFocusKey.current = `appt-${a.id}`;
-    setApptOpen(true);
-  };
-
-  const saveAppt = async () => {
-    const title = apptTitle.trim();
-    const when = new Date(apptWhen);
-    if (!title || isNaN(when.getTime())) return;
-    const entry: PlannerAppointment = {
-      id: apptId || uid(),
-      title,
-      time: when.getTime(),
-      location: apptLocation.trim() || undefined,
-      notes: apptNotes.trim() || undefined,
-      reminderMinutesBefore: apptRemind ?? undefined,
-      repeat: apptRepeat ?? undefined,
-      color: apptColor ?? undefined,
-      createdAt: apptId ? (planner.appointments.find(x => x.id === apptId)?.createdAt ?? Date.now()) : Date.now(),
-    };
-    await save({ ...planner, appointments: [...planner.appointments.filter(x => x.id !== entry.id), entry] });
-    setApptOpen(false);
-    setSelected(new Date(entry.time));
-    setViewMonth(new Date(when.getFullYear(), when.getMonth(), 1));
-  };
-
-  const openNewRem = () => {
-    setRemId(null); setRemTitle(''); setRemTimes([]); setRemNewTime(''); setRemNotes('');
-    setRemRepeat('daily'); setRemStart(toLocalDateInput(selected.getTime()));
-    returnFocusKey.current = 'new-rem';
-    setRemOpen(true);
-  };
-
-  const openEditRem = (r: PlannerReminder) => {
-    setRemId(r.id); setRemTitle(r.title); setRemTimes([...r.times]); setRemNewTime(''); setRemNotes(r.notes || '');
-    setRemRepeat(r.repeat || 'daily'); setRemStart(toLocalDateInput(r.startDate ?? r.createdAt));
-    returnFocusKey.current = `rem-${r.id}`;
-    setRemOpen(true);
-  };
-
-  const addRemTime = () => {
-    const raw = remNewTime.trim();
-    let v: string;
-    if (twelveHour) {
-      const conv = time12to24(raw, remAmPm);
-      if (!conv) return;
-      v = conv;
-    } else {
-      if (!isValidTimeHHMM(raw)) return;
-      const [h, m] = raw.split(':');
-      v = `${h.padStart(2, '0')}:${m}`;
-    }
-    if (remTimes.includes(v)) return;
-    setRemTimes([...remTimes, v].sort());
-    setRemNewTime('');
-  };
-
-  const saveRem = async () => {
-    const title = remTitle.trim();
-    if (!title || remTimes.length === 0) return;
-    const startParsed = new Date(`${remStart}T00:00`);
-    const startDay = isNaN(startParsed.getTime()) ? new Date() : startParsed;
-    startDay.setHours(0, 0, 0, 0);
-    const entry: PlannerReminder = {
-      id: remId || uid(),
-      title,
-      times: remTimes,
-      enabled: remId ? (planner.reminders.find(x => x.id === remId)?.enabled ?? true) : true,
-      notes: remNotes.trim() || undefined,
-      repeat: remRepeat,
-      startDate: startDay.getTime(),
-      createdAt: remId ? (planner.reminders.find(x => x.id === remId)?.createdAt ?? Date.now()) : Date.now(),
-    };
-    await save({ ...planner, reminders: [...planner.reminders.filter(x => x.id !== entry.id), entry] });
-    setRemOpen(false);
-  };
-
-  const toggleRem = (r: PlannerReminder) =>
-    save({ ...planner, reminders: planner.reminders.map(x => x.id === r.id ? { ...x, enabled: !x.enabled } : x) });
-
-  const repeatChips = (choices: (PlannerReminderRepeat | null)[], current: PlannerReminderRepeat | null, onPick: (v: any) => void) => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-      {choices.map(rep => {
-        const label = rep == null ? t('planner.repeatOnce') : t(REPEAT_KEYS[rep]);
-        const sel = current === rep;
-        return (
-          <button key={String(rep)} onClick={() => onPick(rep)} aria-pressed={sel}
-            style={{ padding: '5px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
-              background: sel ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'var(--bg)',
-              border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`,
-              color: sel ? 'var(--accent)' : 'var(--dim)' }}>
-            {label}
-          </button>
-        );
-      })}
-    </div>
+  const dayAppts = appointmentsOn(planner, selected);
+  const listHeading = (label: string, live = false) => (
+    <h3 aria-live={live ? 'polite' : undefined} style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: '16px 0 8px' }}>{label}</h3>
   );
-
-  const formHeader = (title: string, onClose: () => void) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-      <button className="icon-btn" aria-label={t('common.back')} onClick={onClose}
-        style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 18, cursor: 'pointer', padding: 4 }}>←</button>
-      <h2 ref={formHeadingRef} tabIndex={-1} style={{ flex: 1, fontSize: 18, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{title}</h2>
-    </div>
-  );
-
-  if (apptOpen) {
-    return (
-      <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 32 }}>
-        {formHeader(apptId ? t('planner.editAppt') : t('planner.addAppt'), () => setApptOpen(false))}
-        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-          <Field label={t('planner.apptTitlePlaceholder')} value={apptTitle} onChange={setApptTitle} placeholder={t('planner.apptTitlePlaceholder')} />
-          <label style={{ display: 'block', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '10px 0 4px' }}>
-            {t('planner.when')}
-            <input className="field__input" aria-label={t('planner.when')} type="datetime-local" value={apptWhen} onChange={e => setApptWhen(e.target.value)} style={{ display: 'block', marginTop: 6, width: 220 }} />
-          </label>
-          <Field label={t('planner.locationPlaceholder')} value={apptLocation} onChange={setApptLocation} placeholder={t('planner.locationPlaceholder')} />
-          <Field label={t('planner.notesPlaceholder')} value={apptNotes} onChange={setApptNotes} placeholder={t('planner.notesPlaceholder')} multiline />
-          <Section label={t('planner.repeatLabel')} />
-          {repeatChips(APPT_REPEAT_CHOICES, apptRepeat, setApptRepeat)}
-          <Section label={t('planner.remindLabel')} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {REMIND_CHOICES.map(c => {
-              const sel = apptRemind === c.minutes;
-              return (
-                <button key={String(c.minutes)} onClick={() => setApptRemind(c.minutes)} aria-pressed={sel}
-                  style={{ padding: '5px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
-                    background: sel ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'var(--bg)',
-                    border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`,
-                    color: sel ? 'var(--accent)' : 'var(--dim)' }}>
-                  {t(c.key)}
-                </button>
-              );
-            })}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 6 }}>
-            <span aria-hidden style={{ width: 10, height: 10, borderRadius: 5, background: apptColor || markColor, display: 'inline-block' }} />
-            <span style={{ flex: 1, fontSize: 11, color: 'var(--dim)' }}>{t('planner.apptColor')}</span>
-            {apptColor && (
-              <button onClick={() => setApptColor(null)}
-                style={{ padding: '3px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--dim)' }}>
-                {t('planner.apptColorDefault')}
-              </button>
-            )}
-          </div>
-          <ColorCarousel value={apptColor || markColor} onChange={setApptColor} size={22} />
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-            <Btn variant="ghost" onClick={() => setApptOpen(false)}>{t('common.cancel')}</Btn>
-            <Btn onClick={saveAppt} disabled={!apptTitle.trim() || isNaN(new Date(apptWhen).getTime())}>{t('common.save')}</Btn>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (remOpen) {
-    return (
-      <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 32 }}>
-        {formHeader(remId ? t('planner.editReminder') : t('planner.addReminder'), () => setRemOpen(false))}
-        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-          <Field label={t('planner.reminderTitlePlaceholder')} value={remTitle} onChange={setRemTitle} placeholder={t('planner.reminderTitlePlaceholder')} />
-          <Section label={t('planner.timesLabel')} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            {remTimes.map(tm => (
-              <button key={tm} onClick={() => setRemTimes(remTimes.filter(x => x !== tm))} aria-label={t('planner.removeTime', { time: fmtClockHHMM(tm) })}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 999, fontSize: 12, cursor: 'pointer',
-                  background: 'color-mix(in srgb, var(--accent) 15%, transparent)', border: '1px solid var(--accent)', color: 'var(--accent)' }}>
-                {fmtClockHHMM(tm)} <span aria-hidden style={{ color: 'var(--dim)', fontSize: 11 }}>✕</span>
-              </button>
-            ))}
-          </div>
-          <div className="add-row">
-            <input className="field__input" value={remNewTime} onChange={e => setRemNewTime(e.target.value)} aria-label={t('planner.addTime')}
-              placeholder={twelveHour ? '9:00' : '08:00'} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRemTime(); } }} />
-            {twelveHour && (
-              <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-                {(['AM', 'PM'] as const).map(ap => (
-                  <button key={ap} onClick={() => setRemAmPm(ap)} aria-pressed={remAmPm === ap}
-                    style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
-                      background: remAmPm === ap ? 'var(--accent)' : 'transparent', color: remAmPm === ap ? '#0a0508' : 'var(--dim)' }}>{dayPeriodLabel(ap === 'PM')}</button>
-                ))}
-              </div>
-            )}
-            <Btn onClick={addRemTime}>{t('common.add')}</Btn>
-          </div>
-          <Section label={t('planner.repeatLabel')} />
-          {repeatChips(REM_REPEAT_CHOICES, remRepeat, setRemRepeat)}
-          {remRepeat !== 'daily' && (
-            <label style={{ display: 'block', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '10px 0 4px' }}>
-              {remRepeat === 'once' ? t('planner.onDateLabel') : t('planner.startingLabel')}
-              <input className="field__input" aria-label={remRepeat === 'once' ? t('planner.onDateLabel') : t('planner.startingLabel')} type="date" value={remStart} onChange={e => setRemStart(e.target.value)} style={{ display: 'block', marginTop: 6, width: 180 }} />
-            </label>
-          )}
-          <Field label={t('planner.notesPlaceholder')} value={remNotes} onChange={setRemNotes} placeholder={t('planner.notesPlaceholder')} multiline />
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-            <Btn variant="ghost" onClick={() => setRemOpen(false)}>{t('common.cancel')}</Btn>
-            <Btn onClick={saveRem} disabled={!remTitle.trim() || remTimes.length === 0}>{t('common.save')}</Btn>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 32 }}>
       <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-        <Btn onClick={openNewAppt} style={{ flex: 1 }} aria-label={t('planner.addAppt')} data-focus-key="new-appt">+ {t('planner.appt')}</Btn>
-        <Btn onClick={openNewRem} style={{ flex: 1 }} aria-label={t('planner.addReminder')} data-focus-key="new-rem">+ {t('planner.reminder')}</Btn>
-      </div>
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-          <button className="icon-btn" aria-label={t('planner.prevMonth')} onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-            style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 16, cursor: 'pointer', padding: 8 }}>‹</button>
-          <h3 aria-live="polite" style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{monthLabel}</h3>
-          <button className="icon-btn" aria-label={t('planner.nextMonth')} onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-            style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 16, cursor: 'pointer', padding: 8 }}>›</button>
-        </div>
-        <div role="group" aria-label={monthLabel} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-          {weekdayInitials.map((w, i) => (
-            <div key={`w${i}`} aria-hidden style={{ textAlign: 'center', fontSize: 10, color: 'var(--muted)' }}>{w}</div>
-          ))}
-          {grid.map((d, i) => {
-            const inMonth = d.getMonth() === viewMonth.getMonth();
-            const isSel = dayKey(d) === dayKey(selected);
-            const isToday = dayKey(d) === dayKey(today);
-            const dayList = apptsOn(d);
-            const count = dayList.length;
-            const dots = Array.from(new Set(dayList.map(a => a.color || markColor))).slice(0, 3);
-            const dateText = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
-            const label = count > 0 ? t('planner.dayCellLabel', { date: dateText, appts: t('planner.apptCount', { count }) }) : dateText;
-            return (
-              <button key={i} onClick={() => { setSelected(new Date(d)); if (!inMonth) setViewMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}
-                aria-label={label} aria-pressed={isSel} aria-current={isToday ? 'date' : undefined}
-                style={{ aspectRatio: '1', borderRadius: 8, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                  background: isSel ? 'color-mix(in srgb, var(--accent) 22%, transparent)' : 'transparent',
-                  border: isToday ? '1px solid var(--accent)' : '1px solid transparent',
-                  color: inMonth ? (isSel ? 'var(--accent)' : 'var(--text)') : 'var(--muted)',
-                  fontSize: 12, fontWeight: isSel ? 700 : 400 }}>
-                {d.getDate()}
-                {count > 0 && (
-                  <span aria-hidden style={{ display: 'flex', gap: 2 }}>
-                    {dots.map(c => <span key={c} style={{ width: 6, height: 6, borderRadius: 3, background: c, display: 'inline-block' }} />)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <button onClick={() => setMarkPickerOpen(v => !v)} aria-expanded={markPickerOpen}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', marginTop: 8, paddingTop: 8, background: 'none', border: 'none', borderTop: '1px solid var(--border)', cursor: 'pointer', color: 'var(--dim)', fontSize: 11 }}>
-          <span aria-hidden style={{ width: 10, height: 10, borderRadius: 5, background: markColor, display: 'inline-block' }} />
-          <span style={{ flex: 1, textAlign: 'left' }}>{t('planner.markColor')}</span>
-          <span aria-hidden>{markPickerOpen ? '▲' : '▼'}</span>
-        </button>
-        {markPickerOpen && (
-          <div style={{ marginTop: 8 }}>
-            <ColorCarousel value={markColor} onChange={hex => save({ ...plannerRef.current, markColor: hex })} size={22} />
-          </div>
-        )}
+        <Btn onClick={() => open({ kind: 'appointment', appointment: null }, 'new-appt')} style={{ flex: 1 }} aria-label={t('planner.addAppt')} data-focus-key="new-appt">+ {t('planner.appt')}</Btn>
+        <Btn onClick={() => open({ kind: 'reminder', reminder: null }, 'new-rem')} style={{ flex: 1 }} aria-label={t('planner.addReminder')} data-focus-key="new-rem">+ {t('planner.reminder')}</Btn>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', margin: '16px 0 8px' }}>
-        <h3 aria-live="polite" style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{selectedLabel}</h3>
-      </div>
+      <MonthCalendar planner={planner} viewMonth={viewMonth} onViewMonth={setViewMonth} selected={selected} onSelect={setSelected}
+        markColor={markColor} onMarkColor={hex => void save({ ...livePlanner(), markColor: hex })} />
+
+      {listHeading(selectedLabel, true)}
       {dayAppts.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>{t('planner.emptyDay')}</div>
       ) : dayAppts.map(a => {
-        const meta = [
-          a.repeat ? t(REPEAT_KEYS[a.repeat]) : null,
-          a.reminderMinutesBefore != null ? t(REMIND_CHOICES.find(c => c.minutes === a.reminderMinutesBefore)?.key || 'planner.remindAtTime') : null,
-        ].filter(Boolean) as string[];
+        const repeat = a.repeat ? t(repeatKey(a.repeat)) : null;
+        const remindLabelKey = remindKey(a.reminderMinutesBefore);
+        const remind = remindLabelKey ? t(remindLabelKey) : null;
+        const clock = apptClock(a.time);
         return (
-        <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)', border: '1px solid var(--border)', borderLeft: `4px solid ${a.color || markColor}`, borderRadius: 10, padding: 12, marginBottom: 8 }}>
-          <div aria-hidden style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', width: 52 }}>{fmtClockHHMM(hhmmOf(a.time))}</div>
-          <button onClick={() => openEditAppt(a)} data-focus-key={`appt-${a.id}`} aria-label={fmtList([fmtClockHHMM(hhmmOf(a.time)), a.title, a.location, ...meta].filter(Boolean) as string[])}
-            style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{a.title}</div>
-            {(a.location || a.notes) ? <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{[a.location, a.notes].filter(Boolean).join(' · ')}</div> : null}
-            {meta.length > 0 && (
-              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
-                {[
-                  a.repeat ? `↻ ${t(REPEAT_KEYS[a.repeat])}` : null,
-                  a.reminderMinutesBefore != null ? `🔔 ${t(REMIND_CHOICES.find(c => c.minutes === a.reminderMinutesBefore)?.key || 'planner.remindAtTime')}` : null,
-                ].filter(Boolean).join('  ·  ')}
-              </div>
-            )}
-          </button>
-          <button className="icon-btn" aria-label={t('common.deleteNamed', { name: a.title })} onClick={() => setDeleteAppt(a)}
-            style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
-        </div>
+          <div key={a.id} style={{ ...ROW_CARD, borderLeft: `4px solid ${a.color || markColor}` }}>
+            <div aria-hidden style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', width: 52 }}>{clock}</div>
+            <button type="button" onClick={() => open({ kind: 'appointment', appointment: a }, `appt-${a.id}`)} data-focus-key={`appt-${a.id}`}
+              aria-label={fmtList([clock, a.title, a.location, repeat, remind].filter((x): x is string => !!x))}
+              style={ROW_BUTTON}>
+              <div style={ROW_TITLE}>{a.title}</div>
+              {(a.location || a.notes) ? <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{[a.location, a.notes].filter(Boolean).join(' · ')}</div> : null}
+              {(repeat || remind) ? (
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
+                  {[repeat ? `↻ ${repeat}` : null, remind ? `🔔 ${remind}` : null].filter(Boolean).join('  ·  ')}
+                </div>
+              ) : null}
+            </button>
+            <button type="button" className="icon-btn" aria-label={t('common.deleteNamed', { name: a.title })} onClick={() => setDeleteAppt(a)}>✕</button>
+          </div>
         );
       })}
 
-      <div style={{ display: 'flex', alignItems: 'center', margin: '16px 0 8px' }}>
-        <h3 style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{t('planner.reminders')}</h3>
-      </div>
-      {sortedRems.length === 0 ? (
+      {listHeading(t('planner.reminders'))}
+      {planner.reminders.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('planner.emptyReminders')}</div>
-      ) : sortedRems.map(r => (
-        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 8, opacity: r.enabled ? 1 : 0.55 }}>
-          <button onClick={() => openEditRem(r)} data-focus-key={`rem-${r.id}`} aria-label={fmtList([r.title, t(REPEAT_KEYS[r.repeat || 'daily']), ...r.times.map(fmtClockHHMM)])}
-            style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{r.title}</div>
-            <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{`↻ ${t(REPEAT_KEYS[r.repeat || 'daily'])}  ·  ${r.times.map(fmtClockHHMM).join('  ·  ')}`}</div>
-            {r.notes ? <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{r.notes}</div> : null}
-          </button>
-          <Toggle value={r.enabled} onChange={() => toggleRem(r)} label={t('planner.reminderEnabledFor', { title: r.title })} />
-          <button className="icon-btn" aria-label={t('common.deleteNamed', { name: r.title })} onClick={() => setDeleteRem(r)}
-            style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 15, cursor: 'pointer', padding: 8 }}>✕</button>
-        </div>
-      ))}
+      ) : sortedReminders(planner).map(r => {
+        const repeat = t(repeatKey(r.repeat || 'daily'));
+        const times = r.times.map(fmtClockHHMM);
+        return (
+          <div key={r.id} style={{ ...ROW_CARD, opacity: r.enabled ? 1 : 0.55 }}>
+            <button type="button" onClick={() => open({ kind: 'reminder', reminder: r }, `rem-${r.id}`)} data-focus-key={`rem-${r.id}`} aria-label={fmtList([r.title, repeat, ...times])}
+              style={ROW_BUTTON}>
+              <div style={ROW_TITLE}>{r.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{`↻ ${repeat}  ·  ${times.join('  ·  ')}`}</div>
+              {r.notes ? <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{r.notes}</div> : null}
+            </button>
+            <Toggle value={r.enabled} onChange={() => void save(toggleReminder(livePlanner(), r.id))} label={t('planner.reminderEnabledFor', { title: r.title })} />
+            <button type="button" className="icon-btn" aria-label={t('common.deleteNamed', { name: r.title })} onClick={() => setDeleteRem(r)}>✕</button>
+          </div>
+        );
+      })}
 
-      <ConfirmDialog
-        open={!!deleteAppt}
-        title={t('planner.deleteAppt')}
-        message={deleteAppt?.title || ''}
-        danger
-        onConfirm={() => { const a = deleteAppt!; setDeleteAppt(null); save({ ...planner, appointments: planner.appointments.filter(x => x.id !== a.id) }); }}
-        onCancel={() => setDeleteAppt(null)}
-      />
-      <ConfirmDialog
-        open={!!deleteRem}
-        title={t('planner.deleteReminder')}
-        message={deleteRem?.title || ''}
-        danger
-        onConfirm={() => { const r = deleteRem!; setDeleteRem(null); save({ ...planner, reminders: planner.reminders.filter(x => x.id !== r.id) }); }}
-        onCancel={() => setDeleteRem(null)}
-      />
+      <ConfirmDialog open={!!deleteAppt} title={t('planner.deleteAppt')} message={deleteAppt?.title || ''} danger
+        onConfirm={() => { if (deleteAppt) void save(removeAppointment(livePlanner(), deleteAppt.id)); setDeleteAppt(null); }}
+        onCancel={() => setDeleteAppt(null)} />
+      <ConfirmDialog open={!!deleteRem} title={t('planner.deleteReminder')} message={deleteRem?.title || ''} danger
+        onConfirm={() => { if (deleteRem) void save(removeReminder(livePlanner(), deleteRem.id)); setDeleteRem(null); }}
+        onCancel={() => setDeleteRem(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

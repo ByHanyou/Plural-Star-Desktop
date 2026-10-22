@@ -1,47 +1,41 @@
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NoteboardEntry, fmtNum } from '../utils';
-import { store, KEYS } from '../storage';
+import { byValueDesc, countUp, fmtNum } from '../utils';
 import { useAppStore } from '../store/appStore';
+import { Tile } from '../components/Tile';
 
 interface Props { onClick: () => void; }
 
 export default function MailboxTile({ onClick }: Props) {
   const { t } = useTranslation();
-  const members = useAppStore(s => s.state.members);
-  const [notes, setNotes] = useState<NoteboardEntry[]>([]);
-  useEffect(() => { store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setNotes(n || [])); }, []);
+  const members = useAppStore(s => s.members);
+  const notes = useAppStore(s => s.noteboards);
 
   const unread = notes.filter(n => !n.read);
   const byMember = new Map<string, number>();
-  unread.forEach(n => byMember.set(n.memberId, (byMember.get(n.memberId) || 0) + 1));
-  const preview = [...byMember.entries()]
-    .map(([id, count]) => ({ name: members.find(m => m.id === id)?.name || '?', count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 3);
+  unread.forEach(n => countUp(byMember, n.memberId));
+  const preview = byValueDesc(byMember)
+    .slice(0, 3)
+    .map(([id, count]) => ({ id, name: members.find(m => m.id === id)?.name || '?', count }));
 
   return (
-    <div className="tile tile--clickable" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph" aria-hidden>✉</div><span className="tile__title">{t('mailbox.title')}</span></div>
-      <div className="tile__body">
-        {notes.length === 0 ? (
-          <span className="tile__empty">{t('mailbox.empty')}</span>
-        ) : (
-          <>
-            <div style={{ fontSize: 13, color: 'var(--text)' }}>
-              {t('mailbox.messageCount', { count: notes.length })}
-              {unread.length > 0 ? ` · ${t('mailbox.unreadCount', { count: unread.length })}` : ''}
+    <Tile glyph="✉" title={t('mailbox.title')} onClick={onClick}>
+      {notes.length === 0 ? (
+        <span className="tile__empty">{t('mailbox.empty')}</span>
+      ) : (
+        <>
+          <div style={{ fontSize: 13, color: 'var(--text)' }}>
+            {t('mailbox.messageCount', { count: notes.length })}
+            {unread.length > 0 ? ` · ${t('mailbox.unreadCount', { count: unread.length })}` : ''}
+          </div>
+          {preview.map(p => (
+            <div key={p.id} style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, display: 'flex', gap: 6 }}>
+              <span aria-hidden>✉</span>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+              <span>{fmtNum(p.count, 0)}</span>
             </div>
-            {preview.map(p => (
-              <div key={p.name} style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, display: 'flex', gap: 6 }}>
-                <span aria-hidden>✉</span>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                <span>{fmtNum(p.count, 0)}</span>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-    </div>
+          ))}
+        </>
+      )}
+    </Tile>
   );
 }

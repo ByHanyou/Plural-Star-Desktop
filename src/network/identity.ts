@@ -1,9 +1,10 @@
+import './secureRandom';
 import nacl from 'tweetnacl';
 import { encodeBase64, decodeBase64 } from './bytes';
 import { store } from '../storage';
+import { logError } from '../utils/log';
 import { peerIdFromEd25519PublicKey } from './peerid';
-
-export const IDENTITY_STORAGE_KEY = 'ps:networkIdentity';
+import { IDENTITY_STORAGE_KEY, IDENTITY_UNREADABLE_KEY, IDENTITY_RESET_KEY, StoredIdentity } from './types';
 
 const DEVICE_SUB_ID_KEY = 'ps.deviceSubId';
 
@@ -30,11 +31,18 @@ export interface Identity {
   boxSecretKey: Uint8Array;
 }
 
-interface StoredIdentity {
-  v: number;
-  edSecretKey: string;
-  boxSecretKey: string;
-}
+let cached: Identity | null = null;
+
+export const resetIdentityCache = (): void => {
+  cached = null;
+};
+
+export const readIdentityReset = async (): Promise<number | null> => {
+  const reset = await store.get<{at: number}>(IDENTITY_RESET_KEY, null);
+  return reset && typeof reset.at === 'number' ? reset.at : null;
+};
+
+export const clearIdentityReset = (): Promise<void> => store.remove(IDENTITY_RESET_KEY);
 
 const fromStored = (s: StoredIdentity): Identity => {
   const edSecretKey = decodeBase64(s.edSecretKey);
@@ -50,13 +58,42 @@ const fromStored = (s: StoredIdentity): Identity => {
   };
 };
 
-const toStored = (id: Identity): StoredIdentity => ({
+const freshStored = (): StoredIdentity => ({
   v: 1,
-  edSecretKey: encodeBase64(id.edSecretKey),
-  boxSecretKey: encodeBase64(id.boxSecretKey),
+  edSecretKey: encodeBase64(nacl.sign.keyPair().secretKey),
+  boxSecretKey: encodeBase64(nacl.box.keyPair().secretKey),
 });
 
-let cached: Identity | null = null;
+const DEVICE_IDENTITY_KEY = 'ps.deviceIdentity';
+
+let cachedDevice: Identity | null = null;
+
+export const getDeviceIdentity = async (): Promise<Identity> => {
+  if (cachedDevice) return cachedDevice;
+  const stored = await store.get<StoredIdentity>(DEVICE_IDENTITY_KEY, null);
+  if (stored?.edSecretKey && stored?.boxSecretKey) {
+    try {
+      cachedDevice = fromStored(stored);
+      return cachedDevice;
+    } catch (e) {
+      logError('network.identity', e);
+    }
+  }
+  let seed: StoredIdentity | null = null;
+  const current = await store.get<StoredIdentity>(IDENTITY_STORAGE_KEY, null);
+  if (current?.edSecretKey && current?.boxSecretKey) {
+    try {
+      fromStored(current);
+      seed = current;
+    } catch (e) {
+      logError('network.identity', e);
+    }
+  }
+  if (!seed) seed = freshStored();
+  await store.set(DEVICE_IDENTITY_KEY, seed);
+  cachedDevice = fromStored(seed);
+  return cachedDevice;
+};
 
 export const loadOrCreateIdentity = async (): Promise<Identity> => {
   if (cached) return cached;
@@ -64,28 +101,18 @@ export const loadOrCreateIdentity = async (): Promise<Identity> => {
   if (stored && stored.edSecretKey && stored.boxSecretKey) {
     try {
       cached = fromStored(stored);
+      store.set(IDENTITY_STORAGE_KEY, stored).catch(e => logError('network.identity', e));
       return cached;
     } catch (e) {
-      console.error('[NETWORK] stored identity unreadable, regenerating:', e);
-      await store.set(IDENTITY_STORAGE_KEY + '.unreadable', stored).catch(() => {});
+      logError('network.identity', e);
+      await store.set(IDENTITY_UNREADABLE_KEY, stored).catch(err => logError('network.identity', err));
+      await store.set(IDENTITY_RESET_KEY, {at: Date.now()}).catch(err => logError('network.identity', err));
     }
   }
-  const edPair = nacl.sign.keyPair();
-  const boxPair = nacl.box.keyPair();
-  const id: Identity = {
-    peerId: peerIdFromEd25519PublicKey(edPair.publicKey),
-    edPublicKey: edPair.publicKey,
-    edSecretKey: edPair.secretKey,
-    boxPublicKey: boxPair.publicKey,
-    boxSecretKey: boxPair.secretKey,
-  };
-  await store.set(IDENTITY_STORAGE_KEY, toStored(id));
-  cached = id;
-  return id;
-};
-
-export const resetIdentityCache = (): void => {
-  cached = null;
+  const fresh = freshStored();
+  await store.set(IDENTITY_STORAGE_KEY, fresh);
+  cached = fromStored(fresh);
+  return cached;
 };
 
 export interface FriendIdentity {

@@ -1,48 +1,19 @@
 import i18n from '../i18n/i18n';
-import { store, KEYS } from '../storage';
-import { AppSettings, translateMood } from '../utils';
+import { frontShareLines } from '../network/frontShare';
 import { NetworkManager } from '../network/NetworkManager';
-import { Friend, friendNotifyLevel } from '../network/types';
-import { logError } from '../log';
-
-const notify = (title: string, body: string) => {
-  try {
-    window.electronAPI?.notify(title, body);
-  } catch (e) {
-    logError('friendAlerts', e);
-  }
-};
-
-const statusBody = (f: Friend): string => {
-  const s = f.lastStatus;
-  if (!s) return '';
-  const lines: string[] = [];
-  if (s.primary) lines.push(i18n.t('notification.primary', { names: s.primary }));
-  if (s.coFront) lines.push(i18n.t('notification.coFront', { names: s.coFront }));
-  if (s.coConscious) lines.push(i18n.t('notification.coConscious', { names: s.coConscious }));
-  if (lines.length === 0 && s.fronters) lines.push(s.fronters);
-  if (s.mood) { const mood = translateMood(s.mood, i18n.t); lines.push(i18n.t('notification.mood', { mood })); }
-  return lines.join('\n');
-};
+import { Friend } from '../network/types';
+import { friendNotifyLevel, isAcceptedFriend } from '../network/friendState';
+import { notify, notificationsEnabled } from './alerts';
+import { logError } from '../utils/log';
 
 const signature = (f: Friend): string => JSON.stringify(f.lastStatus ?? null);
-
-const notificationsAllowed = async (): Promise<boolean> => {
-  try {
-    const s = await store.get<AppSettings>(KEYS.settings, null);
-    return !(s && s.notificationsEnabled === false);
-  } catch (e) {
-    logError('friendAlerts', e);
-    return true;
-  }
-};
 
 export const startFriendAlerts = (): (() => void) => {
   const seen = new Map<string, string>();
   let primed = false;
 
   return NetworkManager.subscribe(state => {
-    const friends = state.friends.filter(f => f.kind !== 'device' && f.status === 'accepted');
+    const friends = state.friends.filter(isAcceptedFriend);
 
     if (!primed) {
       for (const f of friends) seen.set(f.peerId, signature(f));
@@ -57,13 +28,11 @@ export const startFriendAlerts = (): (() => void) => {
       if (prev === undefined || prev === sig) continue;
       if (!state.enabled) continue;
       if (friendNotifyLevel(f) === 'off') continue;
-      if (!f.lastStatus || !f.lastStatus.fronters) continue;
-      const body = statusBody(f);
-      if (!body) continue;
+      const s = f.lastStatus;
+      if (!s || !s.fronters) continue;
+      const body = frontShareLines(s, i18n.t).join('\n');
       const name = f.displayName;
-      void notificationsAllowed().then(ok => {
-        if (ok) notify(name, body);
-      });
+      notificationsEnabled().then(ok => { if (ok) notify('friendAlerts', name, body); }).catch(e => logError('friendAlerts', e));
     }
 
     for (const peerId of [...seen.keys()]) {

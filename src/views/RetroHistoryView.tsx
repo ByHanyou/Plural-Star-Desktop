@@ -1,404 +1,164 @@
-import { useState, useId, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, HistoryEntry, FrontState, FrontTier, FrontTierKey, fmtTime, allFrontMemberIds, singletStatuses, memberMatchesSearch, withMemberSince, fmtList } from '../utils';
-import { store, KEYS } from '../storage';
+import { HistoryEntry, FrontState, FrontTierKey, FRONT_TIER_KEYS, TIER_I18N_KEY, fmtTime, fmtList, allFrontMemberIds, singletStatuses, withMemberSince, closeOpenFrontEntry, localDateTimeValue, isRosterMember, isFacetMember, isCustomFrontMember } from '../utils';
+import {
+  RetroDrafts, RetroTierDraft, retroDraftsFrom, retroHasMembers, retroEntry, retroFront, mergeRetroIntoFront,
+  historyEntryKey, findRetroOverlaps, insertHistoryEntry,
+} from '../history/retro';
+import { saveBatch } from '../store/actions';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Toggle, useEscapeKey, useDialogFocus, KindToggles, ALL_PICKER_KINDS } from '../components/ui';
-import type { PickerKind, PickerKinds } from '../components/ui';
+import { Btn, Toggle, AlertDialog, ChoiceDialog, SaveErrorDialog } from '../components/ui';
+import { pickerPool } from '../picker/memberPicker';
+import type { PickerPool } from '../picker/memberPicker';
+import { TIER_COLOR } from '../theme';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { RetroTierDetails, RetroTierPicker } from './retro/RetroTierFields';
 
 interface Props {
-  onUpdate: () => void;
   onDone: () => void;
   singlet?: boolean;
   selfId?: string;
 }
 
-interface ChoiceButton {
-  label: string;
-  danger?: boolean;
-  onClick: () => void;
-}
+type Prompt =
+  | { kind: 'notice'; title: string; message: string }
+  | { kind: 'activeFront'; front: FrontState; entry: HistoryEntry }
+  | { kind: 'overlap'; overlaps: HistoryEntry[]; entry: HistoryEntry };
 
-interface Choice {
-  title: string;
-  message: string;
-  buttons: ChoiceButton[];
-}
+const dateTimeInput = (label: string, value: Date, onChange: (d: Date) => void) => (
+  <input className="field__input" aria-label={label} type="datetime-local" value={localDateTimeValue(value)}
+    onChange={e => { if (e.target.value) onChange(new Date(e.target.value)); }}
+    style={{ marginBottom: 14 }} />
+);
 
-const toLocalInput = (d: Date): string => {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-const TIER_LABEL_KEY: Record<string, string> = { primary: 'tier.primaryFront', coFront: 'tier.coFront', coConscious: 'tier.coConscious' };
-const TIER_SHORT_KEY: Record<string, string> = { primary: 'tier.primaryShort', coFront: 'tier.coFrontShort', coConscious: 'tier.coConShort' };
-
-export default function RetroHistoryView({ onUpdate, onDone, singlet = false, selfId }: Props) {
-  const members = useAppStore(s => s.state.members);
-  const history = useAppStore(s => s.state.history);
-  const front = useAppStore(s => s.state.front);
+export default function RetroHistoryView({ onDone, singlet = false, selfId }: Props) {
+  const members = useAppStore(s => s.members);
+  const history = useAppStore(s => s.history);
+  const front = useAppStore(s => s.front);
   const { t } = useTranslation();
-  const regularMembers = members.filter(m => !m.isCustomFront && !m.isFacet && !m.archived);
-  const facetMembers = members.filter(m => m.isFacet && !m.isCustomFront && !m.archived);
-  const customFronts = members.filter(m => m.isCustomFront && !m.archived);
-  const statusPool = singletStatuses(members);
-  const kindLabels: Record<PickerKind, string> = { members: t('members.title'), facets: t('members.facets'), customFronts: t('members.customFronts') };
-  const retroPools: { kind?: PickerKind; label: string; members: Member[] }[] = [
-    { kind: 'members', label: kindLabels.members, members: regularMembers },
-    { kind: 'facets', label: kindLabels.facets, members: facetMembers },
-    { kind: 'customFronts', label: kindLabels.customFronts, members: customFronts },
-  ];
-  const [kinds, setKinds] = useState<Record<string, PickerKinds>>({});
+  const retroPools = useMemo<PickerPool[]>(() => [
+    pickerPool('members', members.filter(isRosterMember), t),
+    pickerPool('facets', members.filter(m => isFacetMember(m) && !m.archived), t),
+    pickerPool('customFronts', members.filter(m => isCustomFrontMember(m) && !m.archived), t),
+  ], [members, t]);
+  const statusPools = useMemo<PickerPool[]>(() => [{ label: t('status.statuses'), members: singletStatuses(members) }], [members, t]);
 
-  const [primaryIds, setPrimaryIds] = useState<string[]>([]);
-  const [coFrontIds, setCoFrontIds] = useState<string[]>([]);
-  const [coConIds, setCoConIds] = useState<string[]>([]);
-  const [mood, setMood] = useState('');
-  const [note, setNote] = useState('');
-  const [location, setLocation] = useState('');
-  const [energy, setEnergy] = useState<number | undefined>(undefined);
-  const [coFrontMood, setCoFrontMood] = useState('');
-  const [coFrontLocation, setCoFrontLocation] = useState('');
-  const [coFrontNote, setCoFrontNote] = useState('');
-  const [coFrontEnergy, setCoFrontEnergy] = useState<number | undefined>(undefined);
-  const [coConMood, setCoConMood] = useState('');
-  const [coConLocation, setCoConLocation] = useState('');
-  const [coConNote, setCoConNote] = useState('');
-  const [coConEnergy, setCoConEnergy] = useState<number | undefined>(undefined);
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  const [drafts, setDrafts] = useState<RetroDrafts>(() => retroDraftsFrom(undefined));
+  const [search, setSearch] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
+  const [startDate, setStartDate] = useState(() => new Date());
+  const [endDate, setEndDate] = useState(() => new Date());
   const [isCurrent, setIsCurrent] = useState(false);
-  const [choice, setChoice] = useState<Choice | null>(null);
-  useEscapeKey(!!choice, () => setChoice(null));
-  const retroId = useId();
-  const choiceRef = useRef<HTMLDivElement>(null);
-  useDialogFocus(!!choice, choiceRef);
-  const [search, setSearch] = useState<Record<string, string>>({});
+  const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const [saveError, run, clearSaveError] = useSaveGuard();
 
-  const allSelected: Record<FrontTierKey, string[]> = { primary: primaryIds, coFront: coFrontIds, coConscious: coConIds };
-
-  const findOverlaps = (start: number, end: number | null): HistoryEntry[] => {
-    const effectiveEnd = end ?? Date.now();
-    return history.filter(e => {
-      if (!e.startTime) return false;
-      if (e.changeType && e.changeType !== 'front') return false;
-      const eEnd = e.endTime ?? Date.now();
-      return e.startTime < effectiveEnd && start < eEnd;
-    });
-  };
-
-  const effectivePrimary = (): string[] =>
-    singlet && selfId ? [selfId, ...primaryIds.filter(id => id !== selfId)] : primaryIds;
-
-  const buildEntry = (): HistoryEntry => ({
-    memberIds: effectivePrimary(),
-    startTime: startDate.getTime(),
-    endTime: isCurrent ? null : endDate.getTime(),
-    note: note,
-    mood: mood || undefined,
-    location: location || undefined,
-    energyLevel: energy,
-    coFrontIds: coFrontIds.length > 0 ? coFrontIds : undefined,
-    coFrontMood: coFrontMood || undefined,
-    coFrontNote: coFrontNote || undefined,
-    coFrontLocation: coFrontLocation || undefined,
-    coFrontEnergy: coFrontEnergy,
-    coConsciousIds: coConIds.length > 0 ? coConIds : undefined,
-    coConsciousMood: coConMood || undefined,
-    coConsciousNote: coConNote || undefined,
-    coConsciousLocation: coConLocation || undefined,
-    coConsciousEnergy: coConEnergy,
-    changeType: 'front',
-  });
-
-  const coFrontTier = (): FrontTier => ({ memberIds: coFrontIds, note: coFrontNote, mood: coFrontMood || undefined, location: coFrontLocation || undefined, energyLevel: coFrontEnergy });
-  const coConTier = (): FrontTier => ({ memberIds: coConIds, note: coConNote, mood: coConMood || undefined, location: coConLocation || undefined, energyLevel: coConEnergy });
-
-  const saveHistory = async (h: HistoryEntry[]) => {
-    await store.set(KEYS.history, h);
-  };
-
-  const setFrontState = async (f: FrontState | null) => {
-    const now = Date.now();
+  const patchTier = (tier: FrontTierKey) => (p: Partial<RetroTierDraft>) => setDrafts(d => ({ ...d, [tier]: { ...d[tier], ...p } }));
+  const primaryIds = singlet && selfId ? [selfId, ...drafts.primary.ids.filter(id => id !== selfId)] : drafts.primary.ids;
+  const allSelected: Record<FrontTierKey, string[]> = { primary: drafts.primary.ids, coFront: drafts.coFront.ids, coConscious: drafts.coConscious.ids };
+  const namesOf = (ids: string[]) => fmtList(ids.map(id => members.find(m => m.id === id)?.name || '?'));
+  const frontSince = () => {
     const at = startDate.getTime();
-    await store.set(KEYS.front, withMemberSince(f, front, Number.isFinite(at) && at > 0 ? Math.min(at, now) : now));
+    const now = Date.now();
+    return Number.isFinite(at) && at > 0 ? Math.min(at, now) : now;
   };
 
-  const replaceEntries = (deleteOverlapKeys?: Set<string>): HistoryEntry[] => {
-    const newEntry = buildEntry();
-    let base = history;
-    if (deleteOverlapKeys) {
-      base = base.filter(e => !deleteOverlapKeys.has(`${e.startTime}-${(e.memberIds || []).join(',')}`));
+  const commit = async (nextHistory: HistoryEntry[], nextFront?: FrontState) => {
+    const ok = await run(() => saveBatch(nextFront
+      ? { history: nextHistory, front: withMemberSince(nextFront, useAppStore.getState().front, frontSince()) }
+      : { history: nextHistory }));
+    if (ok) {
+      setPrompt(null);
+      onDone();
     }
-    return [newEntry, ...base].sort((a, b) => b.startTime - a.startTime);
   };
 
-  const finish = () => {
-    setChoice(null);
-    onUpdate();
-    onDone();
-  };
-
-  const handleSave = async () => {
-    if (!singlet && primaryIds.length === 0 && coFrontIds.length === 0 && coConIds.length === 0) {
-      setChoice({ title: t('hub.noMembersSelected'), message: t('hub.selectAtLeastOne'), buttons: [{ label: t('common.cancel'), onClick: () => setChoice(null) }] });
+  const handleSave = () => {
+    if (!singlet && !retroHasMembers(drafts)) {
+      setPrompt({ kind: 'notice', title: t('hub.noMembersSelected'), message: t('hub.selectAtLeastOne') });
       return;
     }
     if (!isCurrent && endDate.getTime() <= startDate.getTime()) {
-      setChoice({ title: t('hub.invalidTime'), message: t('hub.endBeforeStart'), buttons: [{ label: t('common.cancel'), onClick: () => setChoice(null) }] });
+      setPrompt({ kind: 'notice', title: t('hub.invalidTime'), message: t('hub.endBeforeStart') });
       return;
     }
-
-    const newEntry = buildEntry();
-    const overlaps = findOverlaps(newEntry.startTime, newEntry.endTime);
-
+    const entry = retroEntry(drafts, primaryIds, startDate.getTime(), isCurrent ? null : endDate.getTime());
     if (isCurrent && front) {
-      setChoice({
-        title: t('hub.activeFrontExists'),
-        message: t('hub.activeFrontExistsMsg', { names: fmtList(allFrontMemberIds(front).map(id => members.find(m => m.id === id)?.name || '?')) }),
-        buttons: [
-          { label: t('common.cancel'), onClick: () => setChoice(null) },
-          { label: t('hub.overwrite'), danger: true, onClick: async () => {
-            const now = Date.now();
-            const closed = history.map(e =>
-              e.endTime === null && e.startTime === front.startTime && (!e.changeType || e.changeType === 'front')
-                ? { ...e, endTime: now } : e
-            );
-            const newFront: FrontState = {
-              primary: { memberIds: effectivePrimary(), mood: mood || undefined, note, location: location || undefined, energyLevel: energy },
-              coFront: coFrontTier(),
-              coConscious: coConTier(),
-              startTime: startDate.getTime(),
-            };
-            await setFrontState(newFront);
-            await saveHistory([newEntry, ...closed]);
-            finish();
-          } },
-          { label: t('hub.addTo'), onClick: async () => {
-            const newFront: FrontState = {
-              primary: { memberIds: [...(front?.primary.memberIds || []), ...effectivePrimary().filter(id => !front?.primary.memberIds.includes(id))], mood: mood || front?.primary.mood, note: note || front?.primary.note || '', location: location || front?.primary.location },
-              coFront: { memberIds: [...(front?.coFront.memberIds || []), ...coFrontIds.filter(id => !front?.coFront.memberIds.includes(id))], mood: coFrontMood || front?.coFront.mood, note: coFrontNote || front?.coFront.note || '', location: coFrontLocation || front?.coFront.location, energyLevel: coFrontEnergy ?? front?.coFront.energyLevel },
-              coConscious: { memberIds: [...(front?.coConscious.memberIds || []), ...coConIds.filter(id => !front?.coConscious.memberIds.includes(id))], mood: coConMood || front?.coConscious.mood, note: coConNote || front?.coConscious.note || '', location: coConLocation || front?.coConscious.location, energyLevel: coConEnergy ?? front?.coConscious.energyLevel },
-              startTime: front?.startTime || startDate.getTime(),
-            };
-            await setFrontState(newFront);
-            await saveHistory(replaceEntries());
-            finish();
-          } },
-        ],
-      });
+      setPrompt({ kind: 'activeFront', front, entry });
       return;
     }
-
+    const overlaps = findRetroOverlaps(history, entry.startTime, entry.endTime);
     if (overlaps.length > 0) {
-      const overlapNames = overlaps.slice(0, 3).map(e => {
-        const names = fmtList((e.memberIds || []).map(id => members.find(m => m.id === id)?.name || '?'));
-        return t('hub.overlapEntry', { names, time: fmtTime(e.startTime) });
-      }).join('\n');
-      setChoice({
-        title: t('hub.overlapDetected'),
-        message: `${t('hub.overlapMsg')}\n\n${overlapNames}${overlaps.length > 3 ? `\n${t('hub.overlapMore', { count: overlaps.length - 3 })}` : ''}`,
-        buttons: [
-          { label: t('common.cancel'), onClick: () => setChoice(null) },
-          { label: t('hub.keepBoth'), onClick: async () => { await saveHistory(replaceEntries()); finish(); } },
-          { label: t('hub.replace'), danger: true, onClick: async () => {
-            const overlapSet = new Set(overlaps.map(e => `${e.startTime}-${e.memberIds.join(',')}`));
-            await saveHistory(replaceEntries(overlapSet));
-            finish();
-          } },
-        ],
-      });
+      setPrompt({ kind: 'overlap', overlaps, entry });
       return;
     }
-
-    if (isCurrent) {
-      const newFront: FrontState = {
-        primary: { memberIds: effectivePrimary(), mood: mood || undefined, note, location: location || undefined, energyLevel: energy },
-        coFront: coFrontTier(),
-        coConscious: coConTier(),
-        startTime: startDate.getTime(),
-      };
-      await setFrontState(newFront);
-    }
-    await saveHistory(replaceEntries());
-    finish();
+    void commit(insertHistoryEntry(history, entry), isCurrent ? retroFront(drafts, primaryIds, entry.startTime) : undefined);
   };
 
-  const tierDetails = (
-    tierLabel: string, color: string,
-    moodVal: string, setMoodVal: (v: string) => void,
-    locVal: string, setLocVal: (v: string) => void,
-    energyVal: number | undefined, setEnergyVal: (v: number | undefined) => void,
-    noteVal: string, setNoteVal: (v: string) => void,
-    idKey: string,
-  ) => (
-    <div key={tierLabel || 'primary'} role={tierLabel ? 'group' : undefined} aria-labelledby={tierLabel ? `${retroId}-${idKey}` : undefined}>
-      {tierLabel ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
-          <span aria-hidden style={{ width: 8, height: 8, borderRadius: 4, background: color, display: 'inline-block' }} />
-          <span role="heading" aria-level={3} id={`${retroId}-${idKey}`} style={{ fontSize: 12, fontWeight: 600, color }}>{tierLabel}</span>
-        </div>
-      ) : null}
-      <Field label={t('modal.mood')} value={moodVal} onChange={setMoodVal} placeholder={t('modal.enterMood')} />
-      <Field label={t('modal.location')} value={locVal} onChange={setLocVal} placeholder={t('modal.typeLocation')} />
+  const overwriteFront = (current: FrontState, entry: HistoryEntry) => {
+    const now = Date.now();
+    const closed = closeOpenFrontEntry(history, current.startTime, now);
+    void commit(insertHistoryEntry(closed, entry), retroFront(drafts, primaryIds, entry.startTime));
+  };
 
-      <div className="field__label" id={`${retroId}-${idKey}-energy`}>{t('energy.level')}</div>
-      <div role="group" aria-labelledby={`${retroId}-${idKey}-energy`} style={{ display: 'flex', gap: 3, marginBottom: 14, alignItems: 'center' }}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-          <button key={n} onClick={() => setEnergyVal(energyVal === n ? undefined : n)}
-            aria-label={t('energy.levelValue', { value: n })} aria-pressed={energyVal === n}
-            style={{
-              flex: 1, padding: '6px 0', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 600,
-              background: energyVal === n ? 'var(--accent-bg)' : 'var(--surface)',
-              border: `1px solid ${energyVal !== undefined && n <= energyVal ? color : 'var(--border)'}`,
-              color: energyVal !== undefined && n <= energyVal ? color : 'var(--dim)',
-            }}>{n}</button>
-        ))}
-      </div>
+  const overlapMessage = (overlaps: HistoryEntry[]) => {
+    const lines = overlaps.slice(0, 3).map(e => t('hub.overlapEntry', { names: namesOf(e.memberIds || []), time: fmtTime(e.startTime) })).join('\n');
+    const more = overlaps.length > 3 ? `\n${t('hub.overlapMore', { count: overlaps.length - 3 })}` : '';
+    return `${t('hub.overlapMsg')}\n\n${lines}${more}`;
+  };
 
-      <Field label={t('modal.note')} value={noteVal} onChange={setNoteVal} placeholder={t('modal.whatHappening')} multiline />
-      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0 14px' }} />
-    </div>
-  );
+  const detailTiers = FRONT_TIER_KEYS.filter(tier => tier === 'primary' || (!singlet && drafts[tier].ids.length > 0));
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <label className="field__label">{t('hub.startTime')}</label>
-      <input className="field__input" aria-label={t('hub.startTime')} type="datetime-local" value={toLocalInput(startDate)}
-        onChange={e => { if (e.target.value) setStartDate(new Date(e.target.value)); }}
-        style={{ marginBottom: 14 }} />
+      {dateTimeInput(t('hub.startTime'), startDate, setStartDate)}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <label className="field__label" style={{ marginBottom: 0 }}>{t('hub.endTime')}</label>
         <Toggle value={isCurrent} onChange={setIsCurrent} label={t('hub.current')} />
       </div>
-      {!isCurrent && (
-        <input className="field__input" aria-label={t('hub.endTime')} type="datetime-local" value={toLocalInput(endDate)}
-          onChange={e => { if (e.target.value) setEndDate(new Date(e.target.value)); }}
-          style={{ marginBottom: 14 }} />
-      )}
+      {!isCurrent && dateTimeInput(t('hub.endTime'), endDate, setEndDate)}
 
       <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 16px' }} />
 
-      {singlet ? (
-        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="primary" poolKey="primary" label={t('status.statuses')} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={[{ label: t('status.statuses'), members: statusPool }]} searchKind={t('status.statuses')} />
-      ) : (<>
-        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="primary" poolKey="primary" label={t(TIER_LABEL_KEY.primary)} color="var(--accent)" selected={primaryIds} setSelected={setPrimaryIds} pools={retroPools} />
-        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="coFront" poolKey="coFront" label={t(TIER_LABEL_KEY.coFront)} color="var(--info)" selected={coFrontIds} setSelected={setCoFrontIds} pools={retroPools} />
-        <TierMemberPicker search={search} setSearch={setSearch} kinds={kinds} setKinds={setKinds} kindLabels={kindLabels} allSelected={allSelected} tierKey="coConscious" poolKey="coConscious" label={t(TIER_LABEL_KEY.coConscious)} color="var(--success)" selected={coConIds} setSelected={setCoConIds} pools={retroPools} />
-      </>)}
+      {(singlet ? (['primary'] as FrontTierKey[]) : FRONT_TIER_KEYS).map(tier => (
+        <RetroTierPicker key={tier} tierKey={tier} label={singlet ? t('status.statuses') : t(TIER_I18N_KEY[tier])} color={TIER_COLOR[tier]}
+          selected={drafts[tier].ids} onChange={ids => patchTier(tier)({ ids })} pools={singlet ? statusPools : retroPools}
+          searchKind={singlet ? t('status.statuses') : undefined} search={search[tier]} onSearch={v => setSearch(s => ({ ...s, [tier]: v }))} allSelected={allSelected} />
+      ))}
 
-      {tierDetails(singlet ? '' : t(TIER_LABEL_KEY.primary), 'var(--accent)', mood, setMood, location, setLocation, energy, setEnergy, note, setNote, 'p')}
-      {!singlet && coFrontIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coFront), 'var(--info)', coFrontMood, setCoFrontMood, coFrontLocation, setCoFrontLocation, coFrontEnergy, setCoFrontEnergy, coFrontNote, setCoFrontNote, 'cf')}
-      {!singlet && coConIds.length > 0 && tierDetails(t(TIER_LABEL_KEY.coConscious), 'var(--success)', coConMood, setCoConMood, coConLocation, setCoConLocation, coConEnergy, setCoConEnergy, coConNote, setCoConNote, 'cc')}
+      {detailTiers.map(tier => (
+        <RetroTierDetails key={tier} label={singlet ? '' : t(TIER_I18N_KEY[tier])} color={TIER_COLOR[tier]} draft={drafts[tier]} patch={patchTier(tier)} />
+      ))}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 16, marginBottom: 30 }}>
         <Btn variant="ghost" onClick={onDone}>{t('common.cancel')}</Btn>
         <Btn variant="solid" onClick={handleSave}>{t('common.save')}</Btn>
       </div>
 
-      {choice && (
-        <div className="modal-overlay" role="presentation" onClick={() => setChoice(null)}>
-          <div ref={choiceRef} className="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby={`${retroId}-choice-title`} aria-describedby={`${retroId}-choice-msg`} tabIndex={-1} onClick={e => e.stopPropagation()}>
-            <div className="modal__header">
-              <span className="modal__title" id={`${retroId}-choice-title`} role="heading" aria-level={2}>{choice.title}</span>
-            </div>
-            <div className="modal__body" id={`${retroId}-choice-msg`} style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--dim)', padding: 16 }}>
-              {choice.message}
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '0 16px 16px' }}>
-              {choice.buttons.map((b, i) => (
-                <Btn key={i} variant={b.danger ? 'danger' : i === 0 ? 'ghost' : 'solid'} onClick={b.onClick}>{b.label}</Btn>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+      <AlertDialog open={prompt?.kind === 'notice'} title={prompt?.kind === 'notice' ? prompt.title : ''} message={prompt?.kind === 'notice' ? prompt.message : ''} onClose={() => setPrompt(null)} />
 
-function TierMemberPicker({ tierKey, poolKey, label, color, selected, setSelected, pools, searchKind, search, setSearch, kinds, setKinds, kindLabels, allSelected }: {
-  tierKey: FrontTierKey; poolKey: string; label: string; color: string;
-  selected: string[]; setSelected: (ids: string[]) => void; pools: { kind?: PickerKind; label: string; members: Member[] }[];
-  searchKind?: string;
-  search: Record<string, string>; setSearch: (s: Record<string, string>) => void;
-  kinds: Record<string, PickerKinds>; setKinds: (k: Record<string, PickerKinds>) => void;
-  kindLabels: Record<PickerKind, string>; allSelected: Record<FrontTierKey, string[]>;
-}) {
-  const { t } = useTranslation();
-  const q = search[poolKey] || '';
-  const ql = q.toLowerCase();
-  const all = pools.flatMap(p => p.members);
-  const hasKinds = pools.some(p => !!p.kind);
-  const tierKinds = kinds[poolKey] || ALL_PICKER_KINDS;
-  const activePools = pools.filter(p => (!p.kind || tierKinds[p.kind]) && p.members.length > 0);
-  const searchLabel = t('members.searchToAddKind', { kind: searchKind || t('terminology.fronters') });
-  let budget = 20;
-  const grouped: { label: string; rows: Member[] }[] = [];
-  if (ql) {
-    for (const pool of activePools) {
-      if (budget <= 0) break;
-      const rows = pool.members.filter(m => !selected.includes(m.id) && memberMatchesSearch(m, ql)).slice(0, budget);
-      if (rows.length === 0) continue;
-      budget -= rows.length;
-      grouped.push({ label: pool.label, rows });
-    }
-  }
-  const poolSelected = all.filter(m => selected.includes(m.id));
-  const toggle = (id: string) => {
-    setSelected(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
-  };
-  const pickerLabelId = useId();
-  return (
-    <div style={{ marginBottom: 16 }} role="group" aria-labelledby={pickerLabelId}>
-      <div className="section-div">
-        <span className="section-div__dot" aria-hidden style={{ background: color }} />
-        <span className="section-div__label" id={pickerLabelId} style={{ color }}>{label}</span>
-        <span className="section-div__line" aria-hidden />
-      </div>
-      {poolSelected.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {poolSelected.map(m => (
-            <button key={m.id} className="chip" aria-label={t('common.removeNamed', { name: m.name })} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
-              onClick={() => toggle(m.id)}>
-              <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-              <span style={{ color: m.color }}>{m.name}</span>
-              <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
-            </button>
-          ))}
-        </div>
-      )}
-      <input className="field__input" value={q}
-        onChange={e => setSearch({ ...search, [poolKey]: e.target.value })}
-        aria-label={searchLabel} placeholder={searchLabel}
-        style={{ marginBottom: 6, fontSize: 12 }} />
-      {hasKinds && <KindToggles kinds={tierKinds} setKinds={k => setKinds({ ...kinds, [poolKey]: k })} labels={kindLabels} />}
-      {ql && grouped.length > 0 && (
-        <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 4 }}>
-          {grouped.map((group, gi) => (
-            <div key={`${gi}-${group.label}`}>
-              {grouped.length > 1 && (
-                <div role="heading" aria-level={4} style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, padding: '8px 12px 4px', background: 'var(--card)' }}>{group.label}</div>
-              )}
-              {group.rows.map(m => {
-                const otherTier = (Object.entries(allSelected) as [FrontTierKey, string[]][]).find(([tk, ids]) => tk !== tierKey && ids.includes(m.id));
-                return (
-                  <button key={m.id} onClick={() => { toggle(m.id); setSearch({ ...search, [poolKey]: '' }); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: otherTier ? 0.5 : 1 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                    <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                    {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
-                    {otherTier && (
-                      <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>({t(TIER_SHORT_KEY[otherTier[0]])})</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      )}
+      <ChoiceDialog open={prompt?.kind === 'activeFront'} title={t('hub.activeFrontExists')}
+        message={prompt?.kind === 'activeFront' ? t('hub.activeFrontExistsMsg', { names: namesOf(allFrontMemberIds(prompt.front)) }) : ''}
+        onCancel={() => setPrompt(null)}>
+        {prompt?.kind === 'activeFront' && (
+          <>
+            <Btn variant="danger" onClick={() => overwriteFront(prompt.front, prompt.entry)}>{t('hub.overwrite')}</Btn>
+            <Btn variant="solid" onClick={() => void commit(insertHistoryEntry(history, prompt.entry), mergeRetroIntoFront(prompt.front, drafts, primaryIds))}>{t('hub.addTo')}</Btn>
+          </>
+        )}
+      </ChoiceDialog>
+
+      <ChoiceDialog open={prompt?.kind === 'overlap'} title={t('hub.overlapDetected')} message={prompt?.kind === 'overlap' ? overlapMessage(prompt.overlaps) : ''}
+        onCancel={() => setPrompt(null)}>
+        {prompt?.kind === 'overlap' && (
+          <>
+            <Btn variant="solid" onClick={() => void commit(insertHistoryEntry(history, prompt.entry))}>{t('hub.keepBoth')}</Btn>
+            <Btn variant="danger" onClick={() => void commit(insertHistoryEntry(history, prompt.entry, { dropKeys: new Set(prompt.overlaps.map(historyEntryKey)) }))}>{t('hub.replace')}</Btn>
+          </>
+        )}
+      </ChoiceDialog>
+
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

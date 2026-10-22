@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react';
+import { log } from './utils/log';
+import { Emitter } from './utils/emitter';
 
 export const RELEASES_URL = 'https://github.com/ByHanyou/Plural-Star-Desktop/releases/latest';
 const LATEST_API = 'https://api.github.com/repos/ByHanyou/Plural-Star-Desktop/releases/latest';
@@ -39,27 +41,23 @@ interface AvailableUpdate {
 }
 
 let available: AvailableUpdate | null = null;
-const listeners = new Set<() => void>();
+const changes = new Emitter<[]>('update');
 
 const publish = (next: AvailableUpdate | null): void => {
   if (available?.latest === next?.latest && available?.current === next?.current) return;
   available = next;
-  listeners.forEach(fn => fn());
+  changes.emit();
 };
 
-const subscribe = (fn: () => void): (() => void) => {
-  listeners.add(fn);
-  return () => {
-    listeners.delete(fn);
-  };
-};
+const subscribe = (fn: () => void): (() => void) => changes.on(fn);
 
 export const useAvailableUpdate = (): AvailableUpdate | null => useSyncExternalStore(subscribe, () => available);
 
 export const appVersion = async (): Promise<string> => {
   try {
     return String((await window.electronAPI.app.version()) || '');
-  } catch {
+  } catch (e) {
+    log.debug('update', e);
     return '';
   }
 };
@@ -81,7 +79,8 @@ const runCheck = async (): Promise<UpdateCheckResult> => {
     }
     publish(null);
     return { status: 'current', current };
-  } catch {
+  } catch (e) {
+    log.debug('update', e);
     return { status: 'error', current };
   }
 };

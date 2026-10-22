@@ -1,30 +1,29 @@
 import { useTranslation } from 'react-i18next';
-import { getInitials } from '../utils';
-import { initialOn } from '../theme';
 import { useAppStore } from '../store/appStore';
+import { isRosterMember } from '../utils';
+import { Tile } from '../components/Tile';
+import { MemberAvatar } from '../components/MemberAvatar';
 
 interface Props { onClick: () => void; }
 
+const PREVIEW_COUNT = 5;
+
 export default function MembersTile({ onClick }: Props) {
-  const members = useAppStore(s => s.state.members);
+  const members = useAppStore(s => s.members);
   const { t } = useTranslation();
-  const active = members.filter(m => !m.archived && !m.isCustomFront && !m.isFacet && !m.deleted);
-  const preview = active.slice(0, 5);
+  const active = members.filter(m => isRosterMember(m) && !m.archived);
   return (
-    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph" aria-hidden>👥</div><span className="tile__title">{t('tabs.fronters')}</span></div>
-      <div className="tile__body">
-        {active.length === 0 ? <span className="tile__empty">{t('members.noMembers')}</span> : (<>
-          {preview.map(m => (
-            <div key={m.id} className="tile__member-row">
-              <div className="tile__avatar" aria-hidden style={!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : { overflow: "hidden", ...(!m.avatarTransparent ? { backgroundColor: m.color } : {}) }}>{m.avatar ? <img src={m.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : getInitials(m.name)}</div>
-              <span className="tile__member-name">{m.name}</span>
-              <span className="tile__member-role">{m.role}</span>
-            </div>
-          ))}
-          {active.length > 5 && <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{t('share.more', { count: active.length - 5 })}</span>}
-        </>)}
-      </div>
-    </div>
+    <Tile glyph="👥" title={t('tabs.fronters')} onClick={onClick}>
+      {active.length === 0 ? <span className="tile__empty">{t('members.noMembers')}</span> : (<>
+        {active.slice(0, PREVIEW_COUNT).map(m => (
+          <div key={m.id} className="tile__member-row">
+            <MemberAvatar member={m} decorative />
+            <span className="tile__member-name">{m.name}</span>
+            <span className="tile__member-role">{m.role}</span>
+          </div>
+        ))}
+        {active.length > PREVIEW_COUNT && <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{t('share.more', { count: active.length - PREVIEW_COUNT })}</span>}
+      </>)}
+    </Tile>
   );
 }

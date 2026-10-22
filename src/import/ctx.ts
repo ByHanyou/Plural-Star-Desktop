@@ -1,8 +1,10 @@
 import type { TFunction } from 'i18next';
-import { logError } from '../log';
+import { logError } from '../utils/log';
 import { Member, HistoryEntry, JournalEntry, SystemInfo, AppSettings, ChatChannel, ExportPayload } from '../utils';
 import { CustomPalette } from '../theme';
 import { ImportControl } from './progress';
+import type { ExportCategories } from '../export/categories';
+import type { ExtPreview } from './preview';
 
 export class ImportUserError extends Error {}
 
@@ -31,22 +33,20 @@ export type ImportCtx = {
   onUpdate: () => void;
   t: TFunction;
   showStatus: (msg: string, error?: boolean) => void;
-  setImporting: any;
+  setImporting: (v: boolean) => void;
   showExportOptions: boolean;
-  exportSel: any;
+  exportSel: ExportCategories;
   restoreData: ExportPayload | null;
-  setRestoreData: any;
-  setRestoreFile: any;
+  setRestoreData: (d: ExportPayload | null) => void;
+  setRestoreFile: (f: string | null) => void;
   restoreSel: Record<string, boolean>;
   mergeLogs: boolean;
-  extSource: 'sp' | 'pk';
   extToken: string;
-  setExtToken: any;
-  setExtLoading: any;
-  extPreview: { members: any[]; switches: any[]; system: any; customFields?: any[]; groups?: any[] } | null;
-  setExtPreview: any;
+  setExtToken: (token: string) => void;
+  setExtLoading: (v: boolean) => void;
+  extPreview: ExtPreview | null;
+  setExtPreview: (p: ExtPreview | null) => void;
   extSel: Record<string, boolean>;
   importMode: 'overwrite' | 'update';
   control?: ImportControl;
-  spGet: (url: string, headers: Record<string, string>) => Promise<any | null>;
 };

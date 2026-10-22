@@ -1,20 +1,18 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { store, KEYS } from '../storage';
+import { saveData } from '../store/actions';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Section, ConfirmDialog, clickable } from '../components/ui';
+import { Btn, Field, Section, ConfirmDialog, ImageErrorDialog, clickable, linkButton, StatusMsg } from '../components/ui';
 import SystemProfileCard from '../components/SystemProfileCard';
-import { resizeBannerDataUrl } from '../utils';
-import { chooseImageTreatment } from '../components/ImageCropModal';
+import { BannerField } from '../components/ImageFields';
+import { useImagePick } from '../hooks/useImagePick';
+import { useFlash } from '../hooks/useFlash';
+import { logError } from '../utils/log';
 
 type Mode = 'read' | 'edit';
 
-interface Props {
-  onUpdate: () => void;
-}
-
-export default function SystemProfileView({ onUpdate }: Props) {
-  const system = useAppStore(s => s.state.system);
+export default function SystemProfileView() {
+  const system = useAppStore(s => s.system);
   const { t } = useTranslation();
 
   const [mode, setMode] = useState<Mode>('read');
@@ -23,7 +21,8 @@ export default function SystemProfileView({ onUpdate }: Props) {
   const [avatar, setAvatar] = useState(system.avatar || '');
   const [banner, setBanner] = useState(system.banner || '');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, flashSaved] = useFlash<StatusMsg>(3000);
+  const { pick, imageError, clearImageError } = useImagePick();
 
   const dirty =
     name !== (system.name || '') ||
@@ -31,45 +30,33 @@ export default function SystemProfileView({ onUpdate }: Props) {
     avatar !== (system.avatar || '') ||
     banner !== (system.banner || '');
 
-  const pickImage = async (target: 'avatar' | 'banner') => {
-    const filePath = await window.electronAPI.dialog.openFile([
-      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
-    ]);
-    if (!filePath) return;
-    const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (!dataUrl) return;
-    const chosen = await chooseImageTreatment(dataUrl);
-    if (!chosen) return;
-    if (target === 'avatar') {
-      setAvatar(chosen);
-      return;
-    }
-    try {
-      setBanner(await resizeBannerDataUrl(chosen));
-    } catch {
-      setBanner(chosen);
-    }
-  };
-
-  const commit = async () => {
-    await store.set(KEYS.system, {
-      ...system,
-      name: name.trim(),
-      description: desc.trim(),
-      avatar: avatar || undefined,
-      banner: banner || undefined,
-    });
-    onUpdate();
-    setMode('read');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const discard = () => {
+  const resetFields = () => {
     setName(system.name || '');
     setDesc(system.description || '');
     setAvatar(system.avatar || '');
     setBanner(system.banner || '');
+  };
+
+  const commit = async () => {
+    try {
+      await saveData('system', {
+        ...system,
+        name: name.trim(),
+        description: desc.trim(),
+        avatar: avatar || undefined,
+        banner: banner || undefined,
+      });
+    } catch (e) {
+      logError('profile', e);
+      flashSaved({ msg: t('common.settingsError'), error: true }, 4000);
+      return;
+    }
+    setMode('read');
+    flashSaved({ msg: t('common.settingsSaved'), error: false });
+  };
+
+  const discard = () => {
+    resetFields();
     setConfirmDiscard(false);
     setMode('read');
   };
@@ -81,10 +68,7 @@ export default function SystemProfileView({ onUpdate }: Props) {
       setMode('read');
       return;
     }
-    setName(system.name || '');
-    setDesc(system.description || '');
-    setAvatar(system.avatar || '');
-    setBanner(system.banner || '');
+    resetFields();
     setMode('edit');
   };
 
@@ -113,49 +97,40 @@ export default function SystemProfileView({ onUpdate }: Props) {
                 backgroundImage: avatar ? `url(${avatar})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
                 backgroundColor: avatar ? undefined : 'var(--surface)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--dim)',
-              }} {...clickable(() => pickImage('avatar'), t('systemProfile.changeAvatar'))}>
+              }} {...clickable(() => pick('image', setAvatar), t('systemProfile.changeAvatar'))}>
                 {!avatar && '📷'}
               </div>
               <div style={{ marginTop: 4, display: 'flex', gap: 6, justifyContent: 'center' }}>
-                <button style={{ fontSize: 10, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-                  onClick={() => pickImage('avatar')}>{t('systemProfile.changeAvatar')}</button>
-                {avatar && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
+                <button style={linkButton('var(--accent)', 10)}
+                  onClick={() => pick('image', setAvatar)}>{t('systemProfile.changeAvatar')}</button>
+                {avatar && <button style={linkButton('var(--danger)', 10)}
                   onClick={() => setAvatar('')}>{t('systemProfile.removeAvatar')}</button>}
               </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                width: '100%', aspectRatio: '3 / 1', borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
-                backgroundImage: banner ? `url(${banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
-                backgroundColor: banner ? undefined : 'var(--surface)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 13,
-              }} {...clickable(() => pickImage('banner'), t('systemProfile.changeBanner'))}>
-                {!banner && t('systemProfile.changeBanner')}
-              </div>
-              {banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
-                onClick={() => setBanner('')}>{t('systemProfile.removeBanner')}</button>}
-            </div>
+            <BannerField banner={banner} pickLabel={t('systemProfile.changeBanner')} removeLabel={t('systemProfile.removeBanner')}
+              onPick={() => pick('banner', setBanner)} onRemove={() => setBanner('')} style={{ flex: 1, marginBottom: 0 }} />
           </div>
 
           <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>{t('systemProfile.shareHint')}</p>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <Btn variant="solid" onClick={commit}>{t('common.save')}</Btn>
+            <Btn variant="solid" onClick={() => void commit()}>{t('common.save')}</Btn>
             <Btn variant="ghost" onClick={() => switchTo('read')}>{t('common.cancel')}</Btn>
           </div>
         </>
       )}
 
-      {saved && <p style={{ fontSize: 12, color: 'var(--success)', marginTop: 12 }} role="status">{t('common.settingsSaved')}</p>}
+      {saved && <p style={{ fontSize: 12, color: saved.error ? 'var(--danger)' : 'var(--success)', marginTop: 12 }} role={saved.error ? 'alert' : 'status'}>{saved.msg}</p>}
 
       <ConfirmDialog
         open={confirmDiscard}
         title={t('systemProfile.discardTitle')}
         message={t('systemProfile.discardMsg')}
-        danger
+        danger single
         onConfirm={discard}
         onCancel={() => setConfirmDiscard(false)}
       />
+      <ImageErrorDialog error={imageError} onClose={clearImageError} />
     </div>
   );
 }

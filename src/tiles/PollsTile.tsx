@@ -1,29 +1,18 @@
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MemberPoll, fmtNum } from '../utils';
-import { store, KEYS } from '../storage';
+import { fmtNum } from '../utils';
+import { useAppStore } from '../store/appStore';
+import { Tile } from '../components/Tile';
 
 interface Props { onClick: () => void; }
 
 export default function PollsTile({ onClick }: Props) {
   const { t } = useTranslation();
-  const [activeCount, setActiveCount] = useState(0);
-  useEffect(() => {
-    store.get<MemberPoll[]>(KEYS.polls, []).then(p => {
-      setActiveCount((p || []).filter(x => !x.closedAt).length);
-    });
-  }, []);
+  const activeCount = useAppStore(s => s.polls).filter(x => !x.closedAt).length;
 
   return (
-    <div className="tile tile--clickable tile--center" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header">
-        <span className="tile__icon" aria-hidden>📊</span>
-        <span className="tile__title">{t('polls.title')}</span>
-      </div>
-      <div className="tile__body">
-        <span className="tile__stat">{fmtNum(activeCount, 0)}</span>
-        <span className="tile__label">{t('polls.activeCount', { count: activeCount })}</span>
-      </div>
-    </div>
+    <Tile glyph="📊" title={t('polls.title')} onClick={onClick} center>
+      <span className="tile__stat">{fmtNum(activeCount, 0)}</span>
+      <span className="tile__label">{t('polls.activeCount', { count: activeCount })}</span>
+    </Tile>
   );
 }

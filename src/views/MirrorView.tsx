@@ -1,510 +1,104 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Field, Modal, SrOnly } from '../components/ui';
-import { NetworkManager } from '../network/NetworkManager';
-import { MirrorFeature, MirrorCacheEntry, MirrorMember, MirrorGroup, MirrorSystemProfile, MIRROR_SYSTEM_AVATAR_ID, MIRROR_SYSTEM_BANNER_ID } from '../network/types';
+import { Btn, Field, Modal } from '../components/ui';
+import { MIRROR_SYSTEM_AVATAR_ID, MIRROR_SYSTEM_BANNER_ID } from '../network/types';
+import { mirrorMembersOf, mirrorJournalOf, mirrorPlannerOf, mirrorStrokesOf, mirrorProfileOf, mirrorHistoryOf } from '../network/mirror/payload';
 import SystemProfileCard from '../components/SystemProfileCard';
 import { MarkdownText } from '../components/MarkdownText';
-import { fmtTime, getInitials, translateMood, fmtNum, fmtClockHHMM, fmtFieldValue, CustomFieldType } from '../utils';
-import { logError } from '../log';
+import { JournalEntry, fmtTime } from '../utils';
+import { MIRROR_FEATURE_KEY, Nothing, mutedText } from './mirror/shared';
+import type { MirrorServedFeature } from '../network/mirror/build';
+import { MirrorMembers } from './mirror/MirrorMembers';
+import { MirrorGroups } from './mirror/MirrorGroups';
+import { MirrorHistory } from './mirror/MirrorHistory';
+import { MirrorJournal } from './mirror/MirrorJournal';
+import { MirrorPlanner } from './mirror/MirrorPlanner';
+import { MirrorWhiteboard } from './mirror/MirrorWhiteboard';
+import { groupsPayload, useMirrorFeed } from './mirror/useMirrorFeed';
 
 interface Props {
   open: boolean;
   peerId: string;
   displayName: string;
-  feature: MirrorFeature;
+  feature: MirrorServedFeature;
   online: boolean;
   onClose: () => void;
 }
 
-interface MirrorHistoryEntry {
-  memberIds?: string[];
-  startTime?: number;
-  endTime?: number | null;
-  note?: string;
-  mood?: string;
-  location?: string;
-  energyLevel?: number;
-  coFrontIds?: string[];
-  coFrontMood?: string;
-  coFrontNote?: string;
-  coFrontEnergy?: number;
-  coFrontLocation?: string;
-  coConsciousIds?: string[];
-  coConsciousMood?: string;
-  coConsciousNote?: string;
-  coConsciousEnergy?: number;
-  coConsciousLocation?: string;
-}
-
-interface MirrorJournalEntry {
-  id: string;
-  title?: string;
-  body?: string;
-  timestamp?: number;
-  password?: string;
-  pinned?: boolean;
-}
-
 export function MirrorView({ open, peerId, displayName, feature, online, onClose }: Props) {
   const { t } = useTranslation();
-  const [entry, setEntry] = useState<MirrorCacheEntry | null>(null);
-  const [memberCache, setMemberCache] = useState<MirrorMember[]>([]);
-  const [groupCache, setGroupCache] = useState<{groups: MirrorGroup[]; membership: Record<string, {id: string; name: string}[]>} | null>(null);
-  const groupsOf = (id: string): MirrorGroup[] => (groupCache ? groupCache.groups.filter(g => (groupCache.membership[g.id] || []).some(x => x.id === id)) : []);
-  const [memberSearch, setMemberSearch] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [groupPath, setGroupPath] = useState<string[]>([]);
-  const [openEntry, setOpenEntry] = useState<MirrorJournalEntry | null>(null);
+  const { entry, memberCache, groupCache, loading, request } = useMirrorFeed(open, peerId, feature, online);
+  const [openEntry, setOpenEntry] = useState<JournalEntry | null>(null);
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState(false);
-  const [unlocked, setUnlocked] = useState<Record<string, boolean>>({});
-  const onlineRef = useRef(false);
-
-  const request = useCallback(() => {
-    if (!online) return;
-    setLoading(true);
-    NetworkManager.requestMirror(peerId, feature).catch(e => logError('mirror', e));
-    if (feature === 'members') NetworkManager.requestMirror(peerId, 'groups').catch(() => {});
-    const to = setTimeout(() => setLoading(false), 12000);
-    return () => clearTimeout(to);
-  }, [peerId, feature, online]);
+  const [unlocked, setUnlocked] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
-    setExpanded(null);
-    setGroupPath([]);
     setOpenEntry(null);
-    setUnlocked({});
-    NetworkManager.loadMirror(peerId, feature)
-      .then(e => setEntry(e))
-      .catch(e => logError('mirror', e));
-    if (feature !== 'members' && feature !== 'systemProfile' && feature !== 'whiteboard' && feature !== 'planner') {
-      NetworkManager.loadMirror(peerId, 'members')
-        .then(e => setMemberCache(Array.isArray(e?.data) ? (e!.data as MirrorMember[]) : []))
-        .catch(() => {});
-    }
-    const loadGroups = () => {
-      if (feature !== 'members') return;
-      NetworkManager.loadMirror(peerId, 'groups')
-        .then(gc => {
-          const d: any = gc && !gc.none && gc.data && typeof gc.data === 'object' && !Array.isArray(gc.data) ? gc.data : null;
-          setGroupCache(d ? {groups: Array.isArray(d.groups) ? d.groups : [], membership: d.membership && typeof d.membership === 'object' ? d.membership : {}} : null);
-        })
-        .catch(() => {});
-    };
-    loadGroups();
-    const unsub = NetworkManager.onMirrorUpdated((pid, feat) => {
-      if (pid !== peerId) return;
-      if (feature === 'members' && feat === 'groups') {
-        loadGroups();
-        return;
-      }
-      if (feat !== feature) return;
-      setLoading(false);
-      NetworkManager.loadMirror(peerId, feature)
-        .then(e => setEntry(e))
-        .catch(e => logError('mirror', e));
-    });
-    const unsubNet = NetworkManager.subscribe(s => {
-      const isOnline = s.onlinePeers.includes(peerId);
-      const was = onlineRef.current;
-      onlineRef.current = isOnline;
-      if (isOnline && !was) request();
-    });
-    request();
-    return () => {
-      unsub();
-      unsubNet();
-    };
+    setUnlocked(new Set());
   }, [open, peerId, feature, request]);
 
-  const featureLabel =
-    feature === 'members' ? t('tabs.members')
-    : feature === 'groups' ? t('memberGroups.title')
-    : feature === 'history' ? t('tabs.history')
-    : feature === 'systemProfile' ? t('systemProfile.title')
-    : feature === 'whiteboard' ? t('whiteboard.title')
-    : feature === 'planner' ? t('planner.title')
-    : t('tabs.journal');
+  const media = useMemo(() => new Map(Object.entries(entry?.media || {})), [entry]);
+  const groupsOf = (id: string) => (groupCache ? groupCache.groups.filter(g => (groupCache.membership.get(g.id) || []).some(x => x.id === id)) : []);
 
-  const dim: React.CSSProperties = { fontSize: 12, color: 'var(--muted)' };
-  const detail = (icon: string, label: string, value: string) => (
-    <span><span aria-hidden>{icon} {value}</span><SrOnly>{t('common.labelValue', { label, value })}</SrOnly></span>
-  );
-  const avatarFor = (id: string): string | undefined => entry?.media?.[id];
-
-  const renderMembers = () => {
-    const all: MirrorMember[] = Array.isArray(entry?.data) ? (entry!.data as MirrorMember[]) : [];
-    if (all.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-    const q = memberSearch.trim().toLowerCase();
-    const list = q ? all.filter(m => [m.name, m.pronouns, m.role].some(v => (v || '').toLowerCase().includes(q))) : all;
-    return (
-      <div>
-        <input className="field__input" type="search" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
-          placeholder={t('history.searchMember')} aria-label={t('history.searchMember')} style={{ marginBottom: 8 }} />
-        {list.map(m => {
-          const isOpen = expanded === m.id;
-          const av = avatarFor(m.id);
-          return (
-            <div key={m.id} style={{ borderTop: '1px solid var(--border)', padding: '10px 0' }}>
-              <button
-                onClick={() => setExpanded(isOpen ? null : m.id)}
-                aria-expanded={isOpen}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
-                {av ? (
-                  <img src={av} alt="" style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover', flexShrink: 0 }} />
-                ) : (
-                  <span aria-hidden style={{ width: 36, height: 36, borderRadius: 18, flexShrink: 0, background: m.color || 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontWeight: 600 }}>
-                    {Array.from(getInitials(m.name || '?'))[0] || '?'}
-                  </span>
-                )}
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{m.name}</span>
-                  {(m.pronouns || m.role) && (
-                    <span style={{ display: 'block', ...dim }}>{[m.pronouns, m.role].filter(Boolean).join('  ·  ')}</span>
-                  )}
-                </span>
-              </button>
-              {isOpen && (
-                <div style={{ paddingLeft: 46, paddingTop: 6 }}>
-                  {entry?.media?.[`${m.id}#banner`] && (
-                    <img src={entry.media[`${m.id}#banner`]} alt="" style={{ display: 'block', width: '100%', maxHeight: 180, borderRadius: 8, objectFit: 'cover', marginBottom: 6 }} />
-                  )}
-                  {groupsOf(m.id).length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '4px 0' }}>
-                      {groupsOf(m.id).map(g => (
-                        <span key={g.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--border)', fontSize: 11, color: 'var(--text)' }}>
-                          <span aria-hidden style={{ width: 7, height: 7, borderRadius: 4, background: g.color || 'var(--border)' }} />
-                          {g.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {m.description && (
-                    <div style={{ margin: '4px 0' }}><MarkdownText text={m.description} /></div>
-                  )}
-                  {(m.customFields || []).map((cf, i) => {
-                    if (cf.type === 'image') {
-                      const img = entry?.media?.[`${m.id}#cf:${cf.fieldId || ''}`];
-                      return (
-                        <div key={i} style={{ margin: '2px 0' }}>
-                          <span style={dim}>{t('common.labelColon', { label: cf.name })} </span>
-                          {img ? (
-                            <img src={img} alt={cf.name} style={{ display: 'block', maxWidth: '100%', maxHeight: 220, borderRadius: 8, marginTop: 4, objectFit: 'cover' }} />
-                          ) : (
-                            <span style={{ ...dim, fontStyle: 'italic' }}>{t('markdown.imageUnavailable')}</span>
-                          )}
-                        </div>
-                      );
-                    }
-                    return (
-                      <p key={i} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
-                        <span style={dim}>{t('common.labelColon', { label: cf.name })} </span>
-                        {typeof cf.value === 'boolean'
-                          ? <span role="img" aria-label={cf.value ? t('common.yes') : t('common.no')}>{cf.value ? '✓' : '✕'}</span>
-                          : fmtFieldValue(cf.type as CustomFieldType, cf.value)}
-                      </p>
-                    );
-                  })}
-                  {(m.connections || []).length > 0 && (
-                    <div style={{ marginTop: 8 }}>
-                      <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 4 }}>
-                        {t('systemMap.connections')}
-                      </div>
-                      {(m.connections || []).map(c => (
-                        <p key={c.id} style={{ margin: '2px 0', fontSize: 13, color: 'var(--text)' }}>
-                          <span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: c.color || 'var(--border)', marginRight: 6 }} />
-                          <span style={dim}>{t('common.labelColon', { label: c.labelKey ? t(c.labelKey) : c.label })} </span>
-                          {c.otherName}
-                          {c.note ? <span style={{ ...dim, fontStyle: 'italic' }}>{'  ·  ' + c.note}</span> : null}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  {!m.description && (m.customFields || []).length === 0 && (m.connections || []).length === 0 && <p style={dim}>{t('network.mirrorNothing')}</p>}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
+  const openJournalEntry = (e: JournalEntry) => {
+    setPwInput('');
+    setPwError(false);
+    setOpenEntry(e);
   };
 
-  const renderGroups = () => {
-    const data = entry?.data as { groups?: MirrorGroup[]; membership?: Record<string, { id: string; name: string }[]> } | null;
-    const groups: MirrorGroup[] = Array.isArray(data?.groups) ? data!.groups! : [];
-    const membership = data?.membership || {};
-    const parentId = groupPath.length > 0 ? groupPath[groupPath.length - 1] : undefined;
-    const children = groups
-      .filter(g => (g.parentId || undefined) === parentId)
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-    const membersHere = parentId ? membership[parentId] || [] : membership[''] || [];
-    const empty = children.length === 0 && membersHere.length === 0;
-    return (
-      <div>
-        {groupPath.length > 0 && (
-          <Btn onClick={() => setGroupPath(groupPath.slice(0, -1))}><span aria-hidden>←</span> {t('common.back')}</Btn>
-        )}
-        {children.map(g => (
-          <button
-            key={g.id}
-            onClick={() => setGroupPath([...groupPath, g.id])}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', borderTop: '1px solid var(--border)', padding: '10px 0', cursor: 'pointer', textAlign: 'left' }}>
-            <span aria-hidden style={{ width: 10, height: 10, borderRadius: 5, background: g.color || 'var(--border)' }} />
-            <span style={{ flex: 1, fontSize: 14, color: 'var(--text)' }}>{g.name}</span>
-            <span aria-hidden style={dim}>›</span>
-          </button>
-        ))}
-        {membersHere.map(m => (
-          <div key={m.id} style={{ borderTop: '1px solid var(--border)', padding: '10px 0', fontSize: 14, color: 'var(--text)' }}>{m.name}</div>
-        ))}
-        {empty && <p style={dim}>{t('network.mirrorNothing')}</p>}
-      </div>
-    );
-  };
-
-  const renderHistory = () => {
-    const list: MirrorHistoryEntry[] = Array.isArray(entry?.data) ? (entry!.data as MirrorHistoryEntry[]) : [];
-    if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-    const nameOf = (id: string): string => memberCache.find(m => m.id === id)?.name || '-';
-    const chips = (ids?: string[]) => (ids || []).map(id => {
-      const m = memberCache.find(x => x.id === id);
-      return (
-        <span key={id} className="chip" style={{ borderColor: `${m?.color || 'var(--border)'}50`, background: `${m?.color || 'transparent'}20` }}>
-          <span style={{ color: m?.color || 'var(--text)' }}>{nameOf(id)}</span>
-        </span>
-      );
-    });
-    const tierLine = (mood?: string, location?: string, energy?: number, note?: string) =>
-      (mood || location || energy || note) ? (
-        <div style={{ display: 'flex', gap: 12, marginTop: 3, marginLeft: 4, fontSize: 11, color: 'var(--dim)' }}>
-          {mood && detail('😊', t('modal.mood'), translateMood(mood, t))}
-          {location && detail('📍', t('modal.location'), location)}
-          {energy ? detail('⚡', t('energy.label'), t('energy.outOfTen', { value: fmtNum(energy, 0) })) : null}
-          {note && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{note}</span>}
-        </div>
-      ) : null;
-    const sorted = [...list].sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
-    return (
-      <div>
-        {sorted.map((e, i) => (
-          <div key={`${e.startTime}-${i}`} style={{ borderTop: '1px solid var(--border)', padding: '10px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              {chips(e.memberIds)}
-              <span style={{ marginLeft: 'auto', ...dim, fontVariantNumeric: 'tabular-nums' }}>
-                {fmtTime(e.startTime || 0)}{e.endTime ? ` - ${fmtTime(e.endTime)}` : ''}
-              </span>
-            </div>
-            {tierLine(e.mood, e.location, e.energyLevel, e.note)}
-            {(e.coFrontIds || []).length > 0 && (
-              <div style={{ marginTop: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.labelColon', { label: t('tier.coFront') })}</span>
-                  {chips(e.coFrontIds)}
-                </div>
-                {tierLine(e.coFrontMood, e.coFrontLocation, e.coFrontEnergy, e.coFrontNote)}
-              </div>
-            )}
-            {(e.coConsciousIds || []).length > 0 && (
-              <div style={{ marginTop: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.labelColon', { label: t('tier.coConShort') })}</span>
-                  {chips(e.coConsciousIds)}
-                </div>
-                {tierLine(e.coConsciousMood, e.coConsciousLocation, e.coConsciousEnergy, e.coConsciousNote)}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderJournal = () => {
-    const list: MirrorJournalEntry[] = (Array.isArray(entry?.data) ? (entry!.data as MirrorJournalEntry[]) : []).filter(e => !!e);
-    if (list.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-    const sorted = [...list].sort(
-      (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.timestamp || 0) - (a.timestamp || 0),
-    );
-    return (
-      <div>
-        {sorted.map(e => (
-          <button
-            key={e.id}
-            onClick={() => {
-              setPwInput('');
-              setPwError(false);
-              setOpenEntry(e);
-            }}
-            style={{ display: 'block', width: '100%', background: 'none', border: 'none', borderTop: '1px solid var(--border)', padding: '10px 0', cursor: 'pointer', textAlign: 'left' }}>
-            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-              {e.password && !unlocked[e.id] ? <><span aria-hidden>🔒 </span><SrOnly>{t('journal.lockedLabel')}</SrOnly></> : ''}{e.title || fmtTime(e.timestamp || 0)}
-            </span>
-            {e.timestamp ? <span style={{ display: 'block', ...dim }}>{fmtTime(e.timestamp)}</span> : null}
-          </button>
-        ))}
-      </div>
-    );
+  const unlockEntry = () => {
+    if (openEntry && pwInput === openEntry.password) {
+      setUnlocked(new Set(unlocked).add(openEntry.id));
+      setPwError(false);
+    } else {
+      setPwError(true);
+    }
   };
 
   const body = () => {
-    if (!entry) {
-      return <p role="status" style={dim}>{online ? t('network.mirrorLoading') : t('network.mirrorEmptyOffline')}</p>;
-    }
-    if (entry.none) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-    if (feature === 'planner') {
-      const pd: any = entry.data && typeof entry.data === 'object' ? entry.data : {};
-      const appts: any[] = Array.isArray(pd.appointments) ? pd.appointments : [];
-      const rems: any[] = Array.isArray(pd.reminders) ? pd.reminders : [];
-      const sortedAppts = [...appts].sort((a, b) => (Number(a?.time) || 0) - (Number(b?.time) || 0));
-      if (sortedAppts.length === 0 && rems.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-      const card: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 8 };
-      return (
-        <div>
-          {sortedAppts.length > 0 && (
-            <>
-              <h3 style={{ fontSize: 12, fontWeight: 700, color: 'var(--dim)', margin: '0 0 8px' }}>{t('planner.appt')}</h3>
-              {sortedAppts.map((a: any) => (
-                <div key={String(a?.id || a?.time)} style={card}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: a?.color || 'var(--text)' }}>{String(a?.title || '')}</div>
-                  <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{fmtTime(Number(a?.time) || 0)}</div>
-                  {a?.location && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{String(a.location)}</div>}
-                  {a?.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{String(a.notes)}</div>}
-                </div>
-              ))}
-            </>
-          )}
-          {rems.length > 0 && (
-            <>
-              <h3 style={{ fontSize: 12, fontWeight: 700, color: 'var(--dim)', margin: `${sortedAppts.length > 0 ? 12 : 0}px 0 8px` }}>{t('planner.reminders')}</h3>
-              {rems.map((r: any) => (
-                <div key={String(r?.id || r?.title)} style={{ ...card, opacity: r?.enabled === false ? 0.5 : 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{String(r?.title || '')}</div>
-                  {Array.isArray(r?.times) && r.times.length > 0 && (
-                    <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>{r.times.map((tm: string) => fmtClockHHMM(String(tm))).join('  ·  ')}</div>
-                  )}
-                  {r?.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{String(r.notes)}</div>}
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      );
-    }
-    if (feature === 'whiteboard') {
-      const strokes: {id: string; c: string; w: number; pts: number[]}[] = Array.isArray(entry.data) ? entry.data : [];
-      if (strokes.length === 0) return <p style={dim}>{t('network.mirrorNothing')}</p>;
-      const HALF_W = 4000;
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      let boardFill = false;
-      for (const s of strokes) {
-        if (!s || !Array.isArray(s.pts)) continue;
-        if (s.w === -1) { boardFill = true; continue; }
-        for (let i = 0; i + 1 < s.pts.length; i += 2) {
-          if (s.pts[i] < minX) minX = s.pts[i];
-          if (s.pts[i] > maxX) maxX = s.pts[i];
-          if (s.pts[i + 1] < minY) minY = s.pts[i + 1];
-          if (s.pts[i + 1] > maxY) maxY = s.pts[i + 1];
-        }
+    if (!entry) return <p role="status" style={mutedText}>{online ? t('network.mirrorLoading') : t('network.mirrorEmptyOffline')}</p>;
+    if (entry.none) return <Nothing />;
+    switch (feature) {
+      case 'planner': return <MirrorPlanner data={mirrorPlannerOf(entry.data)} />;
+      case 'whiteboard': return <MirrorWhiteboard strokes={mirrorStrokesOf(entry.data)} />;
+      case 'systemProfile': {
+        const sp = mirrorProfileOf(entry.data);
+        return <SystemProfileCard name={sp?.name || displayName} description={sp?.description} avatar={media.get(MIRROR_SYSTEM_AVATAR_ID)} banner={media.get(MIRROR_SYSTEM_BANNER_ID)} />;
       }
-      if (!Number.isFinite(minX) || boardFill) { minX = -HALF_W; minY = -HALF_W; maxX = HALF_W; maxY = HALF_W; }
-      const pad = 40;
-      const vw = Math.max(1, maxX - minX + pad * 2);
-      const vh = Math.max(1, maxY - minY + pad * 2);
-      const sp = (pts: number[]): string => {
-        if (pts.length < 2) return '';
-        let d = `M ${pts[0]} ${pts[1]}`;
-        if (pts.length === 2) d += ` L ${pts[0] + 0.1} ${pts[1] + 0.1}`;
-        for (let i = 2; i < pts.length; i += 2) d += ` L ${pts[i]} ${pts[i + 1]}`;
-        return d;
-      };
-      return (
-        <div role="img" aria-label={t('whiteboard.title')}
-          style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-          <svg width="100%" viewBox={`${minX - pad} ${minY - pad} ${vw} ${vh}`} style={{ display: 'block', maxHeight: '60vh' }}>
-            {strokes.map(s => !s || !Array.isArray(s.pts) ? null : s.w === -1 ? (
-              <path key={s.id} d={`M ${-HALF_W} ${-HALF_W} H ${HALF_W} V ${HALF_W} H ${-HALF_W} Z`} fill={s.c} stroke="none" />
-            ) : s.w === -2 ? (
-              <path key={s.id} d={`${sp(s.pts)} Z`} fill={s.c} stroke="none" />
-            ) : (
-              <path key={s.id} d={sp(s.pts)} stroke={s.c} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            ))}
-          </svg>
-        </div>
-      );
+      case 'members': return <MirrorMembers members={mirrorMembersOf(entry.data)} media={media} groupsOf={groupsOf} />;
+      case 'groups': return <MirrorGroups data={groupsPayload(entry)} />;
+      case 'history': return <MirrorHistory entries={mirrorHistoryOf(entry.data)} members={memberCache} />;
+      default: return <MirrorJournal entries={mirrorJournalOf(entry.data)} unlocked={unlocked} onOpen={openJournalEntry} />;
     }
-    if (feature === 'systemProfile') {
-      const sp = (entry.data && typeof entry.data === 'object' && !Array.isArray(entry.data)
-        ? entry.data
-        : {}) as MirrorSystemProfile;
-      return (
-        <SystemProfileCard
-          name={sp.name || displayName}
-          description={sp.description}
-          avatar={avatarFor(MIRROR_SYSTEM_AVATAR_ID)}
-          banner={avatarFor(MIRROR_SYSTEM_BANNER_ID)}
-        />
-      );
-    }
-    if (feature === 'members') return renderMembers();
-    if (feature === 'groups') return renderGroups();
-    if (feature === 'history') return renderHistory();
-    return renderJournal();
   };
 
-  const locked = !!openEntry?.password && !unlocked[openEntry.id];
+  const locked = !!openEntry?.password && !unlocked.has(openEntry.id);
 
   return (
     <>
       <Modal
         open={open && !openEntry}
-        title={t('network.mirrorTitle', { name: displayName, feature: featureLabel })}
+        title={t('network.mirrorTitle', { name: displayName, feature: t(MIRROR_FEATURE_KEY[feature]) })}
         onClose={onClose}
-        footer={<Btn onClick={() => request()} disabled={!online || loading}>{loading ? t('network.mirrorLoading') : t('network.mirrorRefresh')}</Btn>}>
-        {!online && entry && <p role="status" style={{ ...dim, marginTop: 0 }}>{t('network.mirrorOffline')}</p>}
-        {entry?.fetchedAt ? (
-          <p role="status" style={{ ...dim, marginTop: 0 }}>{t('network.mirrorUpdated', { time: fmtTime(entry.fetchedAt) })}</p>
-        ) : null}
+        footer={<Btn onClick={request} disabled={!online || loading}>{loading ? t('network.mirrorLoading') : t('network.mirrorRefresh')}</Btn>}>
+        {!online && entry && <p role="status" style={{ ...mutedText, marginTop: 0 }}>{t('network.mirrorOffline')}</p>}
+        {entry?.fetchedAt ? <p role="status" style={{ ...mutedText, marginTop: 0 }}>{t('network.mirrorUpdated', { time: fmtTime(entry.fetchedAt) })}</p> : null}
         {body()}
       </Modal>
 
-      <Modal
-        open={!!openEntry}
-        title={openEntry?.title || t('tabs.journal')}
-        onClose={() => setOpenEntry(null)}>
+      <Modal open={!!openEntry} title={openEntry?.title || t('tabs.journal')} onClose={() => setOpenEntry(null)}>
         {locked ? (
           <>
-            <p style={dim}>{t('journal.passwordPrompt')}</p>
-            <Field
-              label={t('journal.password')}
-              value={pwInput}
-              onChange={v => {
-                setPwInput(v);
-                setPwError(false);
-              }}
-              placeholder={t('journal.password')}
-              type="password"
-            />
+            <p style={mutedText}>{t('journal.passwordPrompt')}</p>
+            <Field label={t('journal.password')} value={pwInput} onChange={v => { setPwInput(v); setPwError(false); }} placeholder={t('journal.password')} type="password" />
             {pwError && <p role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{t('journal.wrongPassword')}</p>}
-            <Btn
-              onClick={() => {
-                if (openEntry && pwInput === openEntry.password) {
-                  setUnlocked({ ...unlocked, [openEntry.id]: true });
-                  setPwError(false);
-                } else {
-                  setPwError(true);
-                }
-              }}
-              disabled={!pwInput}>
-              {t('common.unlock')}
-            </Btn>
+            <Btn onClick={unlockEntry} disabled={!pwInput}>{t('common.unlock')}</Btn>
           </>
         ) : (
           <>
-            {openEntry?.timestamp ? <p style={dim}>{fmtTime(openEntry.timestamp)}</p> : null}
+            {openEntry?.timestamp ? <p style={mutedText}>{fmtTime(openEntry.timestamp)}</p> : null}
             <MarkdownText text={openEntry?.body || ''} />
           </>
         )}

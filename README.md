@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/Download-Latest%20Release-DAA520?style=for-the-badge&logo=windows&logoColor=white" alt="Download Latest Release" />
   </a>
   &nbsp;
-   <a href="https://www.buymeacoffee.com/PluralStar">
+  <a href="https://www.buymeacoffee.com/PluralStar">
     <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&amp;emoji=%E2%98%95&amp;slug=PluralStar&amp;button_colour=151929&amp;font_colour=ffffff&amp;font_family=Cookie&amp;outline_colour=ffffff&amp;coffee_colour=FFDD00" alt="Support Plural Star on Buy Me a Coffee" />
   </a>
   &nbsp;
@@ -47,10 +47,10 @@ Manage your groups and subsystems from one dedicated screen: create, rename, rec
 Define your own per-member fields beyond the built-in ones. Thirteen field types: Text, Rich Text, Image, Number, Toggle, Color, Date, Date Range, Timestamp, Month, Year, Month + Year, and Month + Day. Create fields once from the dashboard; fill them out per-member in the member edit modal. Text and Rich Text fields render with markdown in the profile's read view, and anything wrapped in `||double bars||` stays covered until clicked, so a trigger list can live on a profile without being read every time it is opened. Fields are reorderable, renameable, and fully exportable. Compatible with Simply Plural custom field imports.
 
 **🕸 System Map**  
-Chart the relationships between your headmates on an interactive force-directed graph. Four connection types ship built in (Rival, Friend, Ally, Love), and the Connections manager lets you create unlimited custom types with their own names, colors, and optional directionality with inverse labels. Threads rest grey until you select a member; their web then lights up in connection colors, with a reach selector to extend the glow to friends-of-friends and one ring beyond. Pan, zoom, click any node for their relationship list, and jump straight to their profile.
+Chart the relationships between your headmates on an interactive map. Four connection types ship built in (Rival, Friend, Ally, Love), and the Connections manager lets you create unlimited custom types with their own names and colors. Threads rest grey until you select a member; their web then lights up in connection colors out to three steps away. Drag members into place or lock their positions, click any node for their relationship list, and jump straight to their profile.
 
 **⚕ Medical**  
-Medication reminders, appointments, medical history, and emergency info in one dashboard tile, available in both system and Observatory modes. Medications support dosage, multiple daily reminder times, notes, and a pause toggle. Appointments take a date and time, location, and a remind-before offset. Keep a dated medical history of conditions, surgeries, and diagnoses, plus an emergency section for conditions, allergies, and blood type. Medical data is deliberately **local-only**: it never syncs and never leaves the machine.
+Medication reminders, appointments, medical history, and emergency info in one dashboard tile, available in both system and Observatory modes. Medications support dosage, multiple daily reminder times, and a pause toggle. Appointments take a date and time and a remind-before offset. Keep a dated medical history of conditions, surgeries, and diagnoses, plus an emergency section for conditions, allergies, and blood type. Medical data is deliberately **local-only**: it never syncs and never leaves the machine.
 
 **🖌 Whiteboard**  
 A shared system canvas for sketching, mapping, or thinking out loud. Draw freehand with an adjustable brush, drop line, rectangle, ellipse, and Paint-style polygon shapes, fill regions with the bucket tool, erase, undo, and pick colors from the Colors system. Clearing the board triple-confirms before anything is destroyed.
@@ -83,13 +83,13 @@ System-wide mail between headmates, right on the dashboard: per-member inboxes w
 Front History gives you a complete timestamped log of every switch, organized by day, with co-front and co-conscious tiers displayed inline. Filter by member, time range, or search across names, notes, and moods. Add retroactive history entries manually with full three-tier support, mood, location, and energy, searchable Custom Front pickers for Front and Co-Front, start/end time selection, and a "Current" option for ongoing sessions. The app detects overlaps with existing entries and lets you choose how to handle them.
 
 **⊞ System Statistics**  
-System-wide stats at a glance: total fronting time, session count, and message count with time range filtering (All Time, 7 Days, 30 Days). Expandable leaderboards (top 5, up to 25) for fronters, co-fronters, co-conscious, chatters, moods, and locations. Peak Hours and Energy-by-Hour charts show when your system is most active and how energy trends through the day, plus per-member breakdowns of sessions, average energy, top co-members, and top moods.
+System-wide stats at a glance: total fronting time, session count, and message count with time range filtering (All Time, 7 Days, 30 Days, or a custom date range). Expandable leaderboards (top 5, up to 25) for fronters, co-fronters, co-conscious, chatters, moods, and locations. Peak Hours and Energy-by-Hour charts show when your system is most active and how energy trends through the day, plus per-member breakdowns of sessions, average energy, top co-members, and top moods.
 
 **⌨ System Chat**  
-Local-only IRC-style chat for your system. Create, rename, and organize channels (up to 100) with defaults for General, Venting, and Planning. Group channels into named categories and drag them into the order you want. Messages take the same markdown the journal and profiles use. Select a speaker from your member roster independently of who's fronting: chat activity doesn't affect front or history. Send text messages, share images (stored as base64: delete the source and the chat copy persists), reply to messages, and react with emoji. Archive channels to free storage with the option to close the channel or continue fresh with a clean slate. Archived messages export as `ChannelName_YYYY-MM-DD.json`.
+Local-only IRC-style chat for your system. Create, rename, and organize channels (up to 100) with defaults for General, Venting, and Planning. Group channels into named categories and drag them into the order you want. Messages take the same markdown the journal and profiles use. Select a speaker from your member roster independently of who's fronting: chat activity doesn't affect front or history. Send text messages, share images (stored as base64: delete the source and the chat copy persists), reply to messages, and react with emoji. Archive channels to tuck them out of the list, and unarchive them any time with their messages intact.
 
 **◉ System Journal**  
-Write journal entries with the same editor available in member profiles. Entries open in a clean read-only view with a one-click Edit button. Pin important entries to the top of the list, and start new ones from saved templates with preset titles, bodies, and tags. Tag entries with authors (searchable by name), add topic hashtags (searchable by tag), and optionally lock individual entries or the entire journal behind passwords. Export individual entries or the full journal in `.txt`, `.md`, or `.json`.
+Write journal entries with the same editor available in member profiles. Entries open in a clean read-only view with a one-click Edit button. Pin important entries to the top of the list, and start new ones from saved templates with preset titles, bodies, and tags. Tag entries with authors (searchable by name), add topic hashtags (searchable by tag), and optionally lock individual entries or the entire journal behind passwords.
 
 **⇅ Import & Export**  
 Migrating from another app? Import your full system data (members, history, custom fields, and system info) from Simply Plural, PluralKit, Octocon, Ampersand, Ourcana, HiveMind, Tupperbox, Parallax, PluralLog, or PluralSpace, via API token or export file. One file picker handles most of them: drop in the export and the format is detected for you. Co-fronting sessions from Simply Plural are correctly grouped into combined entries. Profile pictures are imported from avatar URLs. Custom field names and values are mapped automatically with bidirectional ID normalization.
@@ -100,13 +100,13 @@ Every format these apps currently produce is read directly, including the awkwar
 - **Ampersand**: both their JSON export and the binary **`.ampar`** archive, read natively. Profile pictures and banners travel inside that archive and come across with everything else; their member tags become groups, and journal posts and board messages (polls included) land in your journal.
 - **PluralKit**: front history is paginated properly rather than stopping at the first hundred switches.
 
-Export your full system data as JSON (reimportable), HTML (opens in Google Docs), or send a formatted summary to any email address. Granular per-category toggles. Pick exactly what to export or restore: system info, members, profile pictures, banners, front history, journal, member groups, chat, custom moods, theme palettes, app settings, custom fields, mailbox, planner, polls, journal templates, and medical. Medical stays out of a backup unless you tick it. Import `.txt`, `.md`, or `.json` files directly as journal entries.
+Export your full system data as a ZIP backup that carries the images (reimportable) or as a PluralKit-compatible file. Granular per-category toggles. Pick exactly what to export or restore: system info, members, profile pictures, banners, front history, journal, member groups, chat, custom moods, theme palettes, app settings, custom fields, mailbox, planner, polls, journal templates, and medical. Medical stays out of a backup unless you tick it.
 
 **🌐 Multilingual**  
 Full interface available in English, Español, Français, Deutsch, Nederlands, Português, Suomi, Svenska, Norsk, Íslenska, Italiano, Polski, Türkçe, Bahasa Melayu, Tiếng Việt, ไทย, हिन्दी, Afrikaans, 简体中文, 繁體中文, 日本語, 한국어, Русский, and Українська (24 languages total). Auto-detects your device language on first launch. Change anytime via the dropdown in System Settings.
 
 **Other Features**
-- Obsidian Blue dark theme and Steel light theme built-in, plus 10 custom palette slots: define your own four-color theme
+- Obsidian Blue dark theme and Steel light theme built-in, plus 20 custom palette slots: define your own four-color theme
 - System Profile with its own banner, description, and markdown formatting, separate from member profiles
 - Profile pictures on member avatars throughout the app; banners shown on member profiles and edit screens
 - Adjustable text size (Normal, Large, or Extra Large) plus OpenDyslexic and other font choices
@@ -166,7 +166,7 @@ Download the latest installer from [Releases](https://github.com/ByHanyou/Plural
 
 ## Build from Source
 
-Requirements: Node 22+
+Requirements: Node 20.19 or newer (`.nvmrc` pins 22)
 
 ```bash
 git clone https://github.com/ByHanyou/Plural-Star-Desktop.git
@@ -177,6 +177,8 @@ npm run electron:build     # build installer for your platform
 ```
 
 **Windows:** Run the build as Administrator or enable Developer Mode (Settings → System → For developers) to allow symlink creation during packaging.
+
+Development builds read a `.env` file (copy `.env.example`): `VITE_RELAY_URL` and `VITE_GATEWAY_URL` point the app at another node and gateway, `VITE_LOG_LEVEL` is `debug`, `info`, `warn` or `error`, `VITE_VERBOSE_NETWORK` logs every packet kind, and `VITE_SKIP_UPDATE_CHECK` skips the update check at start. The same settings, and every sync, mirror, connection, gateway, reminder and cloud timing, can be changed while the app runs in the **Developer** section at the bottom of Settings, which exists only in development builds; its overrides live in the local store under `psdev:config` and are never synced.
 
 ---
 
@@ -199,7 +201,7 @@ Free and open source. You are free to use, modify, and distribute it under the t
 Plural Star is free, always. If it's been useful to you, a contribution helps cover development time.
 
 <a href="https://www.buymeacoffee.com/PluralStar">
-  <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&emoji=%E2%98%95&slug=PluralSpace&button_colour=151929&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" alt="Support PS on Buy Me a Coffee" />
+  <img src="https://img.buymeacoffee.com/button-api/?text=Support+PS&amp;emoji=%E2%98%95&amp;slug=PluralStar&amp;button_colour=151929&amp;font_colour=ffffff&amp;font_family=Cookie&amp;outline_colour=ffffff&amp;coffee_colour=FFDD00" alt="Support Plural Star on Buy Me a Coffee" />
 </a>
 
 ---

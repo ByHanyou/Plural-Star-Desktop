@@ -3,40 +3,41 @@ import { useTranslation } from 'react-i18next';
 import { ChatMessage, truncateRunes } from '../utils';
 import { store, chatMsgKey } from '../storage';
 import { useAppStore } from '../store/appStore';
+import { Tile } from '../components/Tile';
+import { logError } from '../utils/log';
 
 interface Props { onClick: () => void; }
 
+type LastMessage = { msg: ChatMessage; channel: string };
+
 export default function ChatTile({ onClick }: Props) {
   const { t } = useTranslation();
-  const channels = useAppStore(s => s.state.channels);
-  const members = useAppStore(s => s.state.members);
-  const [lastMsg, setLastMsg] = useState<{ msg: ChatMessage; channel: string } | null>(null);
-  const getMember = (id: string) => members.find(m => m.id === id);
+  const channels = useAppStore(s => s.channels);
+  const members = useAppStore(s => s.members);
+  const [lastMsg, setLastMsg] = useState<LastMessage | null>(null);
   useEffect(() => {
+    let alive = true;
     (async () => {
-      let latest: { msg: ChatMessage; channel: string } | null = null;
+      let latest: LastMessage | null = null;
       for (const ch of channels.filter(c => !c.archived)) {
         const msgs = await store.get<ChatMessage[]>(chatMsgKey(ch.id), []);
-        if (msgs && msgs.length > 0) {
-          const last = msgs[msgs.length - 1];
-          if (!latest || last.timestamp > latest.msg.timestamp) latest = { msg: last, channel: ch.name };
-        }
+        const last = msgs?.[msgs.length - 1];
+        if (last && (!latest || last.timestamp > latest.msg.timestamp)) latest = { msg: last, channel: ch.name };
       }
-      setLastMsg(latest);
-    })();
+      if (alive) setLastMsg(latest);
+    })().catch(e => logError('chat', e));
+    return () => { alive = false; };
   }, [channels]);
   const activeCount = channels.filter(c => !c.archived).length;
+  const author = lastMsg ? members.find(m => m.id === lastMsg.msg.authorId) : undefined;
   return (
-    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph" aria-hidden>⌨</div><span className="tile__title">{t('hub.systemChat')}</span></div>
-      <div className="tile__body">
-        {!lastMsg ? <span className="tile__empty">{t('chat.noMessages')}</span> : (<>
-          <span style={{ fontSize: 11, color: 'var(--muted)' }}>#{lastMsg.channel}</span>
-          <div className="tile__chat-author">{getMember(lastMsg.msg.authorId)?.name || t('common.unknown')}</div>
-          <div className="tile__chat-msg">{lastMsg.msg.type === 'text' ? truncateRunes(lastMsg.msg.content, 120, '...') : <span role="img" aria-label={t('chat.attachment')}>📎</span>}</div>
-        </>)}
-        <div style={{ marginTop: 'auto', paddingTop: 8, fontSize: 11, color: 'var(--muted)' }}>{t('chat.channelCount', { count: activeCount })}</div>
-      </div>
-    </div>
+    <Tile glyph="⌨" title={t('hub.systemChat')} onClick={onClick}>
+      {!lastMsg ? <span className="tile__empty">{t('chat.noMessages')}</span> : (<>
+        <span style={{ fontSize: 11, color: 'var(--muted)' }}>#{lastMsg.channel}</span>
+        <div className="tile__chat-author">{author?.name || t('common.unknown')}</div>
+        <div className="tile__chat-msg">{lastMsg.msg.type === 'text' ? truncateRunes(lastMsg.msg.content, 120, '...') : <span role="img" aria-label={t('chat.attachment')}>📎</span>}</div>
+      </>)}
+      <div style={{ marginTop: 'auto', paddingTop: 8, fontSize: 11, color: 'var(--muted)' }}>{t('chat.channelCount', { count: activeCount })}</div>
+    </Tile>
   );
 }

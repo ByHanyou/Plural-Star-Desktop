@@ -1,26 +1,29 @@
 import React, { useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Member, uid, getInitials, allFrontMemberIds, resizeBannerDataUrl, isValidHex, normalizeMemberEmoji, colorName } from '../utils';
-import { PALETTE, initialOn, profileTheme, themeVars, liveThemeBase } from '../theme';
-import { store, KEYS } from '../storage';
+import { Member, blankMember, randomPaletteColor, getInitials, allFrontMemberIds, normalizeMemberEmoji, colorName } from '../utils';
+import { PALETTE, initialOn, memberProfileTheme, themeVars } from '../theme';
+import { saveMember, deleteMember } from '../store/actions';
 import { useAppStore } from '../store/appStore';
-import { Btn, Field, Section, Modal, ConfirmDialog, Toggle, clickable, SrOnly , tabListKeyDown } from '../components/ui';
+import { Btn, Field, Section, Modal, ConfirmDialog, Toggle, SrOnly, PageHeading, TabBar, SaveErrorDialog, ImageErrorDialog } from '../components/ui';
 import { ColorCarousel } from '../components/ColorCarousel';
-import { chooseImageTreatment } from '../components/ImageCropModal';
+import { AvatarField, BannerField } from '../components/ImageFields';
+import { useImagePick } from '../hooks/useImagePick';
+import { useSaveGuard } from '../hooks/useSaveGuard';
 import { CustomHexEntry, ProfileBgChip, TransparentAvatarChip } from '../components/CustomHexEntry';
 import { MarkdownText } from '../components/MarkdownText';
 
 type SubTab = 'profile' | 'statuses';
 
+const SUB_TABS: readonly SubTab[] = ['profile', 'statuses'];
+
 interface Props {
   member?: Member;
   statuses: Member[];
-  onUpdate: () => void;
   onEnsureSelf: () => Promise<Member>;
 }
 
-export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }: Props) {
-  const front = useAppStore(s => s.state.front);
+export default function ProfileView({ member, statuses, onEnsureSelf }: Props) {
+  const front = useAppStore(s => s.front);
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState<SubTab>('profile');
   const [editingProfile, setEditingProfile] = useState<Member | null>(null);
@@ -30,18 +33,21 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
   const [f, setF] = useState<Member>({ id: '', name: '', pronouns: '', role: '', color: PALETTE[0], description: '' });
 
   const activeIds = allFrontMemberIds(front);
-  const set = (k: keyof Member, v: any) => setF(x => ({ ...x, [k]: v }));
-  const profilePt = member?.profileBg && isValidHex(member.color) ? profileTheme(liveThemeBase(), member.color) : null;
+  const editingActive = activeIds.includes(f.id);
+  const set = <K extends keyof Member>(k: K, v: Member[K]) => setF(x => ({ ...x, [k]: v }));
+  const profilePt = memberProfileTheme(member);
   const deleteHintId = useId();
+  const [saveError, run, clearSaveError] = useSaveGuard();
+  const { pick, imageError, clearImageError } = useImagePick();
 
-  const openEditProfile = async () => {
+  const openEditProfile = () => run(async () => {
     const self = await onEnsureSelf();
     setF({ ...self });
     setEditingProfile(self);
-  };
+  });
 
   const openNewStatus = () => {
-    const m: Member = { id: uid(), name: '', pronouns: '', role: '', color: PALETTE[Math.floor(Math.random() * PALETTE.length)], description: '', isCustomFront: true, createdAt: Date.now() };
+    const m = blankMember({ isCustomFront: true, color: randomPaletteColor() });
     setF(m); setIsNewStatus(true); setEditingStatus(m);
   };
 
@@ -52,82 +58,30 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
   };
 
   const saveProfile = async () => {
-    if (!f.name.trim()) return;
-    const all = await store.get<Member[]>(KEYS.members, []) || [];
-    const updated = all.map(m => m.id === f.id ? { ...f, isCustomFront: false } : m);
-    await store.set(KEYS.members, updated);
-    setEditingProfile(null);
-    onUpdate();
+    if (f.name.trim() && await run(() => saveMember({ ...f, isCustomFront: false }))) setEditingProfile(null);
   };
 
   const saveStatus = async () => {
-    if (!f.name.trim()) return;
-    const all = await store.get<Member[]>(KEYS.members, []) || [];
-    const entry = { ...f, isCustomFront: true };
-    const updated = isNewStatus ? [...all, entry] : all.map(m => m.id === entry.id ? entry : m);
-    await store.set(KEYS.members, updated);
-    setEditingStatus(null);
-    onUpdate();
+    if (f.name.trim() && await run(() => saveMember({ ...f, isCustomFront: true }))) setEditingStatus(null);
   };
 
   const deleteStatus = async (id: string) => {
-    const all = await store.get<Member[]>(KEYS.members, []) || [];
-    await store.set(KEYS.members, all.map(m => m.id === id ? { ...m, archived: true, deleted: true } : m));
     setConfirmDeleteStatus(null);
-    setEditingStatus(null);
-    onUpdate();
-  };
-
-  const pickAvatar = async () => {
-    const filePath = await window.electronAPI.dialog.openFile([
-      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
-    ]);
-    if (!filePath) return;
-    const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (!dataUrl) return;
-    const chosen = await chooseImageTreatment(dataUrl);
-    if (chosen) set('avatar', chosen);
-  };
-
-  const pickBanner = async () => {
-    const filePath = await window.electronAPI.dialog.openFile([
-      { name: t('fileDialog.images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
-    ]);
-    if (!filePath) return;
-    const dataUrl = await window.electronAPI.file.readAsBase64(filePath);
-    if (!dataUrl) return;
-    const chosen = await chooseImageTreatment(dataUrl);
-    if (!chosen) return;
-    try {
-      const resized = await resizeBannerDataUrl(chosen);
-      set('banner', resized);
-    } catch { set('banner', chosen); }
+    if (await run(() => deleteMember(id))) setEditingStatus(null);
   };
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span role="heading" aria-level={2} style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, fontStyle: 'italic', color: 'var(--text)' }}>
-          {t('tabs.profile')}
-        </span>
+        <PageHeading>{t('tabs.profile')}</PageHeading>
         {subTab === 'profile' ? (
-          <Btn variant="solid" onClick={openEditProfile}>{t('common.edit')}</Btn>
+          <Btn variant="solid" onClick={() => void openEditProfile()}>{t('common.edit')}</Btn>
         ) : (
           <Btn variant="solid" onClick={openNewStatus}>{t('profile.addStatus')}</Btn>
         )}
       </div>
 
-      <div role="tablist" style={{ display: 'flex', gap: 0, margin: '8px 0 16px', borderBottom: '1px solid var(--border)' }}>
-        {(['profile', 'statuses'] as SubTab[]).map(id => (
-          <button key={id} role="tab" aria-selected={subTab === id} onClick={() => setSubTab(id)} onKeyDown={tabListKeyDown} style={{
-            padding: '10px 20px', fontSize: 13, fontWeight: subTab === id ? 600 : 400, cursor: 'pointer',
-            color: subTab === id ? 'var(--accent)' : 'var(--dim)', background: 'none', border: 'none',
-            borderBottom: `2px solid ${subTab === id ? 'var(--accent)' : 'transparent'}`,
-          }}>
-            {id === 'profile' ? t('tabs.profile') : t('profile.statuses')}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={SUB_TABS} value={subTab} onChange={setSubTab} label={id => (id === 'profile' ? t('tabs.profile') : t('profile.statuses'))} style={{ marginTop: 8 }} />
 
       {subTab === 'profile' && (
         <div style={profilePt ? { ...(themeVars(profilePt) as React.CSSProperties), background: 'var(--bg)', borderRadius: 'var(--radius)', padding: 16 } : undefined}>
@@ -202,38 +156,12 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
         footer={
           <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
             <Btn variant="ghost" onClick={() => setEditingProfile(null)}>{t('common.cancel')}</Btn>
-            <Btn variant="solid" onClick={saveProfile}>{t('common.save')}</Btn>
+            <Btn variant="solid" disabled={!f.name.trim()} onClick={() => void saveProfile()}>{t('common.save')}</Btn>
           </div>
         }>
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <div className="tile__avatar" style={{
-            width: 72, height: 72, borderRadius: 36, fontSize: 24, margin: '0 auto', cursor: 'pointer',
-            border: `2px solid ${f.color}`, overflow: 'hidden',
-            ...(!f.avatar ? { backgroundColor: f.color, color: initialOn(f.color) } : {}),
-          }} {...clickable(pickAvatar, t('modal.changePfp'))}>
-            {f.avatar ? <img src={f.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover' }} /> : getInitials(f.name || '?')}
-          </div>
-          <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
-            <button aria-label={t('modal.changePfp')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onClick={pickAvatar}>📷</button>
-            {f.avatar && (
-              <button style={{ fontSize: 11, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
-                onClick={() => set('avatar', undefined)}>{t('modal.removePfp')}</button>
-            )}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ width: '100%', aspectRatio: '3 / 1', borderRadius: 8, border: '1px dashed var(--border)', overflow: 'hidden', cursor: 'pointer',
-            backgroundImage: f.banner ? `url(${f.banner})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center',
-            backgroundColor: f.banner ? undefined : 'var(--surface)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12,
-          }} {...clickable(pickBanner, t('memberProfile.changeBanner'))}>
-            {!f.banner && t('memberProfile.changeBanner')}
-          </div>
-          {f.banner && <button style={{ fontSize: 10, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}
-            onClick={() => set('banner', undefined)}>{t('memberProfile.removeBanner')}</button>}
-        </div>
+        <AvatarField member={f} onPick={() => pick('image', v => set('avatar', v))} onRemove={() => set('avatar', undefined)} />
+        <BannerField banner={f.banner} pickLabel={t('memberProfile.changeBanner')} removeLabel={t('memberProfile.removeBanner')}
+          onPick={() => pick('banner', v => set('banner', v))} onRemove={() => set('banner', undefined)} />
 
         <Field label={t('modal.name')} value={f.name} onChange={v => set('name', v)} placeholder={t('modal.headmateName')} />
         <Field label={t('modal.pronouns')} value={f.pronouns} onChange={v => set('pronouns', v)} placeholder={t('modal.pronounsPlaceholder')} />
@@ -251,16 +179,16 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
             <div>
               {!isNewStatus && (
                 <>
-                  <Btn variant="danger" disabled={activeIds.includes(f.id)} onClick={() => setConfirmDeleteStatus(f.id)}
-                    title={activeIds.includes(f.id) ? t('profile.deleteActiveHint') : undefined}
-                    aria-describedby={activeIds.includes(f.id) ? deleteHintId : undefined}>{t('common.delete')}</Btn>
-                  {activeIds.includes(f.id) && <SrOnly id={deleteHintId}>{t('profile.deleteActiveHint')}</SrOnly>}
+                  <Btn variant="danger" disabled={editingActive} onClick={() => setConfirmDeleteStatus(f.id)}
+                    title={editingActive ? t('profile.deleteActiveHint') : undefined}
+                    aria-describedby={editingActive ? deleteHintId : undefined}>{t('common.delete')}</Btn>
+                  {editingActive && <SrOnly id={deleteHintId}>{t('profile.deleteActiveHint')}</SrOnly>}
                 </>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn variant="ghost" onClick={() => setEditingStatus(null)}>{t('common.cancel')}</Btn>
-              <Btn variant="solid" onClick={saveStatus}>{t('common.save')}</Btn>
+              <Btn variant="solid" disabled={!f.name.trim()} onClick={() => void saveStatus()}>{t('common.save')}</Btn>
             </div>
           </div>
         }>
@@ -274,7 +202,9 @@ export default function ProfileView({ member, statuses, onUpdate, onEnsureSelf }
       </Modal>
 
       <ConfirmDialog open={!!confirmDeleteStatus} title={t('common.delete')} message={t('journal.areYouSure')}
-        danger onConfirm={() => confirmDeleteStatus && deleteStatus(confirmDeleteStatus)} onCancel={() => setConfirmDeleteStatus(null)} />
+        danger onConfirm={() => { if (confirmDeleteStatus) void deleteStatus(confirmDeleteStatus); }} onCancel={() => setConfirmDeleteStatus(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
+      <ImageErrorDialog error={imageError} onClose={clearImageError} />
     </div>
   );
 }

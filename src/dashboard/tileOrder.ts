@@ -1,4 +1,4 @@
-import { logError } from '../log';
+import { logError } from '../utils/log';
 
 const ORDER_KEY = 'ps.dashboardOrder';
 
@@ -39,7 +39,7 @@ export const loadTileOrder = (): string[] => {
   try {
     const raw = localStorage.getItem(ORDER_KEY);
     if (!raw) return DEFAULT_TILE_ORDER;
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return DEFAULT_TILE_ORDER;
     return mergeTileOrder(parsed.filter((x: unknown): x is string => typeof x === 'string'));
   } catch (e) {

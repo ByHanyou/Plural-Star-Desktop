@@ -1,27 +1,21 @@
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { store, KEYS } from '../storage';
+import { useAppStore } from '../store/appStore';
 import { SrOnly } from '../components/ui';
+import { Tile } from '../components/Tile';
 
 interface Props { onClick: () => void; }
 
 export default function WhiteboardTile({ onClick }: Props) {
   const { t } = useTranslation();
-  const [strokeCount, setStrokeCount] = useState(0);
-  useEffect(() => {
-    store.get<any[]>(KEYS.whiteboard, []).then(s => setStrokeCount((s || []).length));
-  }, []);
+  const strokeCount = useAppStore(s => s.whiteboard).length;
 
   return (
-    <div className="tile tile--clickable" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph" aria-hidden>🖌</div><span className="tile__title">{t('whiteboard.title')}</span></div>
-      <div className="tile__body">
-        {strokeCount === 0 ? (
-          <span className="tile__empty">{t('whiteboard.draw')}</span>
-        ) : (
-          <div style={{ fontSize: 13, color: 'var(--text)' }}><span aria-hidden>✎ {strokeCount}</span><SrOnly>{t('whiteboard.strokeCount', { count: strokeCount })}</SrOnly></div>
-        )}
-      </div>
-    </div>
+    <Tile glyph="🖌" title={t('whiteboard.title')} onClick={onClick}>
+      {strokeCount === 0 ? (
+        <span className="tile__empty">{t('whiteboard.draw')}</span>
+      ) : (
+        <div style={{ fontSize: 13, color: 'var(--text)' }}><span aria-hidden>✎ {strokeCount}</span><SrOnly>{t('whiteboard.strokeCount', { count: strokeCount })}</SrOnly></div>
+      )}
+    </Tile>
   );
 }

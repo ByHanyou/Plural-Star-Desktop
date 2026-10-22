@@ -1,37 +1,36 @@
 import { useTranslation } from 'react-i18next';
-import { fmtDur, fmtNum } from '../utils';
+import { byValueDesc, countUp, fmtDur, fmtNum, isFrontEntry, buildEffectiveEnd } from '../utils';
 import { useAppStore } from '../store/appStore';
 import { getTierNameOverride } from '../i18n/terminology';
+import { Tile } from '../components/Tile';
 
 interface Props { onClick: () => void; }
 
 export default function StatsTile({ onClick }: Props) {
   const { t } = useTranslation();
-  const history = useAppStore(s => s.state.history);
-  const members = useAppStore(s => s.state.members);
-  const getMember = (id: string) => members.find(m => m.id === id);
-  const frontEntries = history.filter(h => !h.changeType || h.changeType === 'front');
-  const totalsByMember: Record<string, number> = {};
+  const history = useAppStore(s => s.history);
+  const members = useAppStore(s => s.members);
+  const frontEntries = history.filter(isFrontEntry);
+  const effectiveEnd = buildEffectiveEnd(history);
+  const totalsByMember = new Map<string, number>();
+  const now = Date.now();
   for (const entry of frontEntries) {
-    const dur = (entry.endTime || Date.now()) - entry.startTime;
-    for (const id of entry.memberIds) totalsByMember[id] = (totalsByMember[id] || 0) + dur;
+    const dur = (effectiveEnd(entry) ?? now) - entry.startTime;
+    for (const id of entry.memberIds) countUp(totalsByMember, id, dur);
   }
-  const sorted = Object.entries(totalsByMember).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  const totalSessions = frontEntries.length;
-  const totalTime = Object.values(totalsByMember).reduce((a, b) => a + b, 0);
+  const top = byValueDesc(totalsByMember).slice(0, 3);
+  const totalTime = [...totalsByMember.values()].reduce((a, b) => a + b, 0);
+  const primaryName = getTierNameOverride('primary');
   return (
-    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph" aria-hidden>⊞</div><span className="tile__title">{t('hub.statistics')}</span></div>
-      <div className="tile__body">
-        {totalSessions === 0 ? <span className="tile__empty">{t('history.noHistory')}</span> : (<>
-          <div className="tile__stat-row"><span className="tile__stat-label">{t('stats.sessions')}</span><span className="tile__stat-value">{fmtNum(totalSessions, 0)}</span></div>
-          <div className="tile__stat-row"><span className="tile__stat-label">{t('stats.totalTime')}</span><span className="tile__stat-value">{fmtDur(0, totalTime)}</span></div>
-          <div className="tile__tier-label" style={{ marginTop: 8 }}>{getTierNameOverride('primary') ? t('stats.topTier', { tier: getTierNameOverride('primary') }) : t('stats.topFronters')}</div>
-          {sorted.map(([id, dur]) => { const m = getMember(id); return (
-            <div key={id} className="tile__stat-row"><span className="tile__stat-label">{m?.name || '?'}</span><span className="tile__stat-value">{fmtDur(0, dur)}</span></div>
-          ); })}
-        </>)}
-      </div>
-    </div>
+    <Tile glyph="⊞" title={t('hub.statistics')} onClick={onClick}>
+      {frontEntries.length === 0 ? <span className="tile__empty">{t('history.noHistory')}</span> : (<>
+        <div className="tile__stat-row"><span className="tile__stat-label">{t('stats.sessions')}</span><span className="tile__stat-value">{fmtNum(frontEntries.length, 0)}</span></div>
+        <div className="tile__stat-row"><span className="tile__stat-label">{t('stats.totalTime')}</span><span className="tile__stat-value">{fmtDur(0, totalTime)}</span></div>
+        <div className="tile__tier-label" style={{ marginTop: 8 }}>{primaryName ? t('stats.topTier', { tier: primaryName }) : t('stats.topFronters')}</div>
+        {top.map(([id, dur]) => (
+          <div key={id} className="tile__stat-row"><span className="tile__stat-label">{members.find(m => m.id === id)?.name || '?'}</span><span className="tile__stat-value">{fmtDur(0, dur)}</span></div>
+        ))}
+      </>)}
+    </Tile>
   );
 }

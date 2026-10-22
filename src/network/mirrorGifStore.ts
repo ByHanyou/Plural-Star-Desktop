@@ -1,3 +1,5 @@
+import { logError } from '../utils/log';
+
 const DB_NAME = 'ps-mirror-gifs';
 const STORE = 'gifs';
 const KEY_TOP = String.fromCharCode(0xffff);
@@ -47,7 +49,8 @@ export const putMirrorGif = async (key: string, b64: string): Promise<boolean> =
   try {
     await withStore('readwrite', s => s.put(b64, key));
     return true;
-  } catch {
+  } catch (e) {
+    logError('mirror', e);
     return false;
   }
 };
@@ -56,7 +59,8 @@ export const getMirrorGif = async (key: string): Promise<string | null> => {
   try {
     const v = await withStore<unknown>('readonly', s => s.get(key));
     return typeof v === 'string' ? v : null;
-  } catch {
+  } catch (e) {
+    logError('mirror', e);
     return null;
   }
 };
@@ -65,7 +69,8 @@ export const listMirrorGifKeys = async (peerId: string, feature: string): Promis
   try {
     const keys = await withStore<IDBValidKey[]>('readonly', s => s.getAllKeys(prefixRange(`${peerId}|${feature}|`)));
     return (keys || []).filter((k): k is string => typeof k === 'string');
-  } catch {
+  } catch (e) {
+    logError('mirror', e);
     return [];
   }
 };
@@ -77,17 +82,23 @@ export const deleteMirrorGifKeys = async (keys: string[]): Promise<void> => {
       for (const k of keys) s.delete(k);
       return null;
     });
-  } catch {}
+  } catch (e) {
+    logError('mirror', e);
+  }
 };
 
 export const clearMirrorGifsFor = async (peerId: string): Promise<void> => {
   try {
     await withStore('readwrite', s => s.delete(prefixRange(`${peerId}|`)));
-  } catch {}
+  } catch (e) {
+    logError('mirror', e);
+  }
 };
 
 export const clearAllMirrorGifs = async (): Promise<void> => {
   try {
     await withStore('readwrite', s => s.clear());
-  } catch {}
+  } catch (e) {
+    logError('mirror', e);
+  }
 };

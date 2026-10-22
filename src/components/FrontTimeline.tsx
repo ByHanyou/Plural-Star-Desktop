@@ -1,73 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HistoryEntry, Member, FrontTierKey, fmtTime, fmtDur, getLocale, getInitials, nameCompare, buildEffectiveEnd } from '../utils';
-
-type RangeKey = 'day' | 'week' | 'month' | 'quarter';
-const RANGE_MS: Record<RangeKey, number> = {
-  day: 86400000,
-  week: 7 * 86400000,
-  month: 30 * 86400000,
-  quarter: 90 * 86400000,
-};
-const RANGE_KEYS: RangeKey[] = ['day', 'week', 'month', 'quarter'];
-const RANGE_LABEL: Record<RangeKey, string> = { day: 'history.tlDay', week: 'history.tlWeek', month: 'history.tlMonth', quarter: 'history.tlQuarter' };
-
-type Span = { start: number; end: number; tier: FrontTierKey; open: boolean };
-type Row = { member: Member; spans: Span[]; total: number };
+import { HistoryEntry, Member, fmtTime, fmtDur, getLocale, TIER_I18N_KEY } from '../utils';
+import { RANGE_MS, RANGE_KEYS, RANGE_LABEL, TIER_BAR, buildTimelineRows } from '../stats/timeline';
+import type { RangeKey, Span } from '../stats/timeline';
+import { MemberAvatar } from './MemberAvatar';
 
 const LABEL_W = 130;
 const ROW_H = 34;
-
-const TIER_BAR: Record<FrontTierKey, { height: number; opacity: number }> = {
-  primary: { height: 16, opacity: 1 },
-  coFront: { height: 16, opacity: 0.75 },
-  coConscious: { height: 7, opacity: 0.45 },
-};
-
-const buildTimelineRows = (
-  history: HistoryEntry[],
-  members: Member[],
-  start: number,
-  end: number,
-  now: number,
-): Row[] => {
-  const memberMap = new Map<string, Member>();
-  for (const m of members) if (m && !m.deleted) memberMap.set(m.id, m);
-  const effEnd = buildEffectiveEnd(history);
-  const byMember = new Map<string, Span[]>();
-  for (const e of history) {
-    if (!e || (e.changeType && e.changeType !== 'front')) continue;
-    if (!e.startTime) continue;
-    const eff = effEnd(e);
-    const open = eff == null;
-    const rawEnd = eff ?? now;
-    if (e.startTime >= end || rawEnd <= start) continue;
-    const s = Math.max(e.startTime, start);
-    const en = Math.min(rawEnd, end);
-    if (en <= s) continue;
-    const tiers: [FrontTierKey, string[] | undefined][] = [
-      ['primary', e.memberIds],
-      ['coFront', e.coFrontIds],
-      ['coConscious', e.coConsciousIds],
-    ];
-    for (const [tier, ids] of tiers) {
-      for (const id of ids || []) {
-        if (!memberMap.has(id)) continue;
-        let list = byMember.get(id);
-        if (!list) { list = []; byMember.set(id, list); }
-        list.push({ start: s, end: en, tier, open });
-      }
-    }
-  }
-  const rows: Row[] = [];
-  for (const [id, spans] of byMember) {
-    const member = memberMap.get(id)!;
-    const total = spans.reduce((acc, sp) => acc + (sp.tier === 'coConscious' ? 0 : sp.end - sp.start), 0);
-    rows.push({ member, spans, total });
-  }
-  rows.sort((a, b) => b.total - a.total || nameCompare(a.member.name, b.member.name));
-  return rows;
-};
 
 export default function FrontTimeline({ history, members, singlet = false }: {
   history: HistoryEntry[];
@@ -78,17 +17,12 @@ export default function FrontTimeline({ history, members, singlet = false }: {
   const [range, setRange] = useState<RangeKey>('week');
   const [endAnchor, setEndAnchor] = useState<number | null>(null);
 
-  const now = Date.now();
   const span = RANGE_MS[range];
-  const end = endAnchor ?? now;
+  const end = endAnchor ?? Math.ceil(Date.now() / 60000) * 60000;
   const start = end - span;
   const live = endAnchor === null;
 
-  const rows = useMemo(
-    () => buildTimelineRows(history, members, start, end, now),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [history, members, start, end],
-  );
+  const rows = useMemo(() => buildTimelineRows(history, members, start, end, Date.now()), [history, members, start, end]);
 
   const tickLabel = (ts: number): string => range === 'day'
     ? new Date(ts).toLocaleTimeString(getLocale(), { hour: 'numeric', minute: '2-digit' })
@@ -104,7 +38,7 @@ export default function FrontTimeline({ history, members, singlet = false }: {
     t('history.tlSpan', { start: fmtTime(sp.start), end: sp.open && live ? t('history.now') : fmtTime(sp.end), dur: fmtDur(sp.start, sp.end) });
 
   const barLabel = (member: Member, sp: Span): string => {
-    const tierLine = singlet ? null : t(sp.tier === 'primary' ? 'tier.primaryFront' : sp.tier === 'coFront' ? 'tier.coFront' : 'tier.coConscious');
+    const tierLine = singlet ? null : t(TIER_I18N_KEY[sp.tier]);
     return [member.name, tierLine, spanLabel(sp)].filter(Boolean).join(' · ');
   };
 
@@ -150,13 +84,7 @@ export default function FrontTimeline({ history, members, singlet = false }: {
           {rows.map(row => (
             <div key={row.member.id} style={{ display: 'flex', alignItems: 'center', height: ROW_H }}>
               <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, paddingRight: 8, overflow: 'hidden' }}>
-                {row.member.avatar ? (
-                  <img src={row.member.avatar} alt="" style={{ width: 18, height: 18, borderRadius: 9, objectFit: 'cover', flexShrink: 0, ...(!row.member.avatarTransparent ? { backgroundColor: row.member.color } : {}) }} />
-                ) : (
-                  <span aria-hidden style={{ width: 18, height: 18, borderRadius: 9, background: row.member.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--bg)', fontWeight: 700, flexShrink: 0 }}>
-                    {getInitials(row.member.name)}
-                  </span>
-                )}
+                <MemberAvatar member={row.member} size={18} fontSize={8} decorative />
                 <span style={{ fontSize: 12, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.member.name}</span>
               </div>
               <div style={{ flex: 1, position: 'relative', height: ROW_H }}>

@@ -1,27 +1,18 @@
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CustomFieldDef, fmtNum } from '../utils';
-import { store, KEYS } from '../storage';
+import { fmtNum } from '../utils';
+import { useAppStore } from '../store/appStore';
+import { Tile } from '../components/Tile';
 
 interface Props { onClick: () => void; }
 
 export default function CustomFieldsTile({ onClick }: Props) {
   const { t } = useTranslation();
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    store.get<CustomFieldDef[]>(KEYS.customFieldDefs, []).then(d => setCount((d || []).length));
-  }, []);
+  const count = useAppStore(s => s.customFieldDefs).length;
 
   return (
-    <div className="tile tile--clickable tile--center" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header">
-        <span className="tile__icon" aria-hidden>☰</span>
-        <span className="tile__title">{t('customFields.title')}</span>
-      </div>
-      <div className="tile__body">
-        <span className="tile__stat">{fmtNum(count, 0)}</span>
-        <span className="tile__label">{t('customFields.fieldCount', { count })}</span>
-      </div>
-    </div>
+    <Tile glyph="☰" title={t('customFields.title')} onClick={onClick} center>
+      <span className="tile__stat">{fmtNum(count, 0)}</span>
+      <span className="tile__label">{t('customFields.fieldCount', { count })}</span>
+    </Tile>
   );
 }

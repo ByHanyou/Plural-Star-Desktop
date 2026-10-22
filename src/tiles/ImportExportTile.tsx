@@ -1,17 +1,24 @@
 import { useTranslation } from 'react-i18next';
+import { Tile } from '../components/Tile';
 
 interface Props { onClick: () => void; }
+
+const ROWS: [string, string][] = [
+  ['share.backup', 'share.export'],
+  ['share.restoreBackup', 'share.import'],
+  ['share.simplyPlural', 'share.import'],
+];
 
 export default function ImportExportTile({ onClick }: Props) {
   const { t } = useTranslation();
   return (
-    <div className="tile" role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <div className="tile__header"><div className="tile__glyph" aria-hidden>⇅</div><span className="tile__title">{t('hub.importExport')}</span></div>
-      <div className="tile__body">
-        <div className="tile__stat-row"><span className="tile__stat-label">{t('share.backup')}</span><span className="tile__stat-value" style={{ color: 'var(--accent)' }}>{t('share.export')} <span aria-hidden>→</span></span></div>
-        <div className="tile__stat-row"><span className="tile__stat-label">{t('share.restoreBackup')}</span><span className="tile__stat-value" style={{ color: 'var(--accent)' }}>{t('share.import')} <span aria-hidden>→</span></span></div>
-        <div className="tile__stat-row"><span className="tile__stat-label">{t('share.simplyPlural')}</span><span className="tile__stat-value" style={{ color: 'var(--accent)' }}>{t('share.import')} <span aria-hidden>→</span></span></div>
-      </div>
-    </div>
+    <Tile glyph="⇅" title={t('hub.importExport')} onClick={onClick}>
+      {ROWS.map(([label, action]) => (
+        <div key={label} className="tile__stat-row">
+          <span className="tile__stat-label">{t(label)}</span>
+          <span className="tile__stat-value" style={{ color: 'var(--accent)' }}>{t(action)} <span aria-hidden>→</span></span>
+        </div>
+      ))}
+    </Tile>
   );
 }

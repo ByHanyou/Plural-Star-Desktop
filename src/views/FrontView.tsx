@@ -1,36 +1,22 @@
-import React, { useState, useEffect, useMemo, useId } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Member, FrontState, FrontTier, FrontTierKey, FrontSortMode, HistoryEntry, NoteboardEntry,
-  AppSettings, DEFAULT_MOODS,
-  fmtTime, fmtDur, frontSessionStart, getInitials, isFrontEmpty, frontToHistoryEntry, withMemberSince, translateMood,
-  parseMoodList, toggleMoodInList, serializeMoodList, memberMatchesSearch, upperText, orderFronters, placeInCustomOrder,
-  fmtNum, fmtList,
-} from '../utils';
-import { store, KEYS } from '../storage';
-import { Btn, Field, Modal, ConfirmDialog, AlertDialog, clickable, KindToggles, ALL_PICKER_KINDS, useDndA11y, Interp, slots } from '../components/ui';
-import type { PickerKind, PickerKinds } from '../components/ui';
-import { initialOn } from '../theme';
-import { logError } from '../log';
+import { Member, FrontTier, FrontTierKey, FrontSortMode, AppSettings, isFrontEmpty, moodChoices, orderFronters, placeInCustomOrder, fmtList, frontTiersWithout, FRONT_TIER_KEYS } from '../utils';
+import { saveData, patchSettings, updateFront } from '../store/actions';
+import { Btn, ConfirmDialog, SaveErrorDialog, linkButton, useDndA11y } from '../components/ui';
+import { useSaveGuard } from '../hooks/useSaveGuard';
 import { useAppStore } from '../store/appStore';
-import { useMinuteTick } from '../useMinuteTick';
-import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
+import { useMinuteTick } from '../hooks/useMinuteTick';
+import { useFlash } from '../hooks/useFlash';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
+import { useSortSensors } from '../components/SortableCard';
+import { TierCard } from './front/TierCard';
+import { SetFrontModal } from './front/SetFrontModal';
+import { EditDetailModal } from './front/EditDetailModal';
 
 interface Props {
-  onUpdate: () => void;
-  autoOpenEditor?: boolean;
-  onAutoOpenConsumed?: () => void;
   onOpenMember?: (id: string) => void;
 }
-
-const TIER_COLORS: Record<FrontTierKey, string> = {
-  primary: 'var(--accent)',
-  coFront: 'var(--info)',
-  coConscious: 'var(--success)',
-};
-
-const TIER_ORDER: FrontTierKey[] = ['primary', 'coFront', 'coConscious'];
 
 const FRONT_SORTS: [FrontSortMode, string][] = [
   ['added', 'frontSort.added'],
@@ -39,279 +25,65 @@ const FRONT_SORTS: [FrontSortMode, string][] = [
   ['custom', 'frontSort.custom'],
 ];
 
-const TIER_LABEL_KEY: Record<string, string> = { primary: 'tier.primaryFront', coFront: 'tier.coFront', coConscious: 'tier.coConscious' };
-const TIER_SHORT_KEY: Record<string, string> = { primary: 'tier.primaryShort', coFront: 'tier.coFrontShort', coConscious: 'tier.coConShort' };
-
-function SortableFrontRow({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
-  const { t } = useTranslation();
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const gripLabel = t('common.dragReorderNamed', { name: label });
-  return (
-    <div ref={setNodeRef} style={{
-      display: 'flex', alignItems: 'center', gap: 12, position: 'relative',
-      transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
-      transition, zIndex: isDragging ? 10 : undefined, opacity: isDragging ? 0.85 : undefined,
-    }}>
-      <button type="button" aria-label={gripLabel} title={gripLabel} {...attributes} {...listeners}
-        style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'grab', padding: '4px 2px', fontSize: 16, lineHeight: 1, flexShrink: 0 }}>
-        ⠿
-      </button>
-      {children}
-    </div>
-  );
-}
-
-export async function applyFrontUpdate(current: FrontState | null, primary: any, coFront: any, coConscious: any): Promise<FrontState | null> {
-  if (current && !isFrontEmpty(current)) {
-    const entry = frontToHistoryEntry(current, Date.now());
-    const h = await store.get<HistoryEntry[]>(KEYS.history, []) || [];
-    await store.set(KEYS.history, [entry, ...h]);
-  }
-  const built: FrontState = {
-    primary: { memberIds: primary.memberIds || [], mood: primary.mood, note: primary.note || '', location: primary.location, energyLevel: primary.energyLevel },
-    coFront: { memberIds: coFront.memberIds || [], mood: coFront.mood, note: coFront.note || '', location: coFront.location, energyLevel: coFront.energyLevel },
-    coConscious: { memberIds: coConscious.memberIds || [], mood: coConscious.mood, note: coConscious.note || '', location: coConscious.location, energyLevel: coConscious.energyLevel },
-    startTime: Date.now(),
-  };
-  if (isFrontEmpty(built)) {
-    await store.set(KEYS.front, null);
-    return null;
-  }
-  const newFront = withMemberSince(built, current, Date.now()) as FrontState;
-  await store.set(KEYS.front, newFront);
-  return newFront;
-}
-
-export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed, onOpenMember }: Props) {
+export default function FrontView({ onOpenMember }: Props) {
   useMinuteTick();
-  const front = useAppStore(s => s.state.front);
-  const members = useAppStore(s => s.state.members);
-  const settings = useAppStore(s => s.state.settings);
+  const front = useAppStore(s => s.front);
+  const members = useAppStore(s => s.members);
+  const settings = useAppStore(s => s.settings);
   const { t } = useTranslation();
-  const [, setTick] = useState(0);
   const [showSetFront, setShowSetFront] = useState(false);
-
-  useEffect(() => {
-    if (autoOpenEditor) { setShowSetFront(true); onAutoOpenConsumed?.(); }
-  }, [autoOpenEditor]);
   const [editDetailTier, setEditDetailTier] = useState<FrontTierKey | null>(null);
-  const [noteboardAlert, setNoteboardAlert] = useState<string[] | null>(null);
-  const [editingNote, setEditingNote] = useState<FrontTierKey | null>(null);
-  const [noteText, setNoteText] = useState('');
+  const [noteboardAlert, flashNoteboardAlert, clearNoteboardAlert] = useFlash<string[]>(6000);
   const [confirmRemove, setConfirmRemove] = useState<Member | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, run, clearSaveError] = useSaveGuard();
 
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30000);
-    return () => clearInterval(id);
-  }, []);
-
-  const getMember = (id: string) => members.find(m => m.id === id);
-  const activeMembers = members.filter(m => !m.archived);
-  const allMoods = [...DEFAULT_MOODS, ...(settings.customMoods || [])];
+  const memberById = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
+  const getMember = (id: string) => memberById.get(id);
+  const activeMembers = useMemo(() => members.filter(m => !m.archived), [members]);
+  const allMoods = useMemo(() => moodChoices(settings.customMoods), [settings.customMoods]);
 
   const frontSortMode: FrontSortMode = settings.frontSortMode || 'added';
   const customOn = frontSortMode === 'custom';
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  const sensors = useSortSensors();
   const frontDndA11y = useDndA11y(id => getMember(String(id))?.name || '');
-  const saveFrontSort = async (patch: Pick<AppSettings, 'frontSortMode' | 'frontCustomOrder'>) => {
-    const live = useAppStore.getState().state.settings;
-    await store.set(KEYS.settings, { ...live, ...patch });
-    onUpdate();
-  };
+
+  const saveFrontSort = (patch: Pick<AppSettings, 'frontSortMode' | 'frontCustomOrder'>) =>
+    run(() => patchSettings(patch));
   const orderedIds = (tier: FrontTier) =>
     orderFronters(tier.memberIds.filter(id => !!getMember(id)), frontSortMode, id => getMember(id)?.name || '', settings.frontCustomOrder);
-  const onTierDragEnd = (e: DragEndEvent, ids: string[]) => {
-    const { active, over } = e;
+  const onTierDragEnd = ({ active, over }: DragEndEvent, ids: string[]) => {
     if (!over || active.id === over.id) return;
     const from = ids.indexOf(String(active.id));
     const to = ids.indexOf(String(over.id));
     if (from < 0 || to < 0) return;
-    const live = useAppStore.getState().state;
+    const live = useAppStore.getState();
     const keep = (id: string) => live.members.some(m => m.id === id && !m.deleted);
     void saveFrontSort({ frontCustomOrder: placeInCustomOrder(live.settings.frontCustomOrder, arrayMove(ids, from, to), keep) });
   };
 
+  const saveFront = (primary: Partial<FrontTier>, coFront: Partial<FrontTier>, coConscious: Partial<FrontTier>) => run(async () => {
+    const newFront = await updateFront(primary, coFront, coConscious);
+    if (!newFront) return;
+    const notes = useAppStore.getState().noteboards;
+    const withNotes = FRONT_TIER_KEYS.flatMap(k => newFront[k].memberIds).filter(id => notes.some(n => n.memberId === id));
+    if (withNotes.length > 0) flashNoteboardAlert(withNotes.map(id => getMember(id)?.name || '?'));
+  });
 
   const quickRemove = (memberId: string) => {
     if (!front) return;
-    const strip = (tier: any) => ({ ...tier, memberIds: (tier.memberIds || []).filter((x: string) => x !== memberId) });
-    saveFront(strip(front.primary), strip(front.coFront), strip(front.coConscious)).catch((e: any) => setSaveError(String(e?.message || e || '')));
+    const tiers = frontTiersWithout(front, memberId);
+    void saveFront(tiers.primary, tiers.coFront, tiers.coConscious);
   };
 
-  const saveFront = async (primary: any, coFront: any, coConscious: any) => {
-    const newFront = await applyFrontUpdate(front, primary, coFront, coConscious);
-    if (newFront) {
-      const allFrontIds = [...newFront.primary.memberIds, ...newFront.coFront.memberIds, ...newFront.coConscious.memberIds];
-      try {
-        const notes = await store.get<NoteboardEntry[]>(KEYS.noteboards, []) || [];
-        const withNotes = allFrontIds.filter(id => notes.some(n => n.memberId === id));
-        if (withNotes.length > 0) {
-          const names = withNotes.map(id => members.find(m => m.id === id)?.name || '?');
-          setNoteboardAlert(names);
-          setTimeout(() => setNoteboardAlert(null), 6000);
-        }
-      } catch (e) { logError('front', e); }
-    }
-    onUpdate();
-  };
-
-  const updateNote = async (tier: FrontTierKey, note: string) => {
-    if (!front) return;
-    const updated = { ...front, [tier]: { ...front[tier], note } };
-    await store.set(KEYS.front, updated);
-    onUpdate();
-  };
+  const saveTier = (tier: FrontTierKey, patch: Partial<FrontTier>) => run(async () => {
+    const live = useAppStore.getState().front;
+    if (live) await saveData('front', { ...live, [tier]: { ...live[tier], ...patch } });
+  });
 
   const updateTierDetail = async (tier: FrontTierKey, mood?: string, location?: string, note?: string) => {
-    if (!front) return;
-    const updated = {
-      ...front,
-      [tier]: {
-        ...front[tier],
-        mood,
-        location,
-        note: note || '',
-      },
-    };
-    await store.set(KEYS.front, updated);
+    await saveTier(tier, { mood, location, note: note || '' });
     setEditDetailTier(null);
-    onUpdate();
   };
-
-
-  const TierCard = ({ tierKey }: { tierKey: FrontTierKey }) => {
-    if (!front) return null;
-    const tier = front[tierKey];
-    if (tier.memberIds.length === 0) return null;
-
-    const color = TIER_COLORS[tierKey];
-    const isPrimary = tierKey === 'primary';
-    const isEditingNote = editingNote === tierKey;
-    const ids = orderedIds(tier);
-    const canDrag = customOn && ids.length > 1;
-    const rowParts = (id: string, m: Member) => (
-      <>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, cursor: onOpenMember ? 'pointer' : 'default', borderRadius: 8 }}
-          {...(onOpenMember ? clickable(() => onOpenMember(id), t('members.viewProfileNamed', { name: m.name })) : {})}>
-          <div className="tile__avatar" style={{
-            width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40,
-            fontSize: isPrimary ? 16 : 14, overflow: 'hidden',
-            ...(!m.avatar ? { backgroundColor: m.color, color: initialOn(m.color) } : !m.avatarTransparent ? { backgroundColor: m.color } : {}),
-          }}>
-            {m.avatar ? <img src={m.avatar} alt="" style={{ width: isPrimary ? 48 : 40, height: isPrimary ? 48 : 40, borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(m.name)}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: isPrimary ? 16 : 14, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
-            {m.pronouns && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{m.pronouns}</div>}
-            {m.role && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, color: m.color, marginTop: 1 }}>{upperText(m.role)}</div>}
-          </div>
-        </div>
-        <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtDur(front.memberSince?.[id] ?? front.startTime)}</span>
-        <button className="icon-btn" aria-label={t('front.quickRemove', { name: m.name })} onClick={() => setConfirmRemove(m)}
-          style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, cursor: 'pointer', padding: 8 }}>✕</button>
-      </>
-    );
-
-    return (
-      <div style={{ marginBottom: 16 }}>
-        <div className="section-div">
-          <span className="section-div__dot" style={{ background: color }} />
-          <span className="section-div__label" style={{ color }}>{t(TIER_LABEL_KEY[tierKey])}</span>
-          <span className="section-div__line" />
-        </div>
-
-        <div style={{
-          padding: 16, background: 'var(--card)', border: `1px solid ${color}40`,
-          borderRadius: 'var(--radius)',
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 10 }}>
-            {canDrag ? (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => onTierDragEnd(e, ids)} accessibility={frontDndA11y}>
-                <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                  {ids.map(id => {
-                    const m = getMember(id);
-                    if (!m) return null;
-                    return <SortableFrontRow key={id} id={id} label={m.name}>{rowParts(id, m)}</SortableFrontRow>;
-                  })}
-                </SortableContext>
-              </DndContext>
-            ) : ids.map(id => {
-              const m = getMember(id);
-              if (!m) return null;
-              return (
-                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {rowParts(id, m)}
-                </div>
-              );
-            })}
-          </div>
-
-          {isPrimary && (
-            <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0', marginBottom: 8, fontSize: 11, color: 'var(--muted)' }}>
-              <Interp text={t('front.frontingForSince', { ...slots('dur'), time: fmtTime(frontSessionStart(front)) })}
-                nodes={{ dur: <span style={{ color: 'var(--accent)' }}>{fmtDur(frontSessionStart(front))}</span> }} />
-            </div>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
-            {tier.mood && (
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('front.mood')}</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{translateMood(tier.mood, t)}</div>
-              </div>
-            )}
-            {tier.location && (
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('modal.location')}</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{tier.location}</div>
-              </div>
-            )}
-            {tier.energyLevel && (
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>{t('energy.label')}</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{t('energy.outOfTen', { value: fmtNum(tier.energyLevel, 0) })}</div>
-              </div>
-            )}
-            <button aria-label={t('front.editDetailsFor', { tier: t(TIER_LABEL_KEY[tierKey]) })} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
-              onClick={() => setEditDetailTier(tierKey)}>✎</button>
-          </div>
-          {!tier.mood && !tier.location && (
-            <button style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 12, cursor: 'pointer', padding: '4px 0' }}
-              onClick={() => setEditDetailTier(tierKey)}>
-              {t('front.addMood')}
-            </button>
-          )}
-
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>{t('front.frontNote')}</span>
-              {!isEditingNote ? (
-                <button aria-label={t('front.editNoteFor', { tier: t(TIER_LABEL_KEY[tierKey]) })} style={{ background: 'none', border: 'none', color: 'var(--dim)', fontSize: 14, cursor: 'pointer' }}
-                  onClick={() => { setEditingNote(tierKey); setNoteText(tier.note || ''); }}>✎</button>
-              ) : (
-                <button aria-label={t('common.save')} style={{ background: 'none', border: 'none', color: 'var(--success)', fontSize: 14, cursor: 'pointer' }}
-                  onClick={() => { setEditingNote(null); updateNote(tierKey, noteText); }}>✓</button>
-              )}
-            </div>
-            {isEditingNote ? (
-              <textarea className="field__input field__input--multi" value={noteText} onChange={e => setNoteText(e.target.value)}
-                aria-label={t('modal.whatHappening')} placeholder={t('modal.whatHappening')} style={{ minHeight: 56, fontSize: 12 }} />
-            ) : (
-              <p style={{ fontSize: 12, lineHeight: 1.5, color: tier.note ? 'var(--text)' : 'var(--muted)' }}>
-                {tier.note || t('front.noNote')}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const empty = isFrontEmpty(front);
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
@@ -340,50 +112,39 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
 
       {noteboardAlert && (
         <div role="status" style={{
-          padding: '10px 14px', marginBottom: 12, borderRadius: 8,
-          background: 'var(--accent-bg)', border: '1px solid var(--accent)',
+          padding: '10px 14px', marginBottom: 12, borderRadius: 8, background: 'var(--accent-bg)', border: '1px solid var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{ fontSize: 13, color: 'var(--accent)' }}>
             <span aria-hidden>📋</span> {t('noteboard.hasNotes', { names: fmtList(noteboardAlert) })}
           </span>
-          <button aria-label={t('common.close')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14 }}
-            onClick={() => setNoteboardAlert(null)}>✕</button>
+          <button type="button" aria-label={t('common.close')} style={linkButton('var(--accent)', 14)}
+            onClick={clearNoteboardAlert}>✕</button>
         </div>
       )}
 
-      {empty ? (
-        <div style={{
-          padding: 32, textAlign: 'center', background: 'var(--card)',
-          border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-        }}>
+      {!front || isFrontEmpty(front) ? (
+        <div style={{ padding: 32, textAlign: 'center', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
           <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 12 }}>{t('front.noOneFronting')}</p>
           <Btn onClick={() => setShowSetFront(true)}>{t('front.setFront')}</Btn>
         </div>
       ) : (
-        TIER_ORDER.map(t => <React.Fragment key={t}>{TierCard({ tierKey: t })}</React.Fragment>)
+        FRONT_TIER_KEYS.filter(key => front[key].memberIds.length > 0).map(key => {
+          const ids = orderedIds(front[key]);
+          return (
+            <TierCard key={key} tierKey={key} front={front} tier={front[key]} getMember={getMember} ids={ids} canDrag={customOn && ids.length > 1}
+              onSaveNote={(tier, note) => { void saveTier(tier, { note }); }} onEditDetail={setEditDetailTier} onRemove={setConfirmRemove}
+              onOpenMember={onOpenMember} sensors={sensors} onTierDragEnd={onTierDragEnd} dndA11y={frontDndA11y} />
+          );
+        })
       )}
 
-      <SetFrontModal
-        open={showSetFront}
-        onClose={() => setShowSetFront(false)}
-        onSave={saveFront}
-        members={activeMembers}
-        current={front}
-        settings={settings}
-        allMoods={allMoods}
-      />
+      <SetFrontModal open={showSetFront} onClose={() => setShowSetFront(false)} onSave={saveFront}
+        members={activeMembers} current={front} settings={settings} allMoods={allMoods} />
 
       {editDetailTier && front && (
-        <EditDetailModal
-          open={!!editDetailTier}
-          tier={editDetailTier}
-          tierData={front[editDetailTier]}
-          allMoods={allMoods}
-          allLocations={settings.locations}
-          onClose={() => setEditDetailTier(null)}
-          onSave={(mood, location, note) => updateTierDetail(editDetailTier, mood, location, note)}
-        />
+        <EditDetailModal tier={editDetailTier} tierData={front[editDetailTier]} allMoods={allMoods} allLocations={settings.locations}
+          onClose={() => setEditDetailTier(null)} onSave={(mood, location, note) => updateTierDetail(editDetailTier, mood, location, note)} />
       )}
 
       <ConfirmDialog open={!!confirmRemove}
@@ -392,329 +153,7 @@ export default function FrontView({ onUpdate, autoOpenEditor, onAutoOpenConsumed
         danger single
         onConfirm={() => { if (confirmRemove) quickRemove(confirmRemove.id); setConfirmRemove(null); }}
         onCancel={() => setConfirmRemove(null)} />
-      <AlertDialog open={saveError !== null} title={t('modal.saveFailed')} message={saveError || ''} onClose={() => setSaveError(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
-  );
-}
-
-
-export function SetFrontModal({ open, onClose, onSave, members, current, settings, allMoods }: {
-  open: boolean; onClose: () => void; onSave: (p: any, cf: any, cc: any) => void;
-  members: Member[]; current: FrontState | null;
-  settings: AppSettings; allMoods: string[];
-}) {
-  const { t } = useTranslation();
-  const [primaryIds, setPrimaryIds] = useState<Set<string>>(new Set());
-  const [coFrontIds, setCoFrontIds] = useState<Set<string>>(new Set());
-  const [coConsciousIds, setCoConsciousIds] = useState<Set<string>>(new Set());
-  const [primaryMood, setPrimaryMood] = useState('');
-  const [primaryLocation, setPrimaryLocation] = useState('');
-  const [primaryNote, setPrimaryNote] = useState('');
-  const [coFrontMood, setCoFrontMood] = useState('');
-  const [coFrontNote, setCoFrontNote] = useState('');
-  const [coFrontLocation, setCoFrontLocation] = useState('');
-  const [coConMood, setCoConMood] = useState('');
-  const [coConNote, setCoConNote] = useState('');
-  const [coConLocation, setCoConLocation] = useState('');
-  const [primaryEnergy, setPrimaryEnergy] = useState<number | undefined>(undefined);
-  const [coFrontEnergy, setCoFrontEnergy] = useState<number | undefined>(undefined);
-  const [coConEnergy, setCoConEnergy] = useState<number | undefined>(undefined);
-  const [search, setSearch] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
-  const [kinds, setKinds] = useState<Record<FrontTierKey, PickerKinds>>({ primary: ALL_PICKER_KINDS, coFront: ALL_PICKER_KINDS, coConscious: ALL_PICKER_KINDS });
-  const kindLabels: Record<PickerKind, string> = { members: t('members.title'), facets: t('members.facets'), customFronts: t('members.customFronts') };
-  const searchLabel = t('members.searchToAddKind', { kind: t('terminology.fronters') });
-  const [customMood, setCustomMood] = useState<Record<FrontTierKey, string>>({ primary: '', coFront: '', coConscious: '' });
-  const [showCustomMood, setShowCustomMood] = useState<Record<FrontTierKey, boolean>>({ primary: false, coFront: false, coConscious: false });
-  const [confirmClear, setConfirmClear] = useState(false);
-
-  const prevOpen = React.useRef(false);
-  useEffect(() => {
-    if (open && !prevOpen.current) {
-      if (current) {
-        const seedP = new Set(current.primary.memberIds);
-        const seedCf = new Set(current.coFront.memberIds.filter(id => !seedP.has(id)));
-        const seedCc = new Set(current.coConscious.memberIds.filter(id => !seedP.has(id) && !seedCf.has(id)));
-        setPrimaryIds(seedP);
-        setCoFrontIds(seedCf);
-        setCoConsciousIds(seedCc);
-        setPrimaryMood(current.primary.mood || '');
-        setPrimaryLocation(current.primary.location || '');
-        setPrimaryNote(current.primary.note || '');
-        setCoFrontMood(current.coFront.mood || '');
-        setCoFrontNote(current.coFront.note || '');
-        setCoFrontLocation(current.coFront.location || '');
-        setCoConMood(current.coConscious.mood || '');
-        setCoConNote(current.coConscious.note || '');
-        setCoConLocation(current.coConscious.location || '');
-        setPrimaryEnergy(current.primary.energyLevel);
-        setCoFrontEnergy(current.coFront.energyLevel);
-        setCoConEnergy(current.coConscious.energyLevel);
-      } else {
-        setPrimaryIds(new Set()); setCoFrontIds(new Set()); setCoConsciousIds(new Set());
-        setPrimaryMood(''); setPrimaryLocation(''); setPrimaryNote('');
-        setCoFrontMood(''); setCoFrontNote(''); setCoFrontLocation('');
-        setCoConMood(''); setCoConNote(''); setCoConLocation('');
-        setPrimaryEnergy(undefined); setCoFrontEnergy(undefined); setCoConEnergy(undefined);
-      }
-      setSearch({ primary: '', coFront: '', coConscious: '' });
-      setCustomMood({ primary: '', coFront: '', coConscious: '' });
-      setShowCustomMood({ primary: false, coFront: false, coConscious: false });
-    }
-    prevOpen.current = open;
-  }, [open]);
-
-  const allAssigned = useMemo(() => {
-    const map: Record<string, FrontTierKey> = {};
-    primaryIds.forEach(id => { map[id] = 'primary'; });
-    coFrontIds.forEach(id => { map[id] = 'coFront'; });
-    coConsciousIds.forEach(id => { map[id] = 'coConscious'; });
-    return map;
-  }, [primaryIds, coFrontIds, coConsciousIds]);
-
-  const toggleMember = (tier: FrontTierKey, id: string) => {
-    const sets: Record<FrontTierKey, Set<string>> = {
-      primary: primaryIds, coFront: coFrontIds, coConscious: coConsciousIds,
-    };
-    const setters: Record<FrontTierKey, React.Dispatch<React.SetStateAction<Set<string>>>> = {
-      primary: setPrimaryIds, coFront: setCoFrontIds, coConscious: setCoConsciousIds,
-    };
-    const next = new Set(sets[tier]);
-    if (next.has(id)) { next.delete(id); } else { next.add(id); }
-    (Object.keys(setters) as FrontTierKey[]).forEach(key => {
-      if (key === tier) return;
-      setters[key](prev => {
-        let changed = false;
-        const cleaned = new Set(prev);
-        next.forEach(x => { if (cleaned.delete(x)) changed = true; });
-        return changed ? cleaned : prev;
-      });
-    });
-    setters[tier](next);
-  };
-
-  const resolveMood = (tier: FrontTierKey, mood: string): string | undefined => {
-    const moods = parseMoodList(mood);
-    if (showCustomMood[tier] && customMood[tier].trim()) moods.push(customMood[tier].trim());
-    return serializeMoodList(moods) || undefined;
-  };
-
-  const handleSave = () => {
-    onSave(
-      { memberIds: [...primaryIds], mood: resolveMood('primary', primaryMood), note: primaryNote, location: primaryLocation || undefined, energyLevel: primaryEnergy },
-      { memberIds: [...coFrontIds], mood: resolveMood('coFront', coFrontMood), note: coFrontNote, location: coFrontLocation || undefined, energyLevel: coFrontEnergy },
-      { memberIds: [...coConsciousIds], mood: resolveMood('coConscious', coConMood), note: coConNote, location: coConLocation || undefined, energyLevel: coConEnergy },
-    );
-    onClose();
-  };
-
-  const handleClear = () => setConfirmClear(true);
-  const handleConfirmClear = () => {
-    onSave({ memberIds: [] }, { memberIds: [] }, { memberIds: [] });
-    setConfirmClear(false);
-    onClose();
-  };
-
-  const pickerBaseId = useId();
-  const TierPicker = ({ tierKey, selectedIds, mood, setMood, note, setNote, color, energy, setEnergy, location, setLocation }: {
-    tierKey: FrontTierKey; selectedIds: Set<string>;
-    mood: string; setMood: (v: string) => void;
-    note: string; setNote: (v: string) => void;
-    color: string;
-    energy?: number; setEnergy: (v: number | undefined) => void;
-    location: string; setLocation: (v: string) => void;
-  }) => {
-    const regularPool = members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted);
-    const facetPool = members.filter(m => m.isFacet && !m.isCustomFront && !m.deleted);
-    const customPool = members.filter(m => m.isCustomFront && !m.deleted);
-    const tierKinds = kinds[tierKey];
-    const pools = [
-      { kind: 'members' as PickerKind, label: kindLabels.members, members: regularPool },
-      { kind: 'facets' as PickerKind, label: kindLabels.facets, members: facetPool },
-      { kind: 'customFronts' as PickerKind, label: kindLabels.customFronts, members: customPool },
-    ].filter(p => tierKinds[p.kind] && p.members.length > 0);
-    const q = search[tierKey];
-    const ql = q.toLowerCase();
-    let budget = 20;
-    const grouped: { label: string; rows: Member[] }[] = [];
-    if (ql) {
-      for (const pool of pools) {
-        if (budget <= 0) break;
-        const rows = pool.members.filter(m => !selectedIds.has(m.id) && memberMatchesSearch(m, ql)).slice(0, budget);
-        if (rows.length === 0) continue;
-        budget -= rows.length;
-        grouped.push({ label: pool.label, rows });
-      }
-    }
-    const selectedHere = members.filter(m => !m.deleted && selectedIds.has(m.id));
-    const pid = `${pickerBaseId}-${tierKey}`;
-
-    return (
-      <div style={{ marginBottom: 16 }} role="group" aria-labelledby={`${pid}-tier`}>
-        <div className="section-div">
-          <span className="section-div__dot" aria-hidden style={{ background: color }} />
-          <span className="section-div__label" id={`${pid}-tier`} style={{ color }}>{t(TIER_LABEL_KEY[tierKey])}</span>
-          <span className="section-div__line" aria-hidden />
-        </div>
-
-        {selectedHere.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            {selectedHere.map(m => (
-              <button key={m.id} className="chip" aria-label={t('common.removeNamed', { name: m.name })} style={{ borderColor: `${m.color}50`, background: `${m.color}20` }}
-                onClick={() => toggleMember(tierKey, m.id)}>
-                <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                <span style={{ color: m.color }}>{m.name}</span>
-                <span aria-hidden style={{ fontSize: 10, color: m.color }}>✕</span>
-              </button>
-            ))}
-          </div>
-        )}
-        <input className="field__input" value={q}
-          onChange={e => setSearch({ ...search, [tierKey]: e.target.value })}
-          aria-label={searchLabel} placeholder={searchLabel} style={{ marginBottom: 6, fontSize: 12 }} />
-        <KindToggles kinds={tierKinds} setKinds={k => setKinds({ ...kinds, [tierKey]: k })} labels={kindLabels} />
-        {ql && grouped.length > 0 && (
-          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 10 }}>
-            {grouped.map((group, gi) => (
-              <div key={`${gi}-${group.label}`}>
-                {grouped.length > 1 && (
-                  <div role="heading" aria-level={4} style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600, padding: '8px 12px 4px', background: 'var(--card)' }}>{group.label}</div>
-                )}
-                {group.rows.map(m => {
-                  const assignedTo = allAssigned[m.id];
-                  return (
-                    <button key={m.id} onClick={() => toggleMember(tierKey, m.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', opacity: assignedTo && assignedTo !== tierKey ? 0.5 : 1 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                      <span style={{ flex: 1, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                      {m.pronouns ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>{m.pronouns}</span> : null}
-                      {assignedTo && assignedTo !== tierKey && (
-                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>{t('tier.assignedTo', { tier: t(TIER_SHORT_KEY[assignedTo]), applyPostProcessor: false })}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-        {!ql && selectedHere.length === 0 && (
-          <p style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '4px 0 8px' }}>{t('members.searchHint')}</p>
-        )}
-
-        <div className="field__label" id={`${pid}-mood`} style={{ marginTop: 4 }}>{t('modal.mood')}</div>
-        <div role="group" aria-labelledby={`${pid}-mood`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-          {(() => { const sel = parseMoodList(mood); const chips = [...allMoods, ...sel.filter(m => !allMoods.includes(m))]; return chips.map(m => {
-            const on = sel.includes(m);
-            return (
-              <button key={m} className={`btn ${on ? 'btn--primary' : 'btn--ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={on}
-                onClick={() => setMood(toggleMoodInList(mood, m))}>{translateMood(m, t)}</button>
-            );
-          }); })()}
-          <button className={`btn ${showCustomMood[tierKey] ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }} aria-expanded={!!showCustomMood[tierKey]}
-            onClick={() => setShowCustomMood({ ...showCustomMood, [tierKey]: !showCustomMood[tierKey] })}>
-            {showCustomMood[tierKey] ? `− ${t('modal.custom')}` : `+ ${t('modal.custom')}`}
-          </button>
-        </div>
-        {showCustomMood[tierKey] && (
-          <input className="field__input" value={customMood[tierKey]}
-            onChange={e => setCustomMood({ ...customMood, [tierKey]: e.target.value })}
-            aria-label={t('modal.enterMood')} placeholder={t('modal.enterMood')} style={{ fontSize: 12, marginBottom: 8 }} />
-        )}
-
-        <div className="field__label" id={`${pid}-loc`} style={{ marginTop: 4 }}>{t('modal.location')}</div>
-        <div role="group" aria-labelledby={`${pid}-loc`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
-          {(settings.locations || []).map(l => (
-            <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
-              style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
-              onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
-          ))}
-        </div>
-        <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-          aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 8 }} />
-
-        <div className="field__label" id={`${pid}-energy`} style={{ marginTop: 4 }}>{t('energy.level')}</div>
-        <div role="group" aria-labelledby={`${pid}-energy`} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 28 }}>{energy ?? '-'}</span>
-          <input type="range" min={1} max={10} value={energy ?? 5} aria-label={t('energy.level')}
-            onChange={e => setEnergy(Number(e.target.value))}
-            style={{ flex: 1, accentColor: color }} />
-          <button className="btn btn--ghost" style={{ padding: '2px 8px', fontSize: 10 }}
-            aria-label={t('energy.clear')} onClick={() => setEnergy(undefined)}>✕</button>
-        </div>
-
-        <textarea className="field__input field__input--multi" value={note} onChange={e => setNote(e.target.value)}
-          aria-label={t('modal.whatHappening')} placeholder={t('modal.whatHappening')} style={{ minHeight: 48, fontSize: 12 }} />
-      </div>
-    );
-  };
-
-  return (
-    <>
-      <Modal open={open} title={t('modal.updateFront')} onClose={onClose}
-        footer={
-          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
-            <Btn variant="ghost" onClick={handleClear}>{t('front.clearFront')}</Btn>
-            <Btn variant="solid" onClick={handleSave}>{t('common.save')}</Btn>
-          </div>
-        }>
-        {TierPicker({ tierKey: 'primary', selectedIds: primaryIds, mood: primaryMood, setMood: setPrimaryMood, note: primaryNote, setNote: setPrimaryNote, color: 'var(--accent)', energy: primaryEnergy, setEnergy: setPrimaryEnergy, location: primaryLocation, setLocation: setPrimaryLocation })}
-        {TierPicker({ tierKey: 'coFront', selectedIds: coFrontIds, mood: coFrontMood, setMood: setCoFrontMood, note: coFrontNote, setNote: setCoFrontNote, color: 'var(--info)', energy: coFrontEnergy, setEnergy: setCoFrontEnergy, location: coFrontLocation, setLocation: setCoFrontLocation })}
-        {TierPicker({ tierKey: 'coConscious', selectedIds: coConsciousIds, mood: coConMood, setMood: setCoConMood, note: coConNote, setNote: setCoConNote, color: 'var(--success)', energy: coConEnergy, setEnergy: setCoConEnergy, location: coConLocation, setLocation: setCoConLocation })}
-      </Modal>
-      <ConfirmDialog
-        open={confirmClear}
-        title={t('front.clearFrontTitle')}
-        message={t('front.clearFrontMsg')}
-        danger single
-        onConfirm={handleConfirmClear}
-        onCancel={() => setConfirmClear(false)}
-      />
-    </>
-  );
-}
-
-
-function EditDetailModal({ open, tier, tierData, allMoods, allLocations, onClose, onSave }: {
-  open: boolean; tier: FrontTierKey; tierData: FrontTier;
-  allMoods: string[]; allLocations: string[];
-  onClose: () => void; onSave: (mood?: string, location?: string, note?: string) => void;
-}) {
-  const [mood, setMood] = useState(tierData.mood || '');
-  const [location, setLocation] = useState(tierData.location || '');
-  const [note, setNote] = useState(tierData.note || '');
-  const { t } = useTranslation();
-  const detailId = useId();
-
-  useEffect(() => {
-    setMood(tierData.mood || '');
-    setLocation(tierData.location || '');
-    setNote(tierData.note || '');
-  }, [tierData, open]);
-
-  return (
-    <Modal open={open} title={t('tier.editTier', { tier: t(TIER_LABEL_KEY[tier]) })} onClose={onClose}
-      footer={<Btn variant="solid" onClick={() => onSave(mood || undefined, location || undefined, note || undefined)}>{t('common.save')}</Btn>}>
-      <div className="field__label" id={`${detailId}-mood`}>{t('modal.mood')}</div>
-      <div role="group" aria-labelledby={`${detailId}-mood`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-        {allMoods.map(m => (
-          <button key={m} className={`btn ${mood === m ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={mood === m}
-            onClick={() => setMood(mood === m ? "" : m)}>{translateMood(m, t)}</button>
-        ))}
-      </div>
-      <div className="field__label" id={`${detailId}-loc`}>{t('modal.location')}</div>
-      <div role="group" aria-labelledby={`${detailId}-loc`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
-        {allLocations.map(l => (
-          <button key={l} className={`btn ${location === l ? 'btn--primary' : 'btn--ghost'}`}
-            style={{ padding: '4px 10px', fontSize: 11 }} aria-pressed={location === l}
-            onClick={() => setLocation(location === l ? '' : l)}>{l}</button>
-        ))}
-      </div>
-      <input className="field__input" value={location} onChange={e => setLocation(e.target.value)}
-        aria-label={t('modal.typeLocation')} placeholder={t('modal.typeLocation')} style={{ fontSize: 12, marginBottom: 10 }} />
-      <Field label={t('modal.note')} value={note} onChange={setNote} aria-label={t('modal.whatHappening')} placeholder={t('modal.whatHappening')} multiline />
-    </Modal>
   );
 }

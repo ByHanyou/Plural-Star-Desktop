@@ -1,109 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MemberPoll, uid, fmtTime, fmtPercent, isRosterMember, fmtList } from '../utils';
-import { store, KEYS } from '../storage';
-import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Section, Field, Modal, ConfirmDialog } from '../components/ui';
+import { MemberPoll, fmtTime, fmtPercent, fmtList } from '../utils';
+import { saveData } from '../store/actions';
+import { Btn, Section, Field, Modal, ConfirmDialog, EmptyState, SaveErrorDialog, linkButton } from '../components/ui';
 import { useAppStore } from '../store/appStore';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { memberFacetPools } from '../picker/memberPicker';
+import { MemberGroupSelect } from '../components/MemberGroupSelect';
+import { castPollVote, createPoll, defaultVoterId, pollDraftReady, pollOptionPercent, pollVoterCount, togglePollClosed } from '../polls/polls';
+import { tint } from '../theme';
 
-interface Props {
-  onUpdate: () => void;
-}
+const livePolls = () => useAppStore.getState().polls;
 
-export default function PollsView({ onUpdate }: Props) {
+export default function PollsView() {
   const { t } = useTranslation();
-  const members = useAppStore(s => s.state.members);
-  const front = useAppStore(s => s.state.front);
-  const defaultVoter = () => {
-    const votable = new Set(members.filter(m => !m.archived && !m.isCustomFront && !m.deleted).map(m => m.id));
-    const fronting = [
-      ...(front?.primary?.memberIds || []),
-      ...(front?.coFront?.memberIds || []),
-      ...(front?.coConscious?.memberIds || []),
-    ].find(id => votable.has(id));
-    return fronting || members.find(m => !m.archived && !m.deleted && !m.isCustomFront)?.id || '';
-  };
-  const [polls, setPolls] = useState<MemberPoll[]>([]);
+  const members = useAppStore(s => s.members);
+  const front = useAppStore(s => s.front);
+  const polls = useAppStore(s => s.polls);
   const [showCreate, setShowCreate] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [hideVoters, setHideVoters] = useState(false);
   const [multiChoice, setMultiChoice] = useState(false);
-  const [targetId, setTargetId] = useState<string>(defaultVoter);
-  const [voterId, setVoterId] = useState<string>(defaultVoter);
+  const [targetId, setTargetId] = useState<string>(() => defaultVoterId(members, front));
+  const [voterId, setVoterId] = useState<string>(() => defaultVoterId(members, front));
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [saveError, run, clearSaveError] = useSaveGuard();
+  const voterPools = memberFacetPools(members, t);
 
-  const activeMembers = members.filter(m => !m.archived && isRosterMember(m));
-  const activeFacets = members.filter(m => !m.archived && m.isFacet && !m.isCustomFront && !m.deleted);
+  const savePolls = (updated: MemberPoll[]) => run(() => saveData('polls', updated));
+  const updatePoll = (pollId: string, fn: (p: MemberPoll) => MemberPoll) => savePolls(livePolls().map(p => (p.id === pollId ? fn(p) : p)));
 
-  useEffect(() => {
-    const load = () => { store.get<MemberPoll[]>(KEYS.polls, []).then(p => setPolls(p || [])); };
-    load();
-    return NetworkManager.onSyncApplied(load);
-  }, []);
-
-  const savePolls = async (updated: MemberPoll[]) => {
-    setPolls(updated);
-    await store.set(KEYS.polls, updated);
-    onUpdate();
-  };
-
-  const createPoll = () => {
-    if (!question.trim() || options.filter(o => o.trim()).length < 2) return;
-    const poll: MemberPoll = {
-      id: uid(), targetMemberId: targetId, question: question.trim(),
-      options: options.filter(o => o.trim()).map(o => ({ id: uid(), label: o.trim(), votes: [] })),
-      createdBy: voterId, createdAt: Date.now(), hideVoterNames: hideVoters || undefined,
-      multipleChoice: multiChoice || undefined,
-    };
-    savePolls([...polls, poll]);
+  const addPoll = async () => {
+    const poll = createPoll({ question, options, targetId, createdBy: voterId, hideVoters, multiChoice });
+    if (!poll || !(await savePolls([...livePolls(), poll]))) return;
     setShowCreate(false); setQuestion(''); setOptions(['', '']); setHideVoters(false); setMultiChoice(false);
   };
 
   const vote = (pollId: string, optionId: string) => {
-    if (!voterId) return;
-    savePolls(polls.map(p => {
-      if (p.id !== pollId) return p;
-      if (p.multipleChoice) {
-        return { ...p, options: p.options.map(o => o.id !== optionId ? o : { ...o, votes: o.votes.includes(voterId) ? o.votes.filter(v => v !== voterId) : [...o.votes, voterId] }) };
-      }
-      const alreadyVoted = p.options.some(o => o.id === optionId && o.votes.includes(voterId));
-      const opts = p.options.map(o => {
-        const without = o.votes.filter(v => v !== voterId);
-        return o.id === optionId && !alreadyVoted ? { ...o, votes: [...without, voterId] } : { ...o, votes: without };
-      });
-      return { ...p, options: opts };
-    }));
-  };
-
-  const toggleClose = (pollId: string) => {
-    savePolls(polls.map(p => p.id === pollId ? { ...p, closedAt: p.closedAt ? undefined : Date.now() } : p));
+    if (voterId) void updatePoll(pollId, p => castPollVote(p, optionId, voterId));
   };
 
   const deletePoll = (id: string) => {
-    savePolls(polls.filter(p => p.id !== id));
+    void savePolls(livePolls().filter(p => p.id !== id));
     setConfirmDelete(null);
   };
 
   const getName = (id: string) => members.find(m => m.id === id)?.name || '?';
 
+  const checkOption = (checked: boolean, onChange: (v: boolean) => void, label: string) => (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 10 }}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <span style={{ fontSize: 13, color: 'var(--dim)' }}>{label}</span>
+    </label>
+  );
+
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
         <span style={{ fontSize: 12, color: 'var(--dim)' }}>{t('polls.votingAs')}</span>
-        <select style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}
-          aria-label={t('polls.votingAs')} value={voterId} onChange={e => setVoterId(e.target.value)}>
-          {activeMembers.length > 0 && (
-            <optgroup label={t('members.title')}>
-              {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </optgroup>
-          )}
-          {activeFacets.length > 0 && (
-            <optgroup label={t('members.facets')}>
-              {activeFacets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </optgroup>
-          )}
-        </select>
+        <MemberGroupSelect label={t('polls.votingAs')} value={voterId} onChange={setVoterId} pools={voterPools} />
         <div style={{ marginLeft: 'auto' }}>
           <Btn variant="solid" onClick={() => setShowCreate(true)}>{t('polls.createPoll')}</Btn>
         </div>
@@ -112,7 +68,7 @@ export default function PollsView({ onUpdate }: Props) {
       {polls.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {polls.map(poll => {
-            const voterCount = new Set(poll.options.flatMap(o => o.votes)).size;
+            const voterCount = pollVoterCount(poll);
             const isClosed = !!poll.closedAt;
             return (
               <div key={poll.id} style={{ padding: 16, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10 }}>
@@ -126,7 +82,7 @@ export default function PollsView({ onUpdate }: Props) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                   {poll.options.map(opt => {
-                    const pct = voterCount > 0 ? Math.round((opt.votes.length / voterCount) * 100) : 0;
+                    const pct = pollOptionPercent(opt.votes.length, voterCount);
                     const voted = opt.votes.includes(voterId);
                     return (
                       <button key={opt.id} style={{
@@ -135,7 +91,7 @@ export default function PollsView({ onUpdate }: Props) {
                         background: 'var(--surface)', cursor: isClosed ? 'default' : 'pointer',
                         textAlign: 'left', overflow: 'hidden',
                       }}
-                        onClick={() => !isClosed && vote(poll.id, opt.id)}
+                        onClick={() => vote(poll.id, opt.id)}
                         role={poll.multipleChoice ? 'checkbox' : undefined}
                         aria-checked={poll.multipleChoice ? voted : undefined}
                         aria-pressed={poll.multipleChoice ? undefined : voted}
@@ -143,7 +99,7 @@ export default function PollsView({ onUpdate }: Props) {
                         <div style={{
                           position: 'absolute', left: 0, top: 0, bottom: 0,
                           width: `${pct}%`,
-                          background: voted ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'color-mix(in srgb, var(--muted) 28%, transparent)',
+                          background: voted ? tint('var(--accent)', 35) : tint('var(--muted)', 28),
                           transition: 'width 0.3s ease',
                         }} />
                         <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -152,7 +108,7 @@ export default function PollsView({ onUpdate }: Props) {
                         </div>
                         {!poll.hideVoterNames && opt.votes.length > 0 && (
                           <div style={{ position: 'relative', fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>
-                            {fmtList(opt.votes.map(v => getName(v)))}
+                            {fmtList(opt.votes.map(getName))}
                           </div>
                         )}
                       </button>
@@ -161,12 +117,12 @@ export default function PollsView({ onUpdate }: Props) {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', cursor: 'pointer' }}
+                  <button style={linkButton('var(--accent)')}
                     aria-label={isClosed ? t('polls.reopenPollNamed', { question: poll.question }) : t('polls.closePollNamed', { question: poll.question })}
-                    onClick={() => toggleClose(poll.id)}>
+                    onClick={() => void updatePoll(poll.id, togglePollClosed)}>
                     {isClosed ? t('polls.reopenPoll') : t('polls.closePoll')}
                   </button>
-                  <button style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--danger)', cursor: 'pointer' }}
+                  <button style={linkButton('var(--danger)')}
                     aria-label={t('common.deleteNamed', { name: poll.question })}
                     onClick={() => setConfirmDelete(poll.id)}>
                     {t('polls.deletePoll')}
@@ -177,26 +133,14 @@ export default function PollsView({ onUpdate }: Props) {
           })}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', fontSize: 13 }}>{t('polls.noPolls')}</div>
+        <EmptyState>{t('polls.noPolls')}</EmptyState>
       )}
 
       <Modal open={showCreate} title={t('polls.createPoll')} onClose={() => setShowCreate(false)}
-        footer={<Btn variant="solid" onClick={createPoll}>{t('common.add')}</Btn>}>
+        footer={<Btn variant="solid" disabled={!pollDraftReady({ question, options })} onClick={() => void addPoll()}>{t('common.add')}</Btn>}>
         <div style={{ marginBottom: 12 }}>
           <label className="field__label">{t('polls.forMember')}</label>
-          <select style={{ width: '100%', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 10px', fontSize: 13 }}
-            aria-label={t('polls.forMember')} value={targetId} onChange={e => setTargetId(e.target.value)}>
-            {activeMembers.length > 0 && (
-              <optgroup label={t('members.title')}>
-                {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </optgroup>
-            )}
-            {activeFacets.length > 0 && (
-              <optgroup label={t('members.facets')}>
-                {activeFacets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </optgroup>
-            )}
-          </select>
+          <MemberGroupSelect label={t('polls.forMember')} value={targetId} onChange={setTargetId} pools={voterPools} style={{ width: '100%', padding: '9px 10px', fontSize: 13 }} />
         </div>
         <Field label={t('polls.question')} value={question} onChange={setQuestion} placeholder={t('polls.questionPlaceholder')} />
         <Section label={t('polls.optionsLabel')} />
@@ -205,29 +149,20 @@ export default function PollsView({ onUpdate }: Props) {
             <input className="field__input" value={opt} onChange={e => { const u = [...options]; u[i] = e.target.value; setOptions(u); }}
               aria-label={t('polls.optionN', { n: i + 1 })} placeholder={t('polls.optionN', { n: i + 1 })} style={{ flex: 1 }} />
             {options.length > 2 && (
-              <button aria-label={t('polls.removeOptionN', { n: i + 1 })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 14 }}
+              <button aria-label={t('polls.removeOptionN', { n: i + 1 })} style={linkButton('var(--danger)', 14)}
                 onClick={() => setOptions(options.filter((_, j) => j !== i))}>✕</button>
             )}
           </div>
         ))}
-        <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, padding: '6px 0' }}
+        <button style={{ ...linkButton('var(--accent)', 12), padding: '6px 0' }}
           onClick={() => setOptions([...options, ''])}>{t('polls.addOption')}</button>
-        <div style={{ marginTop: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={multiChoice} onChange={e => setMultiChoice(e.target.checked)} />
-            <span style={{ fontSize: 13, color: 'var(--dim)' }}>{t('polls.multipleChoice')}</span>
-          </label>
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={hideVoters} onChange={e => setHideVoters(e.target.checked)} />
-            <span style={{ fontSize: 13, color: 'var(--dim)' }}>{t('polls.hideVoters')}</span>
-          </label>
-        </div>
+        {checkOption(multiChoice, setMultiChoice, t('polls.multipleChoice'))}
+        {checkOption(hideVoters, setHideVoters, t('polls.hideVoters'))}
       </Modal>
 
       <ConfirmDialog open={!!confirmDelete} title={t('polls.deletePoll')} message={t('polls.deletePollMsg')}
         danger onConfirm={() => confirmDelete && deletePoll(confirmDelete)} onCancel={() => setConfirmDelete(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

@@ -1,47 +1,63 @@
-import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
+import React, { useState, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Member, Relationship, RelationshipTypeDef, uid,
   allRelationshipTypes, relationshipDegrees,
-  DEFAULT_REL_COLOR, RELATIONSHIP_COLOR_CHOICES, getInitials,
+  DEFAULT_REL_COLOR, getInitials, relTypeLabel, relationshipRoleOfOther, relationshipHops,
+  findDuplicateRelationship, upsertRelationshipType, removeRelationshipType, isRosterMember, isFacetMember, membersByIds,
 } from '../utils';
-import { store, KEYS } from '../storage';
-import { NetworkManager } from '../network/NetworkManager';
-import { Btn, Modal, ConfirmDialog, Dropdown, clickable, SrOnly } from '../components/ui';
-import { ColorCarousel } from '../components/ColorCarousel';
-import { logError } from '../log';
+import { saveData } from '../store/actions';
+import { Btn, ConfirmDialog, clickable, linkButton, SrOnly, SaveErrorDialog } from '../components/ui';
+import { AddToMapModal } from './systemMap/AddToMapModal';
+import { RelationshipEditor, RelationshipDraft } from './systemMap/RelationshipEditor';
+import { TypesModal, TypeDraftModal, TypeDraft, newTypeDraft, typeDraftOf } from './systemMap/RelationshipTypes';
 import { useAppStore } from '../store/appStore';
+import { initialOn } from '../theme';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { useMapLayout } from './systemMap/useMapLayout';
 
 interface Props {
   onViewMember?: (id: string) => void;
   focusMemberId?: string | null;
 }
 
-type TypeDraft = { id: string; name: string; inverseName: string; directional: boolean; color: string; preset: boolean };
+const usePersistedFlag = (key: string, defaultOn: boolean): [boolean, () => void] => {
+  const [on, setOn] = useState(() => {
+    const stored = localStorage.getItem(key);
+    return stored === null ? defaultOn : stored === '1';
+  });
+  const toggle = () => {
+    const next = !on;
+    setOn(next);
+    localStorage.setItem(key, next ? '1' : '0');
+  };
+  return [on, toggle];
+};
+
+const flagButton = (on: boolean, toggle: () => void, label: React.ReactNode) => (
+  <button className={on ? 'btn btn--solid' : 'btn btn--ghost'} aria-pressed={on} onClick={toggle}>{label}</button>
+);
 
 export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const { t } = useTranslation();
-  const members = useAppStore(s => s.state.members);
+  const members = useAppStore(s => s.members);
   const memberById = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
 
-  const [relationships, setRelationships] = useState<Relationship[]>([]);
-  const [customTypes, setCustomTypes] = useState<RelationshipTypeDef[]>([]);
-  const [mapIds, setMapIds] = useState<string[]>([]);
+  const relationships = useAppStore(s => s.relationships);
+  const customTypes = useAppStore(s => s.relationshipTypes);
+  const mapIds = useAppStore(s => s.systemMapMembers);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({});
-  const svgRef = useRef<SVGSVGElement>(null);
+  const [saveError, run, clearSaveError] = useSaveGuard();
   const mapId = useId();
   const [focusedNode, setFocusedNode] = useState<string | null>(null);
-  const dragRef = useRef<{ id: string; pointerId: number; startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
-  const lastDragMovedRef = useRef(false);
 
   const [showAddMember, setShowAddMember] = useState(false);
   const [showTypes, setShowTypes] = useState(false);
-  const [showArchived, setShowArchived] = useState(() => localStorage.getItem('ps.mapShowArchived') === '1');
-  const [showFacets, setShowFacets] = useState(() => localStorage.getItem('ps.mapShowFacets') !== '0');
-  const [colorAll, setColorAll] = useState(() => localStorage.getItem('ps.mapColorThreads') === '1');
-  const [lockPositions, setLockPositions] = useState(() => localStorage.getItem('ps.mapLockPositions') === '1');
-  const [relEditor, setRelEditor] = useState<{ from: string; toIds: string[]; typeId: string; note: string } | null>(null);
+  const [showArchived, toggleShowArchived] = usePersistedFlag('ps.mapShowArchived', false);
+  const [showFacets, toggleShowFacets] = usePersistedFlag('ps.mapShowFacets', true);
+  const [colorAll, toggleColorAll] = usePersistedFlag('ps.mapColorThreads', false);
+  const [lockPositions, toggleLockPositions] = usePersistedFlag('ps.mapLockPositions', false);
+  const [relEditor, setRelEditor] = useState<RelationshipDraft | null>(null);
   const [relDup, setRelDup] = useState(false);
   useEffect(() => { setRelDup(false); }, [relEditor]);
   const [typeDraft, setTypeDraft] = useState<TypeDraft | null>(null);
@@ -52,150 +68,26 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
   const typeById = useMemo(() => new Map(types.map(ty => [ty.id, ty])), [types]);
 
   useEffect(() => {
-    const load = async () => {
-      const [rels, savedTypes, savedMapIds, savedPos] = await Promise.all([
-        store.get<Relationship[]>(KEYS.relationships, []),
-        store.get<RelationshipTypeDef[]>(KEYS.relationshipTypes, []),
-        store.get<string[]>(KEYS.systemMapMembers),
-        store.get<Record<string, { x: number; y: number }>>(KEYS.systemMapPositions),
-      ]);
-      setCustomTypes(savedTypes || []);
-      const all = rels || [];
-      const ids = new Set(members.map(m => m.id));
-      if (savedPos) {
-        const pruned: Record<string, { x: number; y: number }> = {};
-        for (const id in savedPos) {
-          const p = savedPos[id];
-          if (ids.has(id) && p && typeof p.x === 'number' && typeof p.y === 'number') pruned[id] = p;
-        }
-        setPosOverrides(pruned);
-      }
-      const valid = all.filter(r => ids.has(r.fromId) && ids.has(r.toId));
-      setRelationships(valid);
-      if (valid.length !== all.length) await store.set(KEYS.relationships, valid);
-      if (savedMapIds && savedMapIds.length) {
-        setMapIds(savedMapIds.filter(id => ids.has(id)));
-      } else {
-        const seeded = [...new Set(valid.flatMap(r => [r.fromId, r.toId]))];
-        setMapIds(seeded);
-        if (seeded.length) await store.set(KEYS.systemMapMembers, seeded);
-      }
-    };
-    load().catch(e => logError('systemMap', e));
-    return NetworkManager.onSyncApplied(() => { load().catch(e => logError('systemMap', e)); });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     if (!focusMemberId) return;
-    setMapIds(prev => {
-      if (prev.includes(focusMemberId)) return prev;
-      const next = [...prev, focusMemberId];
-      store.set(KEYS.systemMapMembers, next).catch(() => {});
-      return next;
-    });
+    const prev = useAppStore.getState().systemMapMembers;
+    if (!prev.includes(focusMemberId)) void run(() => saveData('systemMapMembers', [...prev, focusMemberId]));
     setSelectedId(focusMemberId);
-  }, [focusMemberId]);
+  }, [focusMemberId, run]);
 
-  const saveRelationships = async (next: Relationship[]) => { setRelationships(next); await store.set(KEYS.relationships, next); };
-  const saveCustomTypes = async (next: RelationshipTypeDef[]) => { setCustomTypes(next); await store.set(KEYS.relationshipTypes, next); };
-  const saveMapIds = async (next: string[]) => { setMapIds(next); await store.set(KEYS.systemMapMembers, next); };
+  const saveRelationships = (next: Relationship[]) => run(() => saveData('relationships', next));
+  const saveCustomTypes = (next: RelationshipTypeDef[]) => run(() => saveData('relationshipTypes', next));
+  const saveMapIds = (next: string[]) => run(() => saveData('systemMapMembers', next));
 
-  const mapMembers = useMemo(() => (mapIds.map(id => memberById.get(id)).filter(Boolean) as Member[]).filter(m => (showArchived || !m.archived) && (showFacets || !m.isFacet)), [mapIds, memberById, showArchived, showFacets]);
+  const mapMembers = useMemo(() => membersByIds(mapIds, memberById).filter(m => (isRosterMember(m) || isFacetMember(m)) && (showArchived || !m.archived) && (showFacets || !m.isFacet)), [mapIds, memberById, showArchived, showFacets]);
   const mapIdSet = useMemo(() => new Set(mapIds), [mapIds]);
   const visibleIdSet = useMemo(() => new Set(mapMembers.map(m => m.id)), [mapMembers]);
+  const { svgRef, pos, extX, extY, lastDragMovedRef, onNodePointerDown, onNodePointerMove, onNodePointerUp, nudgeNode } = useMapLayout(mapMembers, lockPositions, run);
   const mapRels = useMemo(() => relationships.filter(r => visibleIdSet.has(r.fromId) && visibleIdSet.has(r.toId)), [relationships, visibleIdSet]);
 
-  const typeLabel = (td: RelationshipTypeDef): string => (td.preset && !td.overridden) ? t(`relType.${td.id}`) : td.name;
+  const typeLabel = (td: RelationshipTypeDef): string => relTypeLabel(td, t);
 
-  const dist = useMemo(() => {
-    if (!selectedId) return null;
-    const adj = new Map<string, string[]>();
-    for (const r of mapRels) {
-      if (!adj.has(r.fromId)) adj.set(r.fromId, []);
-      if (!adj.has(r.toId)) adj.set(r.toId, []);
-      adj.get(r.fromId)!.push(r.toId);
-      adj.get(r.toId)!.push(r.fromId);
-    }
-    const d = new Map<string, number>([[selectedId, 0]]);
-    let frontier = [selectedId];
-    for (let hop = 1; hop <= 3 && frontier.length; hop++) {
-      const next: string[] = [];
-      for (const id of frontier) for (const nb of (adj.get(id) || [])) {
-        if (!d.has(nb)) { d.set(nb, hop); next.push(nb); }
-      }
-      frontier = next;
-    }
-    return d;
-  }, [selectedId, mapRels]);
+  const dist = useMemo(() => relationshipHops(selectedId, mapRels), [selectedId, mapRels]);
 
-  const W = 900, H = 560;
-  const HALF_WORLD = 2000;
-  const n = mapMembers.length;
-  const radius = n <= 1 ? 0 : 200;
-  const pos = useMemo(() => {
-    const m = new Map<string, { x: number; y: number }>();
-    mapMembers.forEach((mem, i) => {
-      const o = posOverrides[mem.id];
-      if (o) { m.set(mem.id, { x: o.x, y: o.y }); return; }
-      if (n === 1) { m.set(mem.id, { x: 0, y: 0 }); return; }
-      const a = (2 * Math.PI * i) / n - Math.PI / 2;
-      m.set(mem.id, { x: radius * Math.cos(a), y: radius * Math.sin(a) });
-    });
-    return m;
-  }, [mapMembers, n, radius, posOverrides]);
-  const [extX, extY] = useMemo(() => {
-    let ex = radius + 100;
-    let ey = (radius + 100) * (H / W);
-    pos.forEach(p => { ex = Math.max(ex, Math.abs(p.x) + 70); ey = Math.max(ey, Math.abs(p.y) + 70); });
-    ex = Math.max(ex, ey * (W / H));
-    return [ex, ex * (H / W)];
-  }, [pos, radius]);
-
-  const persistPositions = (next: Record<string, { x: number; y: number }>) => {
-    store.set(KEYS.systemMapPositions, next).then(() => NetworkManager.notifyDataChanged()).catch(e => logError('systemmap', e));
-  };
-  const worldPerPixel = (): number => {
-    const el = svgRef.current;
-    if (!el) return 1;
-    const r = el.getBoundingClientRect();
-    return r.width > 0 ? (extX * 2) / r.width : 1;
-  };
-  const onNodePointerDown = (id: string, p: { x: number; y: number }) => (e: React.PointerEvent) => {
-    if (e.button !== 0 || lockPositions) return;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    dragRef.current = { id, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, origX: p.x, origY: p.y, moved: false };
-  };
-  const onNodePointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d || e.pointerId !== d.pointerId) return;
-    if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 4) return;
-    d.moved = true;
-    const s = worldPerPixel();
-    const clamp = (v: number) => Math.max(-HALF_WORLD, Math.min(HALF_WORLD, Math.round(v)));
-    const nx = clamp(d.origX + (e.clientX - d.startX) * s);
-    const ny = clamp(d.origY + (e.clientY - d.startY) * s);
-    setPosOverrides(prev => ({ ...prev, [d.id]: { x: nx, y: ny } }));
-  };
-  const onNodePointerUp = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d || e.pointerId !== d.pointerId) return;
-    dragRef.current = null;
-    if (d.moved) {
-      lastDragMovedRef.current = true;
-      setPosOverrides(prev => { persistPositions(prev); return prev; });
-    }
-  };
-  const nudgeNode = (e: React.KeyboardEvent, id: string, p: { x: number; y: number }) => {
-    if (lockPositions) return;
-    const step = e.shiftKey ? 50 : 10;
-    const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
-    const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
-    if (!dx && !dy) return;
-    e.preventDefault();
-    const clamp = (v: number) => Math.max(-HALF_WORLD, Math.min(HALF_WORLD, Math.round(v)));
-    setPosOverrides(prev => { const next = { ...prev, [id]: { x: clamp(p.x + dx), y: clamp(p.y + dy) } }; persistPositions(next); return next; });
-  };
   const nodeLabel = (mem: Member, hops: number | undefined): string => {
     const base = mem.archived ? t('systemMap.nodeArchived', { name: mem.name }) : mem.name;
     return selectedId && hops !== undefined && hops > 0 ? t('systemMap.nodeHops', { name: base, count: hops }) : base;
@@ -203,48 +95,37 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
 
   const degrees = useMemo(() => relationshipDegrees(mapMembers.map(m => m.id), mapRels), [mapMembers, mapRels]);
 
-  const addRelationship = () => {
+  const addRelationship = async () => {
     if (!relEditor) return;
     const { from, toIds, typeId, note } = relEditor;
     const targets = [...new Set(toIds)].filter(id => id && id !== from);
     if (!from || targets.length === 0) { setRelEditor(null); return; }
     const td = typeById.get(typeId);
-    const isDup = (to: string) => relationships.some(r => r.typeId === typeId && ((r.fromId === from && r.toId === to) || (!td?.directional && r.fromId === to && r.toId === from)));
-    const fresh = targets.filter(to => !isDup(to));
+    const fresh = targets.filter(to => !findDuplicateRelationship(relationships, td, typeId, from, to));
     if (fresh.length === 0) { setRelDup(true); return; }
     const nowTs = Date.now();
     const entries: Relationship[] = fresh.map(to => ({ id: uid(), fromId: from, toId: to, typeId, note: note || undefined, createdAt: nowTs }));
-    saveRelationships([...relationships, ...entries]);
+    if (!(await saveRelationships([...relationships, ...entries]))) return;
     const mapAdds = [from, ...fresh].filter(id => !mapIdSet.has(id));
-    if (mapAdds.length > 0) saveMapIds([...mapIds, ...mapAdds]);
+    if (mapAdds.length > 0 && !(await saveMapIds([...mapIds, ...mapAdds]))) return;
     setRelEditor(null);
   };
 
-  const saveTypeDraft = () => {
-    if (!typeDraft || !typeDraft.name.trim()) { setTypeDraft(null); return; }
-    if (typeDraft.preset) {
-      const others = customTypes.filter(ct => ct.id !== typeDraft.id);
-      saveCustomTypes([...others, { id: typeDraft.id, name: typeDraft.name.trim(), inverseName: typeDraft.inverseName || undefined, directional: typeDraft.directional, color: typeDraft.color, preset: true }]);
-    } else {
-      const existing = customTypes.find(ct => ct.id === typeDraft.id);
-      const entry: RelationshipTypeDef = { id: typeDraft.id, name: typeDraft.name.trim(), inverseName: typeDraft.inverseName || undefined, directional: typeDraft.directional, color: typeDraft.color };
-      saveCustomTypes(existing ? customTypes.map(ct => ct.id === entry.id ? entry : ct) : [...customTypes, entry]);
+  const saveTypeDraft = async () => {
+    if (typeDraft && typeDraft.name.trim()) {
+      const fields = { name: typeDraft.name.trim(), inverseName: typeDraft.inverseName || undefined, directional: typeDraft.directional, color: typeDraft.color };
+      if (!(await saveCustomTypes(upsertRelationshipType(customTypes, typeDraft.id, fields)))) return;
     }
     setTypeDraft(null);
   };
 
-  const performDeleteType = (ty: RelationshipTypeDef) => {
-    if (ty.preset) {
-      saveCustomTypes([...customTypes.filter(ct => ct.id !== ty.id), { id: ty.id, name: ty.name, directional: !!ty.directional, preset: true, deleted: true }]);
-    } else {
-      saveCustomTypes(customTypes.filter(ct => ct.id !== ty.id));
-    }
-    if (relationships.some(r => r.typeId === ty.id)) saveRelationships(relationships.filter(r => r.typeId !== ty.id));
+  const performDeleteType = async (ty: RelationshipTypeDef) => {
+    if (!(await saveCustomTypes(removeRelationshipType(customTypes, ty)))) return;
+    if (relationships.some(r => r.typeId === ty.id)) await saveRelationships(relationships.filter(r => r.typeId !== ty.id));
   };
 
-  const offAll = members.filter(m => !mapIdSet.has(m.id) && !m.deleted && (showArchived || !m.archived));
-  const off = offAll.filter(m => !m.isFacet);
-  const offFacets = offAll.filter(m => m.isFacet);
+  const off = members.filter(m => !mapIdSet.has(m.id) && isRosterMember(m) && (showArchived || !m.archived));
+  const offFacets = members.filter(m => !mapIdSet.has(m.id) && isFacetMember(m) && (showArchived || !m.archived));
   const selected = selectedId ? memberById.get(selectedId) : null;
   const selRels = selectedId
     ? mapRels.filter(r => (r.fromId === selectedId || r.toId === selectedId) && pos.has(r.fromId === selectedId ? r.toId : r.fromId))
@@ -259,33 +140,13 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         <Btn variant="solid" disabled={off.length === 0 && offFacets.length === 0} onClick={() => setShowAddMember(true)}>{t('systemMap.addMember')}</Btn>
         <Btn variant="ghost" onClick={() => setRelEditor({ from: selectedId || mapIds[0] || '', toIds: [], typeId: types[0]?.id || 'friend', note: '' })}>{t('systemMap.addRelationship')}</Btn>
         <Btn variant="ghost" onClick={() => setShowTypes(true)}>{t('systemMap.manageTypes')}</Btn>
-        <button
-          className={showArchived ? 'btn btn--solid' : 'btn btn--ghost'}
-          aria-pressed={showArchived}
-          onClick={() => { const v = !showArchived; setShowArchived(v); localStorage.setItem('ps.mapShowArchived', v ? '1' : '0'); }}>
-          {t('members.archived')}
-        </button>
-        <button
-          className={showFacets ? 'btn btn--solid' : 'btn btn--ghost'}
-          aria-pressed={showFacets}
-          onClick={() => { const v = !showFacets; setShowFacets(v); localStorage.setItem('ps.mapShowFacets', v ? '1' : '0'); }}>
-          {t('members.facets')}
-        </button>
-        <button
-          className={colorAll ? 'btn btn--solid' : 'btn btn--ghost'}
-          aria-pressed={colorAll}
-          onClick={() => { const v = !colorAll; setColorAll(v); localStorage.setItem('ps.mapColorThreads', v ? '1' : '0'); }}>
-          {t('systemMap.showColors')}
-        </button>
-        <button
-          className={lockPositions ? 'btn btn--solid' : 'btn btn--ghost'}
-          aria-pressed={lockPositions}
-          onClick={() => { const v = !lockPositions; setLockPositions(v); localStorage.setItem('ps.mapLockPositions', v ? '1' : '0'); }}>
-          <span aria-hidden>{lockPositions ? '🔒 ' : '🔓 '}</span>{t('systemMap.lockPositions')}
-        </button>
+        {flagButton(showArchived, toggleShowArchived, t('members.archived'))}
+        {flagButton(showFacets, toggleShowFacets, t('members.facets'))}
+        {flagButton(colorAll, toggleColorAll, t('systemMap.showColors'))}
+        {flagButton(lockPositions, toggleLockPositions, <><span aria-hidden>{lockPositions ? '🔒 ' : '🔓 '}</span>{t('systemMap.lockPositions')}</>)}
       </div>
 
-      {n === 0 ? (
+      {mapMembers.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 12 }}>
           {t('systemMap.emptyMap')}
         </div>
@@ -304,7 +165,8 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
               return <line key={r.id} aria-hidden x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} strokeWidth={active ? 3 : 2} opacity={opacity} />;
             })}
             {mapMembers.map(mem => {
-              const p = pos.get(mem.id)!;
+              const p = pos.get(mem.id);
+              if (!p) return null;
               const d = dist?.get(mem.id);
               const dim = selectedId && d === undefined && mem.id !== selectedId;
               const isSel = mem.id === selectedId;
@@ -324,7 +186,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
                   {focusedNode === mem.id && (
                     <circle cx={p.x} cy={p.y} r={(isSel ? 26 : 22) + 5} fill="none" stroke="var(--accent)" strokeWidth={2} />
                   )}
-                  <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize={12} fontWeight={700} fill="#0a0508">{getInitials(mem.name)}</text>
+                  <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize={12} fontWeight={700} fill={initialOn(mem.color)}>{getInitials(mem.name)}</text>
                   <text x={p.x} y={p.y + 40} textAnchor="middle" fontSize={11} fill="var(--text)">{mem.name}</text>
                   {selectedId && d !== undefined && d > 0 && (
                     <text x={p.x + 20} y={p.y - 18} textAnchor="middle" fontSize={10} fontWeight={700} fill="var(--accent)">{d}</text>
@@ -341,7 +203,7 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
         <div style={{ marginTop: 12, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
             {onViewMember && <Btn variant="ghost" onClick={() => onViewMember(selected.id)}>{t('systemMap.viewProfile')}</Btn>}
-            <Btn variant="ghost" onClick={() => { saveMapIds(mapIds.filter(id => id !== selected.id)); setSelectedId(null); }}>{t('systemMap.removeFromMap')}</Btn>
+            <Btn variant="ghost" onClick={() => { void saveMapIds(mapIds.filter(id => id !== selected.id)); setSelectedId(null); }}>{t('systemMap.removeFromMap')}</Btn>
             <Btn variant="ghost" onClick={() => setSelectedId(null)}>{t('common.close')}</Btn>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -358,136 +220,37 @@ export default function SystemMapView({ onViewMember, focusMemberId }: Props) {
             return (
               <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderTop: '1px solid var(--border)' }}>
                 <span style={{ width: 8, height: 8, borderRadius: 4, background: ty?.color || DEFAULT_REL_COLOR }} />
-                <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{ty ? typeLabel(ty) : '?'}</span>
+                <span style={{ fontSize: 12, color: 'var(--dim)', minWidth: 70 }}>{relationshipRoleOfOther(ty, r, selected.id, t)}</span>
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', cursor: onViewMember ? 'pointer' : 'default' }}
                   {...(onViewMember ? clickable(() => onViewMember(otherId), other?.name) : {})}>{other?.name || '?'}</span>
-                <button onClick={() => setConfirmDelRel(r.id)} aria-label={t('systemMap.deleteRelationshipWith', { name: other?.name || '?' })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                <button onClick={() => setConfirmDelRel(r.id)} aria-label={t('systemMap.deleteRelationshipWith', { name: other?.name || '?' })} style={linkButton('var(--danger)', 12)}>✕</button>
               </div>
             );
           })}
         </div>
       )}
 
-      <Modal open={showAddMember} title={t('systemMap.addMember')} onClose={() => setShowAddMember(false)}>
-        {off.length === 0 && offFacets.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('systemMap.allOnMap')}</p> : (
-          <>
-            {off.length > 0 && <div className="field__label" id={`${mapId}-addm`}>{t('members.title')}</div>}
-            <div role="group" aria-labelledby={off.length > 0 ? `${mapId}-addm` : undefined}>
-            {off.map(m => (
-              <button key={m.id} onClick={() => { saveMapIds([...mapIds, m.id]); setShowAddMember(false); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
-                <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color }} />
-                <span style={{ fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
-              </button>
-            ))}
-            </div>
-            {offFacets.length > 0 && (
-              <>
-                <div className="field__label" id={`${mapId}-addf`} style={{ marginTop: 12 }}>{t('members.facets')}</div>
-                <div role="group" aria-labelledby={`${mapId}-addf`}>
-                {offFacets.map(m => (
-                  <button key={m.id} onClick={() => { saveMapIds([...mapIds, m.id]); setShowAddMember(false); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 8, background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 5, background: m.color }} />
-                    <span style={{ fontSize: 13, color: 'var(--text)' }}>{m.name}</span>
-                  </button>
-                ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </Modal>
+      <AddToMapModal open={showAddMember} members={off} facets={offFacets} onClose={() => setShowAddMember(false)}
+        onAdd={id => { void saveMapIds([...mapIds, id]); setShowAddMember(false); }} />
 
-      <Modal open={!!relEditor} title={t('systemMap.addRelationship')} onClose={() => setRelEditor(null)}
-        footer={<Btn variant="solid" onClick={addRelationship}>{t('common.save')}</Btn>}>
-        {relEditor && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <Dropdown<string> label={t('systemMap.from')} value={relEditor.from} options={[...mapIds, ...off.map(m => m.id), ...offFacets.map(m => m.id)]} onChange={v => setRelEditor({ ...relEditor, from: v })} renderOption={id => memberById.get(id)?.name || '?'} />
-            </div>
-            <div>
-              <div className="field__label" id={`${mapId}-to`}>{t('systemMap.to')}</div>
-              <div className="field__label" id={`${mapId}-tom`} style={{ marginTop: 4 }}>{t('members.title')}</div>
-              <div role="group" aria-labelledby={`${mapId}-to ${mapId}-tom`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {[...mapIds, ...off.map(m => m.id)].filter(id => id !== relEditor.from).map(id => {
-                  const m = memberById.get(id);
-                  if (!m) return null;
-                  const on = relEditor.toIds.includes(id);
-                  return (
-                    <button key={id} className="chip" aria-pressed={on} style={{
-                      borderColor: on ? `${m.color}60` : 'var(--border)',
-                      background: on ? `${m.color}20` : 'var(--surface)',
-                    }} onClick={() => setRelEditor({ ...relEditor, toIds: on ? relEditor.toIds.filter(x => x !== id) : [...relEditor.toIds, id] })}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                      <span style={{ color: on ? m.color : 'var(--dim)', fontWeight: on ? 600 : 400 }}>{m.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {offFacets.filter(m => m.id !== relEditor.from).length > 0 && (
-                <>
-                  <div className="field__label" id={`${mapId}-tof`} style={{ marginTop: 8 }}>{t('members.facets')}</div>
-                  <div role="group" aria-labelledby={`${mapId}-to ${mapId}-tof`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {offFacets.filter(m => m.id !== relEditor.from).map(m => {
-                      const on = relEditor.toIds.includes(m.id);
-                      return (
-                        <button key={m.id} className="chip" aria-pressed={on} style={{
-                          borderColor: on ? `${m.color}60` : 'var(--border)',
-                          background: on ? `${m.color}20` : 'var(--surface)',
-                        }} onClick={() => setRelEditor({ ...relEditor, toIds: on ? relEditor.toIds.filter(x => x !== m.id) : [...relEditor.toIds, m.id] })}>
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-                          <span style={{ color: on ? m.color : 'var(--dim)', fontWeight: on ? 600 : 400 }}>{m.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-            <div>
-              <Dropdown<string> label={t('systemMap.type')} value={relEditor.typeId} options={types.map(ty => ty.id)} onChange={v => setRelEditor({ ...relEditor, typeId: v })} renderOption={id => { const ty = typeById.get(id); return ty ? typeLabel(ty) : id; }} />
-            </div>
-            {relDup && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{t('systemMap.duplicate')}</div>}
-          </div>
-        )}
-      </Modal>
+      <RelationshipEditor draft={relEditor} onChange={setRelEditor} onSave={() => void addRelationship()} onClose={() => setRelEditor(null)}
+        fromIds={[...mapIds, ...off.map(m => m.id), ...offFacets.map(m => m.id)]}
+        toMembers={[...membersByIds(mapIds, memberById), ...off]} toFacets={offFacets}
+        memberById={memberById} types={types} duplicate={relDup} />
 
-      <Modal open={showTypes} title={t('systemMap.manageTypes')} onClose={() => setShowTypes(false)}
-        footer={<Btn variant="ghost" onClick={() => setTypeDraft({ id: uid(), name: '', inverseName: '', directional: false, color: RELATIONSHIP_COLOR_CHOICES[0], preset: false })}>{t('systemMap.newType')}</Btn>}>
-        {types.map(ty => (
-          <div key={ty.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 6, background: ty.color || DEFAULT_REL_COLOR }} />
-            <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{typeLabel(ty)}{ty.preset ? ` · ${t('systemMap.preset')}` : ''}</span>
-            <button onClick={() => setTypeDraft({ id: ty.id, name: typeLabel(ty), inverseName: ty.inverseName || '', directional: !!ty.directional, color: ty.color || RELATIONSHIP_COLOR_CHOICES[0], preset: !!ty.preset })}
-              aria-label={t('common.editNamed', { name: typeLabel(ty) })}
-              style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>{t('common.edit')}</button>
-            <button onClick={() => setConfirmDelType(ty)} aria-label={t('common.deleteNamed', { name: typeLabel(ty) })} style={{ fontSize: 12, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-          </div>
-        ))}
-      </Modal>
+      <TypesModal open={showTypes} types={types} onClose={() => setShowTypes(false)} onNew={() => setTypeDraft(newTypeDraft())}
+        onEdit={ty => setTypeDraft(typeDraftOf(ty, typeLabel(ty)))} onDelete={setConfirmDelType} />
 
-      <Modal open={!!typeDraft} title={typeDraft?.preset ? t('systemMap.editType') : t('systemMap.newType')} onClose={() => setTypeDraft(null)}
-        footer={<Btn variant="solid" onClick={saveTypeDraft}>{t('common.save')}</Btn>}>
-        {typeDraft && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <label className="field__label">{t('systemMap.typeName')}</label>
-              <input className="field__input" aria-label={t('systemMap.typeName')} value={typeDraft.name} onChange={e => setTypeDraft({ ...typeDraft, name: e.target.value })} />
-            </div>
-            <ColorCarousel value={typeDraft.color} onChange={v => setTypeDraft(d => (d ? { ...d, color: v } : d))} />
-            {typeDraft.preset && <p style={{ fontSize: 11, color: 'var(--muted)' }}>{t('systemMap.presetEditNote')}</p>}
-          </div>
-        )}
-      </Modal>
+      <TypeDraftModal draft={typeDraft} onChange={setTypeDraft} onSave={() => void saveTypeDraft()} onClose={() => setTypeDraft(null)} />
 
       <ConfirmDialog open={!!confirmDelRel} title={t('systemMap.deleteRelationship')} message={t('systemMap.deleteRelationshipMsg')}
-        danger onConfirm={() => { if (confirmDelRel) saveRelationships(relationships.filter(r => r.id !== confirmDelRel)); setConfirmDelRel(null); }}
+        danger onConfirm={() => { if (confirmDelRel) void saveRelationships(relationships.filter(r => r.id !== confirmDelRel)); setConfirmDelRel(null); }}
         onCancel={() => setConfirmDelRel(null)} />
 
       <ConfirmDialog open={!!confirmDelType} title={t('systemMap.deleteType')} message={t('systemMap.deleteTypeMsg')}
-        danger onConfirm={() => { if (confirmDelType) performDeleteType(confirmDelType); setConfirmDelType(null); }}
+        danger onConfirm={() => { if (confirmDelType) void performDeleteType(confirmDelType); setConfirmDelType(null); }}
         onCancel={() => setConfirmDelType(null)} />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }

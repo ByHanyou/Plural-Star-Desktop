@@ -306,10 +306,6 @@ body {
   gap: 6px;
 }
 
-.tile__icon {
-  font-size: 30px;
-  line-height: 1;
-}
 .tile__stat {
   font-size: 30px;
   font-weight: 700;
@@ -338,6 +334,7 @@ body {
   width: auto;
   height: auto;
   font-size: 30px;
+  line-height: 1;
 }
 .tile--center .tile__body {
   flex: 0 0 auto;
@@ -494,4 +491,17 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+}
+
+.chat-msg__actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.chat-msg__actions:hover,
+.chat-msg__actions:focus-within {
+  opacity: 1;
 }

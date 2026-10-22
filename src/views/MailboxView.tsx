@@ -1,19 +1,19 @@
-import { useState, useEffect, useMemo, useId } from 'react';
+import { useState, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Btn, Dropdown, Modal, ConfirmDialog, SrOnly } from '../components/ui';
-import { NoteboardEntry, uid, fmtTime, getInitials, nameCompare } from '../utils';
-import { store, KEYS } from '../storage';
-import { NetworkManager } from '../network/NetworkManager';
+import { Btn, Dropdown, Modal, ConfirmDialog, SrOnly, SaveErrorDialog, clickable } from '../components/ui';
+import { NoteboardEntry, fmtTime, getInitials, nameCompare, isRosterMember, isFacetMember } from '../utils';
+import { saveData, saveMember } from '../store/actions';
 import { useAppStore } from '../store/appStore';
+import { useSaveGuard } from '../hooks/useSaveGuard';
+import { ALL_RECIPIENTS, composeMail, inboxMessages, inboxSummaries, mailRecipients, markInboxRead, removeNote } from '../mailbox/mailbox';
 
-interface Props { onUpdate?: () => void; }
+const EMPTY_MSG = { fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '32px 0' } as const;
+const PW_INPUT = { display: 'block', width: '100%', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13 } as const;
 
-const ALL_RECIPIENTS = '*';
-
-export default function MailboxView({ onUpdate }: Props) {
+export default function MailboxView() {
   const { t } = useTranslation();
-  const members = useAppStore(s => s.state.members);
-  const [notes, setNotes] = useState<NoteboardEntry[]>([]);
+  const members = useAppStore(s => s.members);
+  const notes = useAppStore(s => s.noteboards);
   const [openId, setOpenId] = useState<string | null>(null);
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
   const [pwFor, setPwFor] = useState<string | null>(null);
@@ -29,40 +29,33 @@ export default function MailboxView({ onUpdate }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<NoteboardEntry | null>(null);
 
   const activeMembers = useMemo(
-    () => members.filter(m => !m.isCustomFront && !m.isFacet && !m.deleted && !m.archived).sort((a, b) => nameCompare(a.name, b.name)),
+    () => members.filter(m => isRosterMember(m) && !m.archived).sort((a, b) => nameCompare(a.name, b.name)),
     [members],
   );
   const activeFacets = useMemo(
-    () => members.filter(m => !m.isCustomFront && m.isFacet && !m.deleted && !m.archived).sort((a, b) => nameCompare(a.name, b.name)),
+    () => members.filter(m => isFacetMember(m) && !m.archived).sort((a, b) => nameCompare(a.name, b.name)),
     [members],
   );
-  const nameOf = (id: string) => members.find(m => m.id === id)?.name || '?';
-
-  useEffect(() => {
-    const load = () => { store.get<NoteboardEntry[]>(KEYS.noteboards, []).then(n => setNotes(n || [])); };
-    load();
-    return NetworkManager.onSyncApplied(load);
-  }, []);
-
-  const save = async (updated: NoteboardEntry[]) => {
-    setNotes(updated);
-    await store.set(KEYS.noteboards, updated);
-    NetworkManager.notifyDataChanged();
-  };
+  const byId = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
+  const nameOf = (id: string) => byId.get(id)?.name || '?';
+  const isLockedBox = (id: string) => !!byId.get(id)?.mailboxPassword;
+  const [saveError, run, clearSaveError] = useSaveGuard();
+  const save = (updated: NoteboardEntry[]) => run(() => saveData('noteboards', updated));
 
   const reallyOpen = (memberId: string) => {
     setOpenId(memberId);
-    let changed = false;
-    const updated = notes.map(n => {
-      if (n.memberId === memberId && n.read !== true) { changed = true; return { ...n, read: true }; }
-      return n;
-    });
-    if (changed) save(updated);
+    const updated = markInboxRead(notes, memberId);
+    if (updated) void save(updated);
+  };
+
+  const closePw = () => {
+    setPwFor(null);
+    setPwInput('');
+    setPwError(false);
   };
 
   const openMailbox = (memberId: string) => {
-    const m = members.find(x => x.id === memberId);
-    if (m?.mailboxPassword && !unlockedIds.has(memberId)) {
+    if (isLockedBox(memberId) && !unlockedIds.has(memberId)) {
       setPwInput('');
       setPwError(false);
       setPwFor(memberId);
@@ -73,87 +66,65 @@ export default function MailboxView({ onUpdate }: Props) {
 
   const submitUnlock = () => {
     if (!pwFor) return;
-    const m = members.find(x => x.id === pwFor);
-    if (pwInput === (m?.mailboxPassword || '')) {
+    if (pwInput === (byId.get(pwFor)?.mailboxPassword || '')) {
       setUnlockedIds(prev => new Set(prev).add(pwFor));
       reallyOpen(pwFor);
-      setPwFor(null);
-      setPwInput('');
-      setPwError(false);
+      closePw();
     } else {
       setPwError(true);
     }
   };
 
-  const setMailboxPassword = async (memberId: string, password?: string) => {
-    const updated = members.map(m => (m.id === memberId ? { ...m, mailboxPassword: password } : m));
-    await store.set(KEYS.members, updated);
-    NetworkManager.notifyDataChanged();
-    onUpdate?.();
+  const setMailboxPassword = (memberId: string, password?: string): Promise<boolean> => {
+    const owner = byId.get(memberId);
+    return owner ? run(() => saveMember({ ...owner, mailboxPassword: password })) : Promise.resolve(false);
   };
 
-  const submitLock = () => {
-    if (!openId) return;
-    const owner = members.find(x => x.id === openId);
-    const next = lockInput.trim();
-    if (!next && owner?.mailboxPassword) {
-      setConfirmUnlockRemove(true);
-      return;
-    }
-    if (next) {
-      setMailboxPassword(openId, next);
-      setUnlockedIds(prev => new Set(prev).add(openId));
-    }
+  const closeLock = () => {
     setLockManage(false);
     setLockInput('');
   };
 
+  const submitLock = async () => {
+    if (!openId) return;
+    const next = lockInput.trim();
+    if (!next && isLockedBox(openId)) {
+      setConfirmUnlockRemove(true);
+      return;
+    }
+    if (next) {
+      if (!(await setMailboxPassword(openId, next))) return;
+      setUnlockedIds(prev => new Set(prev).add(openId));
+    }
+    closeLock();
+  };
+
   const sendMessage = async () => {
     if (!composeTo || !composeFrom || !composeBody.trim()) return;
-    const targets = composeTo === ALL_RECIPIENTS ? activeMembers.map(m => m.id).filter(id => id !== composeFrom) : [composeTo];
+    const targets = mailRecipients(composeTo, composeFrom, activeMembers);
     if (targets.length === 0) return;
-    const body = composeBody.trim();
-    const now = Date.now();
-    const entries: NoteboardEntry[] = targets.map(id => ({
-      id: uid(),
-      memberId: id,
-      authorId: composeFrom,
-      content: body,
-      timestamp: now,
-      read: composeFrom === id,
-    }));
-    await save([...entries, ...notes]);
+    if (!(await save([...composeMail(targets, composeFrom, composeBody.trim()), ...notes]))) return;
     setShowCompose(false);
     setComposeBody('');
   };
 
-  const startReply = (msg: NoteboardEntry) => {
-    setComposeTo(msg.authorId);
-    setComposeFrom(msg.memberId);
+  const openCompose = (to: string, from: string) => {
+    setComposeTo(to);
+    setComposeFrom(from);
     setComposeBody('');
     setShowCompose(true);
   };
 
-  const mailboxes = useMemo(() => {
-    const byMember = new Map<string, { count: number; unread: number; latest: number }>();
-    notes.forEach(n => {
-      const cur = byMember.get(n.memberId) || { count: 0, unread: 0, latest: 0 };
-      cur.count += 1;
-      if (!n.read) cur.unread += 1;
-      cur.latest = Math.max(cur.latest, n.timestamp);
-      byMember.set(n.memberId, cur);
-    });
-    return [...byMember.entries()]
-      .map(([id, v]) => ({ id, name: nameOf(id), ...v }))
-      .sort((a, b) => b.unread - a.unread || b.latest - a.latest);
-  }, [notes, members]);
+  const startReply = (msg: NoteboardEntry) => openCompose(msg.authorId, msg.memberId);
 
-  const openMessages = useMemo(
-    () => openId
-      ? notes.filter(n => n.memberId === openId).sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.timestamp - a.timestamp)
-      : [],
-    [notes, openId],
-  );
+  const mailboxes = useMemo(() => inboxSummaries(notes)
+    .flatMap(s => {
+      const owner = byId.get(s.id);
+      return owner && !owner.deleted ? [{ ...s, name: owner.name || '?', locked: !!owner.mailboxPassword }] : [];
+    })
+    .sort((a, b) => b.unread - a.unread || b.latest - a.latest), [notes, byId]);
+
+  const openMessages = useMemo(() => (openId ? inboxMessages(notes, openId) : []), [notes, openId]);
 
   const memberOptions = [...activeMembers.map(m => m.id), ...activeFacets.map(m => m.id)];
   const recipientOptions = activeMembers.length > 0 ? [ALL_RECIPIENTS, ...memberOptions] : memberOptions;
@@ -167,31 +138,29 @@ export default function MailboxView({ onUpdate }: Props) {
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', paddingBottom: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-        <Btn onClick={() => { setComposeTo(activeMembers[0]?.id || ''); setComposeFrom(activeMembers[1]?.id || activeMembers[0]?.id || ''); setComposeBody(''); setShowCompose(true); }}>
+        <Btn onClick={() => openCompose(activeMembers[0]?.id || '', activeMembers[1]?.id || activeMembers[0]?.id || '')}>
           {t('mailbox.compose')}
         </Btn>
       </div>
 
       {openId === null ? (
         mailboxes.length === 0 ? (
-          <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '32px 0' }}>{t('mailbox.empty')}</p>
+          <p style={EMPTY_MSG}>{t('mailbox.empty')}</p>
         ) : (
           mailboxes.map(mb => (
-            <div key={mb.id} role="button" tabIndex={0}
-              onClick={() => openMailbox(mb.id)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMailbox(mb.id); } }}
+            <div key={mb.id} {...clickable(() => openMailbox(mb.id))}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8, cursor: 'pointer', background: 'var(--card)' }}>
               <div style={{ width: 34, height: 34, borderRadius: 17, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--accent)', flexShrink: 0 }} aria-hidden>
                 {getInitials(mb.name)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {mb.name}{members.find(x => x.id === mb.id)?.mailboxPassword ? <><span aria-hidden> 🔒</span><SrOnly>{t('mailbox.lockedLabel')}</SrOnly></> : ''}
+                  {mb.name}{mb.locked ? <><span aria-hidden> 🔒</span><SrOnly>{t('mailbox.lockedLabel')}</SrOnly></> : ''}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('mailbox.messageCount', { count: mb.count })}</div>
               </div>
               {mb.unread > 0 && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'var(--accent)', borderRadius: 999, padding: '3px 9px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--bg)', background: 'var(--accent)', borderRadius: 999, padding: '3px 9px' }}>
                   {t('mailbox.unreadCount', { count: mb.unread })}
                 </span>
               )}
@@ -203,12 +172,12 @@ export default function MailboxView({ onUpdate }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <Btn variant="ghost" aria-label={t('common.back')} onClick={() => setOpenId(null)}>←</Btn>
             <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text)', flex: 1 }}>{t('mailbox.inboxOf', { name: nameOf(openId) })}</h3>
-            <Btn variant="ghost" aria-label={members.find(x => x.id === openId)?.mailboxPassword ? t('mailbox.lockButtonLocked') : t('mailbox.lockButtonUnlocked')} aria-haspopup="dialog" onClick={() => { setLockInput(''); setLockManage(true); }}>
-              {members.find(x => x.id === openId)?.mailboxPassword ? '🔒' : '🔓'}
+            <Btn variant="ghost" aria-label={isLockedBox(openId) ? t('mailbox.lockButtonLocked') : t('mailbox.lockButtonUnlocked')} aria-haspopup="dialog" onClick={() => { setLockInput(''); setLockManage(true); }}>
+              {isLockedBox(openId) ? '🔒' : '🔓'}
             </Btn>
           </div>
           {openMessages.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '32px 0' }}>{t('mailbox.emptyInbox')}</p>
+            <p style={EMPTY_MSG}>{t('mailbox.emptyInbox')}</p>
           ) : (
             openMessages.map(msg => (
               <div key={msg.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', marginBottom: 8, background: 'var(--card)' }}>
@@ -240,7 +209,7 @@ export default function MailboxView({ onUpdate }: Props) {
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Btn variant="ghost" onClick={() => setShowCompose(false)}>{t('common.cancel')}</Btn>
-            <Btn onClick={sendMessage} disabled={!composeTo || !composeFrom || !composeBody.trim()}>{t('mailbox.send')}</Btn>
+            <Btn onClick={() => void sendMessage()} disabled={!composeTo || !composeFrom || !composeBody.trim()}>{t('mailbox.send')}</Btn>
           </div>
         }>
         <Dropdown value={composeTo} options={recipientOptions} onChange={setComposeTo} label={t('mailbox.to')} renderOption={renderRecipientOption} />
@@ -262,17 +231,17 @@ export default function MailboxView({ onUpdate }: Props) {
         title={t('mailbox.deleteTitle')}
         message={t('mailbox.deleteMsg')}
         danger
-        onConfirm={() => { const m = deleteTarget!; setDeleteTarget(null); save(notes.filter(n => n.id !== m.id)); }}
+        onConfirm={() => { if (deleteTarget) void save(removeNote(notes, deleteTarget.id)); setDeleteTarget(null); }}
         onCancel={() => setDeleteTarget(null)}
       />
 
       <Modal
         open={!!pwFor}
         title={t('mailbox.unlockTitle', { name: nameOf(pwFor || '') })}
-        onClose={() => { setPwFor(null); setPwInput(''); setPwError(false); }}
+        onClose={closePw}
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Btn variant="ghost" onClick={() => { setPwFor(null); setPwInput(''); setPwError(false); }}>{t('common.cancel')}</Btn>
+            <Btn variant="ghost" onClick={closePw}>{t('common.cancel')}</Btn>
             <Btn onClick={submitUnlock}>{t('journal.unlock')}</Btn>
           </div>
         }>
@@ -285,7 +254,7 @@ export default function MailboxView({ onUpdate }: Props) {
           placeholder={t('journal.password')}
           aria-label={t('journal.password')}
           aria-invalid={pwError} aria-describedby={pwError ? pwErrorId : undefined}
-          style={{ display: 'block', width: '100%', background: 'var(--bg)', color: 'var(--text)', border: `1px solid ${pwError ? 'var(--danger)' : 'var(--border)'}`, borderRadius: 8, padding: 10, fontSize: 13 }}
+          style={pwError ? { ...PW_INPUT, borderColor: 'var(--danger)' } : PW_INPUT}
         />
         {pwError && <p role="alert" id={pwErrorId} style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 0 }}>{t('journal.incorrectPassword')}</p>}
       </Modal>
@@ -293,11 +262,11 @@ export default function MailboxView({ onUpdate }: Props) {
       <Modal
         open={lockManage}
         title={t('mailbox.lockTitle')}
-        onClose={() => { setLockManage(false); setLockInput(''); }}
+        onClose={closeLock}
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Btn variant="ghost" onClick={() => { setLockManage(false); setLockInput(''); }}>{t('common.cancel')}</Btn>
-            <Btn onClick={submitLock}>{t('common.save')}</Btn>
+            <Btn variant="ghost" onClick={closeLock}>{t('common.cancel')}</Btn>
+            <Btn onClick={() => void submitLock()}>{t('common.save')}</Btn>
           </div>
         }>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginTop: 0 }}>{t('mailbox.lockHint')}</p>
@@ -305,10 +274,10 @@ export default function MailboxView({ onUpdate }: Props) {
           type="password"
           value={lockInput}
           onChange={e => setLockInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') submitLock(); }}
+          onKeyDown={e => { if (e.key === 'Enter') void submitLock(); }}
           placeholder={t('journal.password')}
           aria-label={t('journal.password')}
-          style={{ display: 'block', width: '100%', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13 }}
+          style={PW_INPUT}
         />
       </Modal>
 
@@ -319,12 +288,11 @@ export default function MailboxView({ onUpdate }: Props) {
         danger
         onConfirm={() => {
           setConfirmUnlockRemove(false);
-          if (openId) setMailboxPassword(openId, undefined);
-          setLockManage(false);
-          setLockInput('');
+          if (openId) void setMailboxPassword(openId, undefined).then(ok => { if (ok) closeLock(); });
         }}
         onCancel={() => setConfirmUnlockRemove(false)}
       />
+      <SaveErrorDialog error={saveError} onClose={clearSaveError} />
     </div>
   );
 }
